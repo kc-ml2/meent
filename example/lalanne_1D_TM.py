@@ -29,7 +29,7 @@ n_II = 1
 
 theta = 0 * pi / 180
 
-fourier_order = 150
+fourier_order = 30
 period = 0.7
 
 wls = np.linspace(0.5, 2.3, 400)

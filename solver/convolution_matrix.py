@@ -19,11 +19,12 @@ def permittivity_mapping(patterns, wl, period, fourier_order, oneover=False):
 
     for i, layer in enumerate(patterns):
         n_ridge = np.interp(wl, mat_si['WL'].flatten(), mat_si['n'].flatten())
+        n_ridge = 3.48  # TODO: Hardcoding for test
         patterns[i][0] = n_ridge if not oneover else 1 / n_ridge
 
     if type(period) in [float, int] or len(period) == 1:
-        # pmtvy = draw_1d(patterns)
-        pmtvy = draw_1d_jlab(patterns)
+        pmtvy = draw_1d(patterns)
+        # pmtvy = draw_1d_jlab(patterns)
 
     else:
         pmtvy = draw_2d(patterns)
@@ -109,6 +110,7 @@ def draw_1d(patterns, resolution=1001):
 
 
 def draw_1d_jlab(patterns_pixel, resolution=1001):
+
     resolution = len(patterns_pixel[0][2].flatten())
     res = np.ndarray((len(patterns_pixel), resolution))
 
@@ -132,7 +134,7 @@ def draw_2d(patterns, resolution=1001):
         permittivity = np.ones((resolution, resolution))
         cut = int(resolution * fill_factor)
         permittivity[:, :] *= n_groove ** 2
-        permittivity[:cut*2, :cut] *= n_ridge ** 2
+        permittivity[:cut, :cut] *= n_ridge ** 2
         res[i] = permittivity
 
     return res

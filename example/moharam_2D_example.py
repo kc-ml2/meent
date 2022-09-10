@@ -1,6 +1,72 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from solver.convolution_matrix import to_conv_mat
+# from solver.convolution_matrix import to_conv_mat
+
+from scipy.linalg import circulant
+
+
+def to_conv_mat(permittivities, fourier_order):
+    # FFT scaling
+    # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft#:~:text=the%20matlab%20fft%20outputs%202,point%20is%20the%20parseval%20equation.
+    ff = 2 * fourier_order + 1
+
+    # TODO: check whether 1D case is correct or not. I think I actually didn't test it at all.
+    if len(permittivities[0].shape) == 1:  # 1D
+        res = np.ndarray((len(permittivities), 2*fourier_order+1, 2*fourier_order+1)).astype('complex')
+
+        # extend array
+        if permittivities.shape[1] < 2 * ff + 1:
+            n = (2 * ff + 1) // permittivities.shape[1]
+            permittivities = np.repeat(permittivities, n+1, axis=1)
+
+        for i, pmtvy in enumerate(permittivities):
+            pmtvy_fft = np.fft.fftn(pmtvy / pmtvy.size)
+            pmtvy_fft = np.fft.fftshift(pmtvy_fft)
+
+            center = len(pmtvy_fft) // 2
+            pmtvy_fft_cut = (pmtvy_fft[-ff + center: center+ff+1])
+            A = np.roll(circulant(pmtvy_fft_cut.flatten()), (pmtvy_fft_cut.size + 1) // 2, 0)
+            res[i] = A[:2*fourier_order+1, :2*fourier_order+1]
+            # res[i] = circulant(pmtvy_fft_cut)
+
+    else:  # 2D
+        # TODO: separate fourier order
+        res = np.ndarray((len(permittivities), ff ** 2, ff ** 2)).astype('complex')
+
+        # extend array
+        # TODO: do test
+        if permittivities.shape[0] < 2 * ff + 1:
+            n = (2 * ff + 1) // permittivities.shape[1]
+            permittivities = np.repeat(permittivities, n+1, axis=0)
+        if permittivities.shape[1] < 2 * ff + 1:
+            n = (2 * ff + 1) // permittivities.shape[1]
+            permittivities = np.repeat(permittivities, n+1, axis=1)
+
+        for i, pmtvy in enumerate(permittivities):
+
+            pmtvy_fft = np.fft.fftn(pmtvy / pmtvy.size)
+            pmtvy_fft = np.fft.fftshift(pmtvy_fft)
+
+            center = np.array(pmtvy_fft.shape) // 2
+
+            conv_idx = np.arange(ff-1, -ff, -1)
+            conv_idx = circulant(conv_idx)[ff-1:, :ff]
+
+            conv_i = np.repeat(conv_idx, ff, axis=1)
+            conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
+
+            conv_j = np.tile(conv_idx, (ff, ff))
+            res[i] = pmtvy_fft[center[0] + conv_i, center[1] + conv_j]
+
+    # import matplotlib.pyplot as plt
+    #
+    # plt.figure()
+    # plt.imshow(abs(res[0]), cmap='jet')
+    # plt.colorbar()
+    # plt.show()
+
+    return res
+
 
 pi = np.pi
 
@@ -34,7 +100,22 @@ permt = np.ones((1024, 1024))
 # permt[300:601, 300:601] = 3.48
 permt[:, :307] = 3.48**2
 
-E_conv_all = to_conv_mat([permt, permt], fourier_order)
+radius = 0.3
+epgrid = np.ones((400,400),dtype=float)*1
+
+x0 = np.linspace(0,1.,400)
+y0 = np.linspace(0,1.,400)
+
+x, y = np.meshgrid(x0,y0,indexing='ij')
+
+sphere = (x-.5)**2+(y-.5)**2<radius**2
+
+epgrid[sphere] = 3.48**2
+
+permt = np.array([epgrid, epgrid])
+# permt = np.array([permt, permt])
+
+E_conv_all = to_conv_mat(permt, fourier_order)
 
 fourier_indices = np.arange(-fourier_order, fourier_order + 1)
 

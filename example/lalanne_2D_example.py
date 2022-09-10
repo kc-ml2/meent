@@ -1,6 +1,83 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from solver.convolution_matrix import to_conv_mat
+# from solver.convolution_matrix import to_conv_mat
+
+from scipy.linalg import circulant
+
+
+def to_conv_mat(permittivities, fourier_order):
+    # FFT scaling
+    # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft#:~:text=the%20matlab%20fft%20outputs%202,point%20is%20the%20parseval%20equation.
+    ff = 2 * fourier_order + 1
+
+    # TODO: check whether 1D case is correct or not. I think I actually didn't test it at all.
+    if len(permittivities[0].shape) == 1:  # 1D
+        res = np.ndarray((len(permittivities), 2*fourier_order+1, 2*fourier_order+1)).astype('complex')
+
+        # extend array
+        if permittivities.shape[1] < 2 * ff + 1:
+            n = (2 * ff + 1) // permittivities.shape[1]
+            permittivities = np.repeat(permittivities, n+1, axis=1)
+
+        for i, pmtvy in enumerate(permittivities):
+            pmtvy_fft = np.fft.fftn(pmtvy / pmtvy.size)
+            pmtvy_fft = np.fft.fftshift(pmtvy_fft)
+
+            center = len(pmtvy_fft) // 2
+            pmtvy_fft_cut = (pmtvy_fft[-ff + center: center+ff+1])
+            A = np.roll(circulant(pmtvy_fft_cut.flatten()), (pmtvy_fft_cut.size + 1) // 2, 0)
+            res[i] = A[:2*fourier_order+1, :2*fourier_order+1]
+            # res[i] = circulant(pmtvy_fft_cut)
+
+    else:  # 2D
+        # TODO: separate fourier order
+        res = np.ndarray((len(permittivities), ff ** 2, ff ** 2)).astype('complex')
+
+        # extend array
+        # TODO: run test
+        if permittivities.shape[0] < 2 * ff + 1:
+            n = (2 * ff + 1) // permittivities.shape[1]
+            permittivities = np.repeat(permittivities, n+1, axis=0)
+        if permittivities.shape[1] < 2 * ff + 1:
+            n = (2 * ff + 1) // permittivities.shape[1]
+            permittivities = np.repeat(permittivities, n+1, axis=1)
+
+        for i, pmtvy in enumerate(permittivities):
+            pmtvy_fft = np.fft.fftn(pmtvy / pmtvy.size)
+            pmtvy_fft = np.fft.fftshift(pmtvy_fft)
+
+            # From Zhaonat.
+            # https://math.stackexchange.com/questions/30245/are-fourier-coefficients-always-symmetric
+            # TODO: Can this be improved?
+            p0, q0 = np.array(pmtvy_fft.shape) // 2
+
+            Af = pmtvy_fft.T
+            P=Q=fourier_order
+            p = list(range(-P, P + 1))  # array of size 2Q+1
+            q = list(range(-Q, Q + 1))
+
+            C = np.zeros(((2*P+1)**2, (2*P+1)**2))
+            C = C.astype(complex)
+            for qrow in range(2 * Q + 1):  # remember indices in the arrary are only POSITIVE
+                for prow in range(2 * P + 1):  # outer sum
+                    # first term locates z plane, 2nd locates y column, prow locates x
+                    row = (qrow) * (2 * P + 1) + prow  # natural indexing
+                    for qcol in range(2 * Q + 1):  # inner sum
+                        for pcol in range(2 * P + 1):
+                            col = (qcol) * (2 * P + 1) + pcol  # natural indexing
+                            pfft = p[prow] - p[pcol]  # get index in Af; #index may be negative.
+                            qfft = q[qrow] - q[qcol]
+                            C[row, col] = Af[q0 + pfft, p0 + qfft]  # index may be negative.
+            res[i] = C
+
+    # import matplotlib.pyplot as plt
+    #
+    # plt.figure()
+    # plt.imshow(abs(res[0]), cmap='jet')
+    # plt.colorbar()
+    # plt.show()
+    #
+    return res
 
 pi = np.pi
 
@@ -29,15 +106,15 @@ spectrum_r, spectrum_t = [], []
 # permt = draw_1d(patterns)
 # E_conv_all = to_conv_mat(permt, fourier_order)
 thickness = [0.46, 0.66]
-# thickness = [0.46]
-permt = np.ones((1024, 1024))
-# permt[300:601, 300:601] = 3.48
-permt[:, :307] = 3.48**2
 
-E_conv_all = to_conv_mat([permt, permt], fourier_order)
+permt = np.ones((1024, 1024))
+permt[:, :307] = 3.48**2
+permt = np.array([permt, permt])
+
+E_conv_all = to_conv_mat(permt, fourier_order)
 
 oneover_permt = 1 / permt
-oneover_E_conv_all = to_conv_mat([oneover_permt, oneover_permt], fourier_order)
+oneover_E_conv_all = to_conv_mat(oneover_permt, fourier_order)
 
 fourier_indices = np.arange(-fourier_order, fourier_order + 1)
 
@@ -191,11 +268,11 @@ for wl in wls:
     DEti = T_s*np.conj(T_s) * np.real(k_II_z/(k0*n_I*np.cos(theta))) \
            + T_p*np.conj(T_p) * np.real((k_II_z/n_II**2)/(k0*n_I*np.cos(theta)))
 
-    spectrum_r.append(DEri.sum())
-    spectrum_t.append(DEti.sum())
+    spectrum_r.append(DEri.reshape((ff, ff)).real)
+    spectrum_t.append(DEti.reshape((ff, ff)).real)
 
-plt.plot(wls, spectrum_r)
-plt.plot(wls, spectrum_t)
+plt.plot(wls, np.array(spectrum_r).sum(axis=(1, 2)))
+plt.plot(wls, np.array(spectrum_t).sum(axis=(1, 2)))
 plt.title(f'Lalanne 2D, f order of {fourier_order}')
 
 plt.show()

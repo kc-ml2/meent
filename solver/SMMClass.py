@@ -69,32 +69,27 @@ class LalanneBase:
 
             Kx = np.diag(kx_vector / k0)
 
-            f = np.eye(self.ff)
-
             if self.polarization == 0:  # TE
-                Y_I = np.diag(k_I_z / k0)
-                Y_II = np.diag(k_II_z / k0)
-
-                YZ_I = Y_I
-                g = 1j * Y_II
-                inc_term = 1j * self.n_I * np.cos(self.theta) * delta_i0
-
                 oneover_E_conv_all = np.zeros(len(E_conv_all))  # Dummy for TE case
 
             elif self.polarization == 1:  # TM
-                Z_I = np.diag(k_I_z / (k0 * self.n_I ** 2))
-                Z_II = np.diag(k_II_z / (k0 * self.n_II ** 2))
-
-                YZ_I = Z_I
-                g = 1j * Z_II
-                inc_term = 1j * delta_i0 * np.cos(self.theta) / self.n_I
-
                 oneover_E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order, oneover=True)
 
             else:
                 raise ValueError
 
-            T = np.eye(2 * self.fourier_order + 1)
+            # scattering matrix needed for 'gap medium'
+            # if calculations shift with changing selection of gap media, this is BAD; it should not shift with choice of gap
+            Wg, Vg, Kzg = hl.homogeneous_1D(Kx, 1, m_r=1)
+            # reflection medium
+            Wr, Vr, Kzr = hl.homogeneous_1D(Kx, n_I, m_r=1)
+            # transmission medium;
+            Wt, Vt, Kzt = hl.homogeneous_1D(Kx, n_II, m_r=1)
+
+            # S matrices for the reflection region
+            Ar, Br = sm.A_B_matrices_half_space(Wr, Wg, Vr, Vg)  # make sure this order is right
+            _, Sg = sm.S_R(Ar, Br)  # scatter matrix for the reflection region
+
 
             for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
                 if self.polarization == 0:
@@ -119,56 +114,47 @@ class LalanneBase:
                 else:
                     raise ValueError
 
-                X = np.diag(np.exp(-k0 * q * d))
+                # calculating A and B matrices for scattering matrix
+                # define S matrix for the GRATING REGION
+                A, B = sm.A_B_matrices(W, Wg, V, Vg)
+                _, S_dict = sm.S_layer(A, B, d, k0, Q)
+                _, Sg = rs.RedhefferStar(Sg, S_dict)
 
-                W_i = np.linalg.inv(W)
-                V_i = np.linalg.inv(V)
 
-                a = 0.5 * (W_i @ f + V_i @ g)
-                b = 0.5 * (W_i @ f - V_i @ g)
+            # define S matrices for the Transmission region
+            At, Bt = sm.A_B_matrices_half_space(Wt, Wg, Vt, Vg)  # make sure this order is right
+            _, St_dict = sm.S_T(At, Bt)  # scatter matrix for the reflection region
+            _, Sg = rs.RedhefferStar(Sg, St_dict)
 
-                a_i = np.linalg.inv(a)
+            # cinc is the incidence vector
+            cinc = np.zeros((self.ff, 1))  # only need one set...
+            cinc[self.fourier_order, 0] = 1
+            cinc = np.linalg.inv(Wr) @ cinc
+            # COMPUTE FIELDS: similar idea but more complex for RCWA since you have individual modes each contributing
+            R = Wr @ Sg['S11'] @ cinc
+            T = Wt @ Sg['S21'] @ cinc
 
-                f = W @ (np.eye(2 * self.fourier_order + 1) + X @ b @ a_i @ X)
-                g = V @ (np.eye(2 * self.fourier_order + 1) - X @ b @ a_i @ X)
-                T = T @ a_i @ X
+            # compute final reflectivity
+            de_ri = np.real(Kzr @ R * np.conj(R) / (k0 * k_I_z * np.cos(theta)))
+            de_ti = np.real(Kzt @ T * np.conj(T) / (k0 * k_II_z * np.cos(theta)))  # TODO: kz_inc? check the result.
 
-            Tl = np.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
-            R = f @ Tl - delta_i0
-            T = T @ Tl
-
-            DEri = R * np.conj(R) * np.real(k_I_z / (k0 * self.n_I * np.cos(self.theta)))
-            if self.polarization == 0:
-                DEti = T * np.conj(T) * np.real(k_II_z / (k0 * self.n_I * np.cos(self.theta)))
-            elif self.polarization == 1:
-                DEti = T * np.conj(T) * np.real(k_II_z / self.n_II ** 2) / (k0 * np.cos(self.theta) / self.n_I)
-            else:
-                raise ValueError
-
-            # self.spectrum_r.append(DEri.sum())
-            # self.spectrum_t.append(DEti.sum())
-
-            self.spectrum_r[i] = DEri.real
-            self.spectrum_t[i] = DEti.real
-
-        # center = DEti.shape[0]//2
-        # res = DEti[center-1:center+2]
+            self.spectrum_r[i] = de_ri
+            self.spectrum_t[i] = de_ti
 
         return self.spectrum_r, self.spectrum_t
 
     def lalanne_1d_conical(self):
 
         if self.theta == 0:
-            self.theta = 1E-10
+            self.theta = 0.001
 
         # pmtvy = draw_1d(self.patterns)
         # E_conv_all = to_conv_mat(pmtvy, self.fourier_order)
 
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
-        # delta_i0 = np.zeros(self.ff).reshape((-1, 1))
-        delta_i0 = np.zeros((self.ff, 1))
-        delta_i0[self.fourier_order, 0] = 1
+        delta_i0 = np.zeros(self.ff).reshape((-1, 1))
+        delta_i0[self.fourier_order] = 1
 
         I = np.eye(self.ff)
         O = np.zeros((self.ff, self.ff))
@@ -181,8 +167,6 @@ class LalanneBase:
 
             kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (wl / self.period)).astype('complex')
             ky = k0 * self.n_I * np.sin(self.theta) * np.sin(self.phi)
-
-            Kx = np.diag(kx_vector / k0)
 
             k_I_z = (k0 ** 2 * self.n_I ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
             k_II_z = (k0 ** 2 * self.n_II ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
@@ -198,12 +182,16 @@ class LalanneBase:
             Z_I = np.diag(k_I_z / (k0 * self.n_I ** 2))
             Z_II = np.diag(k_II_z / (k0 * self.n_II ** 2))
 
+            Kx = np.diag(kx_vector / k0)
+
             big_F = np.block([[I, O], [O, 1j * Z_II]])
             big_G = np.block([[1j * Y_II, O], [O, I]])
 
             big_T = np.eye(2 * self.ff)
 
+            # for E_conv, d in zip(E_conv_all[::-1], self.thickness[::-1]):
             for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
+
                 E_i = np.linalg.inv(E_conv)
                 oneover_E_conv_i = np.linalg.inv(oneover_E_conv)
 
@@ -501,7 +489,7 @@ if __name__ == '__main__':
     psi = 0
 
     fourier_order = 3
-    period = [0.7]
+    period = [0.7, 0.7]
 
     wls = np.linspace(0.5, 2.3, 400)
 
@@ -516,10 +504,10 @@ if __name__ == '__main__':
 
     res = LalanneBase(polarization_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls, polarization, patterns, thickness)
 
-    res.lalanne_1d()
+    # res.lalanne_1d()
     # res.lalanne_1d_conical()
-    # res.lalanne_2d()
+    res.lalanne_2d()
 
-    plt.plot(res.wls, res.spectrum_r.sum(axis=1))
-    plt.plot(res.wls, res.spectrum_t.sum(axis=1))
+    plt.plot(res.wls, res.spectrum_r)
+    plt.plot(res.wls, res.spectrum_t)
     plt.show()
