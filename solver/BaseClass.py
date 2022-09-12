@@ -323,9 +323,11 @@ class RcwaBackbone:
             ky_vector = k0 * (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (
                         wl / self.period[1])).astype('complex')
 
+            # Kx = np.diag(np.tile(kx_vector, self.ff).flatten()) / k0
+            # Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), self.ff).flatten()) / k0
+
             kx_inc = self.n_I * np.sin(self.theta) * np.cos(self.phi)
-            ky_inc = self.n_I * np.sin(self.theta) * np.sin(
-                self.phi)  # constant in ALL LAYERS; ky = 0 for normal incidence
+            ky_inc = self.n_I * np.sin(self.theta) * np.sin(self.phi)
             kz_inc = np.sqrt(self.n_I ** 2 * 1 - kx_inc ** 2 - ky_inc ** 2)
 
             # k_x = kx_inc - 2 * np.pi * np.arange(-3, 3 + 1) / (k0 * self.period[0])
@@ -334,18 +336,16 @@ class RcwaBackbone:
             # k_x1 = kx_inc - np.arange(-3, 3 + 1) * wl / (self.period[0])
             # k_y1 = ky_inc - np.arange(-3, 3 + 1) * wl / (self.period[1])
 
-
-            kx_vector1 = (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (2*np.pi /k0 / self.period[0])).astype('complex')
-            ky_vector1 = (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (2*np.pi /k0 / self.period[1])).astype('complex')
-            Kx1 = np.diag(np.tile(kx_vector1, self.ff).flatten())
-            Ky1 = np.diag(np.tile(ky_vector1.reshape((-1, 1)), self.ff).flatten())
-
-            # remember, these Kx and Ky come out already normalized
-            Kx2, Ky2 = km.K_matrix_cubic_2D(kx_inc, ky_inc, k0, self.period[0], self.period[1], self.fourier_order, self.fourier_order);  # Kx and Ky are diagonal but have a 0 on it
-
+            # kx_vector1 = (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (2*np.pi /k0 / self.period[0])).astype('complex')
+            # ky_vector1 = (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (2*np.pi /k0 / self.period[1])).astype('complex')
+            # Kx1 = np.diag(np.tile(kx_vector1, self.ff).flatten())
+            # Ky1 = np.diag(np.tile(ky_vector1.reshape((-1, 1)), self.ff).flatten())
             # Kx, Ky = Kx1, Ky1
             # Kx, Ky = Kx1.astype('complex'), Ky1.astype('complex')
 
+            # remember, these Kx and Ky come out already normalized
+            Kx2, Ky2 = km.K_matrix_cubic_2D(kx_inc, ky_inc, k0, self.period[0], self.period[1], self.fourier_order, self.fourier_order);  # Kx and Ky are diagonal but have a 0 on it
+            Kx, Ky = Kx2, Ky2
 
             k_I_z = (k0 ** 2 * self.n_I ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5
             k_II_z = (k0 ** 2 * self.n_II ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5
@@ -354,7 +354,6 @@ class RcwaBackbone:
             k_II_z = k_II_z.flatten().conjugate()
 
             varphi = np.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
-            # varphi = np.arctan(kx_vector.reshape((-1, 1)) / ky_vector).flatten()
 
             if self.algo == 'TMM':
                 Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T = transfer_2d_1(self.ff, k_I_z, k0, k_II_z, n_I, I, O)
@@ -454,11 +453,6 @@ class RcwaBackbone:
 
         return self.spectrum_r, self.spectrum_t
 
-            # kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (wl / self.period[0]))
-            # ky_vector = k0 * (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (wl / self.period[1]))
-
-            Kx = np.diag(np.tile(kx_vector, self.ff).flatten()) / k0
-            Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), self.ff).flatten()) / k0
 
 
 def transfer_1d_1(ff, polarization, k_I_z, k0, k_II_z, n_I, theta, delta_i0, fourier_order):
@@ -789,14 +783,14 @@ def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, k0, k
 
 
 if __name__ == '__main__':
-    n_I = 1
-    n_II = 1
+    n_I = 2
+    n_II = 10
 
-    theta = 1E-10
-    phi = 1E-10
+    theta = 30
+    phi = 10
     psi = 90
 
-    theta = 0
+    # theta = 1E-10
     # phi = 0
     # psi = 0
 
@@ -806,7 +800,7 @@ if __name__ == '__main__':
     wls = np.linspace(500, 2300, 100)
 
     # TODO: integrate psi into this
-    polarization = 1  # TE 0, TM 1
+    polarization = 0  # TE 0, TM 1
 
     # permittivity in grating layer
     patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
