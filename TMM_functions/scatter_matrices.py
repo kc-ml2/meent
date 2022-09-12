@@ -57,6 +57,26 @@ def A_B_matrices_half_space(W_layer, Wg, V_layer, Vg):
     return a, b;
 
 
+def A_B_matrices_half_space_new(W_layer, Wg, V_layer, Vg):
+    ## this function is needed because for the half-spaces (reflection and transmission
+    # spaces, the convention for calculating A and B is DIFFERENT than inside the main layers
+    # a = A(Wg, W_layer, Vg, V_layer);
+    # b = B(Wg, W_layer, Vg, V_layer);
+    #
+    #
+    # aa = A(W_layer, Wg, V_layer, Vg );
+    # ba = B(W_layer, Wg, V_layer, Vg);
+
+    I = np.eye(len(Vg))
+    a_ref = I + np.linalg.inv(Vg) @ V_layer
+    b_ref = I - np.linalg.inv(Vg) @ V_layer
+
+    # a_ref = np.linalg.inv(Wg) @ W_layer + np.linalg.inv(Vg) @ V_layer
+    # b_ref = np.linalg.inv(Wg) @ W_layer - np.linalg.inv(Vg) @ V_layer
+
+    return a_ref, b_ref
+
+
 def A_B_matrices(W_layer, Wg, V_layer, Vg):
     '''
     single function to output the a and b matrices needed for the scatter matrices

@@ -1,5 +1,5 @@
 import copy
-
+import time
 import scipy
 import scipy.io
 
@@ -426,27 +426,12 @@ class RcwaBackbone:
 
             if self.algo == 'TMM':
                 de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, I, O, Z_I, Y_I, self.psi, self.theta, self.ff, delta_i0,
-                                             k_I_z, k0, n_I, k_II_z)
+                                             k_I_z, k0, self.n_I, k_II_z)
 
             elif self.algo == 'SMM':
-                normal_vector = np.array([0, 0, -1])  # positive z points down;
-                # ampltidue of the te vs tm modes (which are decoupled)
 
-                if self.polarization == 0:
-                    pte = 1
-                    ptm = 0
-                elif self.polarization == 1:
-                    pte = 0
-                    ptm = 1
-                else:
-                    raise ValueError
-
-                # kz_inc = self.n_I
-                M = N = self.fourier_order
-                NM = self.ff ** 2
-
-                de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, k0, k_I_z, k_II_z,
-                                               normal_vector, pte, ptm, N, M, NM, self.theta, self.phi)
+                de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_I, k0, k_I_z, k_II_z,
+                                               self.polarization, self.theta, self.phi, self.fourier_order, self.ff)
 
             self.spectrum_r[i] = de_ri.reshape((self.ff, self.ff)).real
             self.spectrum_t[i] = de_ti.reshape((self.ff, self.ff)).real
@@ -521,25 +506,22 @@ def scattering_2d_1(Kx, Ky, n_I, n_II):
     ## =============== K Matrices for gap medium =========================
     ## specify gap media (this is an LHI so no eigenvalue problem should be solved
     e_h = 1
-    m_h = 1
     Wg, Vg, Kzg = hl.homogeneous_module(Kx, Ky, e_h)
 
     ### ================= Working on the Reflection Side =========== ##
     e_r = n_I ** 2
     Wr, Vr, Kzr = hl.homogeneous_module(Kx, Ky, e_r)
-    # kz_storage.append(Kzr)
 
     ##========= Working on the Transmission Side==============##
-    m_t = 1
     e_t = n_II ** 2
     Wt, Vt, Kzt = hl.homogeneous_module(Kx, Ky, e_t)
 
     ## calculating A and B matrices for scattering matrix
     # since gap medium and reflection media are the same, this doesn't affect anything
-    Ar, Br = sm.A_B_matrices(Wg, Wr, Vg, Vr)  # TODO: half space?
+    Ar, Br = sm.A_B_matrices_half_space_new(Wr, Wg, Vr, Vg)  # TODO: half space?
 
     ## s_ref is a matrix, Sr_dict is a dictionary
-    S_ref, Sr_dict = sm.S_R(Ar, Br)  # scatter matrix for the reflection region
+    _, Sr_dict = sm.S_R(Ar, Br)  # scatter matrix for the reflection region
     # S_matrices.append(S_ref)
     Sg = Sr_dict
 
@@ -613,11 +595,11 @@ def transfer_2d_2(k0, d, W, V, center, Lambda_1, Lambda_2, varphi, I, O, big_F, 
     return big_F, big_G, big_T
 
 
-def scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg):
+def scattering_1d_2(W, Wg, V, Vg, d, k0, LAMBDA, Sg):
     # calculating A and B matrices for scattering matrix
     # define S matrix for the GRATING REGION
     A, B = sm.A_B_matrices(W, Wg, V, Vg)
-    _, S_dict = sm.S_layer(A, B, d, k0, Q)
+    _, S_dict = sm.S_layer(A, B, d, k0, LAMBDA)
     _, Sg = rs.RedhefferStar(Sg, S_dict)
 
     return A, B, S_dict, Sg
@@ -743,12 +725,27 @@ def scattering_1d_3(Wt, Wg, Vt, Vg, Sg, ff, Wr, fourier_order, Kzr, k0, k_I_z, K
     return de_ri, de_ti
 
 
-def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, k0, k_I_z, k_II_z, normal_vector, pte, ptm,
-                    N, M, NM, theta, phi):
+def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, k0, k_I_z, k_II_z, polarization, theta,
+                    phi, fourier_order, ff):
+    normal_vector = np.array([0, 0, 1])  # positive z points down;
+    # ampltidue of the te vs tm modes (which are decoupled)
+
+    if polarization == 0:
+        pte = 1
+        ptm = 0
+    elif polarization == 1:
+        pte = 0
+        ptm = 1
+    else:
+        raise ValueError
+
+    M = N = fourier_order
+    NM = ff ** 2
+
     # get At, Bt
     # since transmission is the same as gap, order does not matter
-    At, Bt = sm.A_B_matrices(Wg, Wt, Vg, Vt)
-    ST, ST_dict = sm.S_T(At, Bt)
+    At, Bt = sm.A_B_matrices_half_space_new(Wt, Wg, Vt, Vg)
+    _, ST_dict = sm.S_T(At, Bt)
 
     # update global scattering matrix
     Sg_matrix, Sg = rs.RedhefferStar(Sg, ST_dict)
@@ -779,16 +776,18 @@ def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, k0, k
     de_ri = np.real(Kzr) @ r_sq / np.real(kz_inc)
     de_ti = np.real(Kzt) @ t_sq / np.real(kz_inc)
 
+    print(de_ri.sum(), de_ti.sum())
+
     return de_ri, de_ti
 
 
 if __name__ == '__main__':
-    n_I = 2
-    n_II = 10
+    n_I = 1
+    n_II = 1
 
     theta = 30
     phi = 10
-    psi = 90
+    # psi = 0
 
     # theta = 1E-10
     # phi = 0
@@ -797,10 +796,16 @@ if __name__ == '__main__':
     fourier_order = 3
     period = [700, 700]
 
-    wls = np.linspace(500, 2300, 100)
+    wls = np.linspace(500, 2300, 40)
 
     # TODO: integrate psi into this
     polarization = 0  # TE 0, TM 1
+
+    if polarization == 0:
+        psi = 90
+    elif polarization == 1:
+        psi = 0
+
 
     # permittivity in grating layer
     patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
@@ -844,9 +849,11 @@ if __name__ == '__main__':
 
     polarization_type = 2
 
+    t0 = time.time()
     res = RcwaBackbone(polarization_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
                        polarization, patterns, thickness, algo='TMM')
     res.lalanne_2d()
+    print(time.time() - t0)
 
     plt.plot(res.wls, res.spectrum_r.sum(axis=(1, 2)))
     plt.plot(res.wls, res.spectrum_t.sum(axis=(1, 2)))
@@ -855,7 +862,6 @@ if __name__ == '__main__':
     # plt.plot(res.wls, res.spectrum_t.sum(axis=1))
 
     plt.show()
-    import time
 
     t0 = time.time()
     res = RcwaBackbone(polarization_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
