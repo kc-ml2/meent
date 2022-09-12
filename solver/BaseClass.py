@@ -8,8 +8,6 @@ from pathlib import Path
 
 from solver.convolution_matrix import *
 
-
-
 from RCWA_functions import K_matrix as km
 from RCWA_functions import PQ_matrices as pq
 from TMM_functions import eigen_modes as em
@@ -17,6 +15,7 @@ from TMM_functions import scatter_matrices as sm
 from RCWA_functions import redheffer_star as rs
 from RCWA_functions import rcwa_initial_conditions as ic
 from RCWA_functions import homogeneous_layer as hl
+
 
 class RcwaBackbone:
     def __init__(self, grating_type, n_I=1, n_II=1, theta=0, phi=0, psi=0, fourier_order=10,
@@ -49,11 +48,11 @@ class RcwaBackbone:
         # spectrum dimension
         # TODO: need to keep these result?
         if grating_type in (0, 1):
-            self.spectrum_r = np.ndarray((len(wls), 2*fourier_order+1))
-            self.spectrum_t = np.ndarray((len(wls), 2*fourier_order+1))
+            self.spectrum_r = np.ndarray((len(wls), 2 * fourier_order + 1))
+            self.spectrum_t = np.ndarray((len(wls), 2 * fourier_order + 1))
         elif grating_type == 2:
-            self.spectrum_r = np.ndarray((len(wls), 2*fourier_order+1, 2*fourier_order+1))
-            self.spectrum_t = np.ndarray((len(wls), 2*fourier_order+1, 2*fourier_order+1))
+            self.spectrum_r = np.ndarray((len(wls), 2 * fourier_order + 1, 2 * fourier_order + 1))
+            self.spectrum_t = np.ndarray((len(wls), 2 * fourier_order + 1, 2 * fourier_order + 1))
         else:
             raise ValueError
 
@@ -72,7 +71,8 @@ class RcwaBackbone:
                 oneover_E_conv_all = np.zeros(len(E_conv_all))  # Dummy for TE case
 
             elif self.polarization == 1:  # TM
-                oneover_E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order, oneover=True)
+                oneover_E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order,
+                                                          oneover=True)
 
             else:
                 raise ValueError
@@ -123,9 +123,11 @@ class RcwaBackbone:
                     A, B, S_dict, Sg = scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg)
 
             if self.algo == 'TMM':
-                de_ri, de_ti = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.theta, self.polarization, k_II_z)
+                de_ri, de_ti = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.theta,
+                                             self.polarization, k_II_z)
             elif self.algo == 'SMM':
-                de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, self.ff, Wr, self.fourier_order, Kzr, k0, k_I_z, Kzt, k_II_z)
+                de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, self.ff, Wr, self.fourier_order, Kzr, k0, k_I_z, Kzt,
+                                               k_II_z)
 
             self.spectrum_r[i] = de_ri
             self.spectrum_t[i] = de_ti
@@ -134,8 +136,8 @@ class RcwaBackbone:
 
     def lalanne_1d_conical(self):
 
-        if self.theta == 0:
-            self.theta = 0.001
+        # if self.theta == 0:
+        #     self.theta = 0.001
 
         # pmtvy = draw_1d(self.patterns)
         # E_conv_all = to_conv_mat(pmtvy, self.fourier_order)
@@ -154,7 +156,9 @@ class RcwaBackbone:
             E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order)
             oneover_E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order, oneover=True)
 
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (wl / self.period)).astype('complex')
+            kx_vector = k0 * (
+                        self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (wl / self.period)).astype(
+                'complex')
             ky = k0 * self.n_I * np.sin(self.theta) * np.sin(self.phi)
 
             k_I_z = (k0 ** 2 * self.n_I ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
@@ -180,7 +184,6 @@ class RcwaBackbone:
 
             # for E_conv, d in zip(E_conv_all[::-1], self.thickness[::-1]):
             for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
-
                 E_i = np.linalg.inv(E_conv)
                 oneover_E_conv_i = np.linalg.inv(oneover_E_conv)
 
@@ -301,7 +304,7 @@ class RcwaBackbone:
 
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = np.zeros((self.ff**2, 1))
+        delta_i0 = np.zeros((self.ff ** 2, 1))
         delta_i0[self.ff ** 2 // 2, 0] = 1
 
         I = np.eye(self.ff ** 2)
@@ -315,12 +318,14 @@ class RcwaBackbone:
             E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order)
             oneover_E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order, oneover=True)
 
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (wl / self.period[0])).astype('complex')
-            ky_vector = k0 * (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (wl / self.period[1])).astype('complex')
-
+            kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
+                        wl / self.period[0])).astype('complex')
+            ky_vector = k0 * (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (
+                        wl / self.period[1])).astype('complex')
 
             kx_inc = self.n_I * np.sin(self.theta) * np.cos(self.phi)
-            ky_inc = self.n_I * np.sin(self.theta) * np.sin(self.phi)  # constant in ALL LAYERS; ky = 0 for normal incidence
+            ky_inc = self.n_I * np.sin(self.theta) * np.sin(
+                self.phi)  # constant in ALL LAYERS; ky = 0 for normal incidence
             kz_inc = np.sqrt(self.n_I ** 2 * 1 - kx_inc ** 2 - ky_inc ** 2)
 
             # remember, these Kx and Ky come out already normalized
@@ -336,12 +341,16 @@ class RcwaBackbone:
             k_II_z = k_II_z.flatten().conjugate()
 
             varphi = np.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
+            # varphi = np.arctan(kx_vector.reshape((-1, 1)) / ky_vector).flatten()
 
             if self.algo == 'TMM':
                 Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T = transfer_2d_1(self.ff, k_I_z, k0, k_II_z, n_I, I, O)
             elif self.algo == 'SMM':
                 Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg = scattering_2d_1(Kx, Ky, self.n_I, self.n_II)
+            else:
+                raise ValueError
 
+            # TODO: MERGE
             for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
                 E_i = np.linalg.inv(E_conv)
                 oneover_E_conv_i = np.linalg.inv(oneover_E_conv)
@@ -375,9 +384,9 @@ class RcwaBackbone:
                     V = U1_from_S @ W @ LAMBDA_i
 
                 elif self.algo == 'SMM':
-                    #-------------------------
+                    # -------------------------
                     # W and V from SMM method.
-                    NM = self.ff **2
+                    NM = self.ff ** 2
                     mu_conv = np.identity(NM)
 
                     P, Q, _ = pq.P_Q_kz(Kx, Ky, E_conv, mu_conv, oneover_E_conv, oneover_E_conv_i, E_i)
@@ -396,12 +405,14 @@ class RcwaBackbone:
                     raise ValueError
 
                 if self.algo == 'TMM':
-                    big_F, big_G, big_T = transfer_2d_2(k0, d, W, V, center, Lambda_1, Lambda_2, varphi, I, O, big_F, big_G, big_T)
+                    big_F, big_G, big_T = transfer_2d_2(k0, d, W, V, center, Lambda_1, Lambda_2, varphi, I, O, big_F,
+                                                        big_G, big_T)
                 elif self.algo == 'SMM':
                     A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
 
             if self.algo == 'TMM':
-                de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, I, O, Z_I, Y_I, psi, theta, self.ff, delta_i0, k_I_z, k0, n_I, k_II_z)
+                de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, I, O, Z_I, Y_I, self.psi, self.theta, self.ff, delta_i0,
+                                             k_I_z, k0, n_I, k_II_z)
 
             elif self.algo == 'SMM':
                 normal_vector = np.array([0, 0, 1])  # positive z points down;
@@ -418,9 +429,10 @@ class RcwaBackbone:
 
                 # kz_inc = self.n_I
                 M = N = self.fourier_order
-                NM = self.ff**2
+                NM = self.ff ** 2
 
-                de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, k0, k_I_z, k_II_z, normal_vector, pte, ptm, N, M, NM)
+                de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, k0, k_I_z, k_II_z,
+                                               normal_vector, pte, ptm, N, M, NM, self.theta, self.phi)
 
             self.spectrum_r[i] = de_ri.reshape((self.ff, self.ff)).real
             self.spectrum_t[i] = de_ti.reshape((self.ff, self.ff)).real
@@ -491,7 +503,6 @@ def scattering_1d_1(Kx, k0, n_I, n_II):
 
 
 def scattering_2d_1(Kx, Ky, n_I, n_II):
-
     ## =============== K Matrices for gap medium =========================
     ## specify gap media (this is an LHI so no eigenvalue problem should be solved
     e_h = 1
@@ -513,14 +524,11 @@ def scattering_2d_1(Kx, Ky, n_I, n_II):
     Ar, Br = sm.A_B_matrices(Wg, Wr, Vg, Vr)  # TODO: half space?
 
     ## s_ref is a matrix, Sr_dict is a dictionary
-    S_ref, Sr_dict = sm.S_R(Ar, Br) #scatter matrix for the reflection region
+    S_ref, Sr_dict = sm.S_R(Ar, Br)  # scatter matrix for the reflection region
     # S_matrices.append(S_ref)
     Sg = Sr_dict
 
     return Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg
-
-
-
 
 
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
@@ -542,19 +550,6 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
 
 
 def transfer_2d_2(k0, d, W, V, center, Lambda_1, Lambda_2, varphi, I, O, big_F, big_G, big_T):
-    # X = np.diag(np.exp(-k0 * q * d))
-    #
-    # W_i = np.linalg.inv(W)
-    # V_i = np.linalg.inv(V)
-    #
-    # a = 0.5 * (W_i @ f + V_i @ g)
-    # b = 0.5 * (W_i @ f - V_i @ g)
-    #
-    # a_i = np.linalg.inv(a)
-    #
-    # f = W @ (np.eye(2 * fourier_order + 1) + X @ b @ a_i @ X)
-    # g = V @ (np.eye(2 * fourier_order + 1) - X @ b @ a_i @ X)
-    # T = T @ a_i @ X
 
     W_11 = W[:center, :center]
     W_12 = W[:center, center:]
@@ -613,15 +608,9 @@ def scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg):
     return A, B, S_dict, Sg
 
 
-
 def scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA):
-    # calculating A and B matrices for scattering matrix
-    # define S matrix for the GRATING REGION
-    # A, B = sm.A_B_matrices(W, Wg, V, Vg)
-    # _, S_dict = sm.S_layer(A, B, d, k0, Q)
-    # _, Sg = rs.RedhefferStar(Sg, S_dict)
 
-    # now defIne A and B, slightly worse conditoined than W and V
+    # now defIne A and B, slightly worse conditioned than W and V
     A, B = sm.A_B_matrices(W, Wg, V, Vg)  # ORDER HERE MATTERS A LOT because W_i is not diagonal
 
     # calculate scattering matrix
@@ -650,19 +639,8 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, theta, pola
 
     return de_ri, de_ti
 
-def transfer_2d_3(center, big_F, big_G, big_T, I, O, Z_I, Y_I, psi, theta,ff, delta_i0, k_I_z, k0, n_I, k_II_z):
-    # Tl = np.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
-    # R = f @ Tl - delta_i0
-    # T = T @ Tl
-    #
-    # de_ri = R * np.conj(R) * np.real(k_I_z / (k0 * n_I * np.cos(theta)))
-    # if polarization == 0:
-    #     de_ti = T * np.conj(T) * np.real(k_II_z / (k0 * n_I * np.cos(theta)))
-    # elif polarization == 1:
-    #     de_ti = T * np.conj(T) * np.real(k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
-    # else:
-    #     raise ValueError
 
+def transfer_2d_3(center, big_F, big_G, big_T, I, O, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, k_II_z):
     big_F_11 = big_F[:center, :center]
     big_F_12 = big_F[:center, center:]
     big_F_21 = big_F[center:, :center]
@@ -702,17 +680,17 @@ def transfer_2d_3(center, big_F, big_G, big_T, I, O, Z_I, Y_I, psi, theta,ff, de
     T_p = big_T[ff ** 2:, :].flatten()
 
     de_ri = R_s * np.conj(R_s) * np.real(k_I_z / (k0 * n_I * np.cos(theta))) \
-           + R_p * np.conj(R_p) * np.real((k_I_z / n_I ** 2) / (k0 * n_I * np.cos(theta)))
+            + R_p * np.conj(R_p) * np.real((k_I_z / n_I ** 2) / (k0 * n_I * np.cos(theta)))
 
     de_ti = T_s * np.conj(T_s) * np.real(k_II_z / (k0 * n_I * np.cos(theta))) \
-           + T_p * np.conj(T_p) * np.real((k_II_z / n_II ** 2) / (k0 * n_I * np.cos(theta)))
+            + T_p * np.conj(T_p) * np.real((k_II_z / n_II ** 2) / (k0 * n_I * np.cos(theta)))
 
     Aa = de_ri.sum()
-    Aaa= de_ti.sum()
+    Aaa = de_ti.sum()
 
     if Aa + Aaa != 1:
-
-        print(1)
+        # TODO: no problem? or should be handled?
+        # print(1)
         wl = 1463.6363636363637
         deri = 350
 
@@ -723,7 +701,6 @@ def transfer_2d_3(center, big_F, big_G, big_T, I, O, Z_I, Y_I, psi, theta,ff, de
 
 
 def scattering_1d_3(Wt, Wg, Vt, Vg, Sg, ff, Wr, fourier_order, Kzr, k0, k_I_z, Kzt, k_II_z):
-
     # define S matrices for the Transmission region
     At, Bt = sm.A_B_matrices_half_space(Wt, Wg, Vt, Vg)  # make sure this order is right
     _, St_dict = sm.S_T(At, Bt)  # scatter matrix for the reflection region
@@ -751,76 +728,41 @@ def scattering_1d_3(Wt, Wg, Vt, Vg, Sg, ff, Wr, fourier_order, Kzr, k0, k_I_z, K
     return de_ri, de_ti
 
 
-def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, k0, k_I_z, k_II_z, normal_vector, pte, ptm, N, M, NM):
-
-    #get At, Bt
+def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, k0, k_I_z, k_II_z, normal_vector, pte, ptm,
+                    N, M, NM, theta, phi):
+    # get At, Bt
     # since transmission is the same as gap, order does not matter
     At, Bt = sm.A_B_matrices(Wg, Wt, Vg, Vt)
-
     ST, ST_dict = sm.S_T(At, Bt)
 
-    #update global scattering matrix
+    # update global scattering matrix
     Sg_matrix, Sg = rs.RedhefferStar(Sg, ST_dict)
 
-    ## finally CONVERT THE GLOBAL SCATTERING MATRIX BACK TO A MATRIX
+    # finally CONVERT THE GLOBAL SCATTERING MATRIX BACK TO A MATRIX
 
-    K_inc_vector = n_I *np.array([np.sin(theta) * np.cos(phi), \
-                                    np.sin(theta) * np.sin(phi), np.cos(theta)])
+    K_inc_vector = n_I * np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
 
-    # normal_vector = np.array([0, 0, -1])  # positive z points down;
-    # # ampltidue of the te vs tm modes (which are decoupled)
-    # pte = 0;  # 1/np.sqrt(2);
-    # ptm = 1;  # cmath.sqrt(1)/np.sqrt(2);
+    _, cinc, Polarization = ic.initial_conditions(K_inc_vector, theta, normal_vector, pte, ptm, N, M)
 
-    _, cinc, Polarization = ic.initial_conditions(K_inc_vector, theta,  normal_vector, pte, ptm, N,M)
-    # print(cinc.shape)
-    # print(cinc)
-
-    cinc = np.linalg.inv(Wr)@cinc
+    cinc = np.linalg.inv(Wr) @ cinc
 
     # COMPUTE FIELDS: similar idea but more complex for RCWA since you have individual modes each contributing
-    reflected = Wr@Sg['S11']@cinc
-    transmitted = Wt@Sg['S21']@cinc
+    reflected = Wr @ Sg['S11'] @ cinc
+    transmitted = Wt @ Sg['S21'] @ cinc
 
     rx = reflected[0:NM, :]  # rx is the Ex component.
-    ry = reflected[NM:, :]  #
-    tx = transmitted[0:NM,:]
+    ry = reflected[NM:, :]
+    tx = transmitted[0:NM, :]
     ty = transmitted[NM:, :]
 
-    # longitudinal components; should be 0
     rz = np.linalg.inv(Kzr) @ (Kx @ rx + Ky @ ry)
     tz = np.linalg.inv(Kzt) @ (Kx @ tx + Ky @ ty)
 
-    ## we need to do some reshaping at some point
+    r_sq = np.square(np.abs(rx)) + np.square(np.abs(ry)) + np.square(np.abs(rz))
+    t_sq = np.square(np.abs(tx)) + np.square(np.abs(ty)) + np.square(np.abs(tz))
 
-    ## apparently we're not done...now we need to compute 'diffraction efficiency'
-    r_sq = np.square(np.abs(rx)) +  np.square(np.abs(ry))+ np.square(np.abs(rz))
-    t_sq = np.square(np.abs(tx)) +  np.square(np.abs(ty))+ np.square(np.abs(tz))
-
-    # rx * np.conj(rx)
-
-
-    de_ri = np.real(Kzr) @ r_sq / np.real(kz_inc);  # division by a scalar
-    de_ti = np.real(Kzt) @ t_sq / (np.real(kz_inc));
-
-
-    # de_ri = np.real(Kzr / k0) @ r_sq / np.real(kz_inc)  # division by a scalar
-    # de_ti = np.real(Kzt / k0) @ t_sq / (np.real(kz_inc))
-
-    # de_ri = np.real(k_I_z) @ r_sq / np.real(k0 * n_I * np.cos(theta))  # division by a scalar
-    # de_ti = np.real(k_II_z) @ t_sq / (np.real(k0 * ));
-    #
-    #
-    #
-    #
-    # de_ri = R_s * np.conj(R_s) * np.real(k_I_z / (k0 * n_I * np.cos(theta))) \
-    #        + R_p * np.conj(R_p) * np.real((k_I_z / n_I ** 2) / (k0 * n_I * np.cos(theta)))
-    #
-    # de_ti = T_s * np.conj(T_s) * np.real(k_II_z / (k0 * n_I * np.cos(theta))) \
-    #        + T_p * np.conj(T_p) * np.real((k_II_z / n_II ** 2) / (k0 * n_I * np.cos(theta)))
-
-
-
+    de_ri = np.real(Kzr) @ r_sq / np.real(kz_inc)
+    de_ti = np.real(Kzt) @ t_sq / np.real(kz_inc)
 
     return de_ri, de_ti
 
@@ -831,12 +773,14 @@ if __name__ == '__main__':
 
     theta = 1E-10
     phi = 0
-    psi = 0
+    psi = 90
 
     fourier_order = 3
     period = [700, 700]
 
     wls = np.linspace(500, 2300, 100)
+
+    # TODO: integrate psi into this
     polarization = 1  # TE 0, TM 1
 
     # permittivity in grating layer
@@ -885,8 +829,8 @@ if __name__ == '__main__':
                        polarization, patterns, thickness, algo='TMM')
     res.lalanne_2d()
 
-    plt.plot(res.wls, res.spectrum_r.sum(axis=(1,2)))
-    plt.plot(res.wls, res.spectrum_t.sum(axis=(1,2)))
+    plt.plot(res.wls, res.spectrum_r.sum(axis=(1, 2)))
+    plt.plot(res.wls, res.spectrum_t.sum(axis=(1, 2)))
 
     # plt.plot(res.wls, res.spectrum_r.sum(axis=1))
     # plt.plot(res.wls, res.spectrum_t.sum(axis=1))
@@ -894,7 +838,7 @@ if __name__ == '__main__':
     plt.show()
     import time
 
-    t0=time.time()
+    t0 = time.time()
     res = RcwaBackbone(polarization_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
                        polarization, patterns, thickness, algo='SMM')
 
@@ -902,8 +846,8 @@ if __name__ == '__main__':
     # res.lalanne_1d_conical()
     res.lalanne_2d()
     print(time.time() - t0)
-    plt.plot(res.wls, res.spectrum_r.sum(axis=(1,2)))
-    plt.plot(res.wls, res.spectrum_t.sum(axis=(1,2)))
+    plt.plot(res.wls, res.spectrum_r.sum(axis=(1, 2)))
+    plt.plot(res.wls, res.spectrum_t.sum(axis=(1, 2)))
 
     # plt.plot(res.wls, res.spectrum_r.sum(axis=1))
     # plt.plot(res.wls, res.spectrum_t.sum(axis=1))
