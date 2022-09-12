@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.linalg import solve, inv
+from numpy.linalg import solve as bslash
 
 ## description
 # kx, ky are normalized wavevector MATRICES NOW (by k0)
@@ -23,12 +24,20 @@ def Q_matrix(Kx, Ky, E_conv, mu_conv, oneover_E_conv, oneover_E_conv_i):
 
     # Kx , Ky = np.conj(Kx), np.conj(Ky)
 
-    # return np.block([[Kx @ bslash(mu_conv,Ky),  e_conv - Kx @ bslash(mu_conv, Kx)],
-    #                                      [Ky @ bslash(mu_conv, Ky)  - e_conv, -Ky @ bslash(mu_conv, Kx)]]);
+    # return np.block([[Kx @ bslash(mu_conv,Ky),  E_conv - Kx @ bslash(mu_conv, Kx)],
+    #                                      [Ky @ bslash(mu_conv, Ky)  - E_conv, -Ky @ bslash(mu_conv, Kx)]]);
     Q = np.block([
-        [-Kx @ inv(mu_conv) @ Ky,  Kx @ inv(mu_conv) @ Kx - E_conv],
-        [oneover_E_conv_i - Ky @ inv(mu_conv) @ Ky, Ky @ inv(mu_conv) @ Kx]
+        [Kx @ inv(mu_conv) @ Ky, -Kx @ inv(mu_conv) @ Kx + E_conv],
+        [-oneover_E_conv_i + Ky @ inv(mu_conv) @ Ky, -Ky @ inv(mu_conv) @ Kx]
     ])
+    # Q = np.block([
+    #     [-Kx @ inv(mu_conv) @ Ky, Kx @ inv(mu_conv) @ Kx - E_conv],
+    #     [oneover_E_conv_i - Ky @ inv(mu_conv) @ Ky, Ky @ inv(mu_conv) @ Kx]
+    # ])
+
+    # return np.block([[-Kx @ bslash(mu_conv,Ky),  -E_conv + Kx @ bslash(mu_conv, Kx)],
+    #                                      [-Ky @ bslash(mu_conv, Ky) + E_conv, Ky @ bslash(mu_conv, Kx)]]);
+
     return Q
 
 def P_matrix(Kx, Ky, E_conv, mu_conv, oneover_E_conv, oneover_E_conv_i, E_i):
@@ -38,8 +47,8 @@ def P_matrix(Kx, Ky, E_conv, mu_conv, oneover_E_conv, oneover_E_conv_i, E_i):
     # Kx , Ky = np.conj(Kx), np.conj(Ky)
 
     P = np.block([
-        [-Kx @ E_i @ Ky, Kx @ E_i @ Kx - mu_conv],
-        [-Ky @ E_i @ Ky + mu_conv,  Ky @ E_i @ Kx]
+        [Kx @ E_i @ Ky, -Kx @ E_i @ Kx + mu_conv],
+        [Ky @ E_i @ Ky - mu_conv,  -Ky @ E_i @ Kx]
     ])
 
     # P = np.block([
@@ -47,8 +56,10 @@ def P_matrix(Kx, Ky, E_conv, mu_conv, oneover_E_conv, oneover_E_conv_i, E_i):
     #     [mu_conv - Ky @ inv(E_conv) @ Ky,  Ky @ inv(E_conv) @ Kx]
     # ])
 
-    # P = np.block([[Kx @ bslash(e_conv, Ky),  mu_conv - Kx @ bslash(e_conv,Kx)],
-    #               [Ky @ bslash(e_conv, Ky) - mu_conv,  -Ky @ bslash(e_conv,Kx)]]);
+    # P = np.block([[Kx @ bslash(E_conv, Ky),  mu_conv - Kx @ bslash(E_conv,Kx)],
+    #               [Ky @ bslash(E_conv, Ky) - mu_conv,  -Ky @ bslash(E_conv,Kx)]]);
+    # P = np.block([[-Kx @ bslash(E_conv, Ky),  -mu_conv + Kx @ bslash(E_conv,Kx)],
+    #               [-Ky @ bslash(E_conv, Ky) + mu_conv,  Ky @ bslash(E_conv,Kx)]]);
 
     return P
 

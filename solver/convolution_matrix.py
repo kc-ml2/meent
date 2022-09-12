@@ -134,7 +134,7 @@ def draw_2d(patterns, resolution=1001):
         permittivity = np.ones((resolution, resolution))
         cut = int(resolution * fill_factor)
         permittivity[:, :] *= n_groove ** 2
-        permittivity[:cut, :cut] *= n_ridge ** 2
+        permittivity[:, :cut] *= n_ridge ** 2
         res[i] = permittivity
 
     return res
