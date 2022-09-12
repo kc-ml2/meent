@@ -90,7 +90,7 @@ def to_conv_mat(pmt, fourier_order):
     # plt.imshow(abs(res[0]), cmap='jet')
     # plt.colorbar()
     # plt.show()
-    #
+    # #
     return res
 
 

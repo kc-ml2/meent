@@ -24,6 +24,7 @@ def A(W_layer, Wg, V_layer, Vg): # PLUS SIGN
     #A = np.linalg.inv(W_layer) * Wg + np.linalg.inv(V_layer) * Vg;
     A = bslash(W_layer, Wg) + bslash(V_layer, Vg);
 
+
     return A;
 
 def B(W_layer, Wg, V_layer, Vg): #MINUS SIGN

@@ -328,11 +328,24 @@ class RcwaBackbone:
                 self.phi)  # constant in ALL LAYERS; ky = 0 for normal incidence
             kz_inc = np.sqrt(self.n_I ** 2 * 1 - kx_inc ** 2 - ky_inc ** 2)
 
-            # remember, these Kx and Ky come out already normalized
-            # Kx1, Ky1 = km.K_matrix_cubic_2D(kx_inc, ky_inc, k0, self.period[0], self.period[1], self.fourier_order, self.fourier_order);  # Kx and Ky are diagonal but have a 0 on it
+            # k_x = kx_inc - 2 * np.pi * np.arange(-3, 3 + 1) / (k0 * self.period[0])
+            # k_y = ky_inc - 2 * np.pi * np.arange(-3, 3 + 1) / (k0 * self.period[1])
+            #
+            # k_x1 = kx_inc - np.arange(-3, 3 + 1) * wl / (self.period[0])
+            # k_y1 = ky_inc - np.arange(-3, 3 + 1) * wl / (self.period[1])
 
-            Kx = np.diag(np.tile(kx_vector, self.ff).flatten()) / k0
-            Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), self.ff).flatten()) / k0
+
+            kx_vector1 = (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (2*np.pi /k0 / self.period[0])).astype('complex')
+            ky_vector1 = (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (2*np.pi /k0 / self.period[1])).astype('complex')
+            Kx1 = np.diag(np.tile(kx_vector1, self.ff).flatten())
+            Ky1 = np.diag(np.tile(ky_vector1.reshape((-1, 1)), self.ff).flatten())
+
+            # remember, these Kx and Ky come out already normalized
+            Kx2, Ky2 = km.K_matrix_cubic_2D(kx_inc, ky_inc, k0, self.period[0], self.period[1], self.fourier_order, self.fourier_order);  # Kx and Ky are diagonal but have a 0 on it
+
+            # Kx, Ky = Kx1, Ky1
+            # Kx, Ky = Kx1.astype('complex'), Ky1.astype('complex')
+
 
             k_I_z = (k0 ** 2 * self.n_I ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5
             k_II_z = (k0 ** 2 * self.n_II ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5
@@ -409,13 +422,15 @@ class RcwaBackbone:
                                                         big_G, big_T)
                 elif self.algo == 'SMM':
                     A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
+                else:
+                    raise ValueError
 
             if self.algo == 'TMM':
                 de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, I, O, Z_I, Y_I, self.psi, self.theta, self.ff, delta_i0,
                                              k_I_z, k0, n_I, k_II_z)
 
             elif self.algo == 'SMM':
-                normal_vector = np.array([0, 0, 1])  # positive z points down;
+                normal_vector = np.array([0, 0, -1])  # positive z points down;
                 # ampltidue of the te vs tm modes (which are decoupled)
 
                 if self.polarization == 0:
@@ -438,6 +453,12 @@ class RcwaBackbone:
             self.spectrum_t[i] = de_ti.reshape((self.ff, self.ff)).real
 
         return self.spectrum_r, self.spectrum_t
+
+            # kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (wl / self.period[0]))
+            # ky_vector = k0 * (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (wl / self.period[1]))
+
+            Kx = np.diag(np.tile(kx_vector, self.ff).flatten()) / k0
+            Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), self.ff).flatten()) / k0
 
 
 def transfer_1d_1(ff, polarization, k_I_z, k0, k_II_z, n_I, theta, delta_i0, fourier_order):
@@ -772,8 +793,12 @@ if __name__ == '__main__':
     n_II = 1
 
     theta = 1E-10
-    phi = 0
+    phi = 1E-10
     psi = 90
+
+    theta = 0
+    # phi = 0
+    # psi = 0
 
     fourier_order = 3
     period = [700, 700]
