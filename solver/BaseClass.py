@@ -20,7 +20,7 @@ from functions import *
 
 class RcwaBackbone:
     def __init__(self, grating_type, n_I=1, n_II=1, theta=0, phi=0, psi=0, fourier_order=10,
-                 period=0.7, wls=np.linspace(0.5, 2.3, 400), polarization=0,
+                 period=0.7, wls=np.linspace(0.5, 2.3, 400), pol=0,
                  patterns=None, thickness=None, algo='TMM'):
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2 # TODO
@@ -37,7 +37,7 @@ class RcwaBackbone:
 
         self.wls = wls
 
-        self.polarization = polarization  # TE 0, TM 1
+        self.pol = pol  # TE 0, TM 1
 
         # permittivity in grating layer
         # self.patterns = [[3.48, 1, 0.3]] if patterns is None else patterns
@@ -94,9 +94,9 @@ class RcwaBackbone:
             k0 = 2 * np.pi / wl
 
             E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order)
-            if self.polarization == 0:  # TE
+            if self.pol == 0:  # TE
                 oneover_E_conv_all = np.zeros(len(E_conv_all))  # Dummy for TE case
-            elif self.polarization == 1:  # TM
+            elif self.pol == 1:  # TM
                 oneover_E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order,
                                                           oneover=True)
             else:
@@ -127,17 +127,17 @@ class RcwaBackbone:
             # --------------------------------------------------------------------
             if self.algo == 'TMM':
                 Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T \
-                    = transfer_1d_1(self.ff, self.polarization, k0, self.n_I, self.n_II,
-                                                        self.theta, delta_i0, self.fourier_order, fourier_indices, wl, period)
+                    = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II,
+                                    self.theta, delta_i0, self.fourier_order, fourier_indices, wl, period)
             elif self.algo == 'SMM':
                 Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg = scattering_1d_1(k0, self.n_I, self.n_II,
-                                                                                    self.theta, self.phi, fourier_indices, self.period, self.polarization)
+                                                                                        self.theta, self.phi, fourier_indices, self.period, self.pol)
             else:
                 raise ValueError
             # --------------------------------------------------------------------
 
             for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
-                if self.polarization == 0:
+                if self.pol == 0:
                     A = Kx ** 2 - E_conv
                     eigenvalues, W = np.linalg.eig(A)
                     q = eigenvalues ** 0.5
@@ -145,7 +145,7 @@ class RcwaBackbone:
                     Q = np.diag(q)
                     V = W @ Q
 
-                elif self.polarization == 1:
+                elif self.pol == 1:
                     E_i = np.linalg.inv(E_conv)
                     B = Kx @ E_i @ Kx - np.eye(E_conv.shape[0])
                     oneover_E_conv_i = np.linalg.inv(oneover_E_conv)
@@ -166,10 +166,10 @@ class RcwaBackbone:
 
             if self.algo == 'TMM':
                 de_ri, de_ti = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II, self.theta,
-                                             self.polarization, k_II_z)
+                                             self.pol, k_II_z)
             elif self.algo == 'SMM':
                 de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, self.ff, Wr, self.fourier_order, Kzr, Kzt,
-                                               self.n_I, self.n_II, self.theta, self.polarization)
+                                               self.n_I, self.n_II, self.theta, self.pol)
             else:
                 raise ValueError
 
@@ -475,7 +475,7 @@ class RcwaBackbone:
             elif self.algo == 'SMM':
 
                 de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_I,
-                                               self.polarization, self.theta, self.phi, self.fourier_order, self.ff)
+                                               self.pol, self.theta, self.phi, self.fourier_order, self.ff)
             else:
                 raise ValueError
 
@@ -859,14 +859,17 @@ if __name__ == '__main__':
     fourier_order = 3
     wls = np.linspace(500, 2300, 40)
 
-    period = [700]
-    period = [700, 700]
-
     grating_type = 2
+
+    if grating_type == 0:
+        period = [700]
+        phi = 0
+    elif grating_type == 2:
+        period = [700, 700]
 
 
     # TODO: integrate psi into this
-    polarization = 0  # TE 0, TM 1
+    polarization = 1  # TE 0, TM 1
 
     if polarization == 0:
         psi = 90
@@ -876,39 +879,6 @@ if __name__ == '__main__':
 
     # permittivity in grating layer
     patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
-    # patterns = [['SILICON', 1, np.array([1, 1, 1, -1, -1, -1, -1, -1, -1, -1])],
-    #             ['SILICON', 1, np.array([1, 1, 1, -1, -1, -1, -1, -1, -1, -1])]]  # n_ridge, n_groove, fill_factor
-    #
-    # patterns = [
-    #     ['SILICON', 1, np.array(
-    #         [
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1]
-    #         ]
-    #     )],
-    #     ['SILICON', 1, np.array(
-    #         [
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1],
-    #             [1, 1, 1, -1, -1, -1, -1, -1, -1, -1]
-    #         ]
-    #     )]
-    # ]  # n_ridge, n_groove, fill_factor
 
     # thickness = [325]
     thickness = [0.46, 0.66]
