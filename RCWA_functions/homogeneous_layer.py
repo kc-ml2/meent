@@ -77,7 +77,7 @@ def homogeneous_module(Kx, Ky, e_r, m_r=1):
 #         np.save(f, Kx)
 #         np.save(f, Ky)
 
-def homogeneous_1D(Kx, k0, n_index, m_r=1, tt=None):
+def homogeneous_1D(Kx, n_index, m_r=1, pol=None):
     """
     efficient homogeneous 1D module
     :param Kx:
@@ -96,7 +96,7 @@ def homogeneous_1D(Kx, k0, n_index, m_r=1, tt=None):
     Kz = np.sqrt(m_r*e_r*I-Kx**2)
     # TODO: conjugate?
 
-    if tt:  # 0: TE, 1: TM
+    if pol:  # 0: TE, 1: TM
         Kz = Kz * (n_index ** 2)
 
     eigenvalues = -1j*Kz  # determining the modes of ex, ey... so it appears eigenvalue order MATTERS...
