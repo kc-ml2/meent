@@ -386,11 +386,12 @@ class RcwaBackbone:
 
 
 if __name__ == '__main__':
-    n_I = 4
-    n_II = 20
+    n_I = 8
+    n_II = 2
 
     theta = 30
-    phi = 60
+    phi = 11
+    theta = np.arcsin(1/8) * 180 /np.pi
 
     fourier_order = 2
     wls = np.linspace(500, 2300, 10)

@@ -28,12 +28,16 @@ def homogeneous_module(Kx, Ky, e_r, m_r=1):
 
     eigenvalues = block_diag(1j*Kz, 1j*Kz)  # determining the modes of ex, ey... so it appears eigenvalue order MATTERS...
 
-    # # Singular. PERTURBATION.
-    # a = np.diag(eigenvalues)
-    # b = np.nonzero(a == 0)  # TODO:possibility of overflow?
-    # eigenvalues[b, b] = np.inf
+    # TODO:Singular. PERTURBATION.
+    try:
+        V = Q @ np.linalg.inv(eigenvalues)  # eigenvalue order is arbitrary (hard to compare with matlab
+    except:
+        a = np.diag(eigenvalues)
+        b = np.nonzero(a == 0)  # TODO:possibility of overflow?
+        eigenvalues[b, b] = np.inf
+        V = Q @ np.linalg.inv(eigenvalues)  # eigenvalue order is arbitrary (hard to compare with matlab
 
-    V = Q @ np.linalg.inv(eigenvalues)  # eigenvalue order is arbitrary (hard to compare with matlab
+    # V = Q @ np.linalg.inv(eigenvalues)  # eigenvalue order is arbitrary (hard to compare with matlab
     # alternative V with no inverse
     # V = np.matmul(np.linalg.inv(P),np.matmul(Q,W)); apparently, this fails because P is singular
 
