@@ -94,6 +94,7 @@ def homogeneous_1D(Kx, n_index, m_r=1, pol=None):
     Q = Kx**2 - e_r * I
 
     Kz = np.sqrt(m_r*e_r*I-Kx**2)
+    Kz = np.conj(Kz)
     # TODO: conjugate?
 
     if pol:  # 0: TE, 1: TM
@@ -106,7 +107,7 @@ def homogeneous_1D(Kx, n_index, m_r=1, pol=None):
     b = np.nonzero(a == 0)  # TODO:possibility of overflow?
     eigenvalues[b, b] = np.inf
 
-    V = Q @ np.linalg.inv(eigenvalues)  # eigenvalue order is arbitrary (hard to compare with matlab
+    V = -Q @ np.linalg.inv(eigenvalues)  # eigenvalue order is arbitrary (hard to compare with matlab
 
     return W, V, Kz
 
