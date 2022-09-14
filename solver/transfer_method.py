@@ -112,6 +112,7 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl):
     k_II_z = k_II_z.flatten().conjugate()
 
     varphi = np.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
+    # TODO: Handle RuntimeWarning: divide by zero encountered in true_divide
 
     Y_I = np.diag(k_I_z / k0)
     Y_II = np.diag(k_II_z / k0)

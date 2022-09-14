@@ -387,15 +387,15 @@ class RcwaBackbone:
 
 if __name__ == '__main__':
     n_I = 4
-    n_II = 3
+    n_II = 20
 
-    theta = 1E-10
-    phi = 0
+    theta = 30
+    phi = 60
 
-    fourier_order = 3
-    wls = np.linspace(500, 2300, 40)
+    fourier_order = 2
+    wls = np.linspace(500, 2300, 10)
 
-    grating_type = 0
+    grating_type = 2
 
     if grating_type == 0:
         period = [700]

@@ -411,11 +411,17 @@ def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, pol, 
     rz = np.linalg.inv(Kzr) @ (Kx @ rx + Ky @ ry)
     tz = np.linalg.inv(Kzt) @ (Kx @ tx + Ky @ ty)
 
-    r_sq = np.square(np.abs(rx)) + np.square(np.abs(ry)) + np.square(np.abs(rz))
-    t_sq = np.square(np.abs(tx)) + np.square(np.abs(ty)) + np.square(np.abs(tz))
+    rsq = np.square(np.abs(rx)) + np.square(np.abs(ry)) + np.square(np.abs(rz))
+    tsq = np.square(np.abs(tx)) + np.square(np.abs(ty)) + np.square(np.abs(tz))
 
-    de_ri = np.real(Kzr) @ r_sq / np.real(kz_inc)
-    de_ti = np.real(Kzt) @ t_sq / np.real(kz_inc)
+    de_ri = np.real(Kzr) @ rsq / np.real(kz_inc)
+    de_ti = np.real(Kzt) @ tsq / np.real(kz_inc)
+
+    # compute final reflectivity
+
+    de_ri = np.real(Kzr)@rsq/np.real(K_inc_vector[2])  # real because we only want propagating components
+    de_ti = np.real(Kzt)@tsq/np.real(K_inc_vector[2])
+
 
     print(de_ri.sum(), de_ti.sum())
 
