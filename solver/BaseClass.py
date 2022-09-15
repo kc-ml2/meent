@@ -15,8 +15,8 @@ from TMM_functions import scatter_matrices as sm
 from RCWA_functions import redheffer_star as rs
 from RCWA_functions import rcwa_initial_conditions as ic
 from RCWA_functions import homogeneous_layer as hl
-from scattering_method import *
-from transfer_method import *
+from .scattering_method import *
+from .transfer_method import *
 
 
 class RcwaBackbone:
@@ -70,16 +70,16 @@ class RcwaBackbone:
 
     def plot(self):
         if self.grating_type == 0:
-            plt.plot(res.wls, res.spectrum_r.sum(axis=1))
-            plt.plot(res.wls, res.spectrum_t.sum(axis=1))
+            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
+            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
             plt.show()
         elif self.grating_type == 1:
-            plt.plot(res.wls, res.spectrum_r.sum(axis=1))
-            plt.plot(res.wls, res.spectrum_t.sum(axis=1))
+            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
+            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
             plt.show()
         elif self.grating_type == 2:
-            plt.plot(res.wls, res.spectrum_r.sum(axis=(1, 2)))
-            plt.plot(res.wls, res.spectrum_t.sum(axis=(1, 2)))
+            plt.plot(self.wls, self.spectrum_r.sum(axis=(1, 2)))
+            plt.plot(self.wls, self.spectrum_t.sum(axis=(1, 2)))
             plt.show()
         else:
             raise ValueError
@@ -107,7 +107,7 @@ class RcwaBackbone:
             if self.algo == 'TMM':
                 Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T \
                     = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II,
-                                    self.theta, delta_i0, self.fourier_order, fourier_indices, wl, period)
+                                    self.theta, delta_i0, self.fourier_order, fourier_indices, wl, self.period)
             elif self.algo == 'SMM':
                 Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                     = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices, self.period,
@@ -391,17 +391,19 @@ class RcwaBackbone:
 
 if __name__ == '__main__':
     n_I = 2
-    n_II = 1
+    n_II = 10
 
     theta = 30
-    phi = 0
+    phi = 10
     # theta = np.arcsin(1/2) * 180 /np.pi
     # TODO: many singular cases: easy solution is adding
     #  small to theta and phi. Currently handled at Q, Kz and kx_vector.
 
     wls = np.linspace(500, 2300, 100)
 
-    grating_type = 2
+    grating_type = 2  # 1D 1D_Conical 2D
+
+    polarization = 1  # TE 0, TM 1
 
     if grating_type == 0:
         fourier_order = 40
@@ -413,8 +415,6 @@ if __name__ == '__main__':
         period = [700, 700]
 
     # TODO: integrate psi into this (at Class level)
-    polarization = 0  # TE 0, TM 1
-
     if polarization == 0:
         psi = 90
     elif polarization == 1:
