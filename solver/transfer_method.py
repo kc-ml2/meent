@@ -39,8 +39,6 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_orde
         g = 1j * Y_II
         inc_term = 1j * n_I * np.cos(theta) * delta_i0
 
-        # oneover_E_conv_all = np.zeros(len(E_conv_all))  # Dummy for TE case
-
     elif polarization == 1:  # TM
         Z_I = np.diag(k_I_z / (k0 * n_I ** 2))
         Z_II = np.diag(k_II_z / (k0 * n_II ** 2))
@@ -48,8 +46,6 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_orde
         YZ_I = Z_I
         g = 1j * Z_II
         inc_term = 1j * delta_i0 * np.cos(theta) / n_I
-
-        # oneover_E_conv_all = permittivity_mapping(patterns, wl, period, fourier_order, oneover=True)
 
     else:
         raise ValueError
@@ -93,7 +89,7 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
     return de_ri, de_ti
 
 
-def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl):
+def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j)):
     I = np.eye(ff ** 2)
     O = np.zeros((ff ** 2, ff ** 2))
 
@@ -111,8 +107,14 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl):
     k_I_z = k_I_z.flatten().conjugate()
     k_II_z = k_II_z.flatten().conjugate()
 
+    idx = np.nonzero(kx_vector == 0)[0]
+    if len(idx):
+        # TODO: need imaginary part?
+        # TODO: make imaginary part sign consistent
+        kx_vector[idx] = perturbation
+        print(wl, 'varphi divide by 0: adding perturbation')
+
     varphi = np.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
-    # TODO: Handle RuntimeWarning: divide by zero encountered in true_divide
 
     Y_I = np.diag(k_I_z / k0)
     Y_II = np.diag(k_II_z / k0)

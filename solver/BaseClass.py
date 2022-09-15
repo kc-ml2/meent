@@ -109,8 +109,9 @@ class RcwaBackbone:
                     = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II,
                                     self.theta, delta_i0, self.fourier_order, fourier_indices, wl, period)
             elif self.algo == 'SMM':
-                Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg = scattering_1d_1(k0, self.n_I, self.n_II,
-                                                                                        self.theta, self.phi, fourier_indices, self.period, self.pol)
+                Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
+                    = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices, self.period,
+                                      self.pol, wl=wl)
             else:
                 raise ValueError
             # --------------------------------------------------------------------
@@ -144,7 +145,8 @@ class RcwaBackbone:
                     A, B, S_dict, Sg = scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg)
 
             if self.algo == 'TMM':
-                de_ri, de_ti = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II, self.theta,
+                de_ri, de_ti = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II,
+                                             self.theta,
                                              self.pol, k_II_z)
             elif self.algo == 'SMM':
                 de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, self.ff, Wr, self.fourier_order, Kzr, Kzt,
@@ -180,7 +182,7 @@ class RcwaBackbone:
             oneover_E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order, oneover=True)
 
             kx_vector = k0 * (
-                        self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (wl / self.period)).astype(
+                    self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (wl / self.period)).astype(
                 'complex')
             ky = k0 * self.n_I * np.sin(self.theta) * np.sin(self.phi)
 
@@ -336,10 +338,11 @@ class RcwaBackbone:
             oneover_E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order, oneover=True)
 
             if self.algo == 'TMM':
-                Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T\
-                    = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta, self.phi, wl)
+                Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
+                    = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta,
+                                    self.phi, wl)
             elif self.algo == 'SMM':
-                Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg\
+                Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                     = scattering_2d_1(self.n_I, self.n_II, self.theta, self.phi, k0, self.period, self.fourier_order)
             else:
                 raise ValueError
@@ -369,7 +372,8 @@ class RcwaBackbone:
                     raise ValueError
 
             if self.algo == 'TMM':
-                de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff, delta_i0,
+                de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
+                                             delta_i0,
                                              k_I_z, k0, self.n_I, self.n_II, k_II_z)
 
             elif self.algo == 'SMM':
@@ -386,27 +390,30 @@ class RcwaBackbone:
 
 
 if __name__ == '__main__':
-    n_I = 8
-    n_II = 2
+    n_I = 2
+    n_II = 1
 
     theta = 30
-    phi = 11
-    theta = np.arcsin(1/8) * 180 /np.pi
+    phi = 0
+    # theta = np.arcsin(1/2) * 180 /np.pi
+    # TODO: many singular cases: easy solution is adding
+    #  small to theta and phi. Currently handled at Q, Kz and kx_vector.
 
-    fourier_order = 2
-    wls = np.linspace(500, 2300, 10)
+    wls = np.linspace(500, 2300, 100)
 
     grating_type = 2
 
     if grating_type == 0:
+        fourier_order = 40
         period = [700]
         phi = 0
 
     elif grating_type == 2:
+        fourier_order = 2
         period = [700, 700]
 
-    # TODO: integrate psi into this
-    polarization = 1  # TE 0, TM 1
+    # TODO: integrate psi into this (at Class level)
+    polarization = 0  # TE 0, TM 1
 
     if polarization == 0:
         psi = 90

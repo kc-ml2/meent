@@ -17,7 +17,7 @@ from RCWA_functions import rcwa_initial_conditions as ic
 from RCWA_functions import homogeneous_layer as hl
 
 
-def scattering_1d_1(k0, n_I, n_II, theta, phi, fourier_indices, period, pol):
+def scattering_1d_1(k0, n_I, n_II, theta, phi, fourier_indices, period, pol, wl=None):
 
     kx_vector = (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
                 2 * np.pi / k0 / period[0])).astype('complex')
@@ -26,13 +26,13 @@ def scattering_1d_1(k0, n_I, n_II, theta, phi, fourier_indices, period, pol):
     # scattering matrix needed for 'gap medium'
     # if calculations shift with changing selection of gap media, this is BAD; it should not shift with choice of gap
 
-    Wg, Vg, Kzg = hl.homogeneous_1D(Kx, 1)
+    Wg, Vg, Kzg = hl.homogeneous_1D(Kx, 1, wl=wl, comment='Gap')
 
     # reflection medium
-    Wr, Vr, Kzr = hl.homogeneous_1D(Kx, n_I, pol=pol)
+    Wr, Vr, Kzr = hl.homogeneous_1D(Kx, n_I, pol=pol, wl=wl, comment='Refl')
 
     # transmission medium;
-    Wt, Vt, Kzt = hl.homogeneous_1D(Kx, n_II, pol=pol)
+    Wt, Vt, Kzt = hl.homogeneous_1D(Kx, n_II, pol=pol, wl=wl, comment='Tran')
 
 
     # S matrices for the reflection region
@@ -222,7 +222,7 @@ def scattering_1d_3(Wt, Wg, Vt, Vg, Sg, ff, Wr, fourier_order, Kzr, Kzt, n_I, n_
     tsq = np.square(np.abs(transmitted))
 
     # compute final reflectivity
-    de_ri = np.real(Kzr)@rsq/np.real(k_inc[2]) / n_I**2  # real because we only want propagating components
+    de_ri = np.real(Kzr)@rsq/np.real(k_inc[2]) / n_I**2
     de_ti = np.real(Kzt)@tsq/np.real(k_inc[2]) * n_I**2 / n_II**4
 
     return de_ri.flatten(), de_ti.flatten()
