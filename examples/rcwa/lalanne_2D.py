@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-# from solver.convolution_matrix import to_conv_mat
 
 from scipy.linalg import circulant
 
@@ -10,7 +9,6 @@ def to_conv_mat(permittivities, fourier_order):
     # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft#:~:text=the%20matlab%20fft%20outputs%202,point%20is%20the%20parseval%20equation.
     ff = 2 * fourier_order + 1
 
-    # TODO: check whether 1D case is correct or not. I think I actually didn't test it at all.
     if len(permittivities[0].shape) == 1:  # 1D
         res = np.ndarray((len(permittivities), 2*fourier_order+1, 2*fourier_order+1)).astype('complex')
 
@@ -30,11 +28,9 @@ def to_conv_mat(permittivities, fourier_order):
             # res[i] = circulant(pmtvy_fft_cut)
 
     else:  # 2D
-        # TODO: separate fourier order
         res = np.ndarray((len(permittivities), ff ** 2, ff ** 2)).astype('complex')
 
         # extend array
-        # TODO: do test
         if permittivities.shape[0] < 2 * ff + 1:
             n = (2 * ff + 1) // permittivities.shape[1]
             permittivities = np.repeat(permittivities, n+1, axis=0)
@@ -64,9 +60,8 @@ def to_conv_mat(permittivities, fourier_order):
     # plt.imshow(abs(res[0]), cmap='jet')
     # plt.colorbar()
     # plt.show()
-
+    #
     return res
-
 
 pi = np.pi
 
@@ -77,13 +72,13 @@ theta = 0.001 * pi / 180
 phi = 0 * pi / 180
 psi = 0 * pi / 180
 
-fourier_order = 5
+fourier_order = 3
 ff = 2 * fourier_order + 1
 center = ff * ff
 
 period = (0.7, 0.7)
 
-wls = np.linspace(0.5, 2.3, 400)
+wls = np.linspace(0.5, 2.3, 10)
 
 I = np.eye(ff ** 2)
 O = np.zeros((ff**2, ff**2))
@@ -91,31 +86,16 @@ O = np.zeros((ff**2, ff**2))
 spectrum_r, spectrum_t = [], []
 
 # permittivity in grating layer
-# patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
-# permt = draw_1d(patterns)
-# E_conv_all = to_conv_mat(permt, fourier_order)
 thickness = [0.46, 0.66]
-# thickness = [0.46]
+
 permt = np.ones((1024, 1024))
-# permt[300:601, 300:601] = 3.48
 permt[:, :307] = 3.48**2
-
-radius = 0.3
-epgrid = np.ones((400,400),dtype=float)*1
-
-x0 = np.linspace(0,1.,400)
-y0 = np.linspace(0,1.,400)
-
-x, y = np.meshgrid(x0,y0,indexing='ij')
-
-sphere = (x-.5)**2+(y-.5)**2<radius**2
-
-epgrid[sphere] = 3.48**2
-
-permt = np.array([epgrid, epgrid])
-# permt = np.array([permt, permt])
+permt = np.array([permt, permt])
 
 E_conv_all = to_conv_mat(permt, fourier_order)
+
+oneover_permt = 1 / permt
+oneover_E_conv_all = to_conv_mat(oneover_permt, fourier_order)
 
 fourier_indices = np.arange(-fourier_order, fourier_order + 1)
 
@@ -150,20 +130,20 @@ for wl in wls:
 
     big_T = np.eye(ff**2*2)
 
-    for E_conv, d in zip(E_conv_all[::-1], thickness[::-1]):
+    for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], thickness[::-1]):
 
         E_i = np.linalg.inv(E_conv)
 
         B = Kx @ E_i @ Kx - I
         D = Ky @ E_i @ Ky - I
+        oneover_E_conv_i = np.linalg.inv(oneover_E_conv)
 
         S2_from_S = np.block(
             [
-                [Ky ** 2 + B @ E_conv, Kx @ (E_i @ Ky @ E_conv - Ky)],
-                [Ky @ (E_i @ Kx @ E_conv - Kx), Kx ** 2 + D @ E_conv]
+                [Ky ** 2 + B @ oneover_E_conv_i, Kx @ (E_i @ Ky @ E_conv - Ky)],
+                [Ky @ (E_i @ Kx @ oneover_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
             ])
 
-        # TODO: using eigh
         eigenvalues, W = np.linalg.eig(S2_from_S)
 
         q = eigenvalues ** 0.5
@@ -176,7 +156,7 @@ for wl in wls:
         U1_from_S = np.block(
             [
                 [-Kx @ Ky, Kx ** 2 - E_conv],
-                [E_conv - Ky ** 2, Ky @ Kx]  # TODO Check x y order
+                [oneover_E_conv_i - Ky ** 2, Ky @ Kx]
             ]
         )
         V = U1_from_S @ W @ Q_i
@@ -268,10 +248,11 @@ for wl in wls:
     DEti = T_s*np.conj(T_s) * np.real(k_II_z/(k0*n_I*np.cos(theta))) \
            + T_p*np.conj(T_p) * np.real((k_II_z/n_II**2)/(k0*n_I*np.cos(theta)))
 
-    spectrum_r.append(DEri.sum())
-    spectrum_t.append(DEti.sum())
+    spectrum_r.append(DEri.reshape((ff, ff)).real)
+    spectrum_t.append(DEti.reshape((ff, ff)).real)
 
-plt.plot(wls, spectrum_r)
-plt.plot(wls, spectrum_t)
-plt.title(f'Moharam 2D, f order of {fourier_order}')
+plt.plot(wls, np.array(spectrum_r).sum(axis=(1, 2)))
+plt.plot(wls, np.array(spectrum_t).sum(axis=(1, 2)))
+plt.title(f'Lalanne 2D, f order of {fourier_order}')
+
 plt.show()

@@ -1,20 +1,4 @@
-import copy
-import time
-import scipy
-import scipy.io
-
-import matplotlib.pyplot as plt
-from pathlib import Path
-
-from solver.convolution_matrix import *
-
-from RCWA_functions import K_matrix as km
-from RCWA_functions import PQ_matrices as pq
-from TMM_functions import eigen_modes as em
-from TMM_functions import scatter_matrices as sm
-from RCWA_functions import redheffer_star as rs
-from RCWA_functions import rcwa_initial_conditions as ic
-from RCWA_functions import homogeneous_layer as hl
+from ml2rcwa.convolution_matrix import *
 
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_order,fourier_indices, wl, period):
@@ -78,11 +62,13 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
     R = f @ Tl - delta_i0
     T = T @ Tl
 
-    de_ri = R * np.conj(R) * np.real(k_I_z / (k0 * n_I * np.cos(theta)))
+    de_ri = np.real(R * np.conj(R) * k_I_z / (k0 * n_I * np.cos(theta)))
     if polarization == 0:
-        de_ti = T * np.conj(T) * np.real(k_II_z / (k0 * n_I * np.cos(theta)))
+        # de_ti = T * np.conj(T) * np.real(k_II_z / (k0 * n_I * np.cos(theta)))
+        de_ti = np.real(T * np.conj(T) * k_II_z / (k0 * n_I * np.cos(theta)))
     elif polarization == 1:
-        de_ti = T * np.conj(T) * np.real(k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
+        # de_ti = T * np.conj(T) * np.real(k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
+        de_ti = np.real(T * np.conj(T) * k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
     else:
         raise ValueError
 

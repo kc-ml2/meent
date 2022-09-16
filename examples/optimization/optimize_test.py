@@ -1,8 +1,8 @@
 import numpy as np
 
-from solver.LalanneClass import LalanneBase
+from ml2rcwa.rcwa import RCWA
 
-# TEST git
+
 class RCWAOptimizer:
 
     def __init__(self, gt, model):
@@ -17,15 +17,9 @@ class RCWAOptimizer:
         loss = np.linalg.norm(residue)
 
 
-
-
 if __name__ == '__main__':
     grating_type = 0
 
-    gt = LalanneBase(grating_type)
-    model = LalanneBase(grating_type)
-
-
-
-
+    gt = RCWA(grating_type)
+    model = RCWA(grating_type)
     pass

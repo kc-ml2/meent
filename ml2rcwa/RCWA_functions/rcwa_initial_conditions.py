@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def delta_vector(P, Q):
     '''
         create a vector with a 1 corresponding to the 0th order
@@ -13,31 +14,6 @@ def delta_vector(P, Q):
     # index = int(P/2)*P + int(Q/2);
     vector = fourier_grid.flatten()
     return np.matrix(np.reshape(vector, (1,len(vector))))
-
-
-def delta_vector_1D(P):
-    '''
-        create a vector with a 1 corresponding to the 0th order
-    '''
-    vector = np.zeros((P,))
-
-    #the index of the (0,0) element requires a conversion using sub2ind
-    index = int(P/2)
-    vector[index] = 1
-    return vector
-
-
-def initial_conditions_1D(K_inc_vector, theta, P):
-    '''
-    K_inc points only in X and Z plane, so theta is the only specifying angle
-    :param K_inc_vector:
-    :param theta:
-    :param P:
-    :return:
-    '''
-    num_ord = 2*P+1
-    delta = delta_vector_1D(num_ord)
-    cinc = delta
 
 
 def initial_conditions(K_inc_vector, theta, normal_vector, pte, ptm, P, Q):
@@ -60,7 +36,7 @@ def initial_conditions(K_inc_vector, theta, normal_vector, pte, ptm, P, Q):
         ate_vector = np.cross(K_inc_vector, normal_vector)
         ate_vector = ate_vector / (np.linalg.norm(ate_vector))
     else:
-        ate_vector = np.array([0,1,0])
+        ate_vector = np.array([0, 1, 0])
 
     atm_vector = np.cross(ate_vector, K_inc_vector)
     atm_vector = atm_vector / (np.linalg.norm(atm_vector))

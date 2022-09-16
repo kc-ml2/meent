@@ -7,27 +7,37 @@ from scipy.linalg import circulant
 from pathlib import Path
 
 
-def permittivity_mapping(patterns, wl, period, fourier_order, oneover=False):
+def permittivity_mapping(pattern_all, wl, period, fourier_order, oneover=False):
     # TODO: not fully implemented
 
     # nk_pool = {'SILICON': np.array([[100, 400, 500, 600, 900], [3.48, 3.48, 3.48, 3.48, 3.48]])}
-
+    # TODO: take out
+    # TODO: pass to function layer by layer
     nk_path = str(Path(__file__).resolve().parent.parent) + '/nk_data/p_Si.mat'
     mat_si = scipy.io.loadmat(nk_path)
 
-    patterns = copy.deepcopy(patterns)
+    materials = {}
+    materials['SILICON'] = mat_si
 
-    for i, layer in enumerate(patterns):
-        n_ridge = np.interp(wl, mat_si['WL'].flatten(), mat_si['n'].flatten())
-        n_ridge = 3.48  # TODO: Hardcoding for test
-        patterns[i][0] = n_ridge if not oneover else 1 / n_ridge
+    pattern_all = copy.deepcopy(pattern_all)
 
-    if type(period) in [float, int] or len(period) == 1:
-        pmtvy = draw_1d(patterns)
-        # pmtvy = draw_1d_jlab(patterns)
+    for i, (n_ridge, n_groove, pattern) in enumerate(pattern_all):
+
+        if type(n_ridge) == str:
+            mat_property = materials[n_ridge.upper()]
+            n_ridge = np.interp(wl, mat_property['WL'].flatten(), mat_property['n'].flatten())
+
+        pattern_all[i][0] = n_ridge if not oneover else 1 / n_ridge
+
+    if len(period) == 1:
+        if type(pattern_all[0][2]) in [float, int]:  # TODO: better condition
+            pmtvy = draw_1d_fill_factor(pattern_all)
+        else:
+            pmtvy = draw_1d_jlab(pattern_all)
 
     else:
-        pmtvy = draw_2d(patterns)
+        pmtvy = draw_2d(pattern_all)
+
     conv_all = to_conv_mat(pmtvy, fourier_order)
 
     return conv_all
@@ -65,7 +75,7 @@ def to_conv_mat(pmt, fourier_order):
         # TODO: run test
         if pmt.shape[0] < 2 * ff + 1:
             n = (2 * ff + 1) // pmt.shape[1]
-            permittivities = np.repeat(pmt, n+1, axis=0)
+            pmt = np.repeat(pmt, n+1, axis=0)
         if pmt.shape[1] < 2 * ff + 1:
             n = (2 * ff + 1) // pmt.shape[1]
             pmt = np.repeat(pmt, n+1, axis=1)
@@ -90,11 +100,11 @@ def to_conv_mat(pmt, fourier_order):
     # plt.imshow(abs(res[0]), cmap='jet')
     # plt.colorbar()
     # plt.show()
-    # #
+    #
     return res
 
 
-def draw_1d(patterns, resolution=1001):
+def draw_1d_fill_factor(patterns, resolution=1001):
     # fill_factor is not exactly implemented.
     res = np.ndarray((len(patterns), resolution))
 
@@ -109,6 +119,22 @@ def draw_1d(patterns, resolution=1001):
     return res
 
 
+def draw_1d_array(patterns_pixel, resolution=1001):  # TODO: Implement
+    #
+    # resolution = len(patterns_pixel[0][2].flatten())
+    # res = np.ndarray((len(patterns_pixel), resolution))
+    #
+    # for i, (n_ridge, n_groove, pixel_map) in enumerate(patterns_pixel):
+    #     pixel_map = np.array(pixel_map, dtype='float')
+    #     # permittivity = np.ones(resolution) * n_groove
+    #     pixel_map = (pixel_map + 1) / 2
+    #     pixel_map = pixel_map * (n_ridge**2 - n_groove**2) + n_groove ** 2
+    #     res[i] = pixel_map
+    #
+    # return res
+    pass
+
+
 def draw_1d_jlab(patterns_pixel, resolution=1001):
 
     resolution = len(patterns_pixel[0][2].flatten())
@@ -116,7 +142,6 @@ def draw_1d_jlab(patterns_pixel, resolution=1001):
 
     for i, (n_ridge, n_groove, pixel_map) in enumerate(patterns_pixel):
         pixel_map = np.array(pixel_map, dtype='float')
-        # permittivity = np.ones(resolution) * n_groove
         pixel_map = (pixel_map + 1) / 2
         pixel_map = pixel_map * (n_ridge**2 - n_groove**2) + n_groove ** 2
         res[i] = pixel_map

@@ -69,7 +69,6 @@ for wl in wls:
 
     T = np.eye(2*fourier_order+1)
 
-    # layer dependent
     for E_conv, d in zip(E_conv_all[::-1], thickness[::-1]):
 
         A = Kx**2 - E_conv

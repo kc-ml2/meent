@@ -30,15 +30,15 @@ for wl in wls:
                      [gamma*(a - b*np.exp(-2*k0*gamma*d_l))]]).flatten()
 
     T1 = (g + 1j*(k_I_z/k0)*f)**-1 * 2j*(k_I_z/k0)
-    R = f*T1 - 1
+    R = f * T1 - 1
 
     T = np.exp(-k0*gamma*d_l) * T1
 
-    DEr = R*np.conj(R)*np.real(k_I_z/(k0*n_I*np.cos(theta)))
-    DEt = T*np.conj(T)*np.real(k_II_z/(k0*n_I*np.cos(theta)))
+    DEr = R * np.conj(R) * np.real(k_I_z / (k0 * n_I * np.cos(theta)))
+    DEt = T * np.conj(T) * np.real(k_II_z / (k0 * n_I * np.cos(theta)))
 
-    spectrum_r.append(DEr)
-    spectrum_t.append(DEt)
+    spectrum_r.append(DEr.real)
+    spectrum_t.append(DEt.real)
 
 plt.plot(wls, spectrum_r)
 plt.plot(wls, spectrum_t)

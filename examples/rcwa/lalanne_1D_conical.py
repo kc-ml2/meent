@@ -98,7 +98,6 @@ for wl in wls:
         to_decompose_W_1 = ky ** 2 * I + A
         to_decompose_W_2 = ky ** 2 * I + B @ oneover_E_conv_i
 
-        # TODO: using eigh
         eigenvalues_1, W_1 = np.linalg.eig(to_decompose_W_1)
         eigenvalues_2, W_2 = np.linalg.eig(to_decompose_W_2)
 
