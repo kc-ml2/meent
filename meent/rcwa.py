@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from ml2rcwa._base import _BaseRCWA
+from meent._base import _BaseRCWA
 
 
 class RCWA(_BaseRCWA):

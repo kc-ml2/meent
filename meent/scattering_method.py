@@ -1,4 +1,4 @@
-from ml2rcwa.convolution_matrix import *
+from meent.convolution_matrix import *
 
 from .RCWA_functions import K_matrix as km
 from .RCWA_functions import PQ_matrices as pq
