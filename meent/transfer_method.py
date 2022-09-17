@@ -1,4 +1,4 @@
-from ml2rcwa.convolution_matrix import *
+from meent.convolution_matrix import *
 
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_order,fourier_indices, wl, period):

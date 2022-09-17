@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from ml2rcwa.rcwa import RCWA
+from meent.rcwa import RCWA
 
 
 class JLABCode(RCWA):

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from reticolo_interface.ClassReticolo import ClassReticolo
-from ml2rcwa.rcwa import RCWA
+from meent.rcwa import RCWA
 
 
 if __name__ == '__main__':
