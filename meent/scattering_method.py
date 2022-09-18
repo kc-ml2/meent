@@ -48,9 +48,8 @@ def scattering_1d_3(Wt, Wg, Vt, Vg, Sg, ff, Wr, fourier_order, Kzr, Kzt, n_I, n_
 
     k_inc = n_I * np.array([np.sin(theta), 0, np.cos(theta)])
 
-    c_inc = np.zeros((ff, ))  # only need one set...
+    c_inc = np.zeros((ff, 1))  # only need one set...
     c_inc[fourier_order] = 1
-    c_inc = c_inc.T
     c_inc = np.linalg.inv(Wr) @ c_inc
     # COMPUTE FIELDS: similar idea but more complex for RCWA since you have individual modes each contributing
     reflected = Wr @ Sg['S11'] @ c_inc
