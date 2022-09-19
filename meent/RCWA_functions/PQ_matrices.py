@@ -15,6 +15,7 @@ def P_Q_kz(Kx, Ky, e_conv, mu_conv, oneover_E_conv, oneover_E_conv_i, E_i):
     Kz = np.conj(np.sqrt(argument.astype('complex')))
     # Kz = np.sqrt(argument.astype('complex'))  # TODO: conjugate?
 
+    # TODO: confirm whether oneonver_E_conv is indeed not used
     # TODO: Check sign of P and Q
     P = np.block([
         [Kx @ E_i @ Ky, -Kx @ E_i @ Kx + mu_conv],

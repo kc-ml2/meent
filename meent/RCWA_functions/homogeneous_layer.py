@@ -64,7 +64,7 @@ def homogeneous_1D(Kx, n_index, m_r=1, pol=None, perturbation=1E-20*(1+1j), wl=N
     I = np.identity(len(Kx))
 
     W = I
-    Q = e_r * m_r * I - Kx ** 2
+    Q = (1 / m_r) * (e_r * m_r * I - Kx ** 2)
     # Q = Kx**2 - e_r * I
 
     diag = np.diag(Q)

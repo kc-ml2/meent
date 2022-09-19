@@ -58,8 +58,8 @@ if __name__ == '__main__':
     grating_type = 2
     pol = 0
 
-    n_r = 1.45  # glass
-    n_t = 1
+    n_I = 1.45  # glass
+    n_II = 1
 
     theta = 0
     phi = 0
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
     thickness = [460, 660]
 
-    AA = RCWA(grating_type=grating_type, pol=pol, n_I=n_r, n_II=n_t, theta=theta, phi=phi, psi=psi,
+    AA = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
               fourier_order=fourier_order, wls=wls, period=period, patterns=patterns, thickness=thickness)
     t0 = time.perf_counter()
 

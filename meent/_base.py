@@ -4,10 +4,72 @@ from .scattering_method import *
 from .transfer_method import *
 
 
-class _BaseRCWA:
+class Base:
+    def __init__(self, grating_type):
+        self.grating_type = grating_type
+        self.wls = None
+        self.fourier_order = None
+
+    def init_spectrum_array(self):
+        if self.grating_type in (0, 1):
+            self.spectrum_r = np.zeros((len(self.wls), 2 * self.fourier_order + 1))
+            self.spectrum_t = np.zeros((len(self.wls), 2 * self.fourier_order + 1))
+        elif self.grating_type == 2:
+            self.spectrum_r = np.zeros((len(self.wls), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
+            self.spectrum_t = np.zeros((len(self.wls), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
+        else:
+            raise ValueError
+
+    def save_spectrum_array(self, de_ri, de_ti, i):
+        de_ri = np.array(de_ri)
+        de_ti = np.array(de_ti)
+
+        if not de_ri.shape:  # 1D
+            c = self.spectrum_r.shape[1] // 2
+            self.spectrum_r[i][c] = de_ri
+        elif len(de_ri.shape) == 1 or de_ri.shape[1] == 1:  # 1D
+            de_ri = de_ri.flatten()
+            c = self.spectrum_r.shape[1] // 2
+            l = de_ri.shape[0] // 2
+            self.spectrum_r[i][c - l:c + l + 1] = de_ri
+        else:
+            print('no code')
+            raise ValueError
+
+        if not de_ti.shape:  # 1D
+            c = self.spectrum_t.shape[1] // 2
+            self.spectrum_t[i][c] = de_ti
+        elif len(de_ti.shape) == 1 or de_ti.shape[1] == 1:  # 1D
+            de_ti = de_ti.flatten()
+            c = self.spectrum_t.shape[1] // 2
+            l = de_ti.shape[0] // 2
+            self.spectrum_t[i][c - l:c + l + 1] = de_ti
+        else:
+            print('no code')
+            raise ValueError
+
+    def plot(self):
+        if self.grating_type == 0:
+            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
+            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
+            plt.show()
+        elif self.grating_type == 1:
+            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
+            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
+            plt.show()
+        elif self.grating_type == 2:
+            plt.plot(self.wls, self.spectrum_r.sum(axis=(1, 2)))
+            plt.plot(self.wls, self.spectrum_t.sum(axis=(1, 2)))
+            plt.show()
+        else:
+            raise ValueError
+
+
+class _BaseRCWA(Base):
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
                  period=0.7, wls=np.linspace(0.5, 2.3, 400), pol=0,
                  patterns=None, thickness=None, algo='TMM'):
+        super().__init__(grating_type)
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
         self.n_I = n_I
@@ -21,7 +83,7 @@ class _BaseRCWA:
         self.fourier_order = fourier_order
         self.ff = 2 * self.fourier_order + 1
 
-        self.period = period  # TODO: Force array
+        self.period = period  # TODO: Force array np.array(period)
 
         self.wls = wls  # TODO: Force array
 

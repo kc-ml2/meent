@@ -45,16 +45,6 @@ def run_grcwa():
 
     # Rall, Tall = np.array()
 
-    def _init_spectrum(self):
-        if self.grating_type in (0, 1):
-            self.spectrum_r = np.ndarray((len(self.wls), 2 * self.fourier_order + 1))
-            self.spectrum_t = np.ndarray((len(self.wls), 2 * self.fourier_order + 1))
-        elif self.grating_type == 2:
-            self.spectrum_r = np.ndarray((len(self.wls), self.ff, self.ff))
-            self.spectrum_t = np.ndarray((len(self.wls), self.ff, self.ff))
-        else:
-            raise ValueError
-
     for wl in wls:
 
         # setting up RCWA

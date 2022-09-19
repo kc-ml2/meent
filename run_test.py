@@ -62,15 +62,17 @@ def run_test(n_I, n_II, theta, phi, grating_type, pol):
 # run_test(2, 2, theta=30, phi=10, grating_type=0, pol=1)  # SMM FAIL
 # run_test(2, 2, theta=31, phi=10, grating_type=0, pol=1)  # singular but pass
 
-run_test(2, 2, theta=30+1E-10, phi=10, grating_type=2, pol=0)  # SMM weak FAIL
-run_test(2, 2, theta=31+1E-10, phi=10, grating_type=2, pol=0)  # pass
+# run_test(2, 2, theta=30+1E-10, phi=10, grating_type=2, pol=0)  # SMM weak FAIL
+# run_test(2, 2, theta=31+1E-10, phi=10, grating_type=2, pol=0)  # pass
+#
+# run_test(2, 2, theta=30, phi=10, grating_type=2, pol=0)  # SMM FAIL
+# run_test(2, 2, theta=31, phi=10, grating_type=2, pol=0)  # singular but pass
+#
+# run_test(2, 2, theta=30+1E-10, phi=10, grating_type=2, pol=1)  # SMM weak FAIL
+# run_test(2, 2, theta=31+1E-10, phi=10, grating_type=2, pol=1)  # PASS
 
-run_test(2, 2, theta=30, phi=10, grating_type=2, pol=0)  # SMM FAIL
-run_test(2, 2, theta=31, phi=10, grating_type=2, pol=0)  # singular but pass
+# run_test(2, 2, theta=30, phi=10, grating_type=2, pol=1)  # SMM FAIL
+# run_test(2, 2, theta=31, phi=10, grating_type=2, pol=1)  # PASS
 
-run_test(2, 2, theta=30+1E-10, phi=10, grating_type=2, pol=1)  # SMM weak FAIL
-run_test(2, 2, theta=31+1E-10, phi=10, grating_type=2, pol=1)  # PASS
-
-run_test(2, 2, theta=30, phi=10, grating_type=2, pol=1)  # SMM FAIL
-run_test(2, 2, theta=31, phi=10, grating_type=2, pol=1)  # PASS
-
+run_test(1, 1, theta=1E-10, phi=1E-10, grating_type=0, pol=0)
+run_test(1, 1, theta=1E-10, phi=1E-10, grating_type=0, pol=1)

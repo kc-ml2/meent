@@ -139,12 +139,12 @@ def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, pol, 
 
     K_inc_vector = n_I * np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
 
-    _, cinc, Polarization = ic.initial_conditions(K_inc_vector, theta, normal_vector, pte, ptm, N, M)
+    _, e_src, _ = ic.initial_conditions(K_inc_vector, theta, normal_vector, pte, ptm, N, M)
 
-    cinc = np.linalg.inv(Wr) @ cinc
+    c_inc = np.linalg.inv(Wr) @ e_src
     # COMPUTE FIELDS: similar idea but more complex for RCWA since you have individual modes each contributing
-    reflected = Wr @ Sg['S11'] @ cinc
-    transmitted = Wt @ Sg['S21'] @ cinc
+    reflected = Wr @ Sg['S11'] @ c_inc
+    transmitted = Wt @ Sg['S21'] @ c_inc
 
     rx = reflected[0:NM, :]  # rx is the Ex component.
     ry = reflected[NM:, :]
