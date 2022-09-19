@@ -39,7 +39,7 @@ class JLABCode(RCWA):
 
         E_conv_all, oneover_E_conv_all = self.get_permittivity_map(wavelength)
 
-        de_ri, de_ti = self.lalanne_1d(wavelength, E_conv_all, oneover_E_conv_all)
+        de_ri, de_ti = self.solve_1d(wavelength, E_conv_all, oneover_E_conv_all)
 
         center = de_ti.shape[0] // 2
         tran_cut = de_ti[center - 1:center + 2]

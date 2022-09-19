@@ -18,8 +18,8 @@ class Grcwa(Base):
         self.pol = pol
         self.period = np.array(period)
         if not self.period.shape:
-            self.L1 = [self.period.item(), 0]
-            self.L2 = [0, self.period.item()]
+            self.L1 = [self.period, 0]
+            self.L2 = [0, self.period]
         elif self.period.shape == 1:
             self.L1 = [self.period[0], 0]
             self.L2 = [0, self.period[0]]
@@ -27,8 +27,8 @@ class Grcwa(Base):
             self.L1 = [self.period[0], 0]
             self.L2 = [0, self.period[1]]
 
-        self.theta = theta
-        self.phi = phi
+        self.theta = theta * np.pi / 180
+        self.phi = phi * np.pi / 180
 
         self.Nx = 1001
         self.Ny = 1001
@@ -46,19 +46,7 @@ class Grcwa(Base):
 
         self.wls = wls
 
-        # self.spectrum_r, self.spectrum_t = [], []
-
         self.init_spectrum_array()
-
-    # def _init_spectrum(self):
-    #     if self.grating_type in (0, 1):
-    #         self.spectrum_r = np.ndarray((len(self.wls), 2 * self.fourier_order + 1))
-    #         self.spectrum_t = np.ndarray((len(self.wls), 2 * self.fourier_order + 1))
-    #     elif self.grating_type == 2:
-    #         self.spectrum_r = np.ndarray((len(self.wls), self.ff, self.ff))
-    #         self.spectrum_t = np.ndarray((len(self.wls), self.ff, self.ff))
-    #     else:
-    #         raise ValueError
 
     def draw_pattern(self):
 
@@ -94,9 +82,7 @@ class Grcwa(Base):
 
             R, T = de_ri.sum(), de_ti.sum()
 
-            print('R=',R,', T=',T,', R+T=',R+T)
-            # self.spectrum_r.append(R)
-            # self.spectrum_t.append(T)
+            # print('R=', R, ', T=', T, ', R+T=', R+T)
             self.save_spectrum_array(de_ri, de_ti, i)
 
         return self.spectrum_r, self.spectrum_t
@@ -108,20 +94,8 @@ if __name__ == '__main__':
     # lattice constants
     period = 700
 
-    # L1 = [700, 0]
-    # L2 = [0, 700]
-
-    # frequency and angles
-    # freq = 1.
-    # theta = np.pi / 6
-    # phi = np.pi / 3
     theta = 1E-20
     phi = 1E-20
-    # theta = 0
-    # phi = 0
-    # to avoid singular matrix, alternatively, one can add fictitious small loss to vacuum
-    # Qabs = np.inf
-    # freqcmp = freq*(1+1j/2/Qabs)
     # the patterned layer has a griding: Nx*Ny
     Nx = 1001
     Ny = 1001

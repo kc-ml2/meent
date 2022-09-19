@@ -27,12 +27,12 @@ class RCWA(_BaseRCWA):
         E_conv_all, oneover_E_conv_all = self.get_permittivity_map(wl)
 
         if self.grating_type == 0:
-            de_ri, de_ti = self.lalanne_1d(wl, E_conv_all, oneover_E_conv_all)
+            de_ri, de_ti = self.solve_1d(wl, E_conv_all, oneover_E_conv_all)
         elif self.grating_type == 1:
             # de_ri, de_ti = self.lalanne_1d_conical()  # TODO: implement
             de_ri = de_ti = None
         elif self.grating_type == 2:
-            de_ri, de_ti = self.lalanne_2d(wl, E_conv_all, oneover_E_conv_all)
+            de_ri, de_ti = self.solve_2d(wl, E_conv_all, oneover_E_conv_all)
         else:
             raise ValueError
 
