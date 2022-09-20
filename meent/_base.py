@@ -86,10 +86,10 @@ class _BaseRCWA(Base):
         self.psi = psi * np.pi / 180  # TODO: integrate psi and pol
 
         self.pol = pol  # TE 0, TM 1
-        if self.pol == 0:  # TM
-            self.psi = 0 * np.pi / 180
-        elif self.pol == 1:  # TE
+        if self.pol == 0:  # TE
             self.psi = 90 * np.pi / 180
+        elif self.pol == 1:  # TM
+            self.psi = 0 * np.pi / 180
         else:
             print('not implemented yet')
             # TODO: integrate psi and pol
@@ -192,6 +192,7 @@ class _BaseRCWA(Base):
         return de_ri, de_ti
 
     # TODO: take out as a function
+    # TODO: scattering method
     def solve_1d_conical(self):
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
@@ -382,6 +383,7 @@ class _BaseRCWA(Base):
             de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
                                          delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z)
         elif self.algo == 'SMM':
+
             de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_I,
                                            self.pol, self.theta, self.phi, self.fourier_order, self.ff)
         else:

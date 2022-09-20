@@ -29,7 +29,7 @@ class RCWA(_BaseRCWA):
         if self.grating_type == 0:
             de_ri, de_ti = self.solve_1d(wl, E_conv_all, oneover_E_conv_all)
         elif self.grating_type == 1:
-            # de_ri, de_ti = self.lalanne_1d_conical()  # TODO: implement
+            # de_ri, de_ti = self.solve_1d_conical()  # TODO: implement
             de_ri = de_ti = None
         elif self.grating_type == 2:
             de_ri, de_ti = self.solve_2d(wl, E_conv_all, oneover_E_conv_all)
