@@ -31,7 +31,11 @@ class Base:
             de_ri = de_ri.flatten()
             c = self.spectrum_r.shape[1] // 2
             l = de_ri.shape[0] // 2
-            self.spectrum_r[i][c - l:c + l + 1] = de_ri
+            if len(de_ri) % 2:
+                self.spectrum_r[i][c - l:c + l + 1] = de_ri
+            else:
+                self.spectrum_r[i][c - l:c + l] = de_ri
+
         else:
             print('no code')
             raise ValueError
@@ -43,26 +47,28 @@ class Base:
             de_ti = de_ti.flatten()
             c = self.spectrum_t.shape[1] // 2
             l = de_ti.shape[0] // 2
-            self.spectrum_t[i][c - l:c + l + 1] = de_ti
+            if len(de_ti) % 2:
+                self.spectrum_t[i][c - l:c + l + 1] = de_ti
+            else:
+                self.spectrum_t[i][c - l:c + l] = de_ti
         else:
             print('no code')
             raise ValueError
 
-    def plot(self):
+    def plot(self, title=None):
         if self.grating_type == 0:
             plt.plot(self.wls, self.spectrum_r.sum(axis=1))
             plt.plot(self.wls, self.spectrum_t.sum(axis=1))
-            plt.show()
         elif self.grating_type == 1:
             plt.plot(self.wls, self.spectrum_r.sum(axis=1))
             plt.plot(self.wls, self.spectrum_t.sum(axis=1))
-            plt.show()
         elif self.grating_type == 2:
             plt.plot(self.wls, self.spectrum_r.sum(axis=(1, 2)))
             plt.plot(self.wls, self.spectrum_t.sum(axis=(1, 2)))
-            plt.show()
         else:
             raise ValueError
+        plt.title(title)
+        plt.show()
 
 
 class _BaseRCWA(Base):
@@ -78,14 +84,23 @@ class _BaseRCWA(Base):
         self.theta = theta * np.pi / 180
         self.phi = phi * np.pi / 180
         self.psi = psi * np.pi / 180  # TODO: integrate psi and pol
+
         self.pol = pol  # TE 0, TM 1
+        if self.pol == 0:  # TE
+            self.psi = 90 * np.pi / 180
+        elif self.pol == 1:  # TM
+            self.psi = 0 * np.pi / 180
+        else:
+            print('not implemented yet')
+            # TODO: integrate psi and pol
+            raise ValueError
 
         self.fourier_order = fourier_order
         self.ff = 2 * self.fourier_order + 1
 
-        self.period = period  # TODO: Force array np.array(period)
+        self.period = period
 
-        self.wls = wls  # TODO: Force array
+        self.wls = wls
 
         self.patterns = [[3.8, 1, 0.3]] if patterns is None else patterns
         self.thickness = [1120] if thickness is None else thickness
@@ -103,22 +118,6 @@ class _BaseRCWA(Base):
         else:
             raise ValueError
 
-    def plot(self):
-        if self.grating_type == 0:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
-            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
-            plt.show()
-        elif self.grating_type == 1:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
-            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
-            plt.show()
-        elif self.grating_type == 2:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=(1, 2)))
-            plt.plot(self.wls, self.spectrum_t.sum(axis=(1, 2)))
-            plt.show()
-        else:
-            raise ValueError
-
     def get_permittivity_map(self, wl):
 
         E_conv_all = permittivity_mapping(self.patterns, wl, self.period, self.fourier_order)
@@ -130,7 +129,7 @@ class _BaseRCWA(Base):
                                                       oneover=True)
         return E_conv_all, oneover_E_conv_all
 
-    def lalanne_1d(self, wl, E_conv_all, oneover_E_conv_all):
+    def solve_1d(self, wl, E_conv_all, oneover_E_conv_all):
 
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
@@ -193,7 +192,8 @@ class _BaseRCWA(Base):
         return de_ri, de_ti
 
     # TODO: take out as a function
-    def lalanne_1d_conical(self):
+    # TODO: scattering method
+    def solve_1d_conical(self):
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
         delta_i0 = np.zeros(self.ff).reshape((-1, 1))
@@ -343,7 +343,7 @@ class _BaseRCWA(Base):
 
         return self.spectrum_r, self.spectrum_t
 
-    def lalanne_2d(self, wl, E_conv_all, oneover_E_conv_all):
+    def solve_2d(self, wl, E_conv_all, oneover_E_conv_all):
 
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
@@ -359,8 +359,7 @@ class _BaseRCWA(Base):
 
         if self.algo == 'TMM':
             Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
-                = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta,
-                                self.phi, wl)
+                = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta, self.phi, wl)
         elif self.algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_2d_1(self.n_I, self.n_II, self.theta, self.phi, k0, self.period, self.fourier_order)
@@ -382,11 +381,8 @@ class _BaseRCWA(Base):
 
         if self.algo == 'TMM':
             de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
-                                         delta_i0,
-                                         k_I_z, k0, self.n_I, self.n_II, k_II_z)
-
+                                         delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z)
         elif self.algo == 'SMM':
-
             de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_I,
                                            self.pol, self.theta, self.phi, self.fourier_order, self.ff)
         else:
