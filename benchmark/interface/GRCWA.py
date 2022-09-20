@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from meent._base import Base
 
 
-class Grcwa(Base):
+class GRCWA(Base):
     def __init__(self, grating_type=0, n_I=1., n_II=1., theta=0, phi=0, psi=0, fourier_order=40, period=(100,),
                  wls=np.linspace(900, 900, 1), pol=1, patterns=None, thickness=(325,), algo='TMM', **kwargs):
 
@@ -62,7 +62,7 @@ class Grcwa(Base):
         for i, wl in enumerate(self.wls):
 
             # setting up RCWA
-            obj = grcwa.obj(self.fourier_order, self.L1, self.L2, 1/wl, self.theta, self.phi, verbose=1)
+            obj = grcwa.obj(self.fourier_order, self.L1, self.L2, 1/wl, self.theta, self.phi, verbose=0)
             # input layer information
             obj.Add_LayerUniform(self.thick0, self.n_I)
             obj.Add_LayerGrid(self.thickp, self.Nx, self.Ny)
@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
     wls = np.linspace(500, 2300, 100)
 
-    res = Grcwa(grating_type=0, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=0, fourier_order=fourier_order,
+    res = GRCWA(grating_type=0, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=0, fourier_order=fourier_order,
                 period=period, wls=wls, pol=pol, patterns=None, thickness=thickness)
     res.run()
     res.plot()

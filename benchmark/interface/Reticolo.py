@@ -14,7 +14,7 @@ from oct2py import octave
 from meent._base import Base
 
 
-class ClassReticolo(Base):
+class Reticolo(Base):
 
     def __init__(self, grating_type=0,
                  n_I=1., n_II=1., theta=0, phi=0, fourier_order=40, period=(100,),
@@ -90,11 +90,11 @@ if __name__ == '__main__':
 
     profile = np.array([[0, thickness, 0], [1, 2, 3]])
 
-    AA = ClassReticolo(grating_type=0,
-                       n_I=n_I, n_II=n_II, theta=theta, phi=phi, fourier_order=fourier_order, period=period,
-                       wls=wls, pol=pol,
-                       textures=textures, profile=profile,
-                       engine_type='octave')
+    AA = Reticolo(grating_type=0,
+                  n_I=n_I, n_II=n_II, theta=theta, phi=phi, fourier_order=fourier_order, period=period,
+                  wls=wls, pol=pol,
+                  textures=textures, profile=profile,
+                  engine_type='octave')
 
     refl, tran = AA.run()
     AA.plot()

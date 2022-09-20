@@ -55,21 +55,20 @@ class Base:
             print('no code')
             raise ValueError
 
-    def plot(self):
+    def plot(self, title=None):
         if self.grating_type == 0:
             plt.plot(self.wls, self.spectrum_r.sum(axis=1))
             plt.plot(self.wls, self.spectrum_t.sum(axis=1))
-            plt.show()
         elif self.grating_type == 1:
             plt.plot(self.wls, self.spectrum_r.sum(axis=1))
             plt.plot(self.wls, self.spectrum_t.sum(axis=1))
-            plt.show()
         elif self.grating_type == 2:
             plt.plot(self.wls, self.spectrum_r.sum(axis=(1, 2)))
             plt.plot(self.wls, self.spectrum_t.sum(axis=(1, 2)))
-            plt.show()
         else:
             raise ValueError
+        plt.title(title)
+        plt.show()
 
 
 class _BaseRCWA(Base):
@@ -85,7 +84,16 @@ class _BaseRCWA(Base):
         self.theta = theta * np.pi / 180
         self.phi = phi * np.pi / 180
         self.psi = psi * np.pi / 180  # TODO: integrate psi and pol
+
         self.pol = pol  # TE 0, TM 1
+        if self.pol == 0:  # TM
+            self.psi = 0 * np.pi / 180
+        elif self.pol == 1:  # TE
+            self.psi = 90 * np.pi / 180
+        else:
+            print('not implemented yet')
+            # TODO: integrate psi and pol
+            raise ValueError
 
         self.fourier_order = fourier_order
         self.ff = 2 * self.fourier_order + 1
@@ -107,22 +115,6 @@ class _BaseRCWA(Base):
         elif grating_type == 2:
             self.spectrum_r = np.ndarray((len(wls), 2 * fourier_order + 1, 2 * fourier_order + 1))
             self.spectrum_t = np.ndarray((len(wls), 2 * fourier_order + 1, 2 * fourier_order + 1))
-        else:
-            raise ValueError
-
-    def plot(self):
-        if self.grating_type == 0:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
-            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
-            plt.show()
-        elif self.grating_type == 1:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
-            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
-            plt.show()
-        elif self.grating_type == 2:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=(1, 2)))
-            plt.plot(self.wls, self.spectrum_t.sum(axis=(1, 2)))
-            plt.show()
         else:
             raise ValueError
 
