@@ -27,12 +27,12 @@ class RCWA(_BaseRCWA):
         E_conv_all, oneover_E_conv_all = self.get_permittivity_map(wl)
 
         if self.grating_type == 0:
-            de_ri, de_ti = self.lalanne_1d(wl, E_conv_all, oneover_E_conv_all)
+            de_ri, de_ti = self.solve_1d(wl, E_conv_all, oneover_E_conv_all)
         elif self.grating_type == 1:
             # de_ri, de_ti = self.lalanne_1d_conical()  # TODO: implement
             de_ri = de_ti = None
         elif self.grating_type == 2:
-            de_ri, de_ti = self.lalanne_2d(wl, E_conv_all, oneover_E_conv_all)
+            de_ri, de_ti = self.solve_2d(wl, E_conv_all, oneover_E_conv_all)
         else:
             raise ValueError
 
@@ -58,8 +58,8 @@ if __name__ == '__main__':
     grating_type = 2
     pol = 0
 
-    n_r = 1.45  # glass
-    n_t = 1
+    n_I = 1.45  # glass
+    n_II = 1
 
     theta = 0
     phi = 0
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
     thickness = [460, 660]
 
-    AA = RCWA(grating_type=grating_type, pol=pol, n_I=n_r, n_II=n_t, theta=theta, phi=phi, psi=psi,
+    AA = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
               fourier_order=fourier_order, wls=wls, period=period, patterns=patterns, thickness=thickness)
     t0 = time.perf_counter()
 
