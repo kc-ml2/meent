@@ -98,9 +98,9 @@ class _BaseRCWA(Base):
         self.fourier_order = fourier_order
         self.ff = 2 * self.fourier_order + 1
 
-        self.period = period  # TODO: Force array np.array(period)
+        self.period = period
 
-        self.wls = wls  # TODO: Force array
+        self.wls = wls
 
         self.patterns = [[3.8, 1, 0.3]] if patterns is None else patterns
         self.thickness = [1120] if thickness is None else thickness
@@ -383,7 +383,6 @@ class _BaseRCWA(Base):
             de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
                                          delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z)
         elif self.algo == 'SMM':
-
             de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_I,
                                            self.pol, self.theta, self.phi, self.fourier_order, self.ff)
         else:

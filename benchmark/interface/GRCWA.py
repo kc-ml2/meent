@@ -20,7 +20,7 @@ class GRCWA(Base):
         if not self.period.shape:
             self.L1 = [self.period, 0]
             self.L2 = [0, self.period]
-        elif self.period.shape == 1:
+        elif len(self.period) == 1:
             self.L1 = [self.period[0], 0]
             self.L2 = [0, self.period[0]]
         else:

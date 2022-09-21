@@ -55,7 +55,7 @@ class RCWA(_BaseRCWA):
 
 
 if __name__ == '__main__':
-    grating_type = 2
+    grating_type = 0
     pol = 0
 
     n_I = 1.45  # glass

@@ -45,10 +45,10 @@ class Reticolo(Base):
         self.fourier_order = fourier_order
         self.ff = 2 * self.fourier_order + 1
 
-        self.period = np.array(period).reshape(-1)  # TODO: Force array
+        self.period = period
 
         self.wls = np.array(wls).reshape(-1)  # TODO: Force array
-
+        self.wls = wls
         self.textures = textures
         self.profile = profile
 

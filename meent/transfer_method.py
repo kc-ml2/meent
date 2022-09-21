@@ -3,7 +3,7 @@ from meent.convolution_matrix import *
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_order,fourier_indices, wl, period):
 
-    kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wl / period)).astype('complex')
+    kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wl / period[0])).astype('complex')
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2) ** 0.5
