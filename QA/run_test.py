@@ -29,17 +29,17 @@ def run_test(n_I, n_II, theta, phi, grating_type, pol):
     t0 = time.time()
     res = RCWA(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
                         pol, patterns, thickness, algo='TMM')
-    res.loop_wavelength()
+    res.loop_wavelength_fill_factor()
     print(time.time() - t0)
-    res.plot()
+    res.plot(title='TMM')
 
     t0 = time.time()
     res = RCWA(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
                         pol, patterns, thickness, algo='SMM')
 
-    res.loop_wavelength()
+    res.loop_wavelength_fill_factor()
     print(time.time() - t0)
-    res.plot()
+    res.plot(title='SMM')
 
 run_test(2, 2, theta=31, phi=10, grating_type=2, pol=0)  # PASSED
 run_test(2, 2, theta=30, phi=10, grating_type=2, pol=0)  # SMM fail

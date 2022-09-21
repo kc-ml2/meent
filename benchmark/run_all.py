@@ -49,7 +49,7 @@ reti.plot(title='reticolo')
 meent_t = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                fourier_order=fourier_order, wls=wls, period=[period], patterns=patterns, thickness=thickness)
 try:
-    meent_t.loop_wavelength()
+    meent_t.loop_wavelength_fill_factor()
 except:
     pass
 meent_t.plot(title='meent-TMM')
@@ -58,7 +58,7 @@ meent_s = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=the
                fourier_order=fourier_order, wls=wls, period=[period], patterns=patterns, thickness=thickness,
                algo='SMM')
 try:
-    meent_s.loop_wavelength()
+    meent_s.loop_wavelength_fill_factor()
 except:
     pass
 meent_s.plot(title='meent-SMM')

@@ -32,7 +32,7 @@ AA = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, p
           fourier_order=fourier_order, wls=wls, period=period, patterns=patterns, thickness=thickness)
 t0 = time.perf_counter()
 
-a, b = AA.loop_wavelength()
+a, b = AA.loop_wavelength_fill_factor()
 AA.plot()
 
 print(time.perf_counter() - t0)
