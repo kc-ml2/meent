@@ -64,6 +64,24 @@ class Reticolo(Base):
 
         return self.spectrum_r, self.spectrum_t
 
+    def run_acs(self, pattern, wl, deflected_angle):
+        a, b = self.eng.Eval_Eff_1D(pattern, wl, deflected_angle, self.fourier_order, nout=2)
+        return a, b
+
+    def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None):
+        if wls is None:
+            wls = self.wls
+        else:
+            self.wls = wls  # TODO: handle better.
+
+        self.init_spectrum_array()
+
+        for i, wl in enumerate(wls):
+            _, de_ti, de_ri = self.eng.Eval_Eff_1D(pattern, wl, deflected_angle, self.fourier_order, nout=3)
+            self.save_spectrum_array(de_ri, de_ti, i)
+
+        return self.spectrum_r, self.spectrum_t
+
 
 if __name__ == '__main__':
     Nx = 1001

@@ -12,11 +12,11 @@ class JLABCode(RCWA):
         super().__init__(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls, polarization, patterns,
                          thickness, algo)
 
-    def permittivity_mapping_jlab(self, pattern_all, wl, period, fourier_order, oneover=False):
+    def permittivity_mapping_jlab(self, wl, oneover=False):
         pattern_all = put_n_ridge_in_pattern(self.patterns, wl, oneover)
         pmtvy = self.draw_1d_jlab(pattern_all)
 
-        conv_all = to_conv_mat_fill_factor(pmtvy, fourier_order)
+        conv_all = to_conv_mat_fill_factor(pmtvy, self.fourier_order)
 
         return conv_all
 
@@ -50,16 +50,42 @@ class JLABCode(RCWA):
 
         self.pol = 1
 
-        E_conv_all = self.permittivity_mapping_jlab(pattern_pixel, self.wls, self.period, self.fourier_order)
-        oneover_E_conv_all = self.permittivity_mapping_jlab(pattern_pixel, self.wls, self.period, self.fourier_order,
-                                                            oneover=True)
+        E_conv_all = self.permittivity_mapping_jlab(self.wls)
+        oneover_E_conv_all = self.permittivity_mapping_jlab(self.wls, oneover=True)
 
-        de_ri, de_ti = self.solve_1d(wavelength, E_conv_all, oneover_E_conv_all)
+        de_ri, de_ti = self.solve_1d(self.wls, E_conv_all, oneover_E_conv_all)  # TODO: check self.wls
 
         center = de_ti.shape[0] // 2
         tran_cut = de_ti[center - 1:center + 2]
+        refl_cut = de_ri[center - 1:center + 2]
 
-        return tran_cut[0], tran_cut
+        return tran_cut[0], tran_cut, refl_cut
+
+    def reproduce_acs_loop_wavelength(self, pattern, trans_angle, wls=None):
+        if wls is None:
+            wls = self.wls
+        else:
+            self.wls = wls
+        self.init_spectrum_array()
+
+        # self.period = abs(self.wls / np.sin(trans_angle / 180 * np.pi))
+
+        self.patterns = [['SILICON', 1, pattern]]  # n_ridge, n_groove, pattern_pixel
+        self.thickness = [325]
+
+        self.pol = 1
+
+        for i, wl in enumerate(wls):
+            self.period = [abs(wl / np.sin(trans_angle / 180 * np.pi))]
+
+            E_conv_all = self.permittivity_mapping_jlab(wl)
+            oneover_E_conv_all = self.permittivity_mapping_jlab(wl, oneover=True)
+            de_ri, de_ti = self.solve_1d(wl, E_conv_all, oneover_E_conv_all)
+
+            self.spectrum_r[i] = de_ri
+            self.spectrum_t[i] = de_ti
+
+        return self.spectrum_r, self.spectrum_t
 
 
 if __name__ == '__main__':

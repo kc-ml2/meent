@@ -1,4 +1,4 @@
-function [R, T] = run_reticolo(_pol, theta, period, n_air, nn, _textures, _profile, wavelength)
+function [R, T] = run_reticolo(_pol, theta, period, n_inc, nn, _textures, _profile, wavelength)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,7 +6,7 @@ warning('off', 'Octave:possible-matlab-short-circuit-operator');
 warning('off', 'Invalid UTF-8 byte sequences have been replaced.');
 warning('off', 'findstr is obsolete; use strfind instead');
 
-k_parallel = n_air*sin(theta); % n_air, or whatever the refractive index of the medium where light is coming in.
+k_parallel = n_inc*sin(theta); % n_air, or whatever the refractive index of the medium where light is coming in.
 
 if _pol == 0  # TE
     pol = 1;

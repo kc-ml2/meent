@@ -1,4 +1,4 @@
-function [ abseff, effi ] = Eval_Eff_1D(img, wavelength, angle)
+function [abseff, effi, effi_r] = Eval_Eff_1D(img, wavelength, angle, fourier_order)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -13,6 +13,7 @@ n_glass = 1.45;
 thickness  = 325;
 
 load('/Users/yongha/project/metasurface/reticolo/V9/p_Si.mat')
+% 210.31 ~ 1688.90
 n_Si = interp1(WL, n, wavelength);
 clear k n WL
 angle_theta0 = 0; % Incidence angle in degrees
@@ -22,7 +23,7 @@ parm = res0(-1); % TE polarization. For TM : parm=res0(-1)
 parm.res1.champ = 1; % the electromagnetic field is calculated accurately
 %parm.res1.trace = 1; % show the texture
 
-nn = 40; % Fourier harmonics sarun from [-40,40]
+nn = fourier_order; % Fourier harmonics sarun from [-40,40]
 
 period = abs(wavelength/sind(angle));
 
@@ -47,6 +48,8 @@ theta_arr = one_D_TM.inc_bottom_transmitted.theta-angle ;
 idx = find(abs(theta_arr) == min(abs(theta_arr)));
 abseff = one_D_TM.inc_bottom_transmitted.efficiency(idx);
 effi = one_D_TM.inc_bottom_transmitted.efficiency;
+effi_r = one_D_TM.inc_bottom_reflected.efficiency;
+
 %disp(abseff)
 %catch
 %   abseff = -1
