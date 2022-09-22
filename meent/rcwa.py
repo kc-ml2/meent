@@ -14,31 +14,6 @@ class RCWA(_BaseRCWA):
         self.spectrum_r, self.spectrum_t = None, None
         self.init_spectrum_array()
 
-    # def _init_spectrum(self):
-    #     if self.grating_type in (0, 1):
-    #         self.spectrum_r = np.ndarray((len(self.wls), 2 * self.fourier_order + 1))
-    #         self.spectrum_t = np.ndarray((len(self.wls), 2 * self.fourier_order + 1))
-    #     elif self.grating_type == 2:
-    #         self.spectrum_r = np.ndarray((len(self.wls), self.ff, self.ff))
-    #         self.spectrum_t = np.ndarray((len(self.wls), self.ff, self.ff))
-    #     else:
-    #         raise ValueError
-
-    # def run_single(self, wl):
-    #     E_conv_all, oneover_E_conv_all = self.get_permittivity_map(wl)
-    #
-    #     if self.grating_type == 0:
-    #         de_ri, de_ti = self.solve_1d(wl, E_conv_all, oneover_E_conv_all)
-    #     elif self.grating_type == 1:
-    #         # de_ri, de_ti = self.solve_1d_conical()  # TODO: implement
-    #         de_ri = de_ti = None
-    #     elif self.grating_type == 2:
-    #         de_ri, de_ti = self.solve_2d(wl, E_conv_all, oneover_E_conv_all)
-    #     else:
-    #         raise ValueError
-    #
-    #     return de_ri, de_ti
-
     def solve(self, wl, E_conv_all, oneover_E_conv_all):
 
         if self.grating_type == 0:
@@ -60,9 +35,9 @@ class RCWA(_BaseRCWA):
             self.init_spectrum_array()
 
         for i, wl in enumerate(self.wls):
-            E_conv_all, oneover_E_conv_all = self.get_e_conv_set_by_fill_factor(wl)
+            e_conv_all, oneover_e_conv_all = self.get_e_conv_set_by_fill_factor(wl)
 
-            de_ri, de_ti = self.solve(wl, E_conv_all, oneover_E_conv_all)
+            de_ri, de_ti = self.solve(wl, e_conv_all, oneover_e_conv_all)
 
             self.spectrum_r[i] = de_ri
             self.spectrum_t[i] = de_ti
@@ -80,12 +55,12 @@ class RCWA(_BaseRCWA):
 
         # si = [[x_begin, x_end], [y_begin, y_end], [z_begin, z_end]]
         si = ['SILICON', 0, 4, 0, 4, 0, 1]
-        oxide = ['SILICON', 0, 4, 0, 4, 1, 2]
+        ox = ['SILICON', 0, 4, 0, 4, 1, 2]
         ni = ['SILICON', 0, 4, 0, 4, 2, 3]
         ti = ['SILICON', 0, 4, 0, 4, 3, 4]
 
         for i, wl in enumerate(self.wls):
-            for material, x_begin, x_end, y_begin, y_end, z_begin, z_end in [si, oxide, ni, ti]:
+            for material, x_begin, x_end, y_begin, y_end, z_begin, z_end in [si, ox, ni, ti]:
                 n_index = find_n_index(material, wl)
                 cell[x_begin:x_end, y_begin:y_end, z_begin:z_end] = n_index ** 2
 

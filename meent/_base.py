@@ -56,16 +56,16 @@ class Base:
             print('no code')
             raise ValueError
 
-    def plot(self, title=None):
+    def plot(self, title=None, marker=None):
         if self.grating_type == 0:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
-            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
+            plt.plot(self.wls, self.spectrum_r.sum(axis=1), marker=marker)
+            plt.plot(self.wls, self.spectrum_t.sum(axis=1), marker=marker)
         elif self.grating_type == 1:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=1))
-            plt.plot(self.wls, self.spectrum_t.sum(axis=1))
+            plt.plot(self.wls, self.spectrum_r.sum(axis=1), marker=marker)
+            plt.plot(self.wls, self.spectrum_t.sum(axis=1), marker=marker)
         elif self.grating_type == 2:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=(1, 2)))
-            plt.plot(self.wls, self.spectrum_t.sum(axis=(1, 2)))
+            plt.plot(self.wls, self.spectrum_r.sum(axis=(1, 2)), marker=marker)
+            plt.plot(self.wls, self.spectrum_t.sum(axis=(1, 2)), marker=marker)
         else:
             raise ValueError
         plt.title(title)
