@@ -17,7 +17,7 @@ from meent._base import Base
 class Reticolo(Base):
 
     def __init__(self, grating_type=0,
-                 n_I=1., n_II=1., theta=0, phi=0, fourier_order=40, period=(100,),
+                 n_I=1., n_II=1., theta=0., phi=0., fourier_order=40, period=(100,),
                  wls=np.linspace(900, 900, 1), pol=1,
                  textures=None, profile=None,
                  engine_type='octave'):

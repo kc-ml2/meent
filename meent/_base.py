@@ -111,13 +111,14 @@ class _BaseRCWA(Base):
 
     def get_e_conv_set_by_fill_factor(self, wl):
 
-        E_conv_all = permittivity_mapping_by_fill_factor(self.patterns, wl, self.period, self.fourier_order)
+        E_conv_all = permittivity_mapping_by_fill_factor(self.patterns, wl, self.fourier_order,
+                                                         self.grating_type)
 
         if self.grating_type == 0 and self.pol == 0:  # TE  # TODO: Conical?
             oneover_E_conv_all = np.zeros(len(E_conv_all))  # Dummy for TE case
         else:
-            oneover_E_conv_all = permittivity_mapping_by_fill_factor(self.patterns, wl, self.period, self.fourier_order,
-                                                                     oneover=True)
+            oneover_E_conv_all = permittivity_mapping_by_fill_factor(self.patterns, wl, self.fourier_order,
+                                                                     self.grating_type, oneover=True)
         return E_conv_all, oneover_E_conv_all
 
     def solve_1d(self, wl, E_conv_all, oneover_E_conv_all):
@@ -196,8 +197,9 @@ class _BaseRCWA(Base):
         for i, wl in enumerate(self.wls):
             k0 = 2 * np.pi / wl
 
-            E_conv_all = permittivity_mapping_by_fill_factor(self.patterns, wl, self.period, self.fourier_order)
-            oneover_E_conv_all = permittivity_mapping_by_fill_factor(self.patterns, wl, self.period, self.fourier_order, oneover=True)
+            E_conv_all = permittivity_mapping_by_fill_factor(self.patterns, wl, self.fourier_order, self.grating_type)
+            oneover_E_conv_all = permittivity_mapping_by_fill_factor(self.patterns, wl, self.fourier_order,
+                                                                     self.grating_type, oneover=True)
 
             kx_vector = k0 * (
                     self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (wl / self.period)).astype(

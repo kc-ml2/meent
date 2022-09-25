@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 from meent.rcwa import RCWA
-from meent.convolution_matrix import put_n_ridge_in_pattern, to_conv_mat_fill_factor
+from meent.convolution_matrix import put_n_ridge_in_pattern, to_conv_mat_old
 
 
 class JLABCode(RCWA):
@@ -16,14 +16,14 @@ class JLABCode(RCWA):
         pattern_all = put_n_ridge_in_pattern(self.patterns, wl, oneover)
         pmtvy = self.draw_1d_jlab(pattern_all)
 
-        conv_all = to_conv_mat_fill_factor(pmtvy, self.fourier_order)
+        conv_all = to_conv_mat_old(pmtvy, self.fourier_order)
 
         return conv_all
 
     def draw_1d_jlab(self, patterns_pixel, resolution=1001):
 
         resolution = len(patterns_pixel[0][2].flatten())
-        res = np.ndarray((len(patterns_pixel), resolution))
+        res = np.ndarray((len(patterns_pixel), 1, resolution))
 
         for i, (n_ridge, n_groove, pixel_map) in enumerate(patterns_pixel):
             pixel_map = np.array(pixel_map, dtype='float')
@@ -101,7 +101,7 @@ if __name__ == '__main__':
                         1., 1., 1., 1., 1., 1., 1., 1., 1., -1., 1., 1.])
 
     AA = JLABCode(algo=algo)
-    a, b = AA.reproduce_acs(pattern, wavelength, deflected_angle)
+    a, b, c = AA.reproduce_acs(pattern, wavelength, deflected_angle)
 
-    print('result:', a, b)
+    print('result:', a, b, c)
     print('time:', time.perf_counter() - t0)
