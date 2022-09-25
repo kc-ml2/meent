@@ -28,15 +28,15 @@ if __name__ == '__main__':
     grating_type = 0
     aa = TT()
     print(1)
-    gt = LalanneBase(grating_type,wls=np.linspace(0.5, 2.3, 40), fourier_order=1,)
+    gt = RCWA(grating_type,wls=np.linspace(0.5, 2.3, 40), fourier_order=1,)
     # model = LalanneBase(grating_type, wls=np.linspace(0.5, 2.3, 40), fourier_order=1, thickness=[x])
 
 
     def loss(x):
         print(2)
-        model = LalanneBase(grating_type, wls=np.linspace(0.5, 2.3, 40), fourier_order=1, thickness=[x])
+        model = RCWA(grating_type, wls=np.linspace(0.5, 2.3, 40), fourier_order=1, thickness=[x])
         print(3)
-        model.lalanne_1d()
+        model.solve()
 
         gap = jnp.linalg.norm(model.spectrum_r - gt.spectrum_r)
         return gap

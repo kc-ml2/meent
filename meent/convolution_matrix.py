@@ -1,8 +1,9 @@
 import copy
-import numpy as np
+# import numpy as np
 import scipy.io
+import jax.numpy as np
 
-from scipy.linalg import circulant
+from scipy.linalg import circulant  # TODO: acceptable?
 
 from pathlib import Path
 
@@ -75,7 +76,19 @@ def to_conv_mat_old(pmt, fourier_order):
             center = pmtvy_fft.shape[1] // 2
             pmtvy_fft_cut = (pmtvy_fft[0, -2*fourier_order + center: center + 2*fourier_order + 1])
             A = np.roll(circulant(pmtvy_fft_cut.flatten()), (pmtvy_fft_cut.size + 1) // 2, 0)
-            res[i] = A[:2*fourier_order+1, :2*fourier_order+1]
+            # res[i] = A[:2*fourier_order+1, :2*fourier_order+1]
+            #
+            # exclude = [(2, 5), (3, 4), (6, 1)]
+            #
+            # ind = tuple(np.array(exclude).T)
+
+            cut_idx = np.arange(2*fourier_order+1)
+            xx, yy = np.meshgrid(cut_idx, cut_idx, indexing='ij')
+            xx = xx.flatten()
+            yy = yy.flatten()
+            res = np.array([A[xx, yy].reshape((2*fourier_order+1, 2*fourier_order+1))])
+
+
 
     else:  # 2D
         # attention on the order of axis.
