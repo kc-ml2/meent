@@ -14,7 +14,7 @@ theta = 1E-10
 phi = 0
 psi = 0 if pol else 90
 
-wls = np.linspace(500, 2300, 10000)  # wavelength
+wls = np.linspace(500, 2300, 100)  # wavelength
 
 if grating_type == 2:
     period = [700, 700]

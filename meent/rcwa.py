@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 from meent._base import _BaseRCWA
-from meent.convolution_matrix import to_conv_mat_old, find_n_index
+from meent.convolution_matrix import to_conv_mat_old, find_n_index, fill_factor_to_ucell
 
 
 class RCWA(_BaseRCWA):
@@ -14,15 +14,15 @@ class RCWA(_BaseRCWA):
         self.spectrum_r, self.spectrum_t = None, None
         self.init_spectrum_array()
 
-    def solve(self, wl, E_conv_all, oneover_E_conv_all):
+    def solve(self, wl, e_conv_all, o_e_conv_all):
 
         if self.grating_type == 0:
-            de_ri, de_ti = self.solve_1d(wl, E_conv_all, oneover_E_conv_all)
+            de_ri, de_ti = self.solve_1d(wl, e_conv_all, o_e_conv_all)
         elif self.grating_type == 1:
             # de_ri, de_ti = self.solve_1d_conical()  # TODO: implement
             de_ri = de_ti = None
         elif self.grating_type == 2:
-            de_ri, de_ti = self.solve_2d(wl, E_conv_all, oneover_E_conv_all)
+            de_ri, de_ti = self.solve_2d(wl, e_conv_all, o_e_conv_all)
         else:
             raise ValueError
 
@@ -35,9 +35,14 @@ class RCWA(_BaseRCWA):
             self.init_spectrum_array()
 
         for i, wl in enumerate(self.wls):
-            e_conv_all, oneover_e_conv_all = self.get_e_conv_set_by_fill_factor(wl)
 
-            de_ri, de_ti = self.solve(wl, e_conv_all, oneover_e_conv_all)
+            ucell = fill_factor_to_ucell(self.patterns, wl, self.grating_type)
+            e_conv_all = to_conv_mat_old(ucell, self.fourier_order)
+            o_e_conv_all = to_conv_mat_old(1/ucell, self.fourier_order)
+
+            # e_conv_all, oneover_e_conv_all = self.get_e_conv_set_by_fill_factor(wl)
+
+            de_ri, de_ti = self.solve(wl, e_conv_all, o_e_conv_all)
 
             self.spectrum_r[i] = de_ri
             self.spectrum_t[i] = de_ti
@@ -45,14 +50,14 @@ class RCWA(_BaseRCWA):
         return self.spectrum_r, self.spectrum_t
 
     def loop_wavelength_ucell(self):
-        # Z  Y  X
         # si = [[z_begin, z_end], [y_begin, y_end], [x_begin, x_end]]
         if self.grating_type == 0:
             cell = np.ones((2, 1, 10))
             si = [3.48, 0, 1, 0, 1, 0, 3]
             ox = [3.48, 1, 2, 0, 1, 0, 3]
         elif self.grating_type == 1:
-            pass
+            # TODO: implement
+            raise ValueError
         elif self.grating_type == 2:
             cell = np.ones((2, 10, 10))
             si = [3.48, 0, 1, 0, 10, 0, 3]
@@ -68,10 +73,10 @@ class RCWA(_BaseRCWA):
                     n_index = material
                 cell[z_begin:z_end, y_begin:y_end, x_begin:x_end] = n_index ** 2
 
-            e_conv_all = to_conv_mat_old(cell, fourier_order)
-            oneover_e_conv_all = to_conv_mat_old(1 / cell, fourier_order)
+            e_conv_all = to_conv_mat_old(cell, self.fourier_order)
+            o_e_conv_all = to_conv_mat_old(1 / cell, self.fourier_order)
 
-            de_ri, de_ti = self.solve(wl, e_conv_all, oneover_e_conv_all)
+            de_ri, de_ti = self.solve(wl, e_conv_all, o_e_conv_all)
 
             self.spectrum_r[i] = de_ri
             self.spectrum_t[i] = de_ti
