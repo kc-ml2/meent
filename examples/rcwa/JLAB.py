@@ -12,26 +12,22 @@ class JLABCode(RCWA):
         super().__init__(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls, polarization, patterns,
                          thickness, algo)
 
-    def permittivity_mapping_jlab(self, wl, oneover=False):
-        pattern_all = put_n_ridge_in_pattern(self.patterns, wl, oneover)
-        pmtvy = self.draw_1d_jlab(pattern_all)
+    def permittivity_mapping_jlab(self, wl):
+        pattern = put_n_ridge_in_pattern(self.patterns, wl)
 
-        conv_all = to_conv_mat_old(pmtvy, self.fourier_order)
+        resolution = len(pattern[0][2])
+        ucell = np.ndarray((len(pattern), 1, resolution))
 
-        return conv_all
-
-    def draw_1d_jlab(self, patterns_pixel, resolution=1001):
-
-        resolution = len(patterns_pixel[0][2].flatten())
-        res = np.ndarray((len(patterns_pixel), 1, resolution))
-
-        for i, (n_ridge, n_groove, pixel_map) in enumerate(patterns_pixel):
+        for i, (n_ridge, n_groove, pixel_map) in enumerate(pattern):
             pixel_map = np.array(pixel_map, dtype='float')
             pixel_map = (pixel_map + 1) / 2
             pixel_map = pixel_map * (n_ridge ** 2 - n_groove ** 2) + n_groove ** 2
-            res[i] = pixel_map
+            ucell[i] = pixel_map
 
-        return res
+        e_conv_all = to_conv_mat_old(ucell, self.fourier_order)
+        o_e_conv_all = to_conv_mat_old(1/ucell, self.fourier_order)
+
+        return e_conv_all, o_e_conv_all
 
     def reproduce_acs(self, pattern_pixel, wavelength, trans_angle):
         self.n_I = 1.45  # glass
@@ -50,8 +46,7 @@ class JLABCode(RCWA):
 
         self.pol = 1
 
-        E_conv_all = self.permittivity_mapping_jlab(self.wls)
-        oneover_E_conv_all = self.permittivity_mapping_jlab(self.wls, oneover=True)
+        E_conv_all, oneover_E_conv_all = self.permittivity_mapping_jlab(self.wls)
 
         de_ri, de_ti = self.solve_1d(self.wls, E_conv_all, oneover_E_conv_all)  # TODO: check self.wls
 
@@ -68,8 +63,6 @@ class JLABCode(RCWA):
             self.wls = wls
         self.init_spectrum_array()
 
-        # self.period = abs(self.wls / np.sin(trans_angle / 180 * np.pi))
-
         self.patterns = [['SILICON', 1, pattern]]  # n_ridge, n_groove, pattern_pixel
         self.thickness = [325]
 
@@ -78,8 +71,8 @@ class JLABCode(RCWA):
         for i, wl in enumerate(wls):
             self.period = [abs(wl / np.sin(trans_angle / 180 * np.pi))]
 
-            E_conv_all = self.permittivity_mapping_jlab(wl)
-            oneover_E_conv_all = self.permittivity_mapping_jlab(wl, oneover=True)
+            E_conv_all, oneover_E_conv_all = self.permittivity_mapping_jlab(wl)
+
             de_ri, de_ti = self.solve_1d(wl, E_conv_all, oneover_E_conv_all)
 
             self.spectrum_r[i] = de_ri
