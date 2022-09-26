@@ -165,7 +165,7 @@ def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1001):
     else:
         res = np.ndarray((len(patterns_fill_factor), 1, resolution))
 
-    if grating_type in (0, 1):
+    if grating_type in (0, 1):  # TODO: handle this by len(fill_factor)
         # fill_factor is not exactly implemented.
         for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
             permittivity = np.ones((1, resolution))
@@ -176,11 +176,11 @@ def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1001):
 
     else:
         for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
-            fill_factor = np.array(fill_factor).reshape(-1)  # TODO: handle outside?
+            fill_factor = np.array(fill_factor)
             permittivity = np.ones((resolution, resolution))
             cut = (resolution * fill_factor)
             permittivity *= n_groove ** 2
-            permittivity[:int(cut[-1]), :int(cut[0])] *= n_ridge ** 2
+            permittivity[:int(cut[0]), :int(cut[1])] *= n_ridge ** 2
             res[i] = permittivity
 
     return res

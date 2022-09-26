@@ -1,11 +1,8 @@
-from meent.convolution_matrix import *
+# many codes for scattering matrix method are from here:
+# https://github.com/zhaonat/Rigorous-Coupled-Wave-Analysis
+# also refer our fork https://github.com/yonghakim/zhaonat-rcwa
 
-from .RCWA_functions import K_matrix as km
-from .RCWA_functions import PQ_matrices as pq
-from .RCWA_functions import scatter_matrices as sm
-from .RCWA_functions import redheffer_star as rs
-from .RCWA_functions import rcwa_initial_conditions as ic
-from .RCWA_functions import homogeneous_layer as hl
+from .smm_util import *
 
 
 def scattering_1d_1(k0, n_I, n_II, theta, phi, fourier_indices, period, pol, wl=None):
@@ -15,17 +12,17 @@ def scattering_1d_1(k0, n_I, n_II, theta, phi, fourier_indices, period, pol, wl=
     Kx = np.diag(kx_vector)
 
     # scattering matrix needed for 'gap medium'
-    Wg, Vg, Kzg = hl.homogeneous_1D(Kx, 1, wl=wl, comment='Gap')
+    Wg, Vg, Kzg = homogeneous_1D(Kx, 1, wl=wl, comment='Gap')
 
     # reflection medium
-    Wr, Vr, Kzr = hl.homogeneous_1D(Kx, n_I, pol=pol, wl=wl, comment='Refl')
+    Wr, Vr, Kzr = homogeneous_1D(Kx, n_I, pol=pol, wl=wl, comment='Refl')
 
     # transmission medium;
-    Wt, Vt, Kzt = hl.homogeneous_1D(Kx, n_II, pol=pol, wl=wl, comment='Tran')
+    Wt, Vt, Kzt = homogeneous_1D(Kx, n_II, pol=pol, wl=wl, comment='Tran')
 
     # S matrices for the reflection region
-    Ar, Br = sm.A_B_matrices_half_space(Vr, Vg)  # make sure this order is right
-    _, Sg = sm.S_RT(Ar, Br, ref_mode=True)  # scatter matrix for the reflection region
+    Ar, Br = A_B_matrices_half_space(Vr, Vg)  # make sure this order is right
+    _, Sg = S_RT(Ar, Br, ref_mode=True)  # scatter matrix for the reflection region
 
     return Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg
 
@@ -33,18 +30,18 @@ def scattering_1d_1(k0, n_I, n_II, theta, phi, fourier_indices, period, pol, wl=
 def scattering_1d_2(W, Wg, V, Vg, d, k0, LAMBDA, Sg):
     # calculating A and B matrices for scattering matrix
     # define S matrix for the GRATING REGION
-    A, B = sm.A_B_matrices(W, Wg, V, Vg)
-    _, S_dict = sm.S_layer(A, B, d, k0, LAMBDA)
-    _, Sg = rs.RedhefferStar(Sg, S_dict)
+    A, B = A_B_matrices(W, Wg, V, Vg)
+    _, S_dict = S_layer(A, B, d, k0, LAMBDA)
+    _, Sg = RedhefferStar(Sg, S_dict)
 
     return A, B, S_dict, Sg
 
 
 def scattering_1d_3(Wt, Wg, Vt, Vg, Sg, ff, Wr, fourier_order, Kzr, Kzt, n_I, n_II, theta, pol):
     # define S matrices for the Transmission region
-    At, Bt = sm.A_B_matrices_half_space(Vt, Vg)  # make sure this order is right
-    _, St_dict = sm.S_RT(At, Bt, ref_mode=False)  # scatter matrix for the reflection region
-    _, Sg = rs.RedhefferStar(Sg, St_dict)
+    At, Bt = A_B_matrices_half_space(Vt, Vg)  # make sure this order is right
+    _, St_dict = S_RT(At, Bt, ref_mode=False)  # scatter matrix for the reflection region
+    _, Sg = RedhefferStar(Sg, St_dict)
 
     k_inc = n_I * np.array([np.sin(theta), 0, np.cos(theta)])
 
@@ -77,25 +74,25 @@ def scattering_2d_1(n_I, n_II, theta, phi, k0, period, fourier_order):
     ky_inc = n_I * np.sin(theta) * np.sin(phi)
     kz_inc = np.sqrt(n_I ** 2 * 1 - kx_inc ** 2 - ky_inc ** 2)
 
-    Kx, Ky = km.K_matrix_cubic_2D(kx_inc, ky_inc, k0, period[0], period[1], fourier_order, fourier_order)
+    Kx, Ky = K_matrix_cubic_2D(kx_inc, ky_inc, k0, period[0], period[1], fourier_order, fourier_order)
 
     # specify gap media (this is an LHI so no eigenvalue problem should be solved
     e_h = 1
-    Wg, Vg, Kzg = hl.homogeneous_module(Kx, Ky, e_h)
+    Wg, Vg, Kzg = homogeneous_module(Kx, Ky, e_h)
 
     # ================= Working on the Reflection Side =========== ##
     e_r = n_I ** 2
-    Wr, Vr, Kzr = hl.homogeneous_module(Kx, Ky, e_r)
+    Wr, Vr, Kzr = homogeneous_module(Kx, Ky, e_r)
 
     # ========= Working on the Transmission Side==============##
     e_t = n_II ** 2
-    Wt, Vt, Kzt = hl.homogeneous_module(Kx, Ky, e_t)
+    Wt, Vt, Kzt = homogeneous_module(Kx, Ky, e_t)
 
     # calculating A and B matrices for scattering matrix
-    Ar, Br = sm.A_B_matrices_half_space(Vr, Vg)
+    Ar, Br = A_B_matrices_half_space(Vr, Vg)
 
     # s_ref is a matrix, Sr_dict is a dictionary
-    _, Sr_dict = sm.S_RT(Ar, Br, ref_mode=True)  # scatter matrix for the reflection region
+    _, Sr_dict = S_RT(Ar, Br, ref_mode=True)  # scatter matrix for the reflection region
     Sg = Sr_dict
 
     return Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg
@@ -103,9 +100,9 @@ def scattering_2d_1(n_I, n_II, theta, phi, k0, period, fourier_order):
 
 def scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA):
 
-    A, B = sm.A_B_matrices(W, Wg, V, Vg)
-    _, Sl_dict = sm.S_layer(A, B, d, k0, LAMBDA)
-    Sg_matrix, Sg = rs.RedhefferStar(Sg, Sl_dict)
+    A, B = A_B_matrices(W, Wg, V, Vg)
+    _, Sl_dict = S_layer(A, B, d, k0, LAMBDA)
+    Sg_matrix, Sg = RedhefferStar(Sg, Sl_dict)
 
     return A, B, Sl_dict, Sg_matrix, Sg
 
@@ -129,17 +126,17 @@ def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, pol, 
 
     # get At, Bt
     # since transmission is the same as gap, order does not matter
-    At, Bt = sm.A_B_matrices_half_space(Vt, Vg)
-    _, ST_dict = sm.S_RT(At, Bt, ref_mode=False)
+    At, Bt = A_B_matrices_half_space(Vt, Vg)
+    _, ST_dict = S_RT(At, Bt, ref_mode=False)
 
     # update global scattering matrix
-    Sg_matrix, Sg = rs.RedhefferStar(Sg, ST_dict)
+    Sg_matrix, Sg = RedhefferStar(Sg, ST_dict)
 
     # finally CONVERT THE GLOBAL SCATTERING MATRIX BACK TO A MATRIX
 
     K_inc_vector = n_I * np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
 
-    _, e_src, _ = ic.initial_conditions(K_inc_vector, theta, normal_vector, pte, ptm, N, M)
+    _, e_src, _ = initial_conditions(K_inc_vector, theta, normal_vector, pte, ptm, N, M)
 
     c_inc = np.linalg.inv(Wr) @ e_src
     # COMPUTE FIELDS: similar idea but more complex for RCWA since you have individual modes each contributing
@@ -170,7 +167,7 @@ def scattering_2d_wv(ff, Kx, Ky, E_conv, oneover_E_conv, oneover_E_conv_i, E_i, 
     if mu_conv is None:
         mu_conv = np.identity(NM)
 
-    P, Q, _ = pq.P_Q_kz(Kx, Ky, E_conv, mu_conv, oneover_E_conv, oneover_E_conv_i, E_i)
+    P, Q, _ = P_Q_kz(Kx, Ky, E_conv, mu_conv, oneover_E_conv, oneover_E_conv_i, E_i)
     GAMMA = P @ Q
 
     Lambda, W = np.linalg.eig(GAMMA)  # LAMBDa is effectively refractive index

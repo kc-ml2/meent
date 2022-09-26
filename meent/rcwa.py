@@ -19,14 +19,14 @@ class RCWA(_BaseRCWA):
         if self.grating_type == 0:
             de_ri, de_ti = self.solve_1d(wl, e_conv_all, o_e_conv_all)
         elif self.grating_type == 1:
-            # de_ri, de_ti = self.solve_1d_conical()  # TODO: implement
-            de_ri = de_ti = None
+            de_ri, de_ti = self.solve_1d_conical(wl, e_conv_all, o_e_conv_all)
+            # de_ri = de_ti = None
         elif self.grating_type == 2:
             de_ri, de_ti = self.solve_2d(wl, e_conv_all, o_e_conv_all)
         else:
             raise ValueError
 
-        return de_ri, de_ti
+        return de_ri.real, de_ti.real
 
     def loop_wavelength_fill_factor(self, wavelength_array=None):
 
