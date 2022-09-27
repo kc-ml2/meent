@@ -130,7 +130,6 @@ def transfer_2d_wv(ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center):
             [Ky @ (E_i @ Kx @ oneover_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
-    # TODO: using eigh
     eigenvalues, W = np.linalg.eig(S2_from_S)
 
     Lambda = eigenvalues ** 0.5

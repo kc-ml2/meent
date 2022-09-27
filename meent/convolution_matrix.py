@@ -78,7 +78,8 @@ def to_conv_mat_old(pmt, fourier_order):
             res[i] = A[:2*fourier_order+1, :2*fourier_order+1]
 
     else:  # 2D
-
+        # attention on the order of axis.
+        # Here X Y Z. Cell Drawing in CAD is Y X Z. Here is Z Y X
         ff = 2 * fourier_order + 1
 
         # TODO: separate fourier order
@@ -157,7 +158,7 @@ def to_conv_mat_old(pmt, fourier_order):
 #     return res
 
 
-def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1001):
+def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000):
 
     # res in Z X Y
     if grating_type == 2:
