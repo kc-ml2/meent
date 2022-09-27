@@ -41,12 +41,10 @@ class RCWA(_BaseRCWA):
             e_conv_all = to_conv_mat_old(ucell, self.fourier_order)
             o_e_conv_all = to_conv_mat_old(1/ucell, self.fourier_order)
 
-            # e_conv_all, oneover_e_conv_all = self.get_e_conv_set_by_fill_factor(wl)
-
             de_ri, de_ti = self.solve(wl, e_conv_all, o_e_conv_all)
 
-            self.spectrum_r[i] = de_ri
-            self.spectrum_t[i] = de_ti
+            self.spectrum_r = self.spectrum_r.at[i].set(de_ri)
+            self.spectrum_t = self.spectrum_t.at[i].set(de_ti)
 
         return self.spectrum_r, self.spectrum_t
 
@@ -57,8 +55,10 @@ class RCWA(_BaseRCWA):
             si = [3.48, 0, 1, 0, 1, 0, 3]
             ox = [3.48, 1, 2, 0, 1, 0, 3]
         elif self.grating_type == 1:
-            # TODO: implement
-            raise ValueError
+            # TODO: confirm
+            cell = np.ones((2, 1, 10))
+            si = [3.48, 0, 1, 0, 1, 0, 3]
+            ox = [3.48, 1, 2, 0, 1, 0, 3]
         elif self.grating_type == 2:
             cell = np.ones((2, 10, 10))
             si = [3.48, 0, 1, 0, 10, 0, 3]
@@ -68,23 +68,21 @@ class RCWA(_BaseRCWA):
 
         for i, wl in enumerate(self.wls):
             for material, z_begin, z_end, y_begin, y_end, x_begin, x_end in [si, ox]:
-                if material is str:
-                    n_index = find_n_index(material, wl)
-                else:
-                    n_index = material
-                cell[z_begin:z_end, y_begin:y_end, x_begin:x_end] = n_index ** 2
+                n_index = find_n_index(material, wl) if type(material) == str else material
+                cell = cell.at[z_begin:z_end, y_begin:y_end, x_begin:x_end].set(n_index**2)
 
             e_conv_all = to_conv_mat_old(cell, self.fourier_order)
             o_e_conv_all = to_conv_mat_old(1 / cell, self.fourier_order)
 
             de_ri, de_ti = self.solve(wl, e_conv_all, o_e_conv_all)
 
-            self.spectrum_r[i] = de_ri
-            self.spectrum_t[i] = de_ti
+            self.spectrum_r = self.spectrum_r.at[i].set(de_ri)
+            self.spectrum_t = self.spectrum_t.at[i].set(de_ti)
 
         return self.spectrum_r, self.spectrum_t
 
     def jax_test(self):
+        # TODO
         # # Z  Y  X
         # # si = [[z_begin, z_end], [y_begin, y_end], [x_begin, x_end]]
         # if self.grating_type == 0:
@@ -114,9 +112,6 @@ class RCWA(_BaseRCWA):
 
             de_ri, de_ti = self.solve(wl, e_conv_all, oneover_e_conv_all)
 
-            # self.spectrum_r[i] = de_ri
-            # self.spectrum_t[i] = de_ti
-
             self.spectrum_r = de_ri
             self.spectrum_t = de_ti
 
@@ -124,26 +119,26 @@ class RCWA(_BaseRCWA):
 
 
 if __name__ == '__main__':
-    grating_type = 0
-    pol = 0
+    grating_type = 2
+    pol = 1
 
     n_I = 1
     n_II = 1
 
-    theta = 20
-    phi = 20
+    theta = 0
+    phi = 0
     psi = 0 if pol else 90
 
-    wls = np.linspace(500, 2300, 10)
+    wls = np.linspace(500, 2300, 100)
 
-    if grating_type == 0:
+    if grating_type in (0, 1):
         period = [700]
         patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
-        fourier_order = 30
+        fourier_order = 5
 
     elif grating_type == 2:
         period = [700, 700]
-        patterns = [[3.48, 1, [0.3, 1]], [3.48, 1, [0.3, 1]]]  # n_ridge, n_groove, fill_factor
+        patterns = [[3.48, 1, [0.3, 1]], [3.48, 1, [0.3, 1]]]  # n_ridge, n_groove, fill_factor[x, y]
         fourier_order = 2
     else:
         raise ValueError
@@ -161,4 +156,4 @@ if __name__ == '__main__':
 
     AA.loop_wavelength_ucell()
     AA.plot()
-    print(1)
+    print('end')
