@@ -1,5 +1,5 @@
 import time
-import numpy as np
+import jax.numpy as np
 
 from meent.rcwa import RCWA
 

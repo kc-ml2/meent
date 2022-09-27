@@ -99,7 +99,7 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, pe
     if len(idx):
         # TODO: need imaginary part?
         # TODO: make imaginary part sign consistent
-        kx_vector[idx] = perturbation
+        kx_vector = kx_vector.at[idx].set(perturbation)
         print(wl, 'varphi divide by 0: adding perturbation')
 
     varphi = np.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
@@ -267,12 +267,11 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     return de_ri, de_ti
 
 
-
 def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j)):
     I = np.eye(ff)
     O = np.zeros((ff, ff))
 
-    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (wl / period)).astype(
+    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (wl / period[0])).astype(
         'complex')
     ky = k0 * n_I * np.sin(theta) * np.sin(phi)
 
@@ -281,6 +280,14 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi
 
     k_I_z = k_I_z.conjugate()
     k_II_z = k_II_z.conjugate()
+
+    idx = np.nonzero(kx_vector == 0)[0]
+    if len(idx):
+        # TODO: need imaginary part?
+        # TODO: make imaginary part sign consistent
+        kx_vector = kx_vector.at[idx].set(perturbation)
+        print(wl, 'varphi divide by 0: adding perturbation')
+
 
     varphi = np.arctan(ky / kx_vector)
 
@@ -300,68 +307,6 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi
     return Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-# def transfer_1d_conical_wv(ff, k0, varphi, Kx, E_i, ky, oneover_E_conv_i, E_conv, d, center):
-#
-#     I = np.eye(ff ** 2)
-#     O = np.zeros((ff ** 2, ff ** 2))
-#
-#     A = Kx ** 2 - E_conv
-#     B = Kx @ E_i @ Kx - I
-#     A_i = np.linalg.inv(A)
-#     B_i = np.linalg.inv(B)
-#
-#     to_decompose_W_1 = ky ** 2 * I + A
-#     to_decompose_W_2 = ky ** 2 * I + B @ oneover_E_conv_i
-#
-#     # TODO: using eigh
-#     eigenvalues_1, W_1 = np.linalg.eig(to_decompose_W_1)
-#     eigenvalues_2, W_2 = np.linalg.eig(to_decompose_W_2)
-#
-#     q_1 = eigenvalues_1 ** 0.5
-#     q_2 = eigenvalues_2 ** 0.5
-#
-#     Q_1 = np.diag(q_1)
-#     Q_2 = np.diag(q_2)
-#     #
-#     # V_11 = A_i @ W_1 @ Q_1
-#     # V_12 = (ky / k0) * A_i @ Kx @ W_2
-#     # V_21 = (ky / k0) * B_i @ Kx @ E_i @ W_1
-#     # V_22 = B_i @ W_2 @ Q_2
-#     #
-#     # X_1 = np.diag(np.exp(-k0 * q_1 * d))
-#     # X_2 = np.diag(np.exp(-k0 * q_2 * d))
-#     #
-#     # F_c = np.diag(np.cos(varphi))
-#     # F_s = np.diag(np.sin(varphi))
-#     #
-#     # V_ss = F_c @ V_11
-#     # V_sp = F_c @ V_12 - F_s @ W_2
-#     # W_ss = F_c @ W_1 + F_s @ V_21
-#     # W_sp = F_s @ V_22
-#     # W_ps = F_s @ V_11
-#     # W_pp = F_c @ W_2 + F_s @ V_12
-#     # V_ps = F_c @ V_21 - F_s @ W_1
-#     # V_pp = F_c @ V_22
-#     #
-#     # big_I = np.eye(2 * (len(I)))
-#     # big_X = np.block([[X_1, O], [O, X_2]])
-#     # big_W = np.block([[V_ss, V_sp], [W_ps, W_pp]])
-#     # big_V = np.block([[W_ss, W_sp], [V_ps, V_pp]])
-#     #
-#     # big_W_i = np.linalg.inv(big_W)
-#     # big_V_i = np.linalg.inv(big_V)
-#     #
-#     # big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
-#     # big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
-#     #
-#     # big_A_i = np.linalg.inv(big_A)
-#     #
-#     # big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
-#     # big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
-#     #
-#     # big_T = big_T @ big_A_i @ big_X
-#
-#     return
 def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varphi, big_F, big_G, big_T):
 
     I = np.eye(ff)
@@ -375,7 +320,7 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
     to_decompose_W_1 = ky ** 2 * I + A
     to_decompose_W_2 = ky ** 2 * I + B @ oneover_E_conv_i
 
-    # TODO: using eigh
+    # TODO: using eigh?
     eigenvalues_1, W_1 = np.linalg.eig(to_decompose_W_1)
     eigenvalues_2, W_2 = np.linalg.eig(to_decompose_W_2)
 

@@ -116,7 +116,6 @@ class _BaseRCWA(Base):
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
         delta_i0 = np.zeros(self.ff)
-        # delta_i0[self.fourier_order] = 1
         delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
         k0 = 2 * np.pi / wl
@@ -138,35 +137,7 @@ class _BaseRCWA(Base):
             if self.pol == 0:
                 A = Kx ** 2 - E_conv
 
-                # import autograd
-                # import numpy
-                #
-                # eig1, W1 = autograd.numpy.linalg.eig(A) # THIS WORKS!
-                # eig2, W2 = np.linalg.eig(A)
-                # eig3 , W3 = numpy.linalg.eig(A)
-                #
-                # U, s, V = np.linalg.svd(A)
-                # U1, s1, V1 = autograd.numpy.linalg.svd(A)
-                # U2, s2, V2 = numpy.linalg.svd(A)
-                #
-                # C = A[4:8, 4:8]
-                # D = A[3:8, 3:8]
-                #
-                # DD = np.array([
-                #     [1+1j, 3+2j, 4.0+1.1j, 11-0.00001j, 44+100j],
-                #     [22+0j, 23+2j, 0.5+0.93j, 33+12j, 0.0001+0.000001j],
-                #     [-11-1j, 23+87j, 11-0.002j, 32-0.03423j, 32+9j],
-                #     [0.0002+23j, 10+0.324j, 0.003+0.999j, 10.434+2j, 33+0j],
-                #     [3+0.9j, 12+12j, 3.22+98j, 0.024+99.123j, 0+123j]
-                # ])
-                #
-                #
-                # a, b = np.linalg.eig(C)
-                # c, d = np.linalg.eig(D)
-
-                # TODO: remove real!!!!!
-                eigenvalues, W = np.linalg.eig(A.real)  # real is only for test on M1 mac. should be removed!!
-                # eigenvalues, W = np.linalg.eig(A)
+                eigenvalues, W = np.linalg.eig(A)
                 q = eigenvalues ** 0.5
 
                 Q = np.diag(q)
@@ -190,11 +161,12 @@ class _BaseRCWA(Base):
                 f, g, T = transfer_1d_2(k0, q, d, W, V, f, g, self.fourier_order, T)
             elif self.algo == 'SMM':
                 A, B, S_dict, Sg = scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg)
+            else:
+                raise ValueError
 
         if self.algo == 'TMM':
             de_ri, de_ti = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II,
-                                         self.theta,
-                                         self.pol, k_II_z)
+                                         self.theta, self.pol, k_II_z)
         elif self.algo == 'SMM':
             de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, self.ff, Wr, self.fourier_order, Kzr, Kzt,
                                            self.n_I, self.n_II, self.theta, self.pol)
@@ -209,7 +181,7 @@ class _BaseRCWA(Base):
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
         delta_i0 = np.zeros(self.ff)
-        delta_i0[self.fourier_order] = 1
+        delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
         k0 = 2 * np.pi / wl
 
@@ -249,7 +221,8 @@ class _BaseRCWA(Base):
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
         delta_i0 = np.zeros((self.ff ** 2, 1))
-        delta_i0[self.ff ** 2 // 2, 0] = 1
+        # delta_i0[self.ff ** 2 // 2, 0] = 1
+        delta_i0 = delta_i0.at[self.ff ** 2 // 2, 0].set(1)
 
         I = np.eye(self.ff ** 2)
         O = np.zeros((self.ff ** 2, self.ff ** 2))
