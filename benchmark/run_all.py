@@ -6,14 +6,14 @@ from interface.GRCWA import GRCWA
 from interface.Reticolo import Reticolo
 from meent.rcwa import RCWA
 
-Nx = 10000
+Nx = 1000
 # Ny = 1001
 
 n_I = 1
 n_si = 3.48
 n_II = 1
-theta = 1
-phi = 0
+theta = 1E-10
+phi = 1E-10
 psi = 90
 
 fourier_order = 40
@@ -26,7 +26,7 @@ thickness = [1120]
 # eps for patterned layer
 pattern = np.ones(Nx, dtype=float)
 grid = np.linspace(0, period, Nx)
-pattern[:5000] = n_si
+pattern[:500] = n_si
 
 # pattern = np.array([n_si, 1, n_si, 1, n_si, 1, n_si, 1, n_si, 1])
 
