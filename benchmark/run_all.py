@@ -6,8 +6,8 @@ from interface.GRCWA import GRCWA
 from interface.Reticolo import Reticolo
 from meent.rcwa import RCWA
 
-Nx = 1001
-Ny = 1001
+Nx = 10000
+# Ny = 1001
 
 n_I = 1
 n_si = 3.48
@@ -25,14 +25,16 @@ pol = 0
 thickness = [1120]
 # eps for patterned layer
 pattern = np.ones(Nx, dtype=float)
-grid = np.linspace(0, period, 1001)
-pattern[:300] = n_si
+grid = np.linspace(0, period, Nx)
+pattern[:5000] = n_si
+
+# pattern = np.array([n_si, 1, n_si, 1, n_si, 1, n_si, 1, n_si, 1])
 
 textures = [n_I, [grid, pattern], n_II]
 
 profile = np.array([[0, *thickness, 0], [1, 2, 3]])
 grating_type = 0
-patterns = [[3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
+patterns = [[3.48, 1, 0.5]]  # n_ridge, n_groove, fill_factor
 
 # --- Run ---
 
