@@ -162,14 +162,14 @@ def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000):
 
     # res in Z X Y
     if grating_type == 2:
-        res = np.ndarray((len(patterns_fill_factor), resolution, resolution))
+        res = np.ndarray((len(patterns_fill_factor), resolution, resolution), dtype='complex')
     else:
-        res = np.ndarray((len(patterns_fill_factor), 1, resolution))
+        res = np.ndarray((len(patterns_fill_factor), 1, resolution), dtype='complex')
 
     if grating_type in (0, 1):  # TODO: handle this by len(fill_factor)
         # fill_factor is not exactly implemented.
         for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
-            permittivity = np.ones((1, resolution))
+            permittivity = np.ones((1, resolution), dtype='complex')
             cut = int(resolution * fill_factor)
             permittivity[0, :cut] *= n_ridge ** 2
             permittivity[0, cut:] *= n_groove ** 2
@@ -178,7 +178,7 @@ def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000):
     else:
         for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
             fill_factor = np.array(fill_factor)
-            permittivity = np.ones((resolution, resolution))
+            permittivity = np.ones((resolution, resolution), dtype='complex')
             cut = (resolution * fill_factor)
             permittivity *= n_groove ** 2
             permittivity[:int(cut[0]), :int(cut[1])] *= n_ridge ** 2
