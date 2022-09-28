@@ -10,12 +10,21 @@ def run_debug_cases(n_I, n_II, theta, phi, grating_type, pol):
         wls = np.linspace(500, 2300, 100)
         fourier_order = 40
         period = [700]
+        patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
         phi = 0
+
+
+    elif grating_type == 1:
+        wls = np.linspace(500, 2300, 100)
+        fourier_order = 10
+        period = [700]
+        patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
 
     elif grating_type == 2:
         wls = np.linspace(500, 2300, 100)
         fourier_order = 2
         period = [700, 700]
+        patterns = [[3.48, 1, [0.3, 1]], [3.48, 1, [0.3, 1]]]  # n_ridge, n_groove, fill_factor
 
     if pol == 0:
         psi = 90
@@ -23,7 +32,6 @@ def run_debug_cases(n_I, n_II, theta, phi, grating_type, pol):
         psi = 0
 
     # refractive index in grating layer
-    patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
     thickness = [460, 660]
 
     t0 = time.time()
@@ -33,13 +41,13 @@ def run_debug_cases(n_I, n_II, theta, phi, grating_type, pol):
     print(time.time() - t0)
     res.plot()
 
-    t0 = time.time()
-    res = RCWA(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
-                        pol, patterns, thickness, algo='SMM')
-
-    res.loop_wavelength_fill_factor()
-    print(time.time() - t0)
-    res.plot()
+    # t0 = time.time()
+    # res = RCWA(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
+    #                     pol, patterns, thickness, algo='SMM')
+    #
+    # res.loop_wavelength_fill_factor()
+    # print(time.time() - t0)
+    # res.plot()
 
 # run_debug_cases(2, 2, 31, 10, 2, 0)  # PASSED
 # run_debug_cases(2, 2, theta=30, phi=10, grating_type=2, pol=0)  # SMM fail

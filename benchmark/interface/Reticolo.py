@@ -11,7 +11,7 @@ except:
 os.environ['OCTAVE_EXECUTABLE'] = '/opt/homebrew/bin/octave-cli'
 from oct2py import octave
 
-from meent._base import Base
+from meent.on_numpy._base import Base
 
 
 class Reticolo(Base):
@@ -47,7 +47,6 @@ class Reticolo(Base):
 
         self.period = period
 
-        self.wls = np.array(wls).reshape(-1)  # TODO: Force array
         self.wls = wls
         self.textures = textures
         self.profile = profile
