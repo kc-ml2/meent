@@ -1,18 +1,28 @@
 import matplotlib.pyplot as plt
 
-from .scattering_method import *
-from .transfer_method import *
+# from .scattering_method import *
+# from .transfer_method import *
 
-import jax.numpy as np
+from scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, scattering_2d_2, scattering_2d_3
+from transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, transfer_1d_conical_3, transfer_2d_1, transfer_2d_wv, transfer_2d_2, transfer_2d_3
+
+# import jax.numpy as np
 
 
 class Base:
-    def __init__(self, grating_type):
+    def __init__(self, grating_type, mode=0):
         self.grating_type = grating_type
         self.wls = None
         self.fourier_order = None
         self.spectrum_r = None
         self.spectrum_t = None
+        self.mode = mode
+        if self.mode == 0:
+            import numpy as np
+        elif self.mode == 1:
+            import jax.numpy as np
+        else:
+            raise ValueError
 
     def init_spectrum_array(self):
         if self.grating_type in (0, 1):
@@ -31,34 +41,66 @@ class Base:
         if not de_ri.shape:
             # 1D or may be not; there is a case that reticolo returns single value
             c = self.spectrum_r.shape[1] // 2
-            self.spectrum_r = self.spectrum_r.at[i, c].set(de_ri)
+            if self.mode == 0:
+                self.spectrum_r[i][c] = de_ri
+            elif self.mode == 1:
+                self.spectrum_r = self.spectrum_r.at[i, c].set(de_ri)
+            else:
+                raise ValueError
+
         elif len(de_ri.shape) == 1 or de_ri.shape[1] == 1:  # 1D
             de_ri = de_ri.flatten()
             c = self.spectrum_r.shape[1] // 2
             l = de_ri.shape[0] // 2
             if len(de_ri) % 2:
-                idx = np.arange(c-l, c+l+1)
-                self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
+                if self.mode == 0:
+                    self.spectrum_r[i][c - l:c + l + 1] = de_ri
+                elif self.mode == 1:
+                    idx = np.arange(c-l, c+l+1)
+                    self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
+                else:
+                    raise ValueError
             else:
-                idx = np.arange(c-l, c+l)
-                self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
+                if self.mode == 0:
+                    self.spectrum_r[i][c - l:c + l] = de_ri
+                elif self.mode == 1:
+                    idx = np.arange(c-l, c+l)
+                    self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
+                else:
+                    raise ValueError
         else:
             print('no code')
             raise ValueError
 
         if not de_ti.shape:  # 1D
             c = self.spectrum_t.shape[1] // 2
-            self.spectrum_t = self.spectrum_t.at[i, c].set(de_ti)
+            if self.mode == 0:
+                self.spectrum_t[i][c] = de_ti
+            elif self.mode == 1:
+                self.spectrum_t = self.spectrum_t.at[i, c].set(de_ti)
+            else:
+                raise ValueError
+
         elif len(de_ti.shape) == 1 or de_ti.shape[1] == 1:  # 1D
             de_ti = de_ti.flatten()
             c = self.spectrum_t.shape[1] // 2
             l = de_ti.shape[0] // 2
             if len(de_ti) % 2:
-                idx = np.arange(c - l, c + l + 1)
-                self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
+                if self.mode == 0:
+                    self.spectrum_t[i][c - l:c + l + 1] = de_ti
+                elif self.mode == 1:
+                    idx = np.arange(c - l, c + l + 1)
+                    self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
+                else:
+                    raise ValueError
             else:
-                idx = np.arange(c-l, c+l)
-                self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
+                if self.mode == 0:
+                    self.spectrum_t[i][c - l:c + l] = de_ti
+                elif self.mode == 1:
+                    idx = np.arange(c-l, c+l)
+                    self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
+                else:
+                    raise ValueError
 
         else:
             print('no code')
@@ -83,7 +125,7 @@ class Base:
 class _BaseRCWA(Base):
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
                  period=0.7, wls=np.linspace(0.5, 2.3, 400), pol=0,
-                 patterns=None, thickness=None, algo='TMM'):
+                 patterns=None, thickness=None, algo='TMM', mode=0):
         super().__init__(grating_type)
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
@@ -122,7 +164,12 @@ class _BaseRCWA(Base):
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
         delta_i0 = np.zeros(self.ff)
-        delta_i0 = delta_i0.at[self.fourier_order].set(1)
+        if self.mode == 0:
+            delta_i0[self.fourier_order] = 1
+        elif self.mode == 1:
+            delta_i0 = delta_i0.at[self.fourier_order].set(1)
+        else:
+            raise ValueError
 
         k0 = 2 * np.pi / wl
 
@@ -142,7 +189,6 @@ class _BaseRCWA(Base):
         for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
             if self.pol == 0:
                 A = Kx ** 2 - E_conv
-
                 eigenvalues, W = np.linalg.eig(A)
                 q = eigenvalues ** 0.5
 
@@ -187,7 +233,12 @@ class _BaseRCWA(Base):
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
         delta_i0 = np.zeros(self.ff)
-        delta_i0 = delta_i0.at[self.fourier_order].set(1)
+        if self.mode == 0:
+            delta_i0[self.fourier_order] = 1
+        elif self.mode == 1:
+            delta_i0 = delta_i0.at[self.fourier_order].set(1)
+        else:
+            raise ValueError
 
         k0 = 2 * np.pi / wl
 
@@ -227,8 +278,13 @@ class _BaseRCWA(Base):
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
         delta_i0 = np.zeros((self.ff ** 2, 1))
-        # delta_i0[self.ff ** 2 // 2, 0] = 1
-        delta_i0 = delta_i0.at[self.ff ** 2 // 2, 0].set(1)
+
+        if self.mode == 0:
+            delta_i0[self.ff ** 2 // 2, 0] = 1
+        elif self.mode == 1:
+            delta_i0 = delta_i0.at[self.ff ** 2 // 2, 0].set(1)
+        else:
+            raise ValueError
 
         I = np.eye(self.ff ** 2)
         O = np.zeros((self.ff ** 2, self.ff ** 2))

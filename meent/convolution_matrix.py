@@ -45,7 +45,7 @@ def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type):
     return ucell
 
 
-def to_conv_mat(pmt, fourier_order):
+def to_conv_mat(pmt, fourier_order, mode=0):
     # FFT scaling: https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -68,12 +68,12 @@ def to_conv_mat(pmt, fourier_order):
             pmtvy_fft = np.fft.fftshift(np.fft.fftn(pmtvy / pmtvy.size))
             center = pmtvy_fft.shape[1] // 2
 
-            if self.mode == 0:  # Speed mode (using numpy)
+            if mode == 0:  # Speed mode (using numpy)
                 # TODO: distinct circulant
                 pmtvy_fft_cut = (pmtvy_fft[0, -2*fourier_order + center: center + 2*fourier_order + 1])
                 A = np.roll(circulant(pmtvy_fft_cut.flatten()), (pmtvy_fft_cut.size + 1) // 2, 0)
                 res[i] = A[:2*fourier_order+1, :2*fourier_order+1]
-            elif self.mode == 1:  # Back prop mode (using JAX)
+            elif mode == 1:  # Back prop mode (using JAX)
                 conv_idx = np.arange(ff - 1, -ff, -1)
                 conv_idx = circulant(conv_idx)
                 res = res.at[i].set(pmtvy_fft[1, center + conv_idx])
@@ -106,14 +106,14 @@ def to_conv_mat(pmt, fourier_order):
             center = np.array(pmtvy_fft.shape) // 2
 
             conv_idx = np.arange(ff - 1, -ff, -1)
-            if self.mode == 0:
+            if mode == 0:
                 conv_idx = circulant(conv_idx)[ff - 1:, :ff]
 
                 conv_i = np.repeat(conv_idx, ff, axis=1)
                 conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
                 conv_j = np.tile(conv_idx, (ff, ff))
                 res[i] = pmtvy_fft[center[0] + conv_i, center[1] + conv_j]
-            elif self.mode == 1:
+            elif mode == 1:
                 conv_idx = circulant(conv_idx)
 
                 conv_i = np.repeat(conv_idx, ff, axis=1)
@@ -134,7 +134,7 @@ def to_conv_mat(pmt, fourier_order):
     return res
 
 
-def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000):
+def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000, mode=0):
 
     # res in Z X Y
     if grating_type == 2:
@@ -148,11 +148,11 @@ def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000):
             permittivity = np.ones((1, resolution), dtype='complex')
             cut = int(resolution * fill_factor)
 
-            if self.mode == 0:
+            if mode == 0:
                 permittivity[0, :cut] *= n_ridge ** 2
                 permittivity[0, cut:] *= n_groove ** 2
                 res[i, 0] = permittivity
-            elif self.mode == 1:
+            elif mode == 1:
                 cut_idx = np.arange(cut)
                 permittivity *= n_groove ** 2
 
@@ -166,11 +166,11 @@ def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000):
             fill_factor = np.array(fill_factor)
             permittivity = np.ones((resolution, resolution), dtype='complex')
             cut = (resolution * fill_factor)  # TODO: need parenthesis?
-            if self.mode == 0:
+            if mode == 0:
                 permittivity *= n_groove ** 2
                 permittivity[:int(cut[0]), :int(cut[1])] *= n_ridge ** 2
                 res[i] = permittivity
-            elif self.mode == 1:
+            elif mode == 1:
                 cut_idx_row = np.arange(int(cut[1]))
                 cut_idx_column = np.arange(int(cut[0]))
 

@@ -77,7 +77,7 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
     return de_ri, de_ti
 
 
-def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j)):
+def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j), mode=0):
     I = np.eye(ff ** 2)
     O = np.zeros((ff ** 2, ff ** 2))
 
@@ -99,7 +99,13 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, pe
     if len(idx):
         # TODO: need imaginary part?
         # TODO: make imaginary part sign consistent
-        kx_vector = kx_vector.at[idx].set(perturbation)
+        if mode == 0:
+            kx_vector[idx] = perturbation
+        elif mode == 1:
+           kx_vector = kx_vector.at[idx].set(perturbation)
+        else:
+            raise ValueError
+
         print(wl, 'varphi divide by 0: adding perturbation')
 
     varphi = np.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
@@ -267,7 +273,7 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     return de_ri, de_ti
 
 
-def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j)):
+def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j), mode=0):
     I = np.eye(ff)
     O = np.zeros((ff, ff))
 
@@ -285,9 +291,14 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi
     if len(idx):
         # TODO: need imaginary part?
         # TODO: make imaginary part sign consistent
-        kx_vector = kx_vector.at[idx].set(perturbation)
-        print(wl, 'varphi divide by 0: adding perturbation')
+        if mode == 0:
+            kx_vector[idx] = perturbation  # TODO: test
+        elif mode == 1:
+            kx_vector = kx_vector.at[idx].set(perturbation)
+        else:
+            raise ValueError
 
+        print(wl, 'varphi divide by 0: adding perturbation')
 
     varphi = np.arctan(ky / kx_vector)
 
