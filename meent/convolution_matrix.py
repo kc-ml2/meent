@@ -43,7 +43,7 @@ def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type):
     return ucell
 
 
-def to_conv_mat_old(pmt, fourier_order):
+def to_conv_mat(pmt, fourier_order):
     # FFT scaling: https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -55,7 +55,9 @@ def to_conv_mat_old(pmt, fourier_order):
         res = np.zeros((pmt.shape[0], 2*fourier_order+1, 2*fourier_order+1)).astype('complex')
 
         # extend array for FFT
-        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]  # TODO: what is theoretical minimum?
+        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
+        # TODO: what is theoretical minimum?
+        # TODO: can be a scalability issue
         if pmt.shape[2] < minimum_pattern_size:
             n = minimum_pattern_size // pmt.shape[2]
             pmt = np.repeat(pmt, n+1, axis=2)
@@ -76,7 +78,9 @@ def to_conv_mat_old(pmt, fourier_order):
 
         # extend array
         # TODO: run test
-        minimum_pattern_size = ff ** 2  # TODO: what is theoretical minimum?
+        minimum_pattern_size = ff ** 2
+        # TODO: what is theoretical minimum?
+        # TODO: can be a scalability issue
 
         if pmt.shape[1] < minimum_pattern_size:
             n = minimum_pattern_size // pmt.shape[1]
@@ -113,10 +117,8 @@ def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000):
 
     # res in Z X Y
     if grating_type == 2:
-        # res = np.ndarray((len(patterns_fill_factor), resolution, resolution))
         res = np.zeros((len(patterns_fill_factor), resolution, resolution))  # TODO: dtype is float32. to float64?
     else:
-        # res = np.ndarray((len(patterns_fill_factor), 1, resolution))
         res = np.zeros((len(patterns_fill_factor), 1, resolution))
 
     if grating_type in (0, 1):  # TODO: handle this by len(fill_factor)
@@ -130,7 +132,7 @@ def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000):
 
             permittivity = permittivity.at[0, cut_idx].set(n_ridge**2)
             res = res.at[i].set(permittivity)
-    else:
+    else:  # 2D
         for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
             fill_factor = np.array(fill_factor)
             permittivity = np.ones((resolution, resolution))

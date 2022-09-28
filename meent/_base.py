@@ -29,43 +29,34 @@ class Base:
         de_ti = np.array(de_ti)
 
         if not de_ri.shape:
-            # 1D or not may be not;
-            # there is a case that reticolo returns single value
+            # 1D or may be not; there is a case that reticolo returns single value
             c = self.spectrum_r.shape[1] // 2
-            # self.spectrum_r[i][c] = de_ri
             self.spectrum_r = self.spectrum_r.at[i, c].set(de_ri)
         elif len(de_ri.shape) == 1 or de_ri.shape[1] == 1:  # 1D
             de_ri = de_ri.flatten()
             c = self.spectrum_r.shape[1] // 2
             l = de_ri.shape[0] // 2
             if len(de_ri) % 2:
-                # self.spectrum_r[i][c - l:c + l + 1] = de_ri
                 idx = np.arange(c-l, c+l+1)
                 self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
-
             else:
-                # self.spectrum_r[i][c - l:c + l] = de_ri
                 idx = np.arange(c-l, c+l)
                 self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
-
         else:
             print('no code')
             raise ValueError
 
         if not de_ti.shape:  # 1D
             c = self.spectrum_t.shape[1] // 2
-            # self.spectrum_t[i][c] = de_ti
             self.spectrum_t = self.spectrum_t.at[i, c].set(de_ti)
         elif len(de_ti.shape) == 1 or de_ti.shape[1] == 1:  # 1D
             de_ti = de_ti.flatten()
             c = self.spectrum_t.shape[1] // 2
             l = de_ti.shape[0] // 2
             if len(de_ti) % 2:
-                # self.spectrum_t[i][c - l:c + l + 1] = de_ti
                 idx = np.arange(c - l, c + l + 1)
                 self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
             else:
-                # self.spectrum_t[i][c - l:c + l] = de_ti
                 idx = np.arange(c-l, c+l)
                 self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
 

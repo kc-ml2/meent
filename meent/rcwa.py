@@ -2,7 +2,7 @@ import time
 import jax.numpy as np
 
 from meent._base import _BaseRCWA
-from meent.convolution_matrix import to_conv_mat_old, find_n_index, fill_factor_to_ucell
+from meent.convolution_matrix import to_conv_mat, find_n_index, fill_factor_to_ucell
 
 
 class RCWA(_BaseRCWA):
@@ -16,11 +16,12 @@ class RCWA(_BaseRCWA):
 
     def solve(self, wl, e_conv_all, o_e_conv_all):
 
+        # TODO: !handle uniform layer
+
         if self.grating_type == 0:
             de_ri, de_ti = self.solve_1d(wl, e_conv_all, o_e_conv_all)
         elif self.grating_type == 1:
             de_ri, de_ti = self.solve_1d_conical(wl, e_conv_all, o_e_conv_all)
-            # de_ri = de_ti = None
         elif self.grating_type == 2:
             de_ri, de_ti = self.solve_2d(wl, e_conv_all, o_e_conv_all)
         else:
@@ -37,8 +38,8 @@ class RCWA(_BaseRCWA):
         for i, wl in enumerate(self.wls):
 
             ucell = fill_factor_to_ucell(self.patterns, wl, self.grating_type)
-            e_conv_all = to_conv_mat_old(ucell, self.fourier_order)
-            o_e_conv_all = to_conv_mat_old(1/ucell, self.fourier_order)
+            e_conv_all = to_conv_mat(ucell, self.fourier_order)
+            o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
 
             de_ri, de_ti = self.solve(wl, e_conv_all, o_e_conv_all)
 
@@ -54,7 +55,6 @@ class RCWA(_BaseRCWA):
             si = [3.48, 0, 1, 0, 1, 0, 3]
             ox = [3.48, 1, 2, 0, 1, 0, 3]
         elif self.grating_type == 1:
-            # TODO: confirm
             cell = np.ones((2, 1, 10))
             si = [3.48, 0, 1, 0, 1, 0, 3]
             ox = [3.48, 1, 2, 0, 1, 0, 3]
@@ -70,8 +70,8 @@ class RCWA(_BaseRCWA):
                 n_index = find_n_index(material, wl) if type(material) == str else material
                 cell = cell.at[z_begin:z_end, y_begin:y_end, x_begin:x_end].set(n_index**2)
 
-            e_conv_all = to_conv_mat_old(cell, self.fourier_order)
-            o_e_conv_all = to_conv_mat_old(1 / cell, self.fourier_order)
+            e_conv_all = to_conv_mat(cell, self.fourier_order)
+            o_e_conv_all = to_conv_mat(1 / cell, self.fourier_order)
 
             de_ri, de_ti = self.solve(wl, e_conv_all, o_e_conv_all)
 
@@ -106,8 +106,8 @@ class RCWA(_BaseRCWA):
         #         cell[z_begin:z_end, y_begin:y_end, x_begin:x_end] = n_index ** 2
 
         for i, wl in enumerate(self.wls):
-            e_conv_all = to_conv_mat_old(self.patterns, self.fourier_order)
-            oneover_e_conv_all = to_conv_mat_old(1 / self.patterns, self.fourier_order)
+            e_conv_all = to_conv_mat(self.patterns, self.fourier_order)
+            oneover_e_conv_all = to_conv_mat(1 / self.patterns, self.fourier_order)
 
             de_ri, de_ti = self.solve(wl, e_conv_all, oneover_e_conv_all)
 
@@ -118,8 +118,8 @@ class RCWA(_BaseRCWA):
 
 
 if __name__ == '__main__':
-    grating_type = 2
-    pol = 1
+    grating_type = 0
+    pol = 0
 
     n_I = 1
     n_II = 1
@@ -129,10 +129,11 @@ if __name__ == '__main__':
     psi = 0 if pol else 90
 
     wls = np.linspace(500, 2300, 100)
+    # wls = np.linspace(600, 800, 3)
 
     if grating_type in (0, 1):
         period = [700]
-        patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
+        patterns = [[3.48, 1, 0], [3.48, 1, 0]]  # n_ridge, n_groove, fill_factor
         fourier_order = 5
 
     elif grating_type == 2:
@@ -153,6 +154,6 @@ if __name__ == '__main__':
 
     print(time.perf_counter() - t0)
 
-    AA.loop_wavelength_ucell()
-    AA.plot()
-    print('end')
+    # AA.loop_wavelength_ucell()
+    # AA.plot()
+    # print('end')

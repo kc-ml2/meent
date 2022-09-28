@@ -47,7 +47,6 @@ class Reticolo(Base):
 
         self.period = period
 
-        self.wls = np.array(wls).reshape(-1)  # TODO: Force array
         self.wls = wls
         self.textures = textures
         self.profile = profile

@@ -1,8 +1,8 @@
 import time
-import numpy as np
+import jax.numpy as np
 
 from meent.rcwa import RCWA
-from meent.convolution_matrix import put_n_ridge_in_pattern, to_conv_mat_old
+from meent.convolution_matrix import put_n_ridge_in_pattern, to_conv_mat
 
 
 class JLABCode(RCWA):
@@ -12,20 +12,20 @@ class JLABCode(RCWA):
         super().__init__(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls, polarization, patterns,
                          thickness, algo)
 
-    def permittivity_mapping_jlab(self, wl):
+    def permittivity_mapping_acs(self, wl):
         pattern = put_n_ridge_in_pattern(self.patterns, wl)
 
         resolution = len(pattern[0][2])
-        ucell = np.ndarray((len(pattern), 1, resolution))
+        ucell = np.zeros((len(pattern), 1, resolution))
 
         for i, (n_ridge, n_groove, pixel_map) in enumerate(pattern):
             pixel_map = np.array(pixel_map, dtype='float')
             pixel_map = (pixel_map + 1) / 2
             pixel_map = pixel_map * (n_ridge ** 2 - n_groove ** 2) + n_groove ** 2
-            ucell[i] = pixel_map
+            ucell = ucell.at[i].set(pixel_map)
 
-        e_conv_all = to_conv_mat_old(ucell, self.fourier_order)
-        o_e_conv_all = to_conv_mat_old(1/ucell, self.fourier_order)
+        e_conv_all = to_conv_mat(ucell, self.fourier_order)
+        o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
 
         return e_conv_all, o_e_conv_all
 
@@ -46,9 +46,9 @@ class JLABCode(RCWA):
 
         self.pol = 1
 
-        E_conv_all, oneover_E_conv_all = self.permittivity_mapping_jlab(self.wls)
+        e_conv_all, o_e_conv_all = self.permittivity_mapping_acs(self.wls)
 
-        de_ri, de_ti = self.solve_1d(self.wls, E_conv_all, oneover_E_conv_all)  # TODO: check self.wls
+        de_ri, de_ti = self.solve_1d(self.wls, e_conv_all, o_e_conv_all)
 
         center = de_ti.shape[0] // 2
         tran_cut = de_ti[center - 1:center + 2]
@@ -71,12 +71,11 @@ class JLABCode(RCWA):
         for i, wl in enumerate(wls):
             self.period = [abs(wl / np.sin(trans_angle / 180 * np.pi))]
 
-            E_conv_all, oneover_E_conv_all = self.permittivity_mapping_jlab(wl)
+            e_conv_all, o_e_conv_all = self.permittivity_mapping_acs(wl)
 
-            de_ri, de_ti = self.solve_1d(wl, E_conv_all, oneover_E_conv_all)
+            de_ri, de_ti = self.solve_1d(wl, e_conv_all, o_e_conv_all)
 
-            self.spectrum_r[i] = de_ri
-            self.spectrum_t[i] = de_ti
+            self.save_spectrum_array(de_ri, de_ti, i)
 
         return self.spectrum_r, self.spectrum_t
 
