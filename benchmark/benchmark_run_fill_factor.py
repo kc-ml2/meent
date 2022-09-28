@@ -6,7 +6,7 @@ import time
 
 from interface.GRCWA import GRCWA
 from interface.Reticolo import Reticolo
-from meent.rcwa import RCWA
+from meent.RCWA import call_solver
 
 Nx = 1000
 # Ny = 1001
@@ -52,7 +52,7 @@ print('reti: ', time.time() - t0)
 reti.plot(title='reticolo')
 
 # meent TMM
-meent_t = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+meent_t = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                fourier_order=fourier_order, wls=wls, period=[period], patterns=patterns, thickness=thickness)
 t0 = time.time()
 

@@ -1,28 +1,29 @@
 import time
-import jax.numpy as np
+import numpy as np
 
-from meent.rcwa import RCWA
-from meent.convolution_matrix import put_n_ridge_in_pattern, to_conv_mat
+from meent.on_numpy.rcwa import RCWALight as RCWA
+from meent.on_numpy.convolution_matrix import put_n_ridge_in_pattern, to_conv_mat
 
 
 class JLABCode(RCWA):
     def __init__(self, grating_type=0, n_I=1.45, n_II=1., theta=0, phi=0, psi=0, fourier_order=40, period=100,
                  wls=np.linspace(900, 900, 1), polarization=1, patterns=None, thickness=(325,), algo='TMM'):
 
-        super().__init__(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls, polarization, patterns,
+        super().__init__(0, grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls, polarization, patterns,
                          thickness, algo)
 
     def permittivity_mapping_acs(self, wl):
         pattern = put_n_ridge_in_pattern(self.patterns, wl)
 
         resolution = len(pattern[0][2])
-        ucell = np.zeros((len(pattern), 1, resolution))
+        ucell = np.zeros((len(pattern), 1, resolution), dtype='complex')
 
         for i, (n_ridge, n_groove, pixel_map) in enumerate(pattern):
-            pixel_map = np.array(pixel_map, dtype='float')
+            pixel_map = np.array(pixel_map, dtype='complex')
             pixel_map = (pixel_map + 1) / 2
             pixel_map = pixel_map * (n_ridge ** 2 - n_groove ** 2) + n_groove ** 2
-            ucell = ucell.at[i].set(pixel_map)
+            # ucell = ucell.at[i].set(pixel_map)
+            ucell[i] = pixel_map
 
         e_conv_all = to_conv_mat(ucell, self.fourier_order)
         o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)

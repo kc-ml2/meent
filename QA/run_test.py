@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from meent.rcwa import RCWA
+from meent.RCWA import call_solver
 
 
 def run_test(n_I, n_II, theta, phi, grating_type, pol):
@@ -21,7 +21,7 @@ def run_test(n_I, n_II, theta, phi, grating_type, pol):
 
     elif grating_type == 2:
         wls = np.linspace(500, 2300, 100)
-        fourier_order = 10
+        fourier_order = 2
         period = [700, 700]
         patterns = [[3.48, 1, [1, 0.3]], [3.48, 1, [1, 0.3]]]  # n_ridge, n_groove, fill_factor
 
@@ -33,7 +33,7 @@ def run_test(n_I, n_II, theta, phi, grating_type, pol):
     thickness = [460, 660]
 
     t0 = time.time()
-    res = RCWA(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
+    res = call_solver(0, grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
                         pol, patterns, thickness, algo='TMM')
     res.loop_wavelength_fill_factor()
     print(time.time() - t0)

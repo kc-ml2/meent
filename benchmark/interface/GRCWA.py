@@ -2,7 +2,7 @@ import grcwa
 import numpy as np
 import matplotlib.pyplot as plt
 
-from meent._base import Base
+from meent.on_numpy._base import Base
 
 
 class GRCWA(Base):

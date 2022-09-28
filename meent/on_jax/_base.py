@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 # from .scattering_method import *
 # from .transfer_method import *
 
-from scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, scattering_2d_2, scattering_2d_3
-from transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, transfer_1d_conical_3, transfer_2d_1, transfer_2d_wv, transfer_2d_2, transfer_2d_3
+from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, scattering_2d_2, scattering_2d_3
+from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, transfer_1d_conical_3, transfer_2d_1, transfer_2d_wv, transfer_2d_2, transfer_2d_3
 
-# import jax.numpy as np
+import jax.numpy as jnp
 
 
 class Base:
@@ -17,90 +17,54 @@ class Base:
         self.spectrum_r = None
         self.spectrum_t = None
         self.mode = mode
-        if self.mode == 0:
-            import numpy as np
-        elif self.mode == 1:
-            import jax.numpy as np
-        else:
-            raise ValueError
 
     def init_spectrum_array(self):
         if self.grating_type in (0, 1):
-            self.spectrum_r = np.zeros((len(self.wls), 2 * self.fourier_order + 1))
-            self.spectrum_t = np.zeros((len(self.wls), 2 * self.fourier_order + 1))
+            self.spectrum_r = jnp.zeros((len(self.wls), 2 * self.fourier_order + 1))
+            self.spectrum_t = jnp.zeros((len(self.wls), 2 * self.fourier_order + 1))
         elif self.grating_type == 2:
-            self.spectrum_r = np.zeros((len(self.wls), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
-            self.spectrum_t = np.zeros((len(self.wls), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
+            self.spectrum_r = jnp.zeros((len(self.wls), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
+            self.spectrum_t = jnp.zeros((len(self.wls), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
         else:
             raise ValueError
 
     def save_spectrum_array(self, de_ri, de_ti, i):
-        de_ri = np.array(de_ri)
-        de_ti = np.array(de_ti)
+        de_ri = jnp.array(de_ri)
+        de_ti = jnp.array(de_ti)
 
         if not de_ri.shape:
             # 1D or may be not; there is a case that reticolo returns single value
             c = self.spectrum_r.shape[1] // 2
-            if self.mode == 0:
-                self.spectrum_r[i][c] = de_ri
-            elif self.mode == 1:
-                self.spectrum_r = self.spectrum_r.at[i, c].set(de_ri)
-            else:
-                raise ValueError
+            self.spectrum_r = self.spectrum_r.at[i, c].set(de_ri)
 
         elif len(de_ri.shape) == 1 or de_ri.shape[1] == 1:  # 1D
             de_ri = de_ri.flatten()
             c = self.spectrum_r.shape[1] // 2
             l = de_ri.shape[0] // 2
             if len(de_ri) % 2:
-                if self.mode == 0:
-                    self.spectrum_r[i][c - l:c + l + 1] = de_ri
-                elif self.mode == 1:
-                    idx = np.arange(c-l, c+l+1)
-                    self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
-                else:
-                    raise ValueError
+                idx = jnp.arange(c - l, c + l + 1)
+                self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
             else:
-                if self.mode == 0:
-                    self.spectrum_r[i][c - l:c + l] = de_ri
-                elif self.mode == 1:
-                    idx = np.arange(c-l, c+l)
-                    self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
-                else:
-                    raise ValueError
+                idx = jnp.arange(c - l, c + l)
+                self.spectrum_r = self.spectrum_r.at[i, idx].set(de_ri)
         else:
             print('no code')
             raise ValueError
 
         if not de_ti.shape:  # 1D
             c = self.spectrum_t.shape[1] // 2
-            if self.mode == 0:
-                self.spectrum_t[i][c] = de_ti
-            elif self.mode == 1:
-                self.spectrum_t = self.spectrum_t.at[i, c].set(de_ti)
-            else:
-                raise ValueError
+            self.spectrum_t = self.spectrum_t.at[i, c].set(de_ti)
 
         elif len(de_ti.shape) == 1 or de_ti.shape[1] == 1:  # 1D
             de_ti = de_ti.flatten()
             c = self.spectrum_t.shape[1] // 2
             l = de_ti.shape[0] // 2
             if len(de_ti) % 2:
-                if self.mode == 0:
-                    self.spectrum_t[i][c - l:c + l + 1] = de_ti
-                elif self.mode == 1:
-                    idx = np.arange(c - l, c + l + 1)
-                    self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
-                else:
-                    raise ValueError
+                idx = jnp.arange(c - l, c + l + 1)
+                self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
             else:
-                if self.mode == 0:
-                    self.spectrum_t[i][c - l:c + l] = de_ti
-                elif self.mode == 1:
-                    idx = np.arange(c-l, c+l)
-                    self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
-                else:
-                    raise ValueError
+                idx = jnp.arange(c - l, c + l)
+                self.spectrum_t = self.spectrum_t.at[i, idx].set(de_ti)
 
         else:
             print('no code')
@@ -124,7 +88,7 @@ class Base:
 
 class _BaseRCWA(Base):
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
-                 period=0.7, wls=np.linspace(0.5, 2.3, 400), pol=0,
+                 period=0.7, wls=jnp.linspace(0.5, 2.3, 400), pol=0,
                  patterns=None, thickness=None, algo='TMM', mode=0):
         super().__init__(grating_type)
 
@@ -132,15 +96,15 @@ class _BaseRCWA(Base):
         self.n_I = n_I
         self.n_II = n_II
 
-        self.theta = theta * np.pi / 180
-        self.phi = phi * np.pi / 180
-        self.psi = psi * np.pi / 180  # TODO: integrate psi and pol
+        self.theta = theta * jnp.pi / 180
+        self.phi = phi * jnp.pi / 180
+        self.psi = psi * jnp.pi / 180  # TODO: integrate psi and pol
 
         self.pol = pol  # TE 0, TM 1
         if self.pol == 0:  # TE
-            self.psi = 90 * np.pi / 180
+            self.psi = 90 * jnp.pi / 180
         elif self.pol == 1:  # TM
-            self.psi = 0 * np.pi / 180
+            self.psi = 0 * jnp.pi / 180
         else:
             print('not implemented yet')
             raise ValueError
@@ -161,17 +125,12 @@ class _BaseRCWA(Base):
 
     def solve_1d(self, wl, E_conv_all, oneover_E_conv_all):
 
-        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
+        fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = np.zeros(self.ff)
-        if self.mode == 0:
-            delta_i0[self.fourier_order] = 1
-        elif self.mode == 1:
-            delta_i0 = delta_i0.at[self.fourier_order].set(1)
-        else:
-            raise ValueError
+        delta_i0 = jnp.zeros(self.ff)
+        delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
-        k0 = 2 * np.pi / wl
+        k0 = 2 * jnp.pi / wl
 
         # --------------------------------------------------------------------
         if self.algo == 'TMM':
@@ -189,21 +148,21 @@ class _BaseRCWA(Base):
         for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
             if self.pol == 0:
                 A = Kx ** 2 - E_conv
-                eigenvalues, W = np.linalg.eig(A)
+                eigenvalues, W = jnp.linalg.eig(A)
                 q = eigenvalues ** 0.5
 
-                Q = np.diag(q)
+                Q = jnp.diag(q)
                 V = W @ Q
 
             elif self.pol == 1:
-                E_i = np.linalg.inv(E_conv)
-                B = Kx @ E_i @ Kx - np.eye(E_conv.shape[0])
-                oneover_E_conv_i = np.linalg.inv(oneover_E_conv)
+                E_i = jnp.linalg.inv(E_conv)
+                B = Kx @ E_i @ Kx - jnp.eye(E_conv.shape[0])
+                oneover_E_conv_i = jnp.linalg.inv(oneover_E_conv)
 
-                eigenvalues, W = np.linalg.eig(oneover_E_conv_i @ B)
+                eigenvalues, W = jnp.linalg.eig(oneover_E_conv_i @ B)
                 q = eigenvalues ** 0.5
 
-                Q = np.diag(q)
+                Q = jnp.diag(q)
                 V = oneover_E_conv @ W @ Q
 
             else:
@@ -230,30 +189,25 @@ class _BaseRCWA(Base):
     # TODO: scattering method
     def solve_1d_conical(self, wl, e_conv_all, o_e_conv_all):
 
-        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
+        fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = np.zeros(self.ff)
-        if self.mode == 0:
-            delta_i0[self.fourier_order] = 1
-        elif self.mode == 1:
-            delta_i0 = delta_i0.at[self.fourier_order].set(1)
-        else:
-            raise ValueError
+        delta_i0 = jnp.zeros(self.ff)
+        delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
-        k0 = 2 * np.pi / wl
+        k0 = 2 * jnp.pi / wl
 
         if self.algo == 'TMM':
             Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
                 = transfer_1d_conical_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta, self.phi, wl)
         elif self.algo == 'SMM':
             print('SMM for 1D conical is not implemented')
-            return np.nan, np.nan
+            return jnp.nan, jnp.nan
         else:
             raise ValueError
 
         for e_conv, o_e_conv, d in zip(e_conv_all[::-1], o_e_conv_all[::-1], self.thickness[::-1]):
-            e_conv_i = np.linalg.inv(e_conv)
-            o_e_conv_i = np.linalg.inv(o_e_conv)
+            e_conv_i = jnp.linalg.inv(e_conv)
+            o_e_conv_i = jnp.linalg.inv(o_e_conv)
 
             if self.algo == 'TMM':
                 big_F, big_G, big_T = transfer_1d_conical_2(k0, Kx, ky, e_conv, e_conv_i, o_e_conv_i, self.ff, d,
@@ -275,23 +229,18 @@ class _BaseRCWA(Base):
 
     def solve_2d(self, wl, E_conv_all, oneover_E_conv_all):
 
-        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
+        fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = np.zeros((self.ff ** 2, 1))
+        delta_i0 = jnp.zeros((self.ff ** 2, 1))
 
-        if self.mode == 0:
-            delta_i0[self.ff ** 2 // 2, 0] = 1
-        elif self.mode == 1:
-            delta_i0 = delta_i0.at[self.ff ** 2 // 2, 0].set(1)
-        else:
-            raise ValueError
+        delta_i0 = delta_i0.at[self.ff ** 2 // 2, 0].set(1)
 
-        I = np.eye(self.ff ** 2)
-        O = np.zeros((self.ff ** 2, self.ff ** 2))
+        I = jnp.eye(self.ff ** 2)
+        O = jnp.zeros((self.ff ** 2, self.ff ** 2))
 
         center = self.ff ** 2
 
-        k0 = 2 * np.pi / wl
+        k0 = 2 * jnp.pi / wl
 
         if self.algo == 'TMM':
             Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
@@ -303,8 +252,8 @@ class _BaseRCWA(Base):
             raise ValueError
 
         for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
-            E_i = np.linalg.inv(E_conv)
-            oneover_E_conv_i = np.linalg.inv(oneover_E_conv)
+            E_i = jnp.linalg.inv(E_conv)
+            oneover_E_conv_i = jnp.linalg.inv(oneover_E_conv)
 
             if self.algo == 'TMM':  # TODO: MERGE W V part
                 W, V, LAMBDA, Lambda = transfer_2d_wv(self.ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center)
