@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from meent.on_numpy.convolution_matrix import find_n_index
 
 try:
     import matlab.engine
@@ -17,9 +18,9 @@ from meent.on_numpy._base import Base
 class Reticolo(Base):
 
     def __init__(self, grating_type=0,
-                 n_I=1., n_II=1., theta=0., phi=0., fourier_order=40, period=(100,),
+                 n_I=1., n_II=1.45, theta=0., phi=0., fourier_order=40, period=(100,),
                  wls=np.linspace(900, 900, 1), pol=1,
-                 textures=None, profile=None,
+                 textures=None, profile=None, thickness=None, deflected_angle=None,
                  engine_type='octave'):
         super().__init__(grating_type)
 
@@ -46,10 +47,12 @@ class Reticolo(Base):
         self.ff = 2 * self.fourier_order + 1
 
         self.period = period
+        self.thickness = thickness
 
         self.wls = wls
         self.textures = textures
         self.profile = profile
+        self.deflected_angle =deflected_angle
 
         self.init_spectrum_array()
 
@@ -63,21 +66,30 @@ class Reticolo(Base):
 
         return self.spectrum_r, self.spectrum_t
 
-    def run_acs(self, pattern, wl, deflected_angle):
-        a, b = self.eng.Eval_Eff_1D(pattern, wl, deflected_angle, self.fourier_order, nout=2)
-        return a, b
+    def run_acs(self, pattern, n_si='n_si'):
+        if type(n_si) == str and n_si.upper() == 'N_SI':
+            n_si = find_n_index(n_si, self.wls)
 
-    def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None):
+        a, b, c = self.eng.Eval_Eff_1D(pattern, self.wls, self.deflected_angle, self.fourier_order,
+                                                   self.n_I, self.n_II, self.thickness, self.theta,
+                                       n_si, nout=3)
+        return a, b.flatten(), c.flatten()
+
+    def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None, n_si='Silicon'):
         if wls is None:
             wls = self.wls
         else:
             self.wls = wls  # TODO: handle better.
 
+        if type(n_si) == str and n_si.upper() == 'Silicon':
+            n_si = find_n_index(n_si, self.wls)
+
         self.init_spectrum_array()
 
         for i, wl in enumerate(wls):
-            _, de_ti, de_ri = self.eng.Eval_Eff_1D(pattern, wl, deflected_angle, self.fourier_order, nout=3)
-            self.save_spectrum_array(de_ri, de_ti, i)
+            _, de_ri, de_ti = self.eng.Eval_Eff_1D(pattern, wl, deflected_angle, self.fourier_order,
+                                                   self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
+            self.save_spectrum_array(de_ri.flatten(), de_ti.flatten(), i)
 
         return self.spectrum_r, self.spectrum_t
 
@@ -86,10 +98,10 @@ if __name__ == '__main__':
     Nx = 1001
     Ny = 1001
 
-    n_I = 1
+    n_I = 1.45
     n_si = 3.48
     n_II = 1
-    theta = 1E-10
+    theta = 0
     phi = 0
     fourier_order = 40
 

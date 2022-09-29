@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 
-def call_solver(mode, *args, **kwargs):
+def call_solver(mode=0, *args, **kwargs):
     if mode == 0:
         from meent.on_numpy.rcwa import RCWALight
         RCWA = RCWALight(mode, *args, **kwargs)

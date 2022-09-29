@@ -1,7 +1,5 @@
 import numpy as np
 
-# from .convolution_matrix import *
-
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_order,fourier_indices, wl, period):
 

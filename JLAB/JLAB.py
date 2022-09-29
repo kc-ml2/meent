@@ -7,22 +7,22 @@ from meent.on_numpy.convolution_matrix import put_n_ridge_in_pattern, to_conv_ma
 
 class JLABCode(RCWA):
     def __init__(self, grating_type=0, n_I=1.45, n_II=1., theta=0, phi=0, psi=0, fourier_order=40, period=100,
-                 wls=np.linspace(900, 900, 1), polarization=1, patterns=None, thickness=(325,), algo='TMM'):
+                 wls=np.linspace(900, 900, 1), pol=1, patterns=None, thickness=(325,), algo='TMM'):
 
-        super().__init__(0, grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls, polarization, patterns,
+        super().__init__(0, grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls, pol, patterns,
                          thickness, algo)
 
     def permittivity_mapping_acs(self, wl):
         pattern = put_n_ridge_in_pattern(self.patterns, wl)
 
         resolution = len(pattern[0][2])
+        # resolution = 1000
         ucell = np.zeros((len(pattern), 1, resolution), dtype='complex')
 
         for i, (n_ridge, n_groove, pixel_map) in enumerate(pattern):
             pixel_map = np.array(pixel_map, dtype='complex')
             pixel_map = (pixel_map + 1) / 2
             pixel_map = pixel_map * (n_ridge ** 2 - n_groove ** 2) + n_groove ** 2
-            # ucell = ucell.at[i].set(pixel_map)
             ucell[i] = pixel_map
 
         e_conv_all = to_conv_mat(ucell, self.fourier_order)
@@ -30,32 +30,36 @@ class JLABCode(RCWA):
 
         return e_conv_all, o_e_conv_all
 
-    def reproduce_acs(self, pattern_pixel, wavelength, trans_angle):
-        self.n_I = 1.45  # glass
-        self.n_II = 1
+    def permittivity_mapping_acs_(self, wl):
+        pattern = put_n_ridge_in_pattern(self.patterns, wl)
 
-        self.theta = 0
+        resolution = len(pattern[0][2])
+        # resolution = 1000
+        ucell = np.zeros((len(pattern), 1, resolution), dtype='complex')
 
-        self.fourier_order = 40
+        for i, (n_ridge, n_groove, pixel_map) in enumerate(pattern):
+            pixel_map = np.array(pixel_map, dtype='complex')
+            pixel_map = (pixel_map + 1) / 2
+            pixel_map = pixel_map * (n_ridge ** 2 - n_groove ** 2) + n_groove ** 2
+            ucell[i] = pixel_map
 
-        self.wls = np.array([wavelength])
+        e_conv_all = to_conv_mat(ucell, self.fourier_order)
+        o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
 
-        self.period = abs(self.wls / np.sin(trans_angle / 180 * np.pi))
+        return e_conv_all, o_e_conv_all
 
-        self.patterns = [['SILICON', 1, pattern_pixel]]  # n_ridge, n_groove, pattern_pixel
-        self.thickness = [325]
-
-        self.pol = 1
+    def reproduce_acs(self, pattern_pixel):
+        self.patterns = pattern_pixel
 
         e_conv_all, o_e_conv_all = self.permittivity_mapping_acs(self.wls)
 
         de_ri, de_ti = self.solve_1d(self.wls, e_conv_all, o_e_conv_all)
 
         center = de_ti.shape[0] // 2
-        tran_cut = de_ti[center - 1:center + 2]
-        refl_cut = de_ri[center - 1:center + 2]
+        tran_cut = de_ti[center - 1:center + 2][::-1]
+        refl_cut = de_ri[center - 1:center + 2][::-1]
 
-        return tran_cut[0], tran_cut, refl_cut
+        return tran_cut[-1], refl_cut, tran_cut
 
     def reproduce_acs_loop_wavelength(self, pattern, trans_angle, wls=None):
         if wls is None:
@@ -64,7 +68,7 @@ class JLABCode(RCWA):
             self.wls = wls
         self.init_spectrum_array()
 
-        self.patterns = [['SILICON', 1, pattern]]  # n_ridge, n_groove, pattern_pixel
+        # self.patterns = [['SILICON', 1, pattern]]  # n_ridge, n_groove, pattern_pixel
         self.thickness = [325]
 
         self.pol = 1
@@ -79,22 +83,3 @@ class JLABCode(RCWA):
             self.save_spectrum_array(de_ri, de_ti, i)
 
         return self.spectrum_r, self.spectrum_t
-
-
-if __name__ == '__main__':
-    t0 = time.perf_counter()
-    wavelength = 900
-    deflected_angle = 60
-    algo = 'TMM'
-
-    pattern = np.array([-1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
-                        -1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
-                        1., 1., 1., 1., 1., 1., 1., 1., -1., 1., 1., 1., 1.,
-                        1., 1., 1., 1., 1., 1., -1., 1., 1., 1., 1., 1., 1.,
-                        1., 1., 1., 1., 1., 1., 1., 1., 1., -1., 1., 1.])
-
-    AA = JLABCode(algo=algo)
-    a, b, c = AA.reproduce_acs(pattern, wavelength, deflected_angle)
-
-    print('result:', a, b, c)
-    print('time:', time.perf_counter() - t0)
