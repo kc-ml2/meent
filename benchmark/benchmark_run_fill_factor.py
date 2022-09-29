@@ -1,5 +1,5 @@
 import numpy as np
-import jax.numpy as jnp
+# import jax.numpy as jnp
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
@@ -17,7 +17,7 @@ n_II = 1
 theta = 1E-10
 phi = 1E-10
 
-fourier_order = 40
+fourier_order = 1
 
 period = [700]
 wls = np.linspace(500, 2300, 100)
@@ -50,6 +50,7 @@ t0 = time.time()
 reti.run()
 print('reti: ', time.time() - t0)
 reti.plot(title='reticolo')
+print(reti.spectrum_r)
 
 # meent TMM
 meent_t = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
@@ -60,7 +61,15 @@ meent_t.loop_wavelength_fill_factor()
 print('meent: ', time.time() - t0)
 
 meent_t.plot(title='meent-TMM')
+print(meent_t.spectrum_r)
 
+a=reti.spectrum_r[:,40:40+1]
+b=meent_t.spectrum_r[:,40:40+1]
+
+# plt.hist(a-b)
+# plt.show()
+
+print(1)
 # # meent SMM
 # meent_s = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
 #                fourier_order=fourier_order, wls=wls, period=[period], patterns=patterns, thickness=thickness,
