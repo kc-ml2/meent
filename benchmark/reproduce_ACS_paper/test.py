@@ -2,9 +2,9 @@ import time
 import numpy as np
 
 from benchmark.interface.Reticolo import Reticolo
-from examples.rcwa.JLAB import JLABCode
+from JLAB.JLAB import JLABCode
 
-wavelength = 900
+# wavelength = 900
 deflected_angle = 60
 pattern = np.array([ 1.,  1.,  1., -1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1., -1.,  1.,  1.,
   1., -1.,  1.,  1.,  1., -1.,  1.,  1.,  1., -1.,  1.,  1.,  1.,  1.,  1.,  1.,  1., -1.,
@@ -12,7 +12,8 @@ pattern = np.array([ 1.,  1.,  1., -1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1., 
  -1.,  1.,  1.,  1.,  1., -1.,  1.,  1.,  1.,  1.])
 
 
-wls = np.linspace(898, 902, 400)
+# wls = np.linspace(898, 902, 40)
+wls = np.linspace(900, 900, 1)
 fourier_order = 10
 
 t0 = time.time()
@@ -32,6 +33,8 @@ t3 = time.time()
 print(1, t1 - t0)
 print(2, t3 - t2)
 
+print(mnt.spectrum_r[:])
+print(reti.spectrum_r[:])
 
 wls = np.linspace(898, 902, 400)
 fourier_order = 20

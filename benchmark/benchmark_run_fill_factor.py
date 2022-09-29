@@ -17,7 +17,7 @@ n_II = 1
 theta = 1E-10
 phi = 1E-10
 
-fourier_order = 1
+fourier_order = 120
 
 period = [700]
 wls = np.linspace(500, 2300, 100)
