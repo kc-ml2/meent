@@ -5,8 +5,9 @@ import time
 
 from jax import grad, vmap
 
-from meent.rcwa import RCWA
+# from meent.rcwa import RCWA
 
+from meent.rcwa import call_solver
 
 # from jax.config import config; config.update("jax_enable_x64", True)
 
@@ -66,13 +67,13 @@ if __name__ == '__main__':
         period = jnp.array([700])
         thickness = jnp.array([1120])
         cell = jnp.array([[[3.48 ** 2, 3.48 ** 2, 3.48 ** 2, 1, 1, 1, 1, 1, 1, 1]]])
-        ground_truth = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+        ground_truth = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
                             fourier_order=fourier_order, wls=wls, period=period, patterns=cell, thickness=thickness)
 
         # Test
         thickness = jnp.array([thick])
 
-        test = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+        test = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
                     fourier_order=fourier_order, wls=wls, period=period, patterns=cell, thickness=thickness)
 
         a, b = ground_truth.jax_test()
@@ -107,17 +108,17 @@ if __name__ == '__main__':
     # s_t = jnp.array([2., 1., 0.])
 
     def mingd(x):
-        print(x)
-        print(grad_loss(x))
-        return x - 0.01*grad_loss(x)
+        # print(x)
+        # print(grad_loss(x))
+        return x - 0.05*grad_loss(x)*x
 
     domain = jnp.linspace(1100, 1200, num=1)
 
     vfungd = vmap(mingd)
     # Recurrent loop of gradient descent
-    for epoch in range(10):
+    for epoch in range(1000):
         domain = vfungd(domain)
-        print(domain)
+        # print(domain)
 
     minfunc = vmap(loss)
     minimums = minfunc(domain)
