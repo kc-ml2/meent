@@ -7,8 +7,10 @@ from benchmark.interface.Reticolo import Reticolo
 
 
 class RetiMeent:
-    def __init__(self, n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, wls, fourier_order,
+    def __init__(self, grating_type, n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, wls, fourier_order,
                  period):
+
+        self.grating_type = grating_type
         self.n_air = n_air
         self.n_si = n_si
         self.n_glass = n_glass
@@ -25,7 +27,7 @@ class RetiMeent:
     def acs_run_meent(self):
         patterns = [[self.n_si, self.n_air, self.pattern]]
 
-        meent = JLABCode(grating_type=0,
+        meent = JLABCode(grating_type=self.grating_type,
                          n_I=self.n_glass, n_II=self.n_air, theta=self.theta, phi=self.phi,
                          fourier_order=self.fourier_order, period=self.period,
                          wls=self.wls, pol=self.pol,
@@ -39,7 +41,7 @@ class RetiMeent:
 
         textures = profile = None
 
-        reti = Reticolo(grating_type=0,
+        reti = Reticolo(grating_type=self.grating_type,
                         n_I=self.n_air, n_II=self.n_glass, theta=self.theta, phi=self.phi, fourier_order=self.fourier_order, period=self.period,
                         wls=self.wls, pol=self.pol,
                         textures=textures, profile=profile, thickness=self.thickness, deflected_angle=self.deflected_angle,
@@ -53,7 +55,7 @@ class RetiMeent:
 
         textures = profile = None
 
-        reti = Reticolo(grating_type=0,
+        reti = Reticolo(grating_type=self.grating_type,
                         n_I=self.n_air, n_II=self.n_glass, theta=self.theta, phi=self.phi, fourier_order=self.fourier_order, period=self.period,
                         wls=self.wls, pol=self.pol,
                         textures=textures, profile=profile, thickness=self.thickness, deflected_angle=self.deflected_angle,
@@ -63,7 +65,7 @@ class RetiMeent:
 
         patterns = [[self.n_si, self.n_air, self.pattern]]
 
-        meent = JLABCode(grating_type=0,
+        meent = JLABCode(grating_type=self.grating_type,
                          n_I=self.n_glass, n_II=self.n_air, theta=self.theta, phi=self.phi,
                          fourier_order=self.fourier_order, period=self.period,
                          wls=self.wls, pol=self.pol,
@@ -97,74 +99,127 @@ class RetiMeent:
         for i in range(3):
             plt.plot(fourier_array, reti_r[:, i], marker='x')
             plt.plot(fourier_array, meent_r[:, i], marker='x')
-            plt.title(f'reflectance, {i-1}order')
+            plt.title(f'reflectance, {i - 1}order')
             plt.legend(['reti', ' meent'])
             plt.show()
 
         for i in range(3):
             plt.plot(fourier_array, reti_t[:, i], marker='x')
             plt.plot(fourier_array, meent_t[:, i], marker='x')
-            plt.title(f'transmittance, {i-1}order')
+            plt.title(f'transmittance, {i - 1}order')
             plt.legend(['reti', ' meent'])
             plt.show()
 
-        plt.hist(np.array([meent_r-reti_r, meent_t-reti_t]).flatten())
+        plt.hist(np.array([meent_r - reti_r, meent_t - reti_t]).flatten())
         plt.title('histogram of errors')
         plt.show()
 
+    def fourier_order_sweep_meent_2d(self, fourier_array):
+
+        meent_r, meent_t = [], []
+
+        fourier_order = self.fourier_order
+
+        for f_order in fourier_array:
+            self.fourier_order = f_order
+            b = self.acs_run_meent()
+
+            meent_r.append(b[1])
+            meent_t.append(b[2])
+
+        meent_r = np.array(meent_r)
+        meent_t = np.array(meent_t)
+
+        n_row, n_col = meent_t.shape[1], meent_t.shape[2]
+
+        for i in range(n_row):
+            for j in range(n_col):
+                plt.plot(fourier_array, meent_r[:, i, j], marker='x')
+                plt.plot(fourier_array, meent_t[:, i, j], marker='x')
+                plt.title(f'Diffraction efficiency, {i-1}, {j-1} order')
+                plt.legend(['reflectance', ' transmittance'])
+                plt.show()
+
+        self.fourier_order = fourier_order
+
 
 if __name__ == '__main__':
-
     n_air = 1
     n_si = 3.5
     n_glass = 1.45
     theta = 0
     phi = 0
-
     pol = 1
-
     thickness = [325]
-
+    wls = np.linspace(900, 900, 1)
     deflected_angle = 60
 
-    # pattern = np.load('structure.npy')
-    pattern = np.array([1., 1., 1., -1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., -1., 1., 1.,
-                        1., -1., 1., 1., 1., -1., 1., 1., 1., -1., 1., 1., 1., 1., 1., 1., 1., -1.,
-                        -1., 1., 1., -1., -1., 1., 1., 1., 1., -1., 1., -1., 1., 1., 1., -1., 1., 1.,
-                        -1., 1., 1., 1., 1., -1., 1., 1., 1., 1.])
+    # 1D
+    grating_type = 0
 
-    wls = np.linspace(900, 900, 1)
-    fourier_order = 40
+    fourier_order = 5
     period = abs(wls / np.sin(deflected_angle / 180 * np.pi))
+    pattern = np.array([1., 1., 1., -1., -1., -1., -1., -1., -1., -1.])
 
-    AA = RetiMeent(n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, wls, fourier_order,
+    AA = RetiMeent(grating_type, n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, wls, fourier_order,
                    period)
 
-    res_reti = AA.acs_run_reti()
-    res_meent = AA.acs_run_meent()
+    reti_abseff, reti_ref, reti_tra = AA.acs_run_reti()
+    meent_abseff, meent_ref, meent_tra = AA.acs_run_meent()
 
-    print('reticolo result:, ', res_reti)
-    print('meent result: ', res_meent)
+    print('reticolo result:, ', reti_abseff, reti_ref, reti_tra)
+    print('meent result: ', meent_abseff, meent_ref, meent_tra)
 
-    # # Fourier order sweep
+    # Fourier order sweep
 
-    # fourier_array = [1, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180]
-    # fourier_array = [1, 10, 20, 40, 60, 80]
-    # AA.fourier_order_sweep(fourier_array)
+    fourier_array = [1, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180]
+    AA.fourier_order_sweep(fourier_array)
 
-    # # Time comparison
+    # Time comparison
 
-    # t_reti = 0
-    # for i in range(100):
-    #     t0 = time.time()
-    #     AA.acs_run_reti()
-    #     t_reti += time.time() - t0
-    #
-    # t_meent = 0
-    # for i in range(100):
-    #     t0 = time.time()
-    #     AA.acs_run_meent()
-    #     t_meent += time.time() - t0
-    #
-    # print(t_reti/100, t_meent/100)
+    t_reti = 0
+    for i in range(100):
+        t0 = time.time()
+        AA.acs_run_reti()
+        t_reti += time.time() - t0
 
+    t_meent = 0
+    for i in range(100):
+        t0 = time.time()
+        AA.acs_run_meent()
+        t_meent += time.time() - t0
+
+    print(t_reti/100, t_meent/100)
+
+    # 2D
+    grating_type = 2
+    fourier_order = 2
+    pattern = np.array([
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.],
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.],
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.],
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.],
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.],
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.],
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.],
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.],
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.],
+        [1., 1., 1., -1., -1., -1., -1., -1., -1., -1.]
+        ])
+
+    period = [abs(wls / np.sin(deflected_angle / 180 * np.pi)),
+              abs(wls / np.sin(deflected_angle / 180 * np.pi))]
+
+    AA = RetiMeent(grating_type,n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, wls, fourier_order,
+                   period)
+
+    abseff, de_ri, de_ti = AA.acs_run_meent()
+
+    # print('meent result: ', res_meent)
+    for i in range(len(de_ti)):
+        print(de_ti[i].round(4))
+
+    # Fourier order sweep
+
+    fourier_array = [1, 2, 3, 4, 5, 6]
+    AA.fourier_order_sweep_meent_2d(fourier_array)

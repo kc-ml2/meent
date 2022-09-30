@@ -34,8 +34,6 @@ def find_n_index(material, wl):
 
 
 def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type):
-    # from convolution_matrix import put_n_ridge_in_pattern, draw_fill_factor
-
     pattern_fill_factor = put_n_ridge_in_pattern(patterns_fill_factor, wl)
     ucell = draw_fill_factor(pattern_fill_factor, grating_type)
 
