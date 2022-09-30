@@ -72,7 +72,7 @@ class Reticolo(Base):
 
         abseff, effi_r, effi_t = self.eng.Eval_Eff_1D(pattern, self.wls, self.deflected_angle, self.fourier_order,
                                                       self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
-        return abseff, effi_r.flatten(), effi_t.flatten()
+        return abseff, effi_r, effi_t
 
     def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None, n_si='Silicon'):
         if wls is None:

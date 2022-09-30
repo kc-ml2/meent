@@ -34,7 +34,7 @@ class Base:
             c = self.spectrum_r.shape[1] // 2
             self.spectrum_r[i][c] = de_ri
 
-        elif len(de_ri.shape) == 1:
+        elif len(de_ri.shape) == 1 or de_ri.shape[1] == 1:
             de_ri = de_ri.flatten()
             c = self.spectrum_r.shape[1] // 2
             l = de_ri.shape[0] // 2
@@ -42,9 +42,6 @@ class Base:
                 self.spectrum_r[i][c - l:c + l + 1] = de_ri
             else:
                 self.spectrum_r[i][c - l:c + l] = de_ri
-        elif de_ri.shape[1] == 1:  # 1D
-            # TODO: need this?
-            raise ValueError('save spectrum array')
 
         else:
             print('no code')
