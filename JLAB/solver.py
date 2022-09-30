@@ -15,9 +15,12 @@ class JLABCode(RCWA):
     def permittivity_mapping_acs(self, wl):
         pattern = put_n_ridge_in_pattern(self.patterns, wl)
 
-        resolution = len(pattern[0][2])
-        # resolution = 1000
-        ucell = np.zeros((len(pattern), 1, resolution), dtype='complex')
+        if self.grating_type == 2:
+            resolutions = pattern[0][2].shape
+            ucell = np.zeros((len(pattern), *resolutions), dtype='complex')
+        else:
+            resolution = len(pattern[0][2])
+            ucell = np.zeros((len(pattern), 1, resolution), dtype='complex')
 
         for i, (n_ridge, n_groove, pixel_map) in enumerate(pattern):
             pixel_map = np.array(pixel_map, dtype='complex')
@@ -35,13 +38,17 @@ class JLABCode(RCWA):
 
         e_conv_all, o_e_conv_all = self.permittivity_mapping_acs(self.wls)
 
-        de_ri, de_ti = self.solve_1d(self.wls, e_conv_all, o_e_conv_all)
+        de_ri, de_ti = self.solve(self.wls, e_conv_all, o_e_conv_all)
+        if self.grating_type == 0:
+            center = de_ti.shape[0] // 2
+            tran_cut = de_ti[center - 1:center + 2][::-1]
+            refl_cut = de_ri[center - 1:center + 2][::-1]
+        else:
+            x_c, y_c = np.array(de_ti.shape) // 2
+            tran_cut = de_ti[x_c - 1:x_c + 2, y_c - 1:y_c + 2][::-1, ::-1]
+            refl_cut = de_ri[x_c - 1:x_c + 2, y_c - 1:y_c + 2][::-1, ::-1]
 
-        center = de_ti.shape[0] // 2
-        tran_cut = de_ti[center - 1:center + 2][::-1]
-        refl_cut = de_ri[center - 1:center + 2][::-1]
-
-        return tran_cut[-1], refl_cut, tran_cut
+        return tran_cut.flatten()[-1], refl_cut, tran_cut
 
     def reproduce_acs_loop_wavelength(self, pattern, trans_angle, wls=None):
         if wls is None:
