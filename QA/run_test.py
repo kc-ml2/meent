@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from meent.RCWA import call_solver
+from meent.rcwa import call_solver
 
 
 def run_test(n_I, n_II, theta, phi, grating_type, pol):

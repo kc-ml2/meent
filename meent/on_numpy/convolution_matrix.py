@@ -134,7 +134,7 @@ def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000, mode=0
             permittivity = np.ones((resolution, resolution), dtype='complex')
             cut = (resolution * fill_factor)  # TODO: need parenthesis?
             permittivity *= n_groove ** 2
-            permittivity[:int(cut[0]), :int(cut[1])] *= n_ridge ** 2
+            permittivity[:int(cut[1]), :int(cut[0])] *= n_ridge ** 2
             res[i] = permittivity
 
     return res

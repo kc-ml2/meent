@@ -52,7 +52,7 @@ class Reticolo(Base):
         self.wls = wls
         self.textures = textures
         self.profile = profile
-        self.deflected_angle =deflected_angle
+        self.deflected_angle = deflected_angle
 
         self.init_spectrum_array()
 
@@ -70,10 +70,9 @@ class Reticolo(Base):
         if type(n_si) == str and n_si.upper() == 'N_SI':
             n_si = find_n_index(n_si, self.wls)
 
-        a, b, c = self.eng.Eval_Eff_1D(pattern, self.wls, self.deflected_angle, self.fourier_order,
-                                                   self.n_I, self.n_II, self.thickness, self.theta,
-                                       n_si, nout=3)
-        return a, b.flatten(), c.flatten()
+        abseff, effi_r, effi_t = self.eng.Eval_Eff_1D(pattern, self.wls, self.deflected_angle, self.fourier_order,
+                                                      self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
+        return abseff, effi_r.flatten(), effi_t.flatten()
 
     def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None, n_si='Silicon'):
         if wls is None:
@@ -127,4 +126,3 @@ if __name__ == '__main__':
 
     refl, tran = AA.run()
     AA.plot()
-    pass

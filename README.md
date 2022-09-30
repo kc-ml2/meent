@@ -7,7 +7,7 @@ How to use
 ------
 Now meent provides 2 modes for RCWA solver - light mode and optimization mode. 
 Light mode uses pure numpy while opt mode uses JAX.
-Didn't perform well-structed test but light mode seems way faster than opt mode so choose mode according to your goal.
+Didn't perform well-structured test but light mode seems way faster than opt mode so choose mode according to your goal.
 
 
 # Reference

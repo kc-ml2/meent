@@ -30,24 +30,6 @@ class JLABCode(RCWA):
 
         return e_conv_all, o_e_conv_all
 
-    def permittivity_mapping_acs_(self, wl):
-        pattern = put_n_ridge_in_pattern(self.patterns, wl)
-
-        resolution = len(pattern[0][2])
-        # resolution = 1000
-        ucell = np.zeros((len(pattern), 1, resolution), dtype='complex')
-
-        for i, (n_ridge, n_groove, pixel_map) in enumerate(pattern):
-            pixel_map = np.array(pixel_map, dtype='complex')
-            pixel_map = (pixel_map + 1) / 2
-            pixel_map = pixel_map * (n_ridge ** 2 - n_groove ** 2) + n_groove ** 2
-            ucell[i] = pixel_map
-
-        e_conv_all = to_conv_mat(ucell, self.fourier_order)
-        o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
-
-        return e_conv_all, o_e_conv_all
-
     def reproduce_acs(self, pattern_pixel):
         self.patterns = pattern_pixel
 
@@ -83,3 +65,39 @@ class JLABCode(RCWA):
             self.save_spectrum_array(de_ri, de_ti, i)
 
         return self.spectrum_r, self.spectrum_t
+
+
+if __name__ == '__main__':
+
+    n_air = 1
+    n_si = 3.5
+    n_glass = 1.45
+    theta = 0
+    phi = 0
+
+    pol = 1
+
+    thickness = [325]
+
+    deflected_angle = 60
+    pattern = np.array([1., 1., 1., -1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., -1., 1., 1.,
+                        1., -1., 1., 1., 1., -1., 1., 1., 1., -1., 1., 1., 1., 1., 1., 1., 1., -1.,
+                        -1., 1., 1., -1., -1., 1., 1., 1., 1., -1., 1., -1., 1., 1., 1., -1., 1., 1.,
+                        -1., 1., 1., 1., 1., -1., 1., 1., 1., 1.])
+
+    patterns = [[n_si, n_air, pattern]]
+
+    wls = np.linspace(900, 900, 1)
+    fourier_order = 40
+    period = abs(wls / np.sin(deflected_angle / 180 * np.pi))
+
+    meent = JLABCode(grating_type=0,
+                     n_I=n_glass, n_II=n_air, theta=theta, phi=phi,
+                     fourier_order=fourier_order, period=period,
+                     wls=wls, pol=pol,
+                     patterns=patterns, thickness=thickness)
+    abseff, refl, tran = meent.reproduce_acs(patterns)
+
+    print(abseff)
+    print(refl)
+    print(tran)
