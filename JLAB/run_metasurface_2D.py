@@ -2,7 +2,7 @@ import time
 import matplotlib.pyplot as plt
 
 import numpy as np
-from JLAB.solver import JLABCode
+from JLAB.JLAB import JLABCode
 from benchmark.interface.Reticolo import Reticolo
 
 
@@ -128,13 +128,13 @@ if __name__ == '__main__':
     deflected_angle = 60
 
     # pattern = np.load('structure.npy')
-    pattern = np.array([1., 1., 1., -1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., -1., 1., 1.,
-                        1., -1., 1., 1., 1., -1., 1., 1., 1., -1., 1., 1., 1., 1., 1., 1., 1., -1.,
-                        -1., 1., 1., -1., -1., 1., 1., 1., 1., -1., 1., -1., 1., 1., 1., -1., 1., 1.,
-                        -1., 1., 1., 1., 1., -1., 1., 1., 1., 1.])
+    pattern = np.array([[1., 1., 1., -1.],
+                        [1., 1., 1., 1.],
+                        [1., 1., 1., 1.],
+                        [1., 1., 1., -1.]])
 
     wls = np.linspace(900, 900, 1)
-    fourier_order = 40
+    fourier_order = 2
     period = abs(wls / np.sin(deflected_angle / 180 * np.pi))
 
     AA = RetiMeent(n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, wls, fourier_order,

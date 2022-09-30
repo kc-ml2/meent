@@ -17,10 +17,10 @@ n_II = 1
 theta = 1E-10
 phi = 1E-10
 
-fourier_order = 120
+fourier_order = 40
 
 period = [700]
-wls = np.linspace(500, 2300, 100)
+wls = np.linspace(500, 1000, 100)
 pol = 1
 
 thickness = [1120]
@@ -31,7 +31,6 @@ grid = np.linspace(0, period[0], Nx)
 
 pattern[:500] = n_si
 idx = np.arange(0, 500)
-# pattern = pattern.at[idx].set(n_si)
 
 # pattern = np.array([n_si, 1, n_si, 1, n_si, 1, n_si, 1, n_si, 1])
 
@@ -50,7 +49,6 @@ t0 = time.time()
 reti.run()
 print('reti: ', time.time() - t0)
 reti.plot(title='reticolo')
-print(reti.spectrum_r)
 
 # meent TMM
 meent_t = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
@@ -61,10 +59,9 @@ meent_t.loop_wavelength_fill_factor()
 print('meent: ', time.time() - t0)
 
 meent_t.plot(title='meent-TMM')
-print(meent_t.spectrum_r)
 
-a=reti.spectrum_r[:,40:40+1]
-b=meent_t.spectrum_r[:,40:40+1]
+a = reti.spectrum_r[:, 40:40+1]
+b = meent_t.spectrum_r[:, 40:40+1]
 
 # plt.hist(a-b)
 # plt.show()
