@@ -60,6 +60,7 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
 def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
     Tl = np.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
     R = f @ Tl - delta_i0
+    T1 = T
     T = T @ Tl
 
     de_ri = np.real(R * np.conj(R) * k_I_z / (k0 * n_I * np.cos(theta)))
@@ -72,7 +73,7 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
     else:
         raise ValueError
 
-    return de_ri, de_ti
+    return de_ri, de_ti, T, T1
 
 
 def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j)):
