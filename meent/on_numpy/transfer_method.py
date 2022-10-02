@@ -58,9 +58,10 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
 
 
 def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
-    T1 = np.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
-    R = f @ T1 - delta_i0
-    T = T @ T1
+    Tl = np.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
+    R = f @ Tl - delta_i0
+    T1 = T
+    T = T @ Tl
 
     de_ri = np.real(R * np.conj(R) * k_I_z / (k0 * n_I * np.cos(theta)))
     if polarization == 0:
