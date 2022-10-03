@@ -45,15 +45,30 @@ if __name__ == '__main__':
 
     mode = 0  # 0: light mode; 1: backprop mode;
 
+    # AA = call_solver(mode=mode, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+    #           fourier_order=fourier_order, wls=wls, period=period, patterns=patterns, thickness=thickness)
+    # t0 = time.perf_counter()
+    #
+    # a, b = AA.loop_wavelength_fill_factor()
+    # AA.plot()
+    # print(time.perf_counter() - t0)
+
+    ucell = np.array(
+        [
+            [
+                [3.48 ** 2, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            ],
+            [
+                [3.48 ** 2, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                ],
+        ]
+    )
+
     AA = call_solver(mode=mode, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-              fourier_order=fourier_order, wls=wls, period=period, patterns=patterns, thickness=thickness)
+              fourier_order=fourier_order, wls=wls, period=period, patterns=patterns, ucell = ucell, thickness=thickness)
     t0 = time.perf_counter()
 
-    a, b = AA.loop_wavelength_fill_factor()
+    a, b = AA.loop_wavelength_ucell()
     AA.plot()
 
     print(time.perf_counter() - t0)
-
-    # AA.loop_wavelength_ucell()
-    # AA.plot()
-    # print('end')

@@ -80,7 +80,7 @@ class Base:
 class _BaseRCWA(Base):
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
                  period=0.7, wls=np.linspace(0.5, 2.3, 400), pol=0,
-                 patterns=None, thickness=None, algo='TMM'):
+                 patterns=None, ucell=None, thickness=None, algo='TMM'):
         super().__init__(grating_type)
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
@@ -108,6 +108,7 @@ class _BaseRCWA(Base):
         self.wls = wls
 
         self.patterns = patterns
+        self.ucell = ucell
         self.thickness = thickness
 
         self.algo = algo
