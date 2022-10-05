@@ -13,5 +13,6 @@ setup(
         'jax==0.3.21',
         'matplotlib==3.5.3',
     ],
-    python_requires='>=3.8'
+    python_requires='>=3.8',
+    long_description_content_type="text/markdown",
 )
