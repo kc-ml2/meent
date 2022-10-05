@@ -3,6 +3,12 @@ Meent is a RCWA solver and its applications on optimization problem. We are expe
 
 run examples/ex1_get_spectrum.py
 
+How to install
+---
+```shell
+pip install .
+```
+
 How to use
 ------
 Now meent provides 2 modes for RCWA solver - light mode and optimization mode. 
