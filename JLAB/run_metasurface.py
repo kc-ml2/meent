@@ -53,28 +53,6 @@ class RetiMeent:
 
         return poi, refl, tran
 
-    # def make_spectrum(self):
-    #
-    #     textures = profile = None
-    #
-    #     reti = Reticolo(grating_type=self.grating_type,
-    #                     n_I=self.n_air, n_II=self.n_glass, theta=self.theta, phi=self.phi, fourier_order=self.fourier_order, period=self.period,
-    #                     wls=self.wls, pol=self.pol,
-    #                     textures=textures, profile=profile, thickness=self.thickness, deflected_angle=self.deflected_angle,
-    #                     engine_type='octave')
-    #
-    #     reti.run_acs_loop_wavelength(self.pattern, self.deflected_angle, n_si=self.n_si)
-    #
-    #     patterns = [[self.n_si, self.n_air, self.pattern]]
-    #
-    #     meent = JLABCode(grating_type=self.grating_type,
-    #                      n_I=self.n_glass, n_II=self.n_air, theta=self.theta, phi=self.phi,
-    #                      fourier_order=self.fourier_order, period=self.period,
-    #                      wls=self.wls, pol=self.pol,
-    #                      patterns=patterns, thickness=self.thickness)
-    #
-    #     meent.reproduce_acs_loop_wavelength(patterns, self.deflected_angle)
-
     def fourier_order_sweep(self, fourier_array):
 
         reti_r, reti_t, meent_r, meent_t = [], [], [], []

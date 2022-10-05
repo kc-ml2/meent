@@ -9,18 +9,18 @@ def run_test(n_I, n_II, theta, phi, grating_type, pol):
     patterns = [[3.48, 1, 0.3], [3.48, 1, 0.3]]  # n_ridge, n_groove, fill_factor
 
     if grating_type == 0:
-        wls = np.linspace(500, 2300, 100)
+        wls = np.linspace(500, 1300, 100)
         fourier_order = 40
         period = [700]
         phi = 0
 
     elif grating_type == 1:
-        wls = np.linspace(500, 2300, 100)
+        wls = np.linspace(500, 1300, 100)
         fourier_order = 10
         period = [700]
 
     elif grating_type == 2:
-        wls = np.linspace(500, 2300, 100)
+        wls = np.linspace(500, 1300, 100)
         fourier_order = 2
         period = [700, 700]
         patterns = [[3.48, 1, [1, 0.3]], [3.48, 1, [1, 0.3]]]  # n_ridge, n_groove, fill_factor

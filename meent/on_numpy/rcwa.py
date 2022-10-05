@@ -66,41 +66,6 @@ class RCWALight(_BaseRCWA):
 
         return self.spectrum_r, self.spectrum_t
 
-    # def jax_test(self):
-        # # Z  Y  X
-        # # si = [[z_begin, z_end], [y_begin, y_end], [x_begin, x_end]]
-        # if self.grating_type == 0:
-        #     cell = np.ones((2, 1, 10))
-        #     si = [3.48, 0, 1, 0, 1, 0, 3]
-        #     ox = [3.48, 1, 2, 0, 1, 0, 3]
-        # elif self.grating_type == 1:
-        #     pass
-        # elif self.grating_type == 2:
-        #     cell = np.ones((2, 10, 10))
-        #     si = [3.48, 0, 1, 0, 10, 0, 3]
-        #     ox = [3.48, 1, 2, 0, 10, 0, 3]
-        # else:
-        #     raise ValueError
-        #
-        # for i, wl in enumerate(self.wls):
-        #     for material, z_begin, z_end, y_begin, y_end, x_begin, x_end in [si, ox]:
-        #         if material is str:
-        #             n_index = find_n_index(material, wl)
-        #         else:
-        #             n_index = material
-        #         cell[z_begin:z_end, y_begin:y_end, x_begin:x_end] = n_index ** 2
-        #
-        # for i, wl in enumerate(self.wls):
-        #     e_conv_all = to_conv_mat(self.patterns, self.fourier_order)
-        #     oneover_e_conv_all = to_conv_mat(1 / self.patterns, self.fourier_order)
-        #
-        #     de_ri, de_ti = self.solve(wl, e_conv_all, oneover_e_conv_all)
-        #
-        #     self.spectrum_r = de_ri
-        #     self.spectrum_t = de_ti
-        #
-        # return self.spectrum_r, self.spectrum_t
-
     def run_ucell(self):
 
         e_conv_all = to_conv_mat(self.ucell, self.fourier_order)
