@@ -5,6 +5,11 @@ run examples/ex1_get_spectrum.py
 
 How to install
 ---
+You can install from PyPI
+```shell
+pip install meent
+```
+or download this repo and run
 ```shell
 pip install .
 ```

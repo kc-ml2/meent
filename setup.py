@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='meent',
-    version='0.3.3',
+    version='0.3.4',
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
