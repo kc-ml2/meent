@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
     mode = 0  # 0: speed mode; 1: backprop mode;
 
-    AA = RCWA(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+    AA = RCWAOpt(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
               fourier_order=fourier_order, wls=wls, period=period, patterns=patterns, thickness=thickness, mode=mode)
     t0 = time.perf_counter()
 
