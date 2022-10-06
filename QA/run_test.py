@@ -83,11 +83,11 @@ def run_test(n_I, n_II, theta, phi, grating_type, pol):
 # run_test(1, 1, theta=1E-10, phi=1E-10, grating_type=0, pol=0)
 # run_test(1, 1, theta=1E-10, phi=1E-10, grating_type=0, pol=1)
 
-run_test(1, 1, theta=1E-10, phi=1E-10, grating_type=0, pol=0)
-run_test(1, 1, theta=1E-10, phi=1E-10, grating_type=0, pol=1)
-
-run_test(1, 1, theta=1E-10, phi=20, grating_type=1, pol=0)
-run_test(1, 1, theta=1E-10, phi=20, grating_type=1, pol=1)
-
-run_test(1, 1, theta=1E-10, phi=20, grating_type=2, pol=0)
-run_test(1, 1, theta=1E-10, phi=20, grating_type=2, pol=1)
+# run_test(1, 1, theta=1E-10, phi=1E-10, grating_type=0, pol=0)
+# run_test(1, 1, theta=1E-10, phi=1E-10, grating_type=0, pol=1)
+#
+# run_test(1, 1, theta=1E-10, phi=20, grating_type=1, pol=0)
+# run_test(1, 1, theta=1E-10, phi=20, grating_type=1, pol=1)
+#
+# run_test(1, 1, theta=1E-10, phi=20, grating_type=2, pol=0)
+# run_test(1, 1, theta=1E-10, phi=20, grating_type=2, pol=1)
