@@ -1,6 +1,6 @@
 import numpy as np
 
-from meent.rcwa import call_solver
+from meent.rcwa import call_solver, sweep_wavelength
 
 
 pol = 1  # 0: TE, 1: TM
@@ -23,54 +23,61 @@ thickness = [460, 660]
 
 ucell = np.array([
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
 ])
 
+ucell_materials = ['SILICON', 1]
+
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 de_ri, de_ti = AA.run_ucell()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-de_ri, de_ti = AA.loop_wavelength_ucell()
-AA.plot()
+AA = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                 fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
+# de_ri, de_ti = AA.loop_wavelength_ucell()
+# AA.plot()
 
 
 ucell = np.array([
     [
-        [n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I],
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II],
+        [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
     ],
 ])
+ucell_materials = ['SILICON', 1, n_I, n_II]
 
 thickness = [200, 460, 660, 200]
 
 wls = np.linspace(900, 900, 1)  # wavelength
 
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 de_ri, de_ti = AA.run_ucell()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-de_ri, de_ti = AA.loop_wavelength_ucell()
-AA.plot()
+AA = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                 fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
+# de_ri, de_ti = AA.loop_wavelength_ucell()
+# AA.plot()
 
 # 1D conical case
 period = [700]
@@ -79,55 +86,57 @@ thickness = [460, 660]
 
 ucell = np.array([
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
 ])
+ucell_materials = ['SILICON', 1]
 
 wls = np.linspace(900, 900, 1)  # wavelength
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 de_ri, de_ti = AA.run_ucell()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-de_ri, de_ti = AA.loop_wavelength_ucell()
-AA.plot()
+AA = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                 fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 
 
 ucell = np.array([
     [
-        [n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I],
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II],
+        [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
     ],
 ])
+ucell_materials = ['SILICON', 1, n_I, n_II]
 
 thickness = [200, 460, 660, 200]
 
 wls = np.linspace(900, 900, 1)  # wavelength
 
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 de_ri, de_ti = AA.run_ucell()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-de_ri, de_ti = AA.loop_wavelength_ucell()
-AA.plot()
+AA = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                 fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 
 
 # 2D case
@@ -137,52 +146,54 @@ thickness = [460, 660]
 
 ucell = np.array([
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
 ])
+ucell_materials = ['SILICON', 1]
 
 wls = np.linspace(900, 900, 1)  # wavelength
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 de_ri, de_ti = AA.run_ucell()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-de_ri, de_ti = AA.loop_wavelength_ucell()
-AA.plot()
+AA = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                 fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 
 
 ucell = np.array([
     [
-        [n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I],
-        [n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I],
-        [n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I, n_I],
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II],
-        [n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II],
-        [n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II, n_II],
+        [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+        [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+        [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
     ],
 ])
+ucell_materials = ['SILICON', 1, n_I, n_II]
 
 thickness = [200, 460, 660, 200]
 
@@ -190,12 +201,11 @@ thickness = [200, 460, 660, 200]
 wls = np.linspace(900, 900, 1)  # wavelength
 
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 de_ri, de_ti = AA.run_ucell()
 print(de_ri, de_ti)
 
-wls = np.linspace(500, 1000, 100)
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-de_ri, de_ti = AA.loop_wavelength_ucell()
-AA.plot()
+AA = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                 fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)

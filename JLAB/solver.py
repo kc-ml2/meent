@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 from meent.on_numpy.rcwa import RCWALight as RCWA
-from meent.on_numpy.convolution_matrix import put_n_ridge_in_pattern, to_conv_mat, find_n_index
+from meent.on_numpy.convolution_matrix import put_n_ridge_in_pattern_fill_factor, to_conv_mat, find_n_index
 
 
 class JLABCode(RCWA):

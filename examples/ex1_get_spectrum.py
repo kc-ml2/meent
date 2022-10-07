@@ -13,7 +13,7 @@ theta = 0  # in degree, notation from Moharam paper
 phi = 0  # in degree, notation from Moharam paper
 psi = 0 if pol else 90  # in degree, notation from Moharam paper
 
-wls = np.linspace(500, 2300, 100)  # wavelength
+wls = np.linspace(500, 1000, 100)  # wavelength
 
 if grating_type in (0, 1):
     period = [700]

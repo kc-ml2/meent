@@ -6,7 +6,7 @@ from scipy.linalg import circulant
 from pathlib import Path
 
 
-def put_n_ridge_in_pattern(pattern_all, wl):
+def put_n_ridge_in_pattern_fill_factor(pattern_all, wl):
 
     pattern_all = copy.deepcopy(pattern_all)
 
@@ -17,6 +17,23 @@ def put_n_ridge_in_pattern(pattern_all, wl):
             n_ridge = find_n_index(material, wl)
         pattern_all[i][0] = n_ridge
     return pattern_all
+
+
+def put_permittivity_in_ucell(ucell, mat_list, wl):
+    # mat_list = ['SILICON', 1]
+
+    res = np.zeros(ucell.shape, dtype='complex')
+
+    for z in range(ucell.shape[0]):
+        for y in range(ucell.shape[1]):
+            for x in range(ucell.shape[2]):
+                material = mat_list[ucell[z, y, x]]
+                if type(material) == str:
+                    res[z, y, x] = find_n_index(material, wl) ** 2
+                else:
+                    res[z, y, x] = material ** 2
+
+    return res
 
 
 def find_n_index(material, wl):
@@ -34,7 +51,7 @@ def find_n_index(material, wl):
 
 
 def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type):
-    pattern_fill_factor = put_n_ridge_in_pattern(patterns_fill_factor, wl)
+    pattern_fill_factor = put_n_ridge_in_pattern_fill_factor(patterns_fill_factor, wl)
     ucell = draw_fill_factor(pattern_fill_factor, grating_type)
 
     return ucell
