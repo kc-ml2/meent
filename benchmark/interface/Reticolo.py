@@ -66,8 +66,8 @@ class Reticolo(Base):
 
         return self.spectrum_r, self.spectrum_t
 
-    def run_acs(self, pattern, n_si='n_si'):
-        if type(n_si) == str and n_si.upper() == 'N_SI':
+    def run_acs(self, pattern, n_si='SILICON'):
+        if type(n_si) == str and n_si.upper() == 'SILICON':
             n_si = find_n_index(n_si, self.wls)
 
         abseff, effi_r, effi_t = self.eng.Eval_Eff_1D(pattern, self.wls, self.deflected_angle, self.fourier_order,
@@ -76,13 +76,13 @@ class Reticolo(Base):
 
         return abseff, effi_r, effi_t
 
-    def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None, n_si='Silicon'):
+    def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None, n_si='SILICON'):
         if wls is None:
             wls = self.wls
         else:
             self.wls = wls  # TODO: handle better.
 
-        if type(n_si) == str and n_si.upper() == 'Silicon':
+        if type(n_si) == str and n_si.upper() == 'SILICON':
             n_si = find_n_index(n_si, self.wls)
 
         self.init_spectrum_array()

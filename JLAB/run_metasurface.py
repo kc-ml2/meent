@@ -25,6 +25,12 @@ class RetiMeent:
         self.fourier_order = fourier_order
         self.period = period
 
+        self.fourier_array = []
+        self.reti_r = []
+        self.reti_t = []
+        self.meent_r = []
+        self.meent_t = []
+
     def acs_run_meent(self):
         # patterns = [[self.n_si, self.n_air, self.pattern]]
 
@@ -32,7 +38,7 @@ class RetiMeent:
                          n_I=self.n_glass, n_II=self.n_air, theta=self.theta, phi=self.phi,
                          fourier_order=self.fourier_order, period=self.period,
                          wls=self.wls, pol=self.pol,
-                         patterns=pattern, ucell=self.ucell, thickness=self.thickness)
+                         patterns=self.pattern, ucell=self.ucell, thickness=self.thickness)
 
         # poi, refl, tran = meent.reproduce_acs(patterns)
         poi, refl, tran = meent.reproduce_acs_cell(self.n_si, self.n_air)
@@ -53,7 +59,7 @@ class RetiMeent:
 
         return poi, refl, tran
 
-    def fourier_order_sweep(self, fourier_array):
+    def fourier_order_sweep_(self, fourier_array):
 
         reti_r, reti_t, meent_r, meent_t = [], [], [], []
 
@@ -92,6 +98,63 @@ class RetiMeent:
 
         plt.hist(np.array([meent_r - reti_r, meent_t - reti_t]).flatten())
         plt.title('histogram of errors')
+        plt.show()
+
+    def fourier_order_sweep(self, fourier_array):
+
+        self.reti_r, self.reti_t, self.meent_r, self.meent_t = [], [], [], []
+        self.fourier_array = fourier_array
+
+        fourier_order = self.fourier_order
+
+        for f_order in self.fourier_array:
+            self.fourier_order = f_order
+            a = self.acs_run_reti()
+            b = self.acs_run_meent()
+
+            self.reti_r.append(a[1])
+            self.reti_t.append(a[2])
+            self.meent_r.append(b[1])
+            self.meent_t.append(b[2])
+
+        self.fourier_order = fourier_order
+
+        self.reti_r = np.array(self.reti_r)
+        self.reti_t = np.array(self.reti_t)
+        self.meent_r = np.array(self.meent_r)
+        self.meent_t = np.array(self.meent_t)
+
+        return self.reti_r, self.reti_t, self.meent_r, self.meent_t
+
+    def fourier_order_sweep_plot(self):
+        cut = 40
+
+        figs, axes = plt.subplots(1, 3)
+
+        axes[0].axvline(cut, c='r')
+        axes[1].axvline(cut, c='r')
+        axes[2].axvline(cut, c='r')
+
+        axes[0].plot(self.fourier_array, self.reti_r[:, 0], marker='X')
+        axes[0].plot(self.fourier_array, self.meent_r[:, 0], marker='.', linestyle='dashed')
+        axes[1].plot(self.fourier_array, self.reti_r[:, 1], marker='X')
+        axes[1].plot(self.fourier_array, self.meent_r[:, 1], marker='.', linestyle='dashed')
+        axes[2].plot(self.fourier_array, self.reti_r[:, 2], marker='X')
+        axes[2].plot(self.fourier_array, self.meent_r[:, 2], marker='.', linestyle='dashed')
+        plt.show()
+
+        figs, axes = plt.subplots(1, 3)
+
+        axes[0].axvline(cut, c='r')
+        axes[1].axvline(cut, c='r')
+        axes[2].axvline(cut, c='r')
+
+        axes[0].plot(self.fourier_array, self.reti_t[:, 0], marker='X')
+        axes[0].plot(self.fourier_array, self.meent_t[:, 0], marker='.', linestyle='dashed')
+        axes[1].plot(self.fourier_array, self.reti_t[:, 1], marker='X')
+        axes[1].plot(self.fourier_array, self.meent_t[:, 1], marker='.', linestyle='dashed')
+        axes[2].plot(self.fourier_array, self.reti_t[:, 2], marker='X')
+        axes[2].plot(self.fourier_array, self.meent_t[:, 2], marker='.', linestyle='dashed')
         plt.show()
 
     def fourier_order_sweep_meent_2d(self, fourier_array):

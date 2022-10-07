@@ -2,6 +2,7 @@ import time
 import numpy as np
 
 from meent.on_numpy.rcwa import RCWALight as RCWA
+from meent.rcwa import call_solver, sweep_wavelength
 
 
 grating_type = 2  # 0: 1D, 1: 1D conical, 2:2D.
@@ -27,36 +28,30 @@ else:
 thickness = [460, 660]
 
 ucell = np.array([
-    # [
-    #     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    # ],
+
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
     [
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48**2, 3.48**2, 3.48**2, 1, 1, 1, 1],
-        [1, 1, 1, 3.48 ** 2, 3.48 ** 2, 3.48 ** 2, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
-    # [
-    #     [12, 12, 12, 12, 12, 12, 12, 12, 12, 12],
-    #     [12, 12, 12, 12, 12, 12, 12, 12, 12, 12],
-    #     [12, 12, 12, 12, 12, 12, 12, 12, 12, 12],
-    # ],
 ])
 
-AA = RCWA(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+ucell_materials = ['SILICON', 1]
+
+AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 thickness=thickness)
 de_ri, de_ti = AA.run_ucell()
 print(de_ri, de_ti)
 
-wls = np.linspace(500, 2300, 100)
-AA = RCWA(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-de_ri, de_ti = AA.loop_wavelength_ucell()
-AA.plot()
+wls = np.linspace(500, 1000, 100)
 
+a, b = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                 fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials, thickness=thickness)
+
+print(a)
