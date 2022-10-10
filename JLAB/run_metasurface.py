@@ -59,47 +59,6 @@ class RetiMeent:
 
         return poi, refl, tran
 
-    def fourier_order_sweep_(self, fourier_array):
-
-        reti_r, reti_t, meent_r, meent_t = [], [], [], []
-
-        fourier_order = self.fourier_order
-
-        for f_order in fourier_array:
-            self.fourier_order = f_order
-            a = self.acs_run_reti()
-            b = self.acs_run_meent()
-
-            reti_r.append(a[1])
-            reti_t.append(a[2])
-            meent_r.append(b[1])
-            meent_t.append(b[2])
-
-        self.fourier_order = fourier_order
-
-        reti_r = np.array(reti_r)
-        reti_t = np.array(reti_t)
-        meent_r = np.array(meent_r)
-        meent_t = np.array(meent_t)
-
-        for i in range(3):
-            plt.plot(fourier_array, reti_r[:, i], marker='x')
-            plt.plot(fourier_array, meent_r[:, i], marker='x')
-            plt.title(f'reflectance, {i - 1}order')
-            plt.legend(['reti', ' meent'])
-            plt.show()
-
-        for i in range(3):
-            plt.plot(fourier_array, reti_t[:, i], marker='x')
-            plt.plot(fourier_array, meent_t[:, i], marker='x')
-            plt.title(f'transmittance, {i - 1}order')
-            plt.legend(['reti', ' meent'])
-            plt.show()
-
-        plt.hist(np.array([meent_r - reti_r, meent_t - reti_t]).flatten())
-        plt.title('histogram of errors')
-        plt.show()
-
     def fourier_order_sweep(self, fourier_array):
 
         self.reti_r, self.reti_t, self.meent_r, self.meent_t = [], [], [], []
@@ -218,6 +177,7 @@ if __name__ == '__main__':
 
     fourier_array = [1, 10, 20, 40, 60, 80, 100, 120, 140, 160, 180]
     AA.fourier_order_sweep(fourier_array)
+    AA.fourier_order_sweep_plot()
 
     # Time comparison
 

@@ -1,12 +1,13 @@
 import copy
 import numpy as np
 
+from os import walk
 from scipy.io import loadmat
 from scipy.linalg import circulant
 from pathlib import Path
 
 
-def put_n_ridge_in_pattern_fill_factor(pattern_all, wl):
+def put_n_ridge_in_pattern_fill_factor(pattern_all, mat_table, wl):
 
     pattern_all = copy.deepcopy(pattern_all)
 
@@ -14,13 +15,13 @@ def put_n_ridge_in_pattern_fill_factor(pattern_all, wl):
 
         if type(n_ridge) == str:
             material = n_ridge
-            n_ridge = find_n_index(material, wl)
+            n_ridge = find_nk_index(material, mat_table, wl)
         pattern_all[i][0] = n_ridge
     return pattern_all
 
 
-def put_permittivity_in_ucell(ucell, mat_list, wl):
-    # mat_list = ['SILICON', 1]
+def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
+    # TODO: get coordinates per material and remove loops
 
     res = np.zeros(ucell.shape, dtype='complex')
 
@@ -29,29 +30,57 @@ def put_permittivity_in_ucell(ucell, mat_list, wl):
             for x in range(ucell.shape[2]):
                 material = mat_list[ucell[z, y, x]]
                 if type(material) == str:
-                    res[z, y, x] = find_n_index(material, wl) ** 2
+                    res[z, y, x] = find_nk_index(material, mat_table, wl) ** 2
                 else:
                     res[z, y, x] = material ** 2
 
     return res
 
 
-def find_n_index(material, wl):
-    # TODO: where put this to?
-    nk_path = str(Path(__file__).resolve().parent.parent.parent) + '/nk_data/p_Si.mat'  # TODO: organize
-    mat_si = loadmat(nk_path)
+def find_nk_index(material, mat_table, wl):
+    if material[-6:] == '__real':
+        material = material[:-6]
+        n_only = True
+    else:
+        n_only = False
 
+    mat_data = mat_table[material.upper()]
+
+    n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
+
+    if n_only:
+        return n_index
+
+    k_index = np.interp(wl, mat_data[:, 0], mat_data[:, 2])
+    nk = n_index + 1j * k_index
+
+    return nk
+
+
+def read_material_table(nk_path=None):
     mat_table = {}
-    mat_table['SILICON'] = mat_si
 
-    mat_property = mat_table[material.upper()]
-    n_index = np.interp(wl, mat_property['WL'].flatten(), mat_property['n'].flatten())
+    if nk_path is None:
+        nk_path = str(Path(__file__).resolve().parent.parent) + '/nk_data'
 
-    return n_index
+    full_path_list, name_list, _ = [], [], []
+    for (dirpath, dirnames, filenames) in walk(nk_path):
+        full_path_list.extend([f'{dirpath}/{filename}' for filename in filenames])
+        name_list.extend(filenames)
+    for path, name in zip(full_path_list, name_list):
+        if name[-3:] == 'txt':
+            data = np.loadtxt(path, skiprows=1)
+            mat_table[name[:-4].upper()] = data
+
+        elif name[-3:] == 'mat':
+            data = loadmat(path)
+            data = np.array([data['WL'], data['n'], data['k']])[:, :, 0].T
+            mat_table[name[:-4].upper()] = data
+    return mat_table
 
 
-def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type):
-    pattern_fill_factor = put_n_ridge_in_pattern_fill_factor(patterns_fill_factor, wl)
+def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type, mat_table):
+    pattern_fill_factor = put_n_ridge_in_pattern_fill_factor(patterns_fill_factor, mat_table, wl)
     ucell = draw_fill_factor(pattern_fill_factor, grating_type)
 
     return ucell

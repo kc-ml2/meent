@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 from ._base import _BaseRCWA
-from .convolution_matrix import to_conv_mat, find_n_index, fill_factor_to_ucell, put_permittivity_in_ucell
+from .convolution_matrix import to_conv_mat, find_nk_index, fill_factor_to_ucell, put_permittivity_in_ucell, read_material_table
 
 
 class RCWALight(_BaseRCWA):
@@ -15,6 +15,8 @@ class RCWALight(_BaseRCWA):
         self.mode = mode
         self.spectrum_r, self.spectrum_t = None, None
         self.init_spectrum_array()
+        self.mat_table = read_material_table()
+
 
     def solve(self, wl, e_conv_all, o_e_conv_all):
 
@@ -39,7 +41,7 @@ class RCWALight(_BaseRCWA):
 
         for i, wl in enumerate(self.wls):
 
-            ucell = fill_factor_to_ucell(self.patterns, wl, self.grating_type)
+            ucell = fill_factor_to_ucell(self.patterns, wl, self.grating_type, self.mat_table)
             e_conv_all = to_conv_mat(ucell, self.fourier_order)
             o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
 
@@ -67,7 +69,7 @@ class RCWALight(_BaseRCWA):
 
     def run_ucell(self):
 
-        self.ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.wls)
+        self.ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wls)
 
         e_conv_all = to_conv_mat(self.ucell, self.fourier_order)
         o_e_conv_all = to_conv_mat(1 / self.ucell, self.fourier_order)
