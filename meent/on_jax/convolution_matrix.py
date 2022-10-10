@@ -199,7 +199,6 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
     return f_coeffs_xy.T
 
 
-# @partial(jax.jit, static_argnums=(1, 2))
 def to_conv_mat_piecewise_continuous(pmt, fourier_order, type_complex=jnp.complex128):
 
     if len(pmt.shape) == 2:
@@ -311,7 +310,6 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
         for i, layer in enumerate(pmt):
 
             # f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
-            # f_coeffs = ee.fft.fftshift(ee.fft.fft2(layer / (layer.size(0)*layer.size(1))))
             f_coeffs = ee.fft.fftshift(ee.fft.fft2(layer / layer.size))
 
             center = ee.array(f_coeffs.shape) // 2

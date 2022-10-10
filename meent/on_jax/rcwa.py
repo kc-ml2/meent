@@ -6,7 +6,8 @@ import jax.numpy as jnp
 import numpy as np
 
 from ._base import _BaseRCWA
-from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table
+from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table, \
+    to_conv_mat_piecewise_continuous
 from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot
 
 
@@ -73,24 +74,26 @@ class RCWAJax(_BaseRCWA):
 
         return de_ri.real, de_ti.real
 
-    # @jax.jit
-    def run_ucell(self):
 
-        ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
-                                          type_complex=self.type_complex)
+    @jax.jit
+    def aaa(self, ucell):
         E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
         o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
 
         de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
+        return de_ri, de_ti
 
-        # num_dev = jax.local_device_count()
-        # num_dev = 1
-        # a = jnp.array([self.wavelength] * num_dev)
-        # b = jnp.array([E_conv_all] * num_dev)
-        # c = jnp.array([o_E_conv_all] * num_dev)
-        #
-        # de_ri, de_ti = jax.vmap(self.solve)(a, b, c)
-        # de_ri, de_ti = jax.pmap(self.solve)(a, b, c)
+    def run_ucell(self):
+
+        ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+
+        E_conv_all = to_conv_mat_piecewise_continuous(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all = to_conv_mat_piecewise_continuous(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
+
+        # de_ri, de_ti = self.aaa(ucell)
 
         return de_ri, de_ti
 
