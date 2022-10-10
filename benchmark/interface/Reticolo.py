@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from meent.on_numpy.convolution_matrix import find_n_index
+from meent.on_numpy.convolution_matrix import find_nk_index
 
 try:
     import matlab.engine
@@ -68,7 +68,7 @@ class Reticolo(Base):
 
     def run_acs(self, pattern, n_si='SILICON'):
         if type(n_si) == str and n_si.upper() == 'SILICON':
-            n_si = find_n_index(n_si, self.wls)
+            n_si = find_nk_index(n_si, self.mat_table, self.wls)
 
         abseff, effi_r, effi_t = self.eng.Eval_Eff_1D(pattern, self.wls, self.deflected_angle, self.fourier_order,
                                                       self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
@@ -83,7 +83,7 @@ class Reticolo(Base):
             self.wls = wls  # TODO: handle better.
 
         if type(n_si) == str and n_si.upper() == 'SILICON':
-            n_si = find_n_index(n_si, self.wls)
+            n_si = find_nk_index(n_si, self.mat_table, self.wls)
 
         self.init_spectrum_array()
 
