@@ -36,7 +36,7 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_orde
 
     T = np.eye(2 * fourier_order + 1)
 
-    return Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T
+    return Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T
 
 
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
@@ -58,10 +58,9 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
 
 
 def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
-    Tl = np.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
-    R = f @ Tl - delta_i0
-    T1 = T
-    T = T @ Tl
+    T1 = np.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
+    R = f @ T1 - delta_i0
+    T = T @ T1
 
     de_ri = np.real(R * np.conj(R) * k_I_z / (k0 * n_I * np.cos(theta)))
     if polarization == 0:
