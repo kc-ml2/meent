@@ -94,8 +94,8 @@ def to_conv_mat(pmt, fourier_order):
     ff = 2 * fourier_order + 1
 
     # if len(pmt.shape)==2 or pmt.shape[1] == 1:  # 1D
-    if pmt.shape[1] == 1:  # 1D  # TODO: confirm this handles all cases
-        res = np.zeros((pmt.shape[0], 2*fourier_order+1, 2*fourier_order+1)).astype('complex')
+    if pmt.shape[1] == 1:  # 1D
+        res = np.zeros((pmt.shape[0], ff, ff)).astype('complex')
 
         # extend array for FFT
         minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
@@ -105,8 +105,8 @@ def to_conv_mat(pmt, fourier_order):
             n = minimum_pattern_size // pmt.shape[2]
             pmt = np.repeat(pmt, n+1, axis=2)
 
-        for i, pmtvy in enumerate(pmt):
-            pmtvy_fft = np.fft.fftshift(np.fft.fftn(pmtvy / pmtvy.size))
+        for i, layer in enumerate(pmt):
+            pmtvy_fft = np.fft.fftshift(np.fft.fftn(layer / layer.size))
             center = pmtvy_fft.shape[1] // 2
 
             pmtvy_fft_cut = (pmtvy_fft[0, -2*fourier_order + center: center + 2*fourier_order + 1])
@@ -115,22 +115,24 @@ def to_conv_mat(pmt, fourier_order):
 
     else:  # 2D
         # attention on the order of axis.
-        # Here X Y Z. Cell Drawing in CAD is Y X Z. Here is Z Y X
+        # Z Y X
 
         # TODO: separate fourier order
         res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype('complex')
 
         # extend array
         # TODO: run test
-        minimum_pattern_size = ff ** 2
+        minimum_pattern_size_x = (4 * fourier_order + 1) * pmt.shape[2]
+        minimum_pattern_size_y = (4 * fourier_order + 1) * pmt.shape[1]
+
         # TODO: what is theoretical minimum?
         # TODO: can be a scalability issue
 
-        if pmt.shape[1] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[1]
+        if pmt.shape[1] < minimum_pattern_size_y:
+            n = minimum_pattern_size_y // pmt.shape[1]
             pmt = np.repeat(pmt, n+1, axis=1)
-        if pmt.shape[2] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[2]
+        if pmt.shape[2] < minimum_pattern_size_x:
+            n = minimum_pattern_size_x // pmt.shape[2]
             pmt = np.repeat(pmt, n+1, axis=2)
 
         for i, layer in enumerate(pmt):

@@ -154,6 +154,7 @@ if __name__ == '__main__':
     pol = 1
     thickness = [325]
     wls = np.linspace(900, 900, 1)
+    wls = np.array([900])
     deflected_angle = 60
 
     # 1D

@@ -119,7 +119,6 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, pe
 def transfer_2d_wv(ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center):
 
     I = np.eye(ff ** 2)
-    O = np.zeros((ff ** 2, ff ** 2))
 
     B = Kx @ E_i @ Kx - I
     D = Ky @ E_i @ Ky - I
@@ -134,15 +133,12 @@ def transfer_2d_wv(ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center):
 
     Lambda = eigenvalues ** 0.5
 
-    # Lambda_1 = Lambda[:center]
-    # Lambda_2 = Lambda[center:]
-
     LAMBDA = np.diag(Lambda)
     LAMBDA_i = np.linalg.inv(LAMBDA)
     U1_from_S = np.block(
         [
             [-Kx @ Ky, Kx ** 2 - E_conv],
-            [oneover_E_conv_i - Ky ** 2, Ky @ Kx]  # TODO Check x y order
+            [oneover_E_conv_i - Ky ** 2, Ky @ Kx]
         ]
     )
     V = U1_from_S @ W @ LAMBDA_i
@@ -250,18 +246,6 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     de_ti = T_s * np.conj(T_s) * np.real(k_II_z / (k0 * n_I * np.cos(theta))) \
             + T_p * np.conj(T_p) * np.real((k_II_z / n_II ** 2) / (k0 * n_I * np.cos(theta)))
 
-    # Aa = de_ri.sum()
-    # Aaa = de_ti.sum()
-    #
-    # if Aa + Aaa != 1:
-    #     # TODO: no problem? or should be handled?
-    #     print(1)
-    #     wl = 1463.6363636363637
-    #     deri = 350
-    #
-    #     wl = 1978.9715332727274
-    #     deri = 558
-
     return de_ri.real, de_ti.real
 
 
@@ -316,7 +300,6 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
     to_decompose_W_1 = ky ** 2 * I + A
     to_decompose_W_2 = ky ** 2 * I + B @ oneover_E_conv_i
 
-    # TODO: using eigh?
     eigenvalues_1, W_1 = np.linalg.eig(to_decompose_W_1)
     eigenvalues_2, W_2 = np.linalg.eig(to_decompose_W_2)
 
