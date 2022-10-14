@@ -17,7 +17,6 @@ class RCWALight(_BaseRCWA):
         self.init_spectrum_array()
         self.mat_table = read_material_table()
 
-
     def solve(self, wl, e_conv_all, o_e_conv_all):
 
         # TODO: !handle uniform layer
@@ -50,22 +49,6 @@ class RCWALight(_BaseRCWA):
             self.spectrum_t[i] = de_ti
 
         return self.spectrum_r, self.spectrum_t
-
-    # def loop_wavelength_ucell(self):
-    #     wls = self.wls
-    #     ucell = self.ucell
-    #
-    #     for i, wl in enumerate(self.wls):
-    #         self.wls = np.array(wl)
-    #         de_ri, de_ti = self.run_ucell()
-    #
-    #         self.spectrum_r[i] = de_ri
-    #         self.spectrum_t[i] = de_ti
-    #         self.ucell = ucell
-    #
-    #     self.wls = wls
-    #
-    #     return self.spectrum_r, self.spectrum_t
 
     def run_ucell(self):
 
