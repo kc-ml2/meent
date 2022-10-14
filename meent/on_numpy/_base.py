@@ -127,7 +127,7 @@ class _BaseRCWA(Base):
 
         # --------------------------------------------------------------------
         if self.algo == 'TMM':
-            Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T \
+            Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \
                 = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II,
                                 self.theta, delta_i0, self.fourier_order, fourier_indices, wl, self.period)
         elif self.algo == 'SMM':
