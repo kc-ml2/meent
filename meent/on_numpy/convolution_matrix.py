@@ -86,57 +86,103 @@ def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type, mat_table):
     return ucell
 
 
+def cell_compression(cell):
+    # find discontinuities in x
+    step_y, step_x = 1. / np.array(cell.shape)
+    x = []
+    y = []
+    cell_x = []
+    cell_xy = []
+
+    cell_next = np.roll(cell, -1, axis=1)
+
+    for col in range(cell.shape[1]):
+        if not (cell[:, col] == cell_next[:, col]).all() or (col == cell.shape[1] - 1):
+            x.append(step_x * (col + 1))
+            cell_x.append(cell[:, col])
+
+    cell_x = np.array(cell_x).T
+    cell_x_next = np.roll(cell_x, -1, axis=0)
+
+    for row in range(cell_x.shape[0]):
+        if not (cell_x[row, :] == cell_x_next[row, :]).all() or (row == cell_x.shape[0] - 1):
+            y.append(step_y * (row + 1))
+            cell_xy.append(cell_x[row, :])
+
+    x = np.array(x).reshape((-1, 1))
+    y = np.array(y).reshape((-1, 1))
+    cell_comp = np.array(cell_xy)
+
+    return cell_comp, x, y
+
+
+def fft_piecewise_constant(cell, fourier_order):
+    if cell.shape[0] == 1:
+        fourier_order = [0, fourier_order]
+    else:
+        fourier_order = [fourier_order, fourier_order]
+    cell, x, y = cell_compression(cell)
+
+    # X axis
+    cell_next_x = np.roll(cell, -1, axis=1)
+    cell_diff_x = cell_next_x - cell
+
+    modes = np.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1)
+
+    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes[None, :])
+    c = f_coeffs_x.shape[1] // 2
+
+    x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], 1)) - x
+
+    f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
+    mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
+    mask[c] = False
+    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes[mask])
+
+    # Y axis
+    f_coeffs_x_next_y = np.roll(f_coeffs_x, -1, axis=0)
+    f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
+
+    modes = np.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1)
+
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes[None, :])
+    c = f_coeffs_xy.shape[1] // 2
+
+    y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], 1)) - y
+
+    f_coeffs_xy[:, c] = f_coeffs_x.T @ np.vstack((y[0], y_next[:-1])).flatten()
+    mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
+    mask[c] = False
+    f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])
+
+    return f_coeffs_xy.T
+
+
 def to_conv_mat(pmt, fourier_order):
+
     # FFT scaling: https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
     if len(pmt.shape) == 2:
         print('shape is 2')
         raise ValueError
     ff = 2 * fourier_order + 1
 
-    # if len(pmt.shape)==2 or pmt.shape[1] == 1:  # 1D
     if pmt.shape[1] == 1:  # 1D
+
         res = np.zeros((pmt.shape[0], ff, ff)).astype('complex')
 
-        # extend array for FFT
-        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
-        # TODO: what is theoretical minimum?
-        # TODO: can be a scalability issue
-        if pmt.shape[2] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[2]
-            pmt = np.repeat(pmt, n+1, axis=2)
-
         for i, layer in enumerate(pmt):
-            pmtvy_fft = np.fft.fftshift(np.fft.fftn(layer / layer.size))
-            center = pmtvy_fft.shape[1] // 2
-
-            pmtvy_fft_cut = (pmtvy_fft[0, -2*fourier_order + center: center + 2*fourier_order + 1])
-            A = np.roll(circulant(pmtvy_fft_cut.flatten()), (pmtvy_fft_cut.size + 1) // 2, 0)
-            res[i] = A[:2*fourier_order+1, :2*fourier_order+1]
+            f_coeffs = fft_piecewise_constant(layer, fourier_order)
+            A = np.roll(circulant(f_coeffs.flatten()), (f_coeffs.size + 1) // 2, 0)
+            res[i] = A[:2 * fourier_order + 1, :2 * fourier_order + 1]
 
     else:  # 2D
-        # attention on the order of axis.
-        # Z Y X
+        # attention on the order of axis (Z Y X)
 
         # TODO: separate fourier order
         res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype('complex')
 
-        # extend array
-        # TODO: run test
-        minimum_pattern_size_x = (4 * fourier_order + 1) * pmt.shape[2]
-        minimum_pattern_size_y = (4 * fourier_order + 1) * pmt.shape[1]
-
-        # TODO: what is theoretical minimum?
-        # TODO: can be a scalability issue
-
-        if pmt.shape[1] < minimum_pattern_size_y:
-            n = minimum_pattern_size_y // pmt.shape[1]
-            pmt = np.repeat(pmt, n+1, axis=1)
-        if pmt.shape[2] < minimum_pattern_size_x:
-            n = minimum_pattern_size_x // pmt.shape[2]
-            pmt = np.repeat(pmt, n+1, axis=2)
-
         for i, layer in enumerate(pmt):
-            pmtvy_fft = np.fft.fftshift(np.fft.fft2(layer / layer.size))
+            pmtvy_fft = fft_piecewise_constant(layer, fourier_order)
 
             center = np.array(pmtvy_fft.shape) // 2
 
@@ -154,7 +200,7 @@ def to_conv_mat(pmt, fourier_order):
     # plt.imshow(abs(res[0]), cmap='jet')
     # plt.colorbar()
     # plt.show()
-    #
+
     return res
 
 

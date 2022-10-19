@@ -32,6 +32,6 @@ solver = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n
                  fourier_order=fourier_order, wls=wls, period=period, patterns=patterns, thickness=thickness)
 
 a, b = solver.loop_wavelength_fill_factor()
+print('wall time: ', time.perf_counter() - t0)
 solver.plot()
 
-print('wall time: ', time.perf_counter() - t0)
