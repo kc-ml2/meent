@@ -55,5 +55,5 @@ wls = np.linspace(500, 1000, 100)
 a, b = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
                  fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials, thickness=thickness)
 
-plt.plot(wls, a.sum((1)), wls, b.sum((1)))
+plt.plot(wls, a.sum((1,2)), wls, b.sum((1,2)))
 plt.show()

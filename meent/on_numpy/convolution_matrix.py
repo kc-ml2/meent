@@ -20,8 +20,33 @@ def put_n_ridge_in_pattern_fill_factor(pattern_all, mat_table, wl):
     return pattern_all
 
 
+def get_material_index_in_ucell(ucell_comp, mat_list):
+
+    res = [[[] for _ in mat_list] for _ in ucell_comp]
+
+    for z, ucell_xy in enumerate(ucell_comp):
+        for y in range(ucell_xy.shape[0]):
+            for x in range(ucell_xy.shape[1]):
+                res[z][ucell_xy[y, x]].append([y, x])
+    return res
+
+
+def put_permittivity_in_ucell_object_comps(ucell, mat_list, obj_list, mat_table, wl):
+
+    res = np.zeros(ucell.shape, dtype='complex')
+
+    for obj_xy in obj_list:
+        for material, obj_index in zip(mat_list, obj_xy):
+            obj_index = np.array(obj_index).T
+            if type(material) == str:
+                res[obj_index[0], obj_index[1]] = find_nk_index(material, mat_table, wl) ** 2
+            else:
+                res[obj_index[0], obj_index[1]] = material ** 2
+
+    return res
+
+
 def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
-    # TODO: get coordinates per material and remove loops
 
     res = np.zeros(ucell.shape, dtype='complex')
 
@@ -33,6 +58,19 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
                     res[z, y, x] = find_nk_index(material, mat_table, wl) ** 2
                 else:
                     res[z, y, x] = material ** 2
+
+    return res
+
+
+def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl):
+
+    res = np.zeros(ucell_size, dtype='complex')
+
+    for material, obj_index in zip(mat_list, obj_list):
+        if type(material) == str:
+            res[obj_index] = find_nk_index(material, mat_table, wl) ** 2
+        else:
+            res[obj_index] = material ** 2
 
     return res
 
@@ -160,7 +198,6 @@ def fft_piecewise_constant(cell, fourier_order):
 
 def to_conv_mat(pmt, fourier_order):
 
-    # FFT scaling: https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
     if len(pmt.shape) == 2:
         print('shape is 2')
         raise ValueError
