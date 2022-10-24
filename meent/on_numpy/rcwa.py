@@ -50,15 +50,32 @@ class RCWALight(_BaseRCWA):
 
         return self.spectrum_r, self.spectrum_t
 
+    def loop_wavelength_ucell(self, wavelength_array=None):
+
+        if wavelength_array is not None:
+            self.wls = wavelength_array
+            self.init_spectrum_array()
+
+        for i, wl in enumerate(self.wls):
+
+            ucell = put_permittivity_in_ucell(self.ucell, wl, self.grating_type, self.mat_table)
+            e_conv_all = to_conv_mat(ucell, self.fourier_order)
+            o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
+
+            de_ri, de_ti = self.solve(wl, e_conv_all, o_e_conv_all)
+
+            self.spectrum_r[i] = de_ri
+            self.spectrum_t[i] = de_ti
+
+        return self.spectrum_r, self.spectrum_t
+
     def run_ucell(self):
 
-        self.ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wls)
+        ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wls)
 
-        e_conv_all = to_conv_mat(self.ucell, self.fourier_order)
-        o_e_conv_all = to_conv_mat(1 / self.ucell, self.fourier_order)
+        e_conv_all = to_conv_mat(ucell, self.fourier_order)
+        o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
 
         de_ri, de_ti = self.solve(self.wls, e_conv_all, o_e_conv_all)
 
         return de_ri, de_ti
-
-
