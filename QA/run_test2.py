@@ -30,7 +30,7 @@ ucell = np.array([
     ],
 ])
 
-ucell_materials = ['SILICON', 1]
+ucell_materials = ['p_si', 1]
 
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
@@ -60,7 +60,7 @@ ucell = np.array([
         [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
     ],
 ])
-ucell_materials = ['SILICON', 1, n_I, n_II]
+ucell_materials = ['p_si', 1, n_I, n_II]
 
 thickness = [200, 460, 660, 200]
 
@@ -92,7 +92,7 @@ ucell = np.array([
         [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
 ])
-ucell_materials = ['SILICON', 1]
+ucell_materials = ['p_si', 1]
 
 wls = np.linspace(900, 900, 1)  # wavelength
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
@@ -121,7 +121,7 @@ ucell = np.array([
         [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
     ],
 ])
-ucell_materials = ['SILICON', 1, n_I, n_II]
+ucell_materials = ['p_si', 1, n_I, n_II]
 
 thickness = [200, 460, 660, 200]
 
@@ -156,7 +156,7 @@ ucell = np.array([
         [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
     ],
 ])
-ucell_materials = ['SILICON', 1]
+ucell_materials = ['p_si', 1]
 
 wls = np.linspace(900, 900, 1)  # wavelength
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
@@ -193,7 +193,7 @@ ucell = np.array([
         [3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
     ],
 ])
-ucell_materials = ['SILICON', 1, n_I, n_II]
+ucell_materials = ['p_si', 1, n_I, n_II]
 
 thickness = [200, 460, 660, 200]
 
