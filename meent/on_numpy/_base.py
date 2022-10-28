@@ -10,18 +10,18 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 class Base:
     def __init__(self, grating_type):
         self.grating_type = grating_type
-        self.wls = None
+        self.wavelength = None
         self.fourier_order = None
         self.spectrum_r = None
         self.spectrum_t = None
 
     def init_spectrum_array(self):
         if self.grating_type in (0, 1):
-            self.spectrum_r = np.zeros((len(self.wls), 2 * self.fourier_order + 1))
-            self.spectrum_t = np.zeros((len(self.wls), 2 * self.fourier_order + 1))
+            self.spectrum_r = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1))
+            self.spectrum_t = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1))
         elif self.grating_type == 2:
-            self.spectrum_r = np.zeros((len(self.wls), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
-            self.spectrum_t = np.zeros((len(self.wls), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
+            self.spectrum_r = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
+            self.spectrum_t = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
         else:
             raise ValueError
 
@@ -66,11 +66,11 @@ class Base:
 
     def plot(self, title=None, marker=None):
         if self.grating_type in (0, 1):
-            plt.plot(self.wls, self.spectrum_r.sum(axis=1), marker=marker)
-            plt.plot(self.wls, self.spectrum_t.sum(axis=1), marker=marker)
+            plt.plot(self.wavelength, self.spectrum_r.sum(axis=1), marker=marker)
+            plt.plot(self.wavelength, self.spectrum_t.sum(axis=1), marker=marker)
         elif self.grating_type == 2:
-            plt.plot(self.wls, self.spectrum_r.sum(axis=(1, 2)), marker=marker)
-            plt.plot(self.wls, self.spectrum_t.sum(axis=(1, 2)), marker=marker)
+            plt.plot(self.wavelength, self.spectrum_r.sum(axis=(1, 2)), marker=marker)
+            plt.plot(self.wavelength, self.spectrum_t.sum(axis=(1, 2)), marker=marker)
         else:
             raise ValueError
         plt.title(title)
@@ -79,7 +79,7 @@ class Base:
 
 class _BaseRCWA(Base):
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
-                 period=0.7, wls=np.linspace(0.5, 2.3, 400), pol=0,
+                 period=0.7, wavelength=np.linspace(0.5, 2.3, 400), pol=0,
                  patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM'):
         super().__init__(grating_type)
 
@@ -105,7 +105,7 @@ class _BaseRCWA(Base):
 
         self.period = period
 
-        self.wls = wls
+        self.wavelength = wavelength
 
         self.patterns = patterns
         self.ucell = ucell

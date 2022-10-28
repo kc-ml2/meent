@@ -19,7 +19,7 @@ class Reticolo(Base):
 
     def __init__(self, grating_type=0,
                  n_I=1., n_II=1.45, theta=0., phi=0., fourier_order=40, period=(100,),
-                 wls=np.linspace(900, 900, 1), pol=1,
+                 wavelength=np.linspace(900, 900, 1), pol=1,
                  textures=None, profile=None, thickness=None, deflected_angle=None,
                  engine_type='octave'):
         super().__init__(grating_type)
@@ -49,7 +49,7 @@ class Reticolo(Base):
         self.period = period
         self.thickness = thickness
 
-        self.wls = wls
+        self.wavelength = wavelength
         self.textures = textures
         self.profile = profile
         self.deflected_angle = deflected_angle
@@ -58,7 +58,7 @@ class Reticolo(Base):
 
     def run(self):
 
-        for i, wl in enumerate(self.wls):
+        for i, wl in enumerate(self.wavelength):
             de_ri, de_ti = self.eng.run_reticolo(self.pol, self.theta, self.period, self.n_I, self.fourier_order,
                                                  self.textures, self.profile, wl, nout=2)
 
@@ -68,9 +68,9 @@ class Reticolo(Base):
 
     def run_acs(self, pattern, n_si='SILICON'):
         if type(n_si) == str and n_si.upper() == 'SILICON':
-            n_si = find_nk_index(n_si, self.mat_table, self.wls)
+            n_si = find_nk_index(n_si, self.mat_table, self.wavelength)
 
-        abseff, effi_r, effi_t = self.eng.Eval_Eff_1D(pattern, self.wls, self.deflected_angle, self.fourier_order,
+        abseff, effi_r, effi_t = self.eng.Eval_Eff_1D(pattern, self.wavelength, self.deflected_angle, self.fourier_order,
                                                       self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
         effi_r, effi_t = np.array(effi_r).flatten(), np.array(effi_t).flatten()
 
@@ -78,12 +78,12 @@ class Reticolo(Base):
 
     def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None, n_si='SILICON'):
         if wls is None:
-            wls = self.wls
+            wls = self.wavelength
         else:
-            self.wls = wls  # TODO: handle better.
+            self.wavelength = wls  # TODO: handle better.
 
         if type(n_si) == str and n_si.upper() == 'SILICON':
-            n_si = find_nk_index(n_si, self.mat_table, self.wls)
+            n_si = find_nk_index(n_si, self.mat_table, self.wavelength)
 
         self.init_spectrum_array()
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     fourier_order = 40
 
     period = 700
-    wls = np.linspace(500, 2300, 100)
+    wavelength = np.linspace(500, 2300, 100)
     pol = 1
 
     thickness = 1120
@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
     AA = Reticolo(grating_type=0,
                   n_I=n_I, n_II=n_II, theta=theta, phi=phi, fourier_order=fourier_order, period=period,
-                  wls=wls, pol=pol,
+                  wavelength=wavelength, pol=pol,
                   textures=textures, profile=profile,
                   engine_type='octave')
 

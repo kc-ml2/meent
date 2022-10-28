@@ -16,7 +16,7 @@ theta = 0  # in degree, notation from Moharam paper
 phi = 0  # in degree, notation from Moharam paper
 psi = 0 if pol else 90  # in degree, notation from Moharam paper
 
-wls = np.linspace(900, 900, 1)  # wavelength
+wavelength = np.linspace(900, 900, 1)  # wavelength
 
 period = [700, 700]
 fourier_order = 2
@@ -44,15 +44,15 @@ plt.show()
 ucell_materials = [1, 'p_si', 'p_si__real']
 
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, ucell_materials=ucell_materials,
                  thickness=thickness)
 de_ri, de_ti = AA.run_ucell()
 print(de_ri, de_ti)
 
-wls = np.linspace(500, 1000, 10)
+wavelength_array = np.linspace(500, 1000, 10)
 
-de_ri, de_ti = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials, thickness=thickness)
+de_ri, de_ti = sweep_wavelength(wavelength_array, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                                fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials, thickness=thickness)
 
-plt.plot(wls, de_ri.sum((1, 2)), wls, de_ti.sum((1, 2)))
+plt.plot(wavelength_array, de_ri.sum((1, 2)), wavelength_array, de_ti.sum((1, 2)))
 plt.show()

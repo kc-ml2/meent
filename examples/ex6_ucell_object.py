@@ -19,7 +19,7 @@ phi = 1E-10
 fourier_order = 2
 
 period = [700, 700]
-wls = np.array([900])
+wavelength = np.array([900])
 pol = 1
 psi = 0 if pol else 90  # in degree, notation from Moharam paper
 
@@ -48,7 +48,7 @@ base = np.meshgrid(0, 0, np.arange(0, 10, 1))
 obj1 = np.meshgrid(0, 0, np.array([4, 5, 0, 2]))
 
 obj_list = [base, obj1, ]
-aa = put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wls)
+aa = put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wavelength)
 plt.imshow(abs(aa[0]))
 plt.show()
 
@@ -62,7 +62,7 @@ obj2 = np.meshgrid(0, np.arange(0, 10, 1), np.array([0, 1, 2, 8]))
 obj3 = np.meshgrid(0, [np.arange(2, 3, 1), ], np.array([4, 5]))
 
 obj_list = [base, obj1, obj2, obj3]
-aa = put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wls)
+aa = put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wavelength)
 plt.imshow(abs(aa[0]))
 plt.show()
 
@@ -76,22 +76,22 @@ pattern_pixel = np.array(
             [1, 1, 1, 0, 0, 0, 0, 0, 1, 0, ],
             [1, 1, 1, 0, 0, 0, 0, 0, 1, 0, ],
         ]])
-mat_list = [1, 'si', 3, 4]
+mat_list = [1, 'si__real', 3, 4]
 
 solver = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                     fourier_order=fourier_order, wls=wls, period=period, ucell=pattern_pixel, ucell_materials=mat_list,
+                     fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=pattern_pixel, ucell_materials=mat_list,
                      thickness=thickness)
 t0 = time.time()
 de_ri, de_ti = solver.run_ucell()
 print(de_ri)
 
 # pixel based;
-ucell = put_permittivity_in_ucell(pattern_pixel, mat_list, mat_table, wls)
+ucell = put_permittivity_in_ucell(pattern_pixel, mat_list, mat_table, wavelength)
 
 e_conv_all = to_conv_mat(ucell, solver.fourier_order)
 o_e_conv_all = to_conv_mat(1 / ucell, solver.fourier_order)
 
-de_ri, de_ti = solver.solve(solver.wls, e_conv_all, o_e_conv_all)
+de_ri, de_ti = solver.solve(solver.wavelength, e_conv_all, o_e_conv_all)
 
 print(de_ri)
 
@@ -105,11 +105,11 @@ obj2 = np.meshgrid(0, np.arange(0, 10, 1), np.array([0, 1, 2, 8]))
 obj3 = np.meshgrid(0, np.arange(2, 3, 1), np.array([4, 5]))
 
 obj_list = [base, obj1, obj2, obj3]
-ucell = put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wls)
+ucell = put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wavelength)
 
 e_conv_all = to_conv_mat(ucell, solver.fourier_order)
 o_e_conv_all = to_conv_mat(1 / ucell, solver.fourier_order)
 
-de_ri, de_ti = solver.solve(solver.wls, e_conv_all, o_e_conv_all)
+de_ri, de_ti = solver.solve(solver.wavelength, e_conv_all, o_e_conv_all)
 
 print(de_ri)
