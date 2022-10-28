@@ -258,10 +258,10 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     # if Aa + Aaa != 1:
     #     # TODO: no problem? or should be handled?
     #     print(1)
-    #     wl = 1463.6363636363637
+    #     wavelength = 1463.6363636363637
     #     deri = 350
     #
-    #     wl = 1978.9715332727274
+    #     wavelength = 1978.9715332727274
     #     deri = 558
 
     return de_ri.real, de_ti.real

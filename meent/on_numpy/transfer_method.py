@@ -1,9 +1,9 @@
 import numpy as np
 
 
-def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_order,fourier_indices, wl, period):
+def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_order, fourier_indices, wavelength, period):
 
-    kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wl / period[0])).astype('complex')
+    kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).astype('complex')
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2) ** 0.5
@@ -75,14 +75,14 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
     return de_ri, de_ti, T, T1
 
 
-def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j)):
+def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavelength, perturbation=1E-20 * (1 + 1j)):
     I = np.eye(ff ** 2)
     O = np.zeros((ff ** 2, ff ** 2))
 
     kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
-            wl / period[0])).astype('complex')
+            wavelength / period[0])).astype('complex')
     ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) - fourier_indices * (
-            wl / period[1])).astype('complex')
+            wavelength / period[1])).astype('complex')
 
     Kx = np.diag(np.tile(kx_vector, ff).flatten()) / k0
     Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), ff).flatten()) / k0
@@ -98,7 +98,7 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, pe
         # TODO: need imaginary part?
         # TODO: make imaginary part sign consistent
         kx_vector[idx] = perturbation
-        print(wl, 'varphi divide by 0: adding perturbation')
+        print(wavelength, 'varphi divide by 0: adding perturbation')
 
     varphi = np.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
 
@@ -249,11 +249,11 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     return de_ri.real, de_ti.real
 
 
-def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j)):
+def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavelength, perturbation=1E-20 * (1 + 1j)):
     I = np.eye(ff)
     O = np.zeros((ff, ff))
 
-    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (wl / period[0])).astype('complex')
+    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (wavelength / period[0])).astype('complex')
     ky = k0 * n_I * np.sin(theta) * np.sin(phi)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
@@ -267,7 +267,7 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi
         # TODO: need imaginary part?
         # TODO: make imaginary part sign consistent
         kx_vector[idx] = perturbation  # TODO: test
-        print(wl, 'varphi divide by 0: adding perturbation')
+        print(wavelength, 'varphi divide by 0: adding perturbation')
 
     varphi = np.arctan(ky / kx_vector)
 

@@ -36,9 +36,9 @@ def test():
     de_ri, de_ti = AA.run_ucell()
     print(de_ri, de_ti)
 
-    # wls = np.linspace(500, 1000, 100)
+    # wavelength = np.linspace(500, 1000, 100)
     # AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-    #                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    #                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, thickness=thickness)
     # de_ri, de_ti = AA.loop_wavelength_ucell()
     # AA.plot()
 
@@ -67,9 +67,9 @@ def test():
     de_ri, de_ti = AA.run_ucell()
     print(de_ri, de_ti)
 
-    # wls = np.linspace(500, 1000, 100)
+    # wavelength = np.linspace(500, 1000, 100)
     # AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-    #                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    #                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, thickness=thickness)
     # de_ri, de_ti = AA.loop_wavelength_ucell()
     # AA.plot()
 
@@ -93,9 +93,9 @@ def test():
     de_ri, de_ti = AA.run_ucell()
     print(de_ri, de_ti)
 
-    # wls = np.linspace(500, 1000, 100)
+    # wavelength = np.linspace(500, 1000, 100)
     # AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-    #                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    #                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, thickness=thickness)
     # de_ri, de_ti = AA.loop_wavelength_ucell()
     # AA.plot()
 
@@ -124,9 +124,9 @@ def test():
     de_ri, de_ti = AA.run_ucell()
     print(de_ri, de_ti)
 
-    # wls = np.linspace(500, 1000, 100)
+    # wavelength = np.linspace(500, 1000, 100)
     # AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-    #                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    #                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, thickness=thickness)
     # de_ri, de_ti = AA.loop_wavelength_ucell()
     # AA.plot()
 
@@ -155,9 +155,9 @@ def test():
     de_ri, de_ti = AA.run_ucell()
     print(de_ri, de_ti)
 
-    # wls = np.linspace(500, 1000, 100)
+    # wavelength = np.linspace(500, 1000, 100)
     # AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-    #                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    #                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, thickness=thickness)
     # de_ri, de_ti = AA.loop_wavelength_ucell()
     # AA.plot()
 
@@ -195,9 +195,9 @@ def test():
     de_ri, de_ti = AA.run_ucell()
     print(de_ri, de_ti)
 
-    # wls = np.linspace(500, 1000, 100)
+    # wavelength = np.linspace(500, 1000, 100)
     # AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-    #                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    #                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, thickness=thickness)
     # de_ri, de_ti = AA.loop_wavelength_ucell()
     # AA.plot()
     # assert True

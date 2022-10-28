@@ -19,7 +19,7 @@ phi = 1E-10
 fourier_order = 40
 
 period = [700]
-wls = np.array([900.])
+wavelength = np.array([900.])
 pol = 1
 psi = 0 if pol else 90  # in degree, notation from Moharam paper
 
@@ -45,7 +45,7 @@ ucell = np.array([[pattern]])
 
 # reti
 reti = Reticolo(grating_type=0, n_I=n_I, n_II=n_II, theta=theta, phi=phi, fourier_order=fourier_order,
-                period=period, wls=wls, pol=pol, textures=textures, profile=profile, engine_type='octave')
+                period=period, wavelength=wavelength, pol=pol, textures=textures, profile=profile, engine_type='octave')
 # t0 = time.time()
 reti.run()
 # print('reti: ', time.time() - t0)
@@ -53,7 +53,7 @@ reti.run()
 
 # meent TMM
 meent_t = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                 fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, ucell_materials=ucell_materials,
                  thickness=thickness)
 t0 = time.time()
 de_ri, de_ti = meent_t.run_ucell()
