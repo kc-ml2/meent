@@ -38,13 +38,14 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
 
 
 def find_nk_index(material, mat_table, wl):
-    if material[-6:] == '__real':
+    material = material.upper()
+    if material[-6:] == '__REAL':
         material = material[:-6]
         n_only = True
     else:
         n_only = False
 
-    mat_data = mat_table[material.upper()]
+    mat_data = mat_table[material]
 
     n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
 
