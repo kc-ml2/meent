@@ -7,7 +7,7 @@ from benchmark.interface.Reticolo import Reticolo
 
 
 class RetiMeent:
-    def __init__(self, grating_type, n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, ucell, wls, fourier_order,
+    def __init__(self, grating_type, n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, ucell, wavelength, fourier_order,
                  period):
 
         self.grating_type = grating_type
@@ -21,7 +21,7 @@ class RetiMeent:
         self.deflected_angle = deflected_angle
         self.pattern = pattern
         self.ucell = ucell
-        self.wls = wls
+        self.wavelength = wavelength
         self.fourier_order = fourier_order
         self.period = period
 
@@ -37,7 +37,7 @@ class RetiMeent:
         meent = JLABCode(grating_type=self.grating_type,
                          n_I=self.n_glass, n_II=self.n_air, theta=self.theta, phi=self.phi,
                          fourier_order=self.fourier_order, period=self.period,
-                         wls=self.wls, pol=self.pol,
+                         wavelength=self.wavelength, pol=self.pol,
                          patterns=self.pattern, ucell=self.ucell, thickness=self.thickness)
 
         # poi, refl, tran = meent.reproduce_acs(patterns)
@@ -51,7 +51,7 @@ class RetiMeent:
 
         reti = Reticolo(grating_type=self.grating_type,
                         n_I=self.n_air, n_II=self.n_glass, theta=self.theta, phi=self.phi, fourier_order=self.fourier_order, period=self.period,
-                        wls=self.wls, pol=self.pol,
+                        wavelength=self.wavelength, pol=self.pol,
                         textures=textures, profile=profile, thickness=self.thickness, deflected_angle=self.deflected_angle,
                         engine_type='octave')
 
@@ -153,19 +153,19 @@ if __name__ == '__main__':
     phi = 0
     pol = 1
     thickness = [325]
-    wls = np.linspace(900, 900, 1)
-    wls = np.array([900])
+    wavelength = np.linspace(900, 900, 1)
+    wavelength = np.array([900])
     deflected_angle = 60
 
     # 1D
     grating_type = 0
 
     fourier_order = 40
-    period = abs(wls / np.sin(deflected_angle / 180 * np.pi))
+    period = abs(wavelength / np.sin(deflected_angle / 180 * np.pi))
     pattern = np.array([1., 1., 1., -1., -1., -1., -1., -1., -1., -1.])
     ucell = np.array([[pattern]])
 
-    AA = RetiMeent(grating_type, n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, ucell, wls, fourier_order,
+    AA = RetiMeent(grating_type, n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, ucell, wavelength, fourier_order,
                    period)
 
     reti_abseff, reti_ref, reti_tra = AA.acs_run_reti()
@@ -213,10 +213,10 @@ if __name__ == '__main__':
         ])
     ucell = np.array([pattern])
 
-    period = [abs(wls / np.sin(deflected_angle / 180 * np.pi)),
-              abs(wls / np.sin(deflected_angle / 180 * np.pi))]
+    period = [abs(wavelength / np.sin(deflected_angle / 180 * np.pi)),
+              abs(wavelength / np.sin(deflected_angle / 180 * np.pi))]
 
-    AA = RetiMeent(grating_type,n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, ucell, wls, fourier_order,
+    AA = RetiMeent(grating_type, n_air, n_si, n_glass, theta, phi, pol, thickness, deflected_angle, pattern, ucell, wavelength, fourier_order,
                    period)
 
     abseff, de_ri, de_ti = AA.acs_run_meent()

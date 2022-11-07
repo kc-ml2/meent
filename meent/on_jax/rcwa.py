@@ -130,7 +130,7 @@ if __name__ == '__main__':
     psi = 0 if pol else 90
 
     wls = jnp.linspace(500, 1300, 100)
-    # wls = np.linspace(600, 800, 3)
+    # wavelength = np.linspace(600, 800, 3)
 
     if grating_type in (0, 1):
         period = [700]
