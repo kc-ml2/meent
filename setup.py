@@ -1,8 +1,10 @@
 from setuptools import setup, find_packages
+from glob import glob
+
 
 setup(
     name='meent',
-    version='0.3.6',
+    version='0.3.7',
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
@@ -15,4 +17,8 @@ setup(
     ],
     python_requires='>=3.8',
     long_description_content_type="text/markdown",
+    data_files=[
+        ('nk_data/filmetrics', glob('meent/nk_data/filmetrics/*.txt')),
+        ('nk_data/matlab', glob('meent/nk_data/matlab/*.mat')),
+    ],
 )
