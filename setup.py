@@ -2,11 +2,14 @@ from setuptools import setup, find_packages
 
 setup(
     name='meent',
-    version='0.4.2',
+    version='0.5.0',
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
-    packages=find_packages(),
+    # package_dir={'meent': 'meent'},
+    # packages=['meent'] + find_packages(include=['meent.*']),
+    packages=['meent'] + find_packages(include=['meent.*']),
+    # packages=['meent'],
     install_requires=[
         'numpy==1.23.3',
         'scipy==1.9.1',
