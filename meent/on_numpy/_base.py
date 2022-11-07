@@ -186,34 +186,24 @@ class _BaseRCWA(Base):
             # ---------Field Distribution----------
 
         def field_dist(f, x, y, z, T):
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) - fourier_indices * (wl / self.period[0])).astype('complex')
-            X = np.diag(np.exp(-k0 * q * d))
-
-            W_i = np.linalg.inv(W)
-            V_i = np.linalg.inv(V)
-
-            # Z_II = np.diag(k_II_z / (k0 * self.n_II ** 2))
-
-            # c1 = 0.5 * np.linalg.inv(X) @ (W_i + 1j * V_i @ Z_II) @ T
-            # c2 = 0.5 * (W_i - 1j * V_i @ Z_II) @ T
-            # print(np.linalg.norm(c1).round(3), np.linalg.norm(c1).round(3))
-            c1 = T1[:, None]
-
-            a = 0.5 * (W_i @ f + V_i @ g)
-            b = 0.5 * (W_i @ f - V_i @ g)
-
-            a_i = np.linalg.inv(a)
-
-            c2 = b @ a_i @ X @ T1[:, None]
-            # center = c1.shape[0] // 2
-            # side = 5
-            # c1[:center-side] = 0
-            # c1[center+side:] = 0
-            # c2[:center-side] = 0
-            # c2[center+side:] = 0
-            # from numpy.linalg import norm
+            # kx_vector = k0 * (self.n_I * np.sin(self.theta) - fourier_indices * (wl / self.period[0])).astype('complex')
+            # X = np.diag(np.exp(-k0 * q * d))
             #
-            # print(norm(c1), norm(c2))
+            # W_i = np.linalg.inv(W)
+            # V_i = np.linalg.inv(V)
+            #
+            # a = 0.5 * (W_i @ f + V_i @ g)
+            # b = 0.5 * (W_i @ f - V_i @ g)
+            # # Tl = np.linalg.inv(X) @ a @ T
+            # c1 = T1[:, None]
+            #
+            # a_i = np.linalg.inv(a)
+            #
+            c2 = b @ a_i @ X @ T1[:, None]
+            #
+            step = self.period[0] / len_x
+
+            x = (x - len_x//2) *step
 
             Uy = W @ (np.exp(-k0 * Q * z) @ c1 + np.exp(k0 * Q * (z - d)) @ c2)
 
@@ -232,17 +222,35 @@ class _BaseRCWA(Base):
 
             return Hy, Dx, Ez
 
-        field_cell = np.zeros((100, 1, 100, 3), dtype='complex')
+        field_cell = np.zeros((100, 1, 10, 3), dtype='complex')
         len_x, len_y, len_z = field_cell.shape[:3]
+
+        kx_vector = k0 * (self.n_I * np.sin(self.theta) - fourier_indices * (wl / self.period[0])).astype('complex')
+        X = np.diag(np.exp(-k0 * q * d))
+
+        W_i = np.linalg.inv(W)
+        V_i = np.linalg.inv(V)
+
+        a = 0.5 * (W_i @ f + V_i @ g)
+        b = 0.5 * (W_i @ f - V_i @ g)
+        # Tl = np.linalg.inv(X) @ a @ T
+        c1 = T1[:, None]
+
+        a_i = np.linalg.inv(a)
+
+        c2 = b @ a_i @ X @ T1[:, None]
 
         for k in range(len_z):
             for j in range(len_y):
                 for i in range(len_x):
-                    field_cell[i, j, k] = field_dist(f, i / (len_x-1) * self.period[0], j, k / (len_z-1) * d, T)
+                # for i in range(-len_x // 2 + 1, len_x // 2, 1):
+                    field_cell[i, j, k] = field_dist(f, i, j, k / (len_z-1) * d, T)
                     # field_cell[i, j, k] /= np.linalg.norm(field_cell[i, j, 0])
-        plt.imshow(abs(field_cell[:, 0, :, 0].T), cmap='jet', aspect='auto')
+        plt.imshow(abs(np.hstack((field_cell[:, 0, :, 0].T, field_cell[:, 0, :, 0].T))), cmap='jet', aspect='auto')
         plt.colorbar()
         plt.show()
+        print(1)
+        pass
 
 
         # for i in np.arange(-len_x//2, len_x//2, 1):

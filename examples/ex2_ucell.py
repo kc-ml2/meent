@@ -18,20 +18,22 @@ psi = 0 if pol else 90  # in degree, notation from Moharam paper
 wls = np.linspace(900, 900, 1)  # wavelength
 
 if grating_type in (0, 1):
-    period = [200]
-    fourier_order = 200
+    period = [1000]
+    fourier_order = 5
 
 else:
     period = [700, 700]
     fourier_order = 3
 
-thickness = [1000]
+thickness = [200]
 
 ucell = np.array([
 
     [
         [
-            0, 1, 0, 1, 0, 1, 1, 1, 1, 1,
+            # 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1,1, 1,1, 1,1, 0,0,
+            0, 0, 0, 0, 1, 1, 0, 0, 0, 0,
+            # 0, 1, 0, 1, 0, 1, 1, 1, 1, 1,
             # 1, 1, 1, 0, 0, 0, 1, 1, 1, 1,
             # 1, 1, 1, 0, 0, 0, 1, 1, 1, 1,
             # 1, 1, 1, 0, 0, 0, 1, 1, 1, 1,
@@ -55,7 +57,7 @@ ucell = np.array([
     ],
 ])
 
-ucell_materials = [3, 1]
+ucell_materials = [5, 1]
 
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,

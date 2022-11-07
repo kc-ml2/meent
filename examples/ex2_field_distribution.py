@@ -19,8 +19,8 @@ if grating_type in (0, 1):
     def_angle = 60
     period = abs(wls / np.sin(def_angle / 180 * np.pi))
     # period = [2000]
-    fourier_order = 5
-    patterns = [[3.48, 1, 1]]  # n_ridge, n_groove, fill_factor
+    fourier_order = 50
+    patterns = [[3.48, 1, 0.5]]  # n_ridge, n_groove, fill_factor
 #
 # else:
 #     period = [700, 700]
