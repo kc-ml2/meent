@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='meent',
-    version='0.4.1',
+    version='0.4.2',
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
@@ -15,4 +15,7 @@ setup(
     ],
     python_requires='>=3.8',
     long_description_content_type="text/markdown",
+    package_data={
+        'meent': ['nk_data/filmetrics/*.txt', 'nk_data/matlab/*.mat'],
+    },
 )
