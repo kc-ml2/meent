@@ -8,7 +8,7 @@ from meent.rcwa import call_solver, sweep_wavelength
 grating_type = 0  # 0: 1D, 1: 1D conical, 2:2D.
 pol = 1  # 0: TE, 1: TM
 
-n_I = 1  # n_incidence
+n_I = 1.45  # n_incidence
 n_II = 1  # n_transmission
 
 theta = 0  # in degree, notation from Moharam paper
@@ -18,12 +18,12 @@ psi = 0 if pol else 90  # in degree, notation from Moharam paper
 wls = np.linspace(900, 900, 1)  # wavelength
 
 if grating_type in (0, 1):
-    period = [200]
-    fourier_order = 200
+    period = [1000]
+    fourier_order = 10
 
 else:
     period = [700, 700]
-    fourier_order = 3
+    fourier_order = 5
 
 thickness = [1000]
 
@@ -31,7 +31,9 @@ ucell = np.array([
 
     [
         [
-            0, 1, 0, 1, 0, 1, 1, 1, 1, 1,
+            # 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1,1, 1,1, 1,1, 0,0,
+            0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+            # 0, 1, 0, 1, 0, 1, 1, 1, 1, 1,
             # 1, 1, 1, 0, 0, 0, 1, 1, 1, 1,
             # 1, 1, 1, 0, 0, 0, 1, 1, 1, 1,
             # 1, 1, 1, 0, 0, 0, 1, 1, 1, 1,
@@ -55,7 +57,7 @@ ucell = np.array([
     ],
 ])
 
-ucell_materials = [3, 1]
+ucell_materials = [1, 3.48]
 
 AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,

@@ -54,12 +54,12 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
     g = V @ (np.eye(2 * fourier_order + 1) - X @ b @ a_i @ X)
     T = T @ a_i @ X
 
-    return f, g, T
+    return f, g, T, a_i, b
 
 
-def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
-    T1 = np.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
-    R = f @ T1 - delta_i0
+def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
+    T1 = np.linalg.inv(g1 + 1j * YZ_I @ f1) @ (1j * YZ_I @ delta_i0 + inc_term)
+    R = f1 @ T1 - delta_i0
     T = T @ T1
 
     de_ri = np.real(R * np.conj(R) * k_I_z / (k0 * n_I * np.cos(theta)))
@@ -163,6 +163,7 @@ def transfer_2d_2(k0, d, W, V, center, Lambda, varphi, I, O, big_F, big_G, big_T
 
     X_1 = np.diag(np.exp(-k0 * Lambda_1 * d))
     X_2 = np.diag(np.exp(-k0 * Lambda_2 * d))
+    # TODO: expm
 
     F_c = np.diag(np.cos(varphi))
     F_s = np.diag(np.sin(varphi))
@@ -316,6 +317,7 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
 
     X_1 = np.diag(np.exp(-k0 * q_1 * d))
     X_2 = np.diag(np.exp(-k0 * q_2 * d))
+    # TODO: expm
 
     F_c = np.diag(np.cos(varphi))
     F_s = np.diag(np.sin(varphi))

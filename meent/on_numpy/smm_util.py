@@ -52,7 +52,9 @@ def S_layer(A, B, d, k0, modes):
     """
 
     # sign convention (EMLAB is exp(-1i*k\dot r))
-    X = np.diag(np.exp(-np.diag(modes)*d*k0))  # TODO: Check
+    X = np.diag(np.exp(-np.diag(modes)*d*k0))
+    # TODO: Check
+    # TODO: expm
 
     A_i = inv(A)
     term_i = inv(A - X @ B @ A_i @ X @ B)
