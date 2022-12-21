@@ -7,7 +7,7 @@ from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3
     scattering_2d_2, scattering_2d_3
 from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2,\
     transfer_1d_conical_3, transfer_2d_1, transfer_2d_wv, transfer_2d_2, transfer_2d_3
-from .field_distribution import field_dist_1d_tm
+from .field_distribution import field_dist_loop_1d, field_dist_loop_2d, field_plot_zx, field_distribution
 
 
 class Base:
@@ -130,7 +130,7 @@ class _BaseRCWA(Base):
 
         # --------------------------------------------------------------------
         if self.algo == 'TMM':
-            Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \
+            kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \
                 = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II,
                                 self.theta, delta_i0, self.fourier_order, fourier_indices, wl, self.period)
         elif self.algo == 'SMM':
@@ -141,8 +141,14 @@ class _BaseRCWA(Base):
             raise ValueError
 
         # --------------------------------------------------------------------
+
+        layer_info_list = []
+
+        # From the last layer
         for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+
             if self.pol == 0:
+                E_conv_i = None
                 A = Kx ** 2 - E_conv
                 eigenvalues, W = np.linalg.eig(A)
                 q = eigenvalues ** 0.5
@@ -165,7 +171,10 @@ class _BaseRCWA(Base):
                 raise ValueError
 
             if self.algo == 'TMM':
-                f, g, T, a_i, b = transfer_1d_2(k0, q, d, W, V, f, g, self.fourier_order, T)
+                X, f, g, T, a_i, b = transfer_1d_2(k0, q, d, W, V, f, g, self.fourier_order, T)
+
+                layer_info = [E_conv_i, Q, W, X, a_i, b, d]
+                layer_info_list.append(layer_info)
 
             elif self.algo == 'SMM':
                 A, B, S_dict, Sg = scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg)
@@ -173,7 +182,7 @@ class _BaseRCWA(Base):
                 raise ValueError
 
         if self.algo == 'TMM':
-            de_ri, de_ti, T, T1 = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II,
+            de_ri, de_ti, _, T1 = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II,
                                          self.theta, self.pol, k_II_z)
         elif self.algo == 'SMM':
             de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, self.ff, Wr, self.fourier_order, Kzr, Kzt,
@@ -181,90 +190,42 @@ class _BaseRCWA(Base):
         else:
             raise ValueError
 
-            # ---------Field Distribution----------
+        # ---------Field Distribution----------
 
-        # def field_dist(f, x, y, z, T, Q, T1):
-        #
-        #     X = np.diag(np.exp(-k0 * q * d))
-        #
-        #     W_i = np.linalg.inv(W)
-        #     V_i = np.linalg.inv(V)
-        #
-        #     a = 0.5 * (W_i @ f2 + V_i @ g2)
-        #     b = 0.5 * (W_i @ f2 - V_i @ g2)
-        #
-        #     a_i = np.linalg.inv(a)
-        #
-        #     c1 = T1[:, None]
-        #     c2 = b @ a_i @ X @ T1[:, None]
-        #
-        #     step = self.period[0] / len_x
-        #
-        #     x *= step
-        #
-        #     Uy = W @ (scipy.linalg.expm(-k0 * Q * z) @ c1 + scipy.linalg.expm(k0 * Q * (z - d)) @ c2)
-        #     Hy = Uy.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-        #
-        #     # Original TMM method (without enhanced)
-        #     # Z_II = np.diag(k_II_z / (k0 * self.n_II ** 2))
-        #     # CC = np.linalg.inv(np.block([[W@X, W], [V@X, -V]])) @ np.block([[np.eye(self.ff)], [1j*Z_II]]) @ T
-        #     # cc1 = CC[:self.ff]
-        #     # cc2 = CC[self.ff:]
-        #     # Uy1 = W @ (scipy.linalg.expm(-k0 * Q * z) @ cc1 + scipy.linalg.expm(k0 * Q * (z - d)) @ cc2)
-        #     # Hy1 = Uy1.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-        #
-        #
-        #     omega = 2 * np.pi / wl
-        #     G = (1j * k0 / omega) * W @ Q @ (-scipy.linalg.expm(-k0 * Q * z) @ c1 + scipy.linalg.expm(k0 * Q * (z - d)) @ c2)
-        #     Dx = G.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-        #     Ex = Dx if x < 300 else Dx/3.48**2
-        #
-        #     # eps0 = 8.854E-12/1E-9
-        #     eps0 = 100 * np.sqrt(2)
-        #     eps0= 1/ omega
-        #     f_here = (-1j / omega / eps0) * np.linalg.inv(E_conv) @ Kx @ Uy
-        #     Ez = f_here.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-        #
-        #     return Hy, Ex, Ez
+        field_cell = field_distribution(self.grating_type, kx_vector, T1, layer_info_list, Kx, k0, self.period, self.pol)
 
-        field_cell = np.zeros((100, 1, 200, 3), dtype='complex')
-        len_x, len_y, len_z = field_cell.shape[:3]
-
-        kx_vector = k0 * (self.n_I * np.sin(self.theta) - fourier_indices * (wl / self.period[0])).astype('complex')
-        # X = np.diag(np.exp(-k0 * q * d))
-
-        # W_i = np.linalg.inv(W)
-        # V_i = np.linalg.inv(V)
-
-        # a = 0.5 * (W_i @ f + V_i @ g)
-        # b = 0.5 * (W_i @ f - V_i @ g)
-        # # Tl = np.linalg.inv(X) @ a @ T
-        # c1 = T1[:, None]
+        # plt.imshow((abs(field_cell[:, 0, :, 0].T) ** 2), cmap='jet', aspect='auto')
+        # plt.colorbar()
+        # plt.show()
         #
-        # a_i = np.linalg.inv(a)
+        # plt.imshow((abs(field_cell[:, 0, :, 1].T) ** 2), cmap='jet', aspect='auto')
+        # # plt.clim(0, 2)  # identical to caxis([-4,4]) in MATLAB
+        # plt.colorbar()
+        # plt.show()
+        #
+        # plt.imshow((abs(field_cell[:, 0, :, 2].T) ** 2), cmap='jet', aspect='auto')
+        # # plt.clim(0, 2)  # identical to caxis([-4,4]) in MATLAB
+        # plt.colorbar()
+        # plt.show()
 
-        # c2 = b @ a_i @ X @ T1[:, None]
+        field_plot_zx(field_cell, (1, 1, 1), pol=self.pol)
 
-        for k in range(len_z):
-            for j in range(len_y):
-                for i in range(len_x):
-                    # field_cell[i, j, k] = field_dist(f, i, j, k / (len_z) * d, T, Q, T1)
 
-                    step = self.period[0] / len_x
-
-                    field_cell[i, j, k] = field_dist_1d_tm(i*step, j, k /len_z * d, T1, q, k0, d, W, b, a_i, kx_vector,wl, E_conv_i, Kx)
-
-        plt.imshow((abs(field_cell[:, 0, :, 0].T) ** 2), cmap='jet', aspect='auto')
-        plt.colorbar()
-        plt.show()
-
-        plt.imshow((abs(field_cell[:, 0, :, 1].T) ** 2), cmap='jet', aspect='auto')
-        plt.colorbar()
-        plt.show()
-
-        plt.imshow((abs(field_cell[:, 0, :, 2].T) ** 2), cmap='jet', aspect='auto')
-        plt.colorbar()
-        plt.show()
+        # x_arr = np.linspace(0, len_x, 100) * self.period[0]
+        # z_arr = np.linspace(0, len_z, 100) / len_z * d
+        # a = field_dist_1d_tm_vectorize(x_arr, j, z_arr, T1, q, k0, d, W, b, a_i, kx_vector, wl,
+        #                                        E_conv_i, Kx)
+        # plt.imshow((abs(field_cell[:, 0, :, 0].T) ** 2), cmap='jet', aspect='auto')
+        # plt.colorbar()
+        # plt.show()
+        #
+        # plt.imshow((abs(field_cell[:, 0, :, 1].T) ** 2), cmap='jet', aspect='auto')
+        # plt.colorbar()
+        # plt.show()
+        #
+        # plt.imshow((abs(field_cell[:, 0, :, 2].T) ** 2), cmap='jet', aspect='auto')
+        # plt.colorbar()
+        # plt.show()
 
         print(1)
 
@@ -334,26 +295,55 @@ class _BaseRCWA(Base):
         else:
             raise ValueError
 
+        # --------------------------------------------------------------------
+
+        layer_info_list = []
+
+        # From the last layer
         for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
-            E_i = np.linalg.inv(E_conv)
-            oneover_E_conv_i = np.linalg.inv(oneover_E_conv)
+            E_conv_i = np.linalg.inv(E_conv)
+            o_E_conv_i = np.linalg.inv(oneover_E_conv)
 
             if self.algo == 'TMM':  # TODO: MERGE W V part
-                W, V, LAMBDA, Lambda = transfer_2d_wv(self.ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center)
-                big_F, big_G, big_T = transfer_2d_2(k0, d, W, V, center, Lambda, varphi, I, O, big_F, big_G, big_T)
+                # W, V, LAMBDA, Lambda = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, center)
+                W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, center)
+
+                big_X, big_F, big_G, big_T, big_A_i, big_B, \
+                W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22 \
+                    = transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T)
+
+                layer_info = [E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d]
+                layer_info_list.append(layer_info)
+
             elif self.algo == 'SMM':
-                W, V, LAMBDA = scattering_2d_wv(self.ff, Kx, Ky, E_conv, oneover_E_conv, oneover_E_conv_i, E_i)
+                W, V, LAMBDA = scattering_2d_wv(self.ff, Kx, Ky, E_conv, oneover_E_conv, o_E_conv_i, E_conv_i)
                 A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
             else:
                 raise ValueError
 
         if self.algo == 'TMM':
-            de_ri, de_ti = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
+            de_ri, de_ti, big_T1 = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
                                          delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z)
         elif self.algo == 'SMM':
             de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_I,
                                            self.pol, self.theta, self.phi, self.fourier_order, self.ff)
         else:
             raise ValueError
+
+        # ---------Field Distribution----------
+
+        kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
+                self.wavelength / self.period[0])).astype('complex')
+        ky_vector = k0 * (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (
+                self.wavelength / self.period[1])).astype('complex')
+
+        field_cell = field_distribution(self.grating_type, kx_vector, ky_vector, big_T1, layer_info_list, Kx, Ky, k0, self.period, self.pol)
+
+        field_plot_zx(field_cell, (1,1,1,1,1,1))
+
+        # plt.imshow((abs(field_cell[:, :, 50, 0].T) ** 2), cmap='jet', aspect='auto');plt.colorbar();plt.show()
+        # plt.imshow((abs(field_cell[:, :, 50, 1].T) ** 2), cmap='jet', aspect='auto');plt.colorbar();plt.show()
+        # plt.imshow((abs(field_cell[:, :, 50, 3].T) ** 2), cmap='jet', aspect='auto');plt.colorbar();plt.show()
+        # plt.imshow((abs(field_cell[:, :, 50, 4].T) ** 2), cmap='jet', aspect='auto');plt.colorbar();plt.show()
 
         return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape((self.ff, self.ff)).real

@@ -223,7 +223,7 @@ def to_conv_mat(pmt, fourier_order):
 
             center = np.array(pmtvy_fft.shape) // 2
 
-            conv_idx = np.arange(ff - 1, -ff, -1)
+            conv_idx = np.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)[ff - 1:, :ff]
 
             conv_i = np.repeat(conv_idx, ff, axis=1)

@@ -36,7 +36,7 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_orde
 
     T = np.eye(2 * fourier_order + 1)
 
-    return Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T
+    return kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T
 
 
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
@@ -54,7 +54,7 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
     g = V @ (np.eye(2 * fourier_order + 1) - X @ b @ a_i @ X)
     T = T @ a_i @ X
 
-    return f, g, T, a_i, b
+    return X, f, g, T, a_i, b
 
 
 def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
@@ -131,19 +131,19 @@ def transfer_2d_wv(ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center):
 
     eigenvalues, W = np.linalg.eig(S2_from_S)
 
-    Lambda = eigenvalues ** 0.5
+    q = eigenvalues ** 0.5
 
-    LAMBDA = np.diag(Lambda)
-    LAMBDA_i = np.linalg.inv(LAMBDA)
+    Q = np.diag(q)
+    Q_i = np.linalg.inv(Q)
     U1_from_S = np.block(
         [
             [-Kx @ Ky, Kx ** 2 - E_conv],
             [oneover_E_conv_i - Ky ** 2, Ky @ Kx]
         ]
     )
-    V = U1_from_S @ W @ LAMBDA_i
+    V = U1_from_S @ W @ Q_i
 
-    return W, V, LAMBDA, Lambda
+    return W, V, q
 
 
 def transfer_2d_2(k0, d, W, V, center, Lambda, varphi, I, O, big_F, big_G, big_T):
@@ -163,7 +163,6 @@ def transfer_2d_2(k0, d, W, V, center, Lambda, varphi, I, O, big_F, big_G, big_T
 
     X_1 = np.diag(np.exp(-k0 * Lambda_1 * d))
     X_2 = np.diag(np.exp(-k0 * Lambda_2 * d))
-    # TODO: expm
 
     F_c = np.diag(np.cos(varphi))
     F_s = np.diag(np.sin(varphi))
@@ -196,7 +195,7 @@ def transfer_2d_2(k0, d, W, V, center, Lambda, varphi, I, O, big_F, big_G, big_T
 
     big_T = big_T @ big_A_i @ big_X
 
-    return big_F, big_G, big_T
+    return big_X, big_F, big_G, big_T, big_A_i, big_B, W_11, W_12, W_21, W_22, V_11, V_12,V_21,V_22
 
 
 def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z):
@@ -232,12 +231,14 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
         ]
     )
 
-    final_X = np.linalg.inv(final_A) @ final_B
+    final_RT = np.linalg.inv(final_A) @ final_B
 
-    R_s = final_X[:ff ** 2, :].flatten()
-    R_p = final_X[ff ** 2:2 * ff ** 2, :].flatten()
+    R_s = final_RT[:ff ** 2, :].flatten()
+    R_p = final_RT[ff ** 2:2 * ff ** 2, :].flatten()
 
-    big_T = big_T @ final_X[2 * ff ** 2:, :]
+    big_T1 = final_RT[2 * ff ** 2:, :]
+    big_T = big_T @ big_T1
+
     T_s = big_T[:ff ** 2, :].flatten()
     T_p = big_T[ff ** 2:, :].flatten()
 
@@ -247,7 +248,7 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     de_ti = T_s * np.conj(T_s) * np.real(k_II_z / (k0 * n_I * np.cos(theta))) \
             + T_p * np.conj(T_p) * np.real((k_II_z / n_II ** 2) / (k0 * n_I * np.cos(theta)))
 
-    return de_ri.real, de_ti.real
+    return de_ri.real, de_ti.real, big_T1
 
 
 def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavelength, perturbation=1E-20 * (1 + 1j)):
