@@ -43,6 +43,7 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_orde
 
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
     X = jnp.diag(jnp.exp(-k0 * q * d))
+    # TODO: expm
 
     W_i = jnp.linalg.inv(W)
     V_i = jnp.linalg.inv(V)
@@ -169,6 +170,7 @@ def transfer_2d_2(k0, d, W, V, center, Lambda, varphi, I, O, big_F, big_G, big_T
 
     X_1 = jnp.diag(jnp.exp(-k0 * Lambda_1 * d))
     X_2 = jnp.diag(jnp.exp(-k0 * Lambda_2 * d))
+    # TODO: expm
 
     F_c = jnp.diag(jnp.cos(varphi))
     F_s = jnp.diag(jnp.sin(varphi))
