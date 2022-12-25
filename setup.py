@@ -6,10 +6,7 @@ setup(
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
-    # package_dir={'meent': 'meent'},
-    # packages=['meent'] + find_packages(include=['meent.*']),
     packages=['meent'] + find_packages(include=['meent.*']),
-    # packages=['meent'],
     install_requires=[
         'numpy==1.23.3',
         'scipy==1.9.1',
