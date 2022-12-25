@@ -7,43 +7,43 @@ from scipy.linalg import circulant
 from pathlib import Path
 
 
-def put_n_ridge_in_pattern_fill_factor(pattern_all, mat_table, wl):
-
-    pattern_all = copy.deepcopy(pattern_all)
-
-    for i, (n_ridge, n_groove, pattern) in enumerate(pattern_all):
-
-        if type(n_ridge) == str:
-            material = n_ridge
-            n_ridge = find_nk_index(material, mat_table, wl)
-        pattern_all[i][0] = n_ridge
-    return pattern_all
-
-
-def get_material_index_in_ucell(ucell_comp, mat_list):
-
-    res = [[[] for _ in mat_list] for _ in ucell_comp]
-
-    for z, ucell_xy in enumerate(ucell_comp):
-        for y in range(ucell_xy.shape[0]):
-            for x in range(ucell_xy.shape[1]):
-                res[z][ucell_xy[y, x]].append([y, x])
-    return res
+# def put_n_ridge_in_pattern_fill_factor(pattern_all, mat_table, wl):
+#
+#     pattern_all = copy.deepcopy(pattern_all)
+#
+#     for i, (n_ridge, n_groove, pattern) in enumerate(pattern_all):
+#
+#         if type(n_ridge) == str:
+#             material = n_ridge
+#             n_ridge = find_nk_index(material, mat_table, wl)
+#         pattern_all[i][0] = n_ridge
+#     return pattern_all
 
 
-def put_permittivity_in_ucell_object_comps(ucell, mat_list, obj_list, mat_table, wl):
+# def get_material_index_in_ucell(ucell_comp, mat_list):
+#
+#     res = [[[] for _ in mat_list] for _ in ucell_comp]
+#
+#     for z, ucell_xy in enumerate(ucell_comp):
+#         for y in range(ucell_xy.shape[0]):
+#             for x in range(ucell_xy.shape[1]):
+#                 res[z][ucell_xy[y, x]].append([y, x])
+#     return res
 
-    res = np.zeros(ucell.shape, dtype='complex')
 
-    for obj_xy in obj_list:
-        for material, obj_index in zip(mat_list, obj_xy):
-            obj_index = np.array(obj_index).T
-            if type(material) == str:
-                res[obj_index[0], obj_index[1]] = find_nk_index(material, mat_table, wl) ** 2
-            else:
-                res[obj_index[0], obj_index[1]] = material ** 2
-
-    return res
+# def put_permittivity_in_ucell_object_comps(ucell, mat_list, obj_list, mat_table, wl):
+#
+#     res = np.zeros(ucell.shape, dtype='complex')
+#
+#     for obj_xy in obj_list:
+#         for material, obj_index in zip(mat_list, obj_xy):
+#             obj_index = np.array(obj_index).T
+#             if type(material) == str:
+#                 res[obj_index[0], obj_index[1]] = find_nk_index(material, mat_table, wl) ** 2
+#             else:
+#                 res[obj_index[0], obj_index[1]] = material ** 2
+#
+#     return res
 
 
 def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
@@ -63,7 +63,7 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
 
 
 def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl):
-
+    # TODO: under development
     res = np.zeros(ucell_size, dtype='complex')
 
     for material, obj_index in zip(mat_list, obj_list):
@@ -117,11 +117,11 @@ def read_material_table(nk_path=None):
     return mat_table
 
 
-def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type, mat_table):
-    pattern_fill_factor = put_n_ridge_in_pattern_fill_factor(patterns_fill_factor, mat_table, wl)
-    ucell = draw_fill_factor(pattern_fill_factor, grating_type)
-
-    return ucell
+# def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type, mat_table):
+#     pattern_fill_factor = put_n_ridge_in_pattern_fill_factor(patterns_fill_factor, mat_table, wl)
+#     ucell = draw_fill_factor(pattern_fill_factor, grating_type)
+#
+#     return ucell
 
 
 def cell_compression(cell):
@@ -223,7 +223,7 @@ def to_conv_mat(pmt, fourier_order):
 
             center = np.array(pmtvy_fft.shape) // 2
 
-            conv_idx = np.arange(ff - 1, -ff, -1)
+            conv_idx = np.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)[ff - 1:, :ff]
 
             conv_i = np.repeat(conv_idx, ff, axis=1)
@@ -237,33 +237,33 @@ def to_conv_mat(pmt, fourier_order):
     # plt.imshow(abs(res[0]), cmap='jet')
     # plt.colorbar()
     # plt.show()
+    #
+    # return res
 
-    return res
 
-
-def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000, mode=0):
-
-    # res in Z X Y
-    if grating_type == 2:
-        res = np.zeros((len(patterns_fill_factor), resolution, resolution), dtype='complex')
-    else:
-        res = np.zeros((len(patterns_fill_factor), 1, resolution), dtype='complex')
-
-    if grating_type in (0, 1):  # TODO: handle this by len(fill_factor)
-        # fill_factor is not exactly implemented.
-        for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
-            permittivity = np.ones((1, resolution), dtype='complex')
-            cut = int(resolution * fill_factor)
-            permittivity[0, :cut] *= n_ridge ** 2
-            permittivity[0, cut:] *= n_groove ** 2
-            res[i, 0] = permittivity
-    else:  # 2D
-        for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
-            fill_factor = np.array(fill_factor)
-            permittivity = np.ones((resolution, resolution), dtype='complex')
-            cut = (resolution * fill_factor)  # TODO: need parenthesis?
-            permittivity *= n_groove ** 2
-            permittivity[:int(cut[1]), :int(cut[0])] *= n_ridge ** 2
-            res[i] = permittivity
-
-    return res
+# def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000, mode=0):
+#
+#     # res in Z X Y
+#     if grating_type == 2:
+#         res = np.zeros((len(patterns_fill_factor), resolution, resolution), dtype='complex')
+#     else:
+#         res = np.zeros((len(patterns_fill_factor), 1, resolution), dtype='complex')
+#
+#     if grating_type in (0, 1):  # TODO: handle this by len(fill_factor)
+#         # fill_factor is not exactly implemented.
+#         for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
+#             permittivity = np.ones((1, resolution), dtype='complex')
+#             cut = int(resolution * fill_factor)
+#             permittivity[0, :cut] *= n_ridge ** 2
+#             permittivity[0, cut:] *= n_groove ** 2
+#             res[i, 0] = permittivity
+#     else:  # 2D
+#         for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
+#             fill_factor = np.array(fill_factor)
+#             permittivity = np.ones((resolution, resolution), dtype='complex')
+#             cut = (resolution * fill_factor)  # TODO: need parenthesis?
+#             permittivity *= n_groove ** 2
+#             permittivity[:int(cut[1]), :int(cut[0])] *= n_ridge ** 2
+#             res[i] = permittivity
+#
+#     return res
