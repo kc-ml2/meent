@@ -72,7 +72,7 @@ def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, the
     else:
         raise ValueError
 
-    return de_ri, de_ti, T, T1
+    return de_ri, de_ti, T1
 
 
 def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavelength, perturbation=1E-20 * (1 + 1j)):
@@ -113,10 +113,10 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavele
 
     big_T = np.eye(ff ** 2 * 2)
 
-    return Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
+    return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_2d_wv(ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center):
+def transfer_2d_wv(ff, Kx, E_i, Ky, o_E_conv_i, E_conv, center):
 
     I = np.eye(ff ** 2)
 
@@ -125,8 +125,8 @@ def transfer_2d_wv(ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center):
 
     S2_from_S = np.block(
         [
-            [Ky ** 2 + B @ oneover_E_conv_i, Kx @ (E_i @ Ky @ E_conv - Ky)],
-            [Ky @ (E_i @ Kx @ oneover_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
+            [Ky ** 2 + B @ o_E_conv_i, Kx @ (E_i @ Ky @ E_conv - Ky)],
+            [Ky @ (E_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
     eigenvalues, W = np.linalg.eig(S2_from_S)
@@ -138,7 +138,7 @@ def transfer_2d_wv(ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center):
     U1_from_S = np.block(
         [
             [-Kx @ Ky, Kx ** 2 - E_conv],
-            [oneover_E_conv_i - Ky ** 2, Ky @ Kx]
+            [o_E_conv_i - Ky ** 2, Ky @ Kx]
         ]
     )
     V = U1_from_S @ W @ Q_i
@@ -146,10 +146,10 @@ def transfer_2d_wv(ff, Kx, E_i, Ky, oneover_E_conv_i, E_conv, center):
     return W, V, q
 
 
-def transfer_2d_2(k0, d, W, V, center, Lambda, varphi, I, O, big_F, big_G, big_T):
+def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T):
 
-    Lambda_1 = Lambda[:center]
-    Lambda_2 = Lambda[center:]
+    q1 = q[:center]
+    q2 = q[center:]
 
     W_11 = W[:center, :center]
     W_12 = W[:center, center:]
@@ -161,8 +161,8 @@ def transfer_2d_2(k0, d, W, V, center, Lambda, varphi, I, O, big_F, big_G, big_T
     V_21 = V[center:, :center]
     V_22 = V[center:, center:]
 
-    X_1 = np.diag(np.exp(-k0 * Lambda_1 * d))
-    X_2 = np.diag(np.exp(-k0 * Lambda_2 * d))
+    X_1 = np.diag(np.exp(-k0 * q1 * d))
+    X_2 = np.diag(np.exp(-k0 * q2 * d))
 
     F_c = np.diag(np.cos(varphi))
     F_s = np.diag(np.sin(varphi))
@@ -195,7 +195,7 @@ def transfer_2d_2(k0, d, W, V, center, Lambda, varphi, I, O, big_F, big_G, big_T
 
     big_T = big_T @ big_A_i @ big_X
 
-    return big_X, big_F, big_G, big_T, big_A_i, big_B, W_11, W_12, W_21, W_22, V_11, V_12,V_21,V_22
+    return big_X, big_F, big_G, big_T, big_A_i, big_B, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22
 
 
 def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z):
@@ -318,7 +318,6 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
 
     X_1 = np.diag(np.exp(-k0 * q_1 * d))
     X_2 = np.diag(np.exp(-k0 * q_2 * d))
-    # TODO: expm
 
     F_c = np.diag(np.cos(varphi))
     F_s = np.diag(np.sin(varphi))

@@ -7,84 +7,84 @@ from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3
     scattering_2d_2, scattering_2d_3
 from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2,\
     transfer_1d_conical_3, transfer_2d_1, transfer_2d_wv, transfer_2d_2, transfer_2d_3
-from .field_distribution import field_dist_loop_1d, field_dist_loop_2d, field_plot_zx, field_distribution
 
 
-class Base:
-    def __init__(self, grating_type):
-        self.grating_type = grating_type
-        self.wavelength = None
-        self.fourier_order = None
-        self.spectrum_r = None
-        self.spectrum_t = None
+# class Base:
+#     def __init__(self, grating_type):
+#         self.grating_type = grating_type
+#         self.wavelength = None
+#         self.fourier_order = None
+#         self.spectrum_r = None
+#         self.spectrum_t = None
+#
+#     def init_spectrum_array(self):
+#         if self.grating_type in (0, 1):
+#             self.spectrum_r = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1))
+#             self.spectrum_t = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1))
+#         elif self.grating_type == 2:
+#             self.spectrum_r = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
+#             self.spectrum_t = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
+#         else:
+#             raise ValueError
+#
+#     def save_spectrum_array(self, de_ri, de_ti, i):
+#         de_ri = np.array(de_ri)
+#         de_ti = np.array(de_ti)
+#
+#         if not de_ri.shape:
+#             # 1D or may be not; there is a case that reticolo returns single value
+#             c = self.spectrum_r.shape[1] // 2
+#             self.spectrum_r[i][c] = de_ri
+#
+#         elif len(de_ri.shape) == 1 or de_ri.shape[1] == 1:
+#             de_ri = de_ri.flatten()
+#             c = self.spectrum_r.shape[1] // 2
+#             l = de_ri.shape[0] // 2
+#             if len(de_ri) % 2:
+#                 self.spectrum_r[i][c - l:c + l + 1] = de_ri
+#             else:
+#                 self.spectrum_r[i][c - l:c + l] = de_ri
+#
+#         else:
+#             print('no code')
+#             raise ValueError
+#
+#         if not de_ti.shape:  # 1D
+#             c = self.spectrum_t.shape[1] // 2
+#             self.spectrum_t[i][c] = de_ti
+#
+#         elif len(de_ti.shape) == 1 or de_ti.shape[1] == 1:  # 1D
+#             de_ti = de_ti.flatten()
+#             c = self.spectrum_t.shape[1] // 2
+#             l = de_ti.shape[0] // 2
+#             if len(de_ti) % 2:
+#                 self.spectrum_t[i][c - l:c + l + 1] = de_ti
+#             else:
+#                 self.spectrum_t[i][c - l:c + l] = de_ti
+#
+#         else:
+#             print('no code')
+#             raise ValueError
+#
+#     def plot(self, title=None, marker=None):
+#         if self.grating_type in (0, 1):
+#             plt.plot(self.wavelength, self.spectrum_r.sum(axis=1), marker=marker)
+#             plt.plot(self.wavelength, self.spectrum_t.sum(axis=1), marker=marker)
+#         elif self.grating_type == 2:
+#             plt.plot(self.wavelength, self.spectrum_r.sum(axis=(1, 2)), marker=marker)
+#             plt.plot(self.wavelength, self.spectrum_t.sum(axis=(1, 2)), marker=marker)
+#         else:
+#             raise ValueError
+#         plt.title(title)
+#         plt.show()
 
-    def init_spectrum_array(self):
-        if self.grating_type in (0, 1):
-            self.spectrum_r = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1))
-            self.spectrum_t = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1))
-        elif self.grating_type == 2:
-            self.spectrum_r = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
-            self.spectrum_t = np.zeros((len(self.wavelength), 2 * self.fourier_order + 1, 2 * self.fourier_order + 1))
-        else:
-            raise ValueError
+# class _BaseRCWA(Base):
 
-    def save_spectrum_array(self, de_ri, de_ti, i):
-        de_ri = np.array(de_ri)
-        de_ti = np.array(de_ti)
-
-        if not de_ri.shape:
-            # 1D or may be not; there is a case that reticolo returns single value
-            c = self.spectrum_r.shape[1] // 2
-            self.spectrum_r[i][c] = de_ri
-
-        elif len(de_ri.shape) == 1 or de_ri.shape[1] == 1:
-            de_ri = de_ri.flatten()
-            c = self.spectrum_r.shape[1] // 2
-            l = de_ri.shape[0] // 2
-            if len(de_ri) % 2:
-                self.spectrum_r[i][c - l:c + l + 1] = de_ri
-            else:
-                self.spectrum_r[i][c - l:c + l] = de_ri
-
-        else:
-            print('no code')
-            raise ValueError
-
-        if not de_ti.shape:  # 1D
-            c = self.spectrum_t.shape[1] // 2
-            self.spectrum_t[i][c] = de_ti
-
-        elif len(de_ti.shape) == 1 or de_ti.shape[1] == 1:  # 1D
-            de_ti = de_ti.flatten()
-            c = self.spectrum_t.shape[1] // 2
-            l = de_ti.shape[0] // 2
-            if len(de_ti) % 2:
-                self.spectrum_t[i][c - l:c + l + 1] = de_ti
-            else:
-                self.spectrum_t[i][c - l:c + l] = de_ti
-
-        else:
-            print('no code')
-            raise ValueError
-
-    def plot(self, title=None, marker=None):
-        if self.grating_type in (0, 1):
-            plt.plot(self.wavelength, self.spectrum_r.sum(axis=1), marker=marker)
-            plt.plot(self.wavelength, self.spectrum_t.sum(axis=1), marker=marker)
-        elif self.grating_type == 2:
-            plt.plot(self.wavelength, self.spectrum_r.sum(axis=(1, 2)), marker=marker)
-            plt.plot(self.wavelength, self.spectrum_t.sum(axis=(1, 2)), marker=marker)
-        else:
-            raise ValueError
-        plt.title(title)
-        plt.show()
-
-
-class _BaseRCWA(Base):
+class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
                  period=0.7, wavelength=np.linspace(0.5, 2.3, 400), pol=0,
                  patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM'):
-        super().__init__(grating_type)
+        # super().__init__(grating_type)
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
         self.n_I = n_I
@@ -117,7 +117,10 @@ class _BaseRCWA(Base):
 
         self.algo = algo
 
-        self.init_spectrum_array()
+        # self.init_spectrum_array()
+
+        self.layer_info_list = []
+        self.T1 = None
 
     def solve_1d(self, wl, E_conv_all, o_E_conv_all):
 
@@ -128,7 +131,6 @@ class _BaseRCWA(Base):
 
         k0 = 2 * np.pi / wl
 
-        # --------------------------------------------------------------------
         if self.algo == 'TMM':
             kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \
                 = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II,
@@ -139,10 +141,6 @@ class _BaseRCWA(Base):
                                   self.pol, wl=wl)
         else:
             raise ValueError
-
-        # --------------------------------------------------------------------
-
-        layer_info_list = []
 
         # From the last layer
         for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
@@ -173,8 +171,8 @@ class _BaseRCWA(Base):
             if self.algo == 'TMM':
                 X, f, g, T, a_i, b = transfer_1d_2(k0, q, d, W, V, f, g, self.fourier_order, T)
 
-                layer_info = [E_conv_i, Q, W, X, a_i, b, d]
-                layer_info_list.append(layer_info)
+                layer_info = [E_conv_i, q, W, X, a_i, b, d]
+                self.layer_info_list.append(layer_info)
 
             elif self.algo == 'SMM':
                 A, B, S_dict, Sg = scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg)
@@ -182,52 +180,15 @@ class _BaseRCWA(Base):
                 raise ValueError
 
         if self.algo == 'TMM':
-            de_ri, de_ti, _, T1 = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II,
+            de_ri, de_ti, T1 = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II,
                                          self.theta, self.pol, k_II_z)
+            self.T1 = T1
+
         elif self.algo == 'SMM':
             de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, self.ff, Wr, self.fourier_order, Kzr, Kzt,
                                            self.n_I, self.n_II, self.theta, self.pol)
         else:
             raise ValueError
-
-        # ---------Field Distribution----------
-
-        field_cell = field_distribution(self.grating_type, kx_vector, T1, layer_info_list, Kx, k0, self.period, self.pol)
-
-        # plt.imshow((abs(field_cell[:, 0, :, 0].T) ** 2), cmap='jet', aspect='auto')
-        # plt.colorbar()
-        # plt.show()
-        #
-        # plt.imshow((abs(field_cell[:, 0, :, 1].T) ** 2), cmap='jet', aspect='auto')
-        # # plt.clim(0, 2)  # identical to caxis([-4,4]) in MATLAB
-        # plt.colorbar()
-        # plt.show()
-        #
-        # plt.imshow((abs(field_cell[:, 0, :, 2].T) ** 2), cmap='jet', aspect='auto')
-        # # plt.clim(0, 2)  # identical to caxis([-4,4]) in MATLAB
-        # plt.colorbar()
-        # plt.show()
-
-        field_plot_zx(field_cell, (1, 1, 1), pol=self.pol)
-
-
-        # x_arr = np.linspace(0, len_x, 100) * self.period[0]
-        # z_arr = np.linspace(0, len_z, 100) / len_z * d
-        # a = field_dist_1d_tm_vectorize(x_arr, j, z_arr, T1, q, k0, d, W, b, a_i, kx_vector, wl,
-        #                                        E_conv_i, Kx)
-        # plt.imshow((abs(field_cell[:, 0, :, 0].T) ** 2), cmap='jet', aspect='auto')
-        # plt.colorbar()
-        # plt.show()
-        #
-        # plt.imshow((abs(field_cell[:, 0, :, 1].T) ** 2), cmap='jet', aspect='auto')
-        # plt.colorbar()
-        # plt.show()
-        #
-        # plt.imshow((abs(field_cell[:, 0, :, 2].T) ** 2), cmap='jet', aspect='auto')
-        # plt.colorbar()
-        # plt.show()
-
-        print(1)
 
         return de_ri, de_ti
 
@@ -272,7 +233,7 @@ class _BaseRCWA(Base):
 
         return de_ri, de_ti
 
-    def solve_2d(self, wl, E_conv_all, oneover_E_conv_all):
+    def solve_2d(self, wl, E_conv_all, o_E_conv_all):
 
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
@@ -287,7 +248,7 @@ class _BaseRCWA(Base):
         k0 = 2 * np.pi / wl
 
         if self.algo == 'TMM':
-            Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
+            kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
                 = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta, self.phi, wl)
         elif self.algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
@@ -295,17 +256,12 @@ class _BaseRCWA(Base):
         else:
             raise ValueError
 
-        # --------------------------------------------------------------------
-
-        layer_info_list = []
-
         # From the last layer
-        for E_conv, oneover_E_conv, d in zip(E_conv_all[::-1], oneover_E_conv_all[::-1], self.thickness[::-1]):
+        for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
             E_conv_i = np.linalg.inv(E_conv)
-            o_E_conv_i = np.linalg.inv(oneover_E_conv)
+            o_E_conv_i = np.linalg.inv(o_E_conv)
 
             if self.algo == 'TMM':  # TODO: MERGE W V part
-                # W, V, LAMBDA, Lambda = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, center)
                 W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, center)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
@@ -313,10 +269,10 @@ class _BaseRCWA(Base):
                     = transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T)
 
                 layer_info = [E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d]
-                layer_info_list.append(layer_info)
+                self.layer_info_list.append(layer_info)
 
             elif self.algo == 'SMM':
-                W, V, LAMBDA = scattering_2d_wv(self.ff, Kx, Ky, E_conv, oneover_E_conv, o_E_conv_i, E_conv_i)
+                W, V, LAMBDA = scattering_2d_wv(self.ff, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
                 A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
             else:
                 raise ValueError
@@ -324,26 +280,12 @@ class _BaseRCWA(Base):
         if self.algo == 'TMM':
             de_ri, de_ti, big_T1 = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
                                          delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z)
+            self.T1 = big_T1
+
         elif self.algo == 'SMM':
             de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_I,
                                            self.pol, self.theta, self.phi, self.fourier_order, self.ff)
         else:
             raise ValueError
-
-        # ---------Field Distribution----------
-
-        kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
-                self.wavelength / self.period[0])).astype('complex')
-        ky_vector = k0 * (self.n_I * np.sin(self.theta) * np.sin(self.phi) - fourier_indices * (
-                self.wavelength / self.period[1])).astype('complex')
-
-        field_cell = field_distribution(self.grating_type, kx_vector, ky_vector, big_T1, layer_info_list, Kx, Ky, k0, self.period, self.pol)
-
-        field_plot_zx(field_cell, (1,1,1,1,1,1))
-
-        # plt.imshow((abs(field_cell[:, :, 50, 0].T) ** 2), cmap='jet', aspect='auto');plt.colorbar();plt.show()
-        # plt.imshow((abs(field_cell[:, :, 50, 1].T) ** 2), cmap='jet', aspect='auto');plt.colorbar();plt.show()
-        # plt.imshow((abs(field_cell[:, :, 50, 3].T) ** 2), cmap='jet', aspect='auto');plt.colorbar();plt.show()
-        # plt.imshow((abs(field_cell[:, :, 50, 4].T) ** 2), cmap='jet', aspect='auto');plt.colorbar();plt.show()
 
         return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape((self.ff, self.ff)).real
