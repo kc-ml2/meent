@@ -1,4 +1,5 @@
 import numpy as np
+import meent.integ.backend
 
 
 def call_solver(mode=0, *args, **kwargs):
@@ -20,6 +21,17 @@ def call_solver(mode=0, *args, **kwargs):
     elif mode == 1:
         from meent.on_jax.rcwa import RCWAOpt
         RCWA = RCWAOpt(mode, *args, **kwargs)
+
+    elif mode == 2:
+        meent.integ.backend.mode = 2
+        from meent.integ.rcwa import RCWAInteg
+        RCWA = RCWAInteg(mode, *args, **kwargs)
+    elif mode == 3:
+        meent.integ.backend.mode = 3
+
+        from meent.integ.rcwa import RCWAInteg
+        RCWA = RCWAInteg(mode, *args, **kwargs)
+
     else:
         raise ValueError
 

@@ -27,7 +27,7 @@ class RCWAOptimizer:
 
 
 if __name__ == '__main__':
-
+    t0 = time.time()
     aa = jnp.array(1100, dtype='float32')
     cc = jnp.array(1E-4, dtype='float32')  # OK
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
         phi = 20
         psi = 0 if pol else 90
 
-        wls = jnp.linspace(500, 2300, 1)
+        wls = jnp.linspace(900, 2300, 1)
         fourier_order = 10
 
         # Ground Truth
@@ -68,18 +68,19 @@ if __name__ == '__main__':
         thickness = jnp.array([1120])
         cell = jnp.array([[[3.48 ** 2, 3.48 ** 2, 3.48 ** 2, 1, 1, 1, 1, 1, 1, 1]]])
         ground_truth = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                            fourier_order=fourier_order, wls=wls, period=period, patterns=cell, thickness=thickness)
+                            fourier_order=fourier_order, wavelength=wls, period=period, patterns=cell, thickness=thickness)
 
         # Test
         thickness = jnp.array([thick])
 
         test = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                    fourier_order=fourier_order, wls=wls, period=period, patterns=cell, thickness=thickness)
+                    fourier_order=fourier_order, wavelength=wls, period=period, patterns=cell, thickness=thickness)
 
         a, b = ground_truth.jax_test()
 
         c, d = test.jax_test()
-        gap = jnp.linalg.norm(test.spectrum_r - ground_truth.spectrum_r)
+
+        gap = jnp.linalg.norm(a - c)
         # print('gap:', gap.primal)
         return gap
 
@@ -128,5 +129,5 @@ if __name__ == '__main__':
     minimum = minimums[arglist]
 
     print("The minimum is {} the argmin is {}".format(minimum, argmin))
-
+    print(time.time() - t0)
     print('end')

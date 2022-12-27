@@ -7,7 +7,7 @@ from scipy.linalg import circulant
 from pathlib import Path
 
 
-# def put_n_ridge_in_pattern_fill_factor(pattern_all, mat_table, wl):
+# def put_n_ridge_in_pattern_fill_factor(pattern_all, mat_table, wavelength):
 #
 #     pattern_all = copy.deepcopy(pattern_all)
 #
@@ -15,7 +15,7 @@ from pathlib import Path
 #
 #         if type(n_ridge) == str:
 #             material = n_ridge
-#             n_ridge = find_nk_index(material, mat_table, wl)
+#             n_ridge = find_nk_index(material, mat_table, wavelength)
 #         pattern_all[i][0] = n_ridge
 #     return pattern_all
 
@@ -31,7 +31,7 @@ from pathlib import Path
 #     return res
 
 
-# def put_permittivity_in_ucell_object_comps(ucell, mat_list, obj_list, mat_table, wl):
+# def put_permittivity_in_ucell_object_comps(ucell, mat_list, obj_list, mat_table, wavelength):
 #
 #     res = np.zeros(ucell.shape, dtype='complex')
 #
@@ -39,7 +39,7 @@ from pathlib import Path
 #         for material, obj_index in zip(mat_list, obj_xy):
 #             obj_index = np.array(obj_index).T
 #             if type(material) == str:
-#                 res[obj_index[0], obj_index[1]] = find_nk_index(material, mat_table, wl) ** 2
+#                 res[obj_index[0], obj_index[1]] = find_nk_index(material, mat_table, wavelength) ** 2
 #             else:
 #                 res[obj_index[0], obj_index[1]] = material ** 2
 #
@@ -117,13 +117,6 @@ def read_material_table(nk_path=None):
     return mat_table
 
 
-# def fill_factor_to_ucell(patterns_fill_factor, wl, grating_type, mat_table):
-#     pattern_fill_factor = put_n_ridge_in_pattern_fill_factor(patterns_fill_factor, mat_table, wl)
-#     ucell = draw_fill_factor(pattern_fill_factor, grating_type)
-#
-#     return ucell
-
-
 def cell_compression(cell):
     # find discontinuities in x
     step_y, step_x = 1. / np.array(cell.shape)
@@ -189,9 +182,11 @@ def fft_piecewise_constant(cell, fourier_order):
     y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], 1)) - y
 
     f_coeffs_xy[:, c] = f_coeffs_x.T @ np.vstack((y[0], y_next[:-1])).flatten()
-    mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
-    mask[c] = False
-    f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])
+
+    if c:
+        mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
+        mask[c] = False
+        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])
 
     return f_coeffs_xy.T
 
@@ -238,7 +233,7 @@ def to_conv_mat(pmt, fourier_order):
     # plt.colorbar()
     # plt.show()
     #
-    # return res
+    return res
 
 
 # def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000, mode=0):

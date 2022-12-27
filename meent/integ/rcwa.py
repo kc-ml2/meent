@@ -1,14 +1,34 @@
 import time
-import numpy as np
+
+# import meentpy as mp
+# from .meentpy import eig
 
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table
 from .field_distribution import field_dist_1d, field_dist_2d, field_plot_zx
 
+# from .backend import *
 
-class RCWALight(_BaseRCWA):
+
+class RCWAInteg(_BaseRCWA):
+
     def __init__(self, mode=0, grating_type=0, n_I=1., n_II=1., theta=0, phi=0, psi=0, fourier_order=40, period=(100,),
-                 wavelength=np.linspace(900, 900, 1), pol=0, patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM'):
+                 wavelength=900, pol=0, patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM'):
+        # if mode == 2:
+        #     # from .backend.be_numpy import BackendNumpy
+        #     from .backend.be_numpy import BackendNumpy as np
+        # elif mode == 3:
+        #     from .backend.be_jax import BackendJax as np
+        #
+        #
+        #
+        #     # BackendNumpy.__init__()
+        #     import numpy as np
+        #
+        #     # mp.eig = np.linalg.eig
+        #
+        #     print(2)
+
 
         super().__init__(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wavelength, pol, patterns, ucell, ucell_materials,
                          thickness, algo)
