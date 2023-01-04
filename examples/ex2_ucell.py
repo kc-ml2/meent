@@ -37,7 +37,7 @@ if grating_type in (0, 1):
 
 else:
     period = [1000, 1000]
-    fourier_order = 2
+    fourier_order = 30
 
     ucell = np.array([
 
@@ -53,6 +53,7 @@ else:
             [1, 0, 0, 1, 1, 1, 1, 1, 1, 1,],
             [0, 0, 0, 1, 1, 1, 1, 1, 1, 1,],
         ],
+
         # [
         #     [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
         #     [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
@@ -88,11 +89,27 @@ thickness = [500]
 
 ucell_materials = [1, 3.48]
 # ucell_materials = [3.48, 1]
-t0 = time.time()
-AA = call_solver(mode=3, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, ucell_materials=ucell_materials,
-                 thickness=thickness)
-de_ri, de_ti = AA.run_ucell()
-print(de_ri, de_ti)
-print(time.time()-t0)
-# res = AA.calculate_field()
+
+mode_options = {0: 'numpy' , 1: 'JAX' , 2: 'numpy_integ',     3: 'JAX_integ',}
+
+mode_key = 0
+
+print(mode_options[mode_key])
+
+# t0 = time.time()
+# AA = call_solver(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+#                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, ucell_materials=ucell_materials,
+#                  thickness=thickness)
+# de_ri, de_ti = AA.run_ucell()
+# # print(de_ri, de_ti)
+# print(time.time()-t0)
+# # res = AA.calculate_field()
+
+for _ in range(5):
+    t0 = time.time()
+    AA = call_solver(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                     fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, ucell_materials=ucell_materials,
+                     thickness=thickness)
+    de_ri, de_ti = AA.run_ucell()
+    print(time.time()-t0)
+# print(de_ri, de_ti)

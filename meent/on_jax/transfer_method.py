@@ -1,9 +1,13 @@
-import jax.numpy as jnp
+# import jax.numpy as ee
+from functools import partial
 
+import jax
+
+import meent.on_jax.jitted as ee
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_order, fourier_indices, wavelength, period):
 
-    kx_vector = k0 * (n_I * jnp.sin(theta) - fourier_indices * (wavelength / period[0])).astype('complex')
+    kx_vector = k0 * (n_I * ee.sin(theta) - fourier_indices * (wavelength / period[0])).astype('complex')
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2) ** 0.5
@@ -11,81 +15,82 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_orde
     k_I_z = k_I_z.conjugate()
     k_II_z = k_II_z.conjugate()
 
-    Kx = jnp.diag(kx_vector / k0)
+    Kx = ee.diag(kx_vector / k0)
 
-    f = jnp.eye(ff)
+    f = ee.eye(ff)
 
     if polarization == 0:  # TE
-        Y_I = jnp.diag(k_I_z / k0)
-        Y_II = jnp.diag(k_II_z / k0)
+        Y_I = ee.diag(k_I_z / k0)
+        Y_II = ee.diag(k_II_z / k0)
 
         YZ_I = Y_I
         g = 1j * Y_II
-        inc_term = 1j * n_I * jnp.cos(theta) * delta_i0
+        inc_term = 1j * n_I * ee.cos(theta) * delta_i0
 
     elif polarization == 1:  # TM
-        Z_I = jnp.diag(k_I_z / (k0 * n_I ** 2))
-        Z_II = jnp.diag(k_II_z / (k0 * n_II ** 2))
+        Z_I = ee.diag(k_I_z / (k0 * n_I ** 2))
+        Z_II = ee.diag(k_II_z / (k0 * n_II ** 2))
 
         YZ_I = Z_I
         g = 1j * Z_II
-        inc_term = 1j * delta_i0 * jnp.cos(theta) / n_I
+        inc_term = 1j * delta_i0 * ee.cos(theta) / n_I
 
     else:
         raise ValueError
 
-    T = jnp.eye(2 * fourier_order + 1)
+    T = ee.eye(2 * fourier_order + 1)
 
     return kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T
 
 
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T):
-    X = jnp.diag(jnp.exp(-k0 * q * d))
+    X = ee.diag(ee.exp(-k0 * q * d))
 
-    W_i = jnp.linalg.inv(W)
-    V_i = jnp.linalg.inv(V)
+    W_i = ee.inv(W)
+    V_i = ee.inv(V)
 
     a = 0.5 * (W_i @ f + V_i @ g)
     b = 0.5 * (W_i @ f - V_i @ g)
 
-    a_i = jnp.linalg.inv(a)
+    a_i = ee.inv(a)
 
-    f = W @ (jnp.eye(2 * fourier_order + 1) + X @ b @ a_i @ X)
-    g = V @ (jnp.eye(2 * fourier_order + 1) - X @ b @ a_i @ X)
+    f = W @ (ee.eye(2 * fourier_order + 1) + X @ b @ a_i @ X)
+    g = V @ (ee.eye(2 * fourier_order + 1) - X @ b @ a_i @ X)
     T = T @ a_i @ X
 
     return X, f, g, T, a_i, b
 
 
 def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
-    T1 = jnp.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
+    T1 = ee.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
     R = f @ T1 - delta_i0
     T = T @ T1
 
-    de_ri = jnp.real(R * jnp.conj(R) * k_I_z / (k0 * n_I * jnp.cos(theta)))
+    de_ri = ee.real(R * ee.conj(R) * k_I_z / (k0 * n_I * ee.cos(theta)))
     if polarization == 0:
-        # de_ti = T * jnp.conj(T) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta)))
-        de_ti = jnp.real(T * jnp.conj(T) * k_II_z / (k0 * n_I * jnp.cos(theta)))
+        # de_ti = T * ee.conj(T) * ee.real(k_II_z / (k0 * n_I * ee.cos(theta)))
+        de_ti = ee.real(T * ee.conj(T) * k_II_z / (k0 * n_I * ee.cos(theta)))
     elif polarization == 1:
-        # de_ti = T * jnp.conj(T) * jnp.real(k_II_z / n_II ** 2) / (k0 * jnp.cos(theta) / n_I)
-        de_ti = jnp.real(T * jnp.conj(T) * k_II_z / n_II ** 2) / (k0 * jnp.cos(theta) / n_I)
+        # de_ti = T * ee.conj(T) * ee.real(k_II_z / n_II ** 2) / (k0 * ee.cos(theta) / n_I)
+        de_ti = ee.real(T * ee.conj(T) * k_II_z / n_II ** 2) / (k0 * ee.cos(theta) / n_I)
     else:
         raise ValueError
 
     return de_ri, de_ti, T1
 
 
-def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j)):
-    I = jnp.eye(ff ** 2)
-    O = jnp.zeros((ff ** 2, ff ** 2))
+# @partial(jax.jit, static_argnums=(0, ))
+def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavelength, perturbation=1E-20 * (1 + 1j)):
+    I = ee.eye(ff ** 2)
+    O = ee.zeros((ff ** 2, ff ** 2))
 
-    kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) - fourier_indices * (
-            wl / period[0])).astype('complex')
-    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) - fourier_indices * (
-            wl / period[1])).astype('complex')
+    kx_vector = k0 * (n_I * ee.sin(theta) * ee.cos(phi) - fourier_indices * (
+            wavelength / period[0])).astype('complex')
+    ky_vector = k0 * (n_I * ee.sin(theta) * ee.sin(phi) - fourier_indices * (
+            wavelength / period[1])).astype('complex')
 
-    Kx = jnp.diag(jnp.tile(kx_vector, ff).flatten()) / k0
-    Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff).flatten()) / k0
+    Kx = ee.diag(ee.tile(kx_vector, ff).flatten()) / k0
+    Ky = ee.diag(ee.tile(ky_vector.reshape((-1, 1)), ff).flatten()) / k0
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5
@@ -93,49 +98,50 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, pe
     k_I_z = k_I_z.flatten().conjugate()
     k_II_z = k_II_z.flatten().conjugate()
 
-    idx = jnp.nonzero(kx_vector == 0)[0]
-    if len(idx):
-        # TODO: need imaginary part?
-        # TODO: make imaginary part sign consistent
-        kx_vector = kx_vector.at[idx].set(perturbation)
-        print(wl, 'varphi divide by 0: adding perturbation')
+    # idx = ee.nonzero(kx_vector == 0)[0]
+    # if len(idx):
+    #     # TODO: need imaginary part?
+    #     # TODO: make imaginary part sign consistent
+    #     kx_vector = kx_vector.at[idx].set(perturbation)
+    #     print(wavelength, 'varphi divide by 0: adding perturbation')
 
-    varphi = jnp.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
+    varphi = ee.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
 
-    Y_I = jnp.diag(k_I_z / k0)
-    Y_II = jnp.diag(k_II_z / k0)
+    Y_I = ee.diag(k_I_z / k0)
+    Y_II = ee.diag(k_II_z / k0)
 
-    Z_I = jnp.diag(k_I_z / (k0 * n_I ** 2))
-    Z_II = jnp.diag(k_II_z / (k0 * n_II ** 2))
+    Z_I = ee.diag(k_I_z / (k0 * n_I ** 2))
+    Z_II = ee.diag(k_II_z / (k0 * n_II ** 2))
 
-    big_F = jnp.block([[I, O], [O, 1j * Z_II]])
-    big_G = jnp.block([[1j * Y_II, O], [O, I]])
+    big_F = ee.block([[I, O], [O, 1j * Z_II]])
+    big_G = ee.block([[1j * Y_II, O], [O, I]])
 
-    big_T = jnp.eye(ff ** 2 * 2)
+    big_T = ee.eye(ff ** 2 * 2)
 
     return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
+# @partial(jax.jit, static_argnums=(0, ))
 def transfer_2d_wv(ff, Kx, E_i, Ky, o_E_conv_i, E_conv, center):
 
-    I = jnp.eye(ff ** 2)
+    I = ee.eye(ff ** 2)
 
     B = Kx @ E_i @ Kx - I
     D = Ky @ E_i @ Ky - I
 
-    S2_from_S = jnp.block(
+    S2_from_S = ee.block(
         [
             [Ky ** 2 + B @ o_E_conv_i, Kx @ (E_i @ Ky @ E_conv - Ky)],
             [Ky @ (E_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
-    eigenvalues, W = jnp.linalg.eig(S2_from_S)
+    eigenvalues, W = ee.eig(S2_from_S)
 
     q = eigenvalues ** 0.5
 
-    Q = jnp.diag(q)
-    Q_i = jnp.linalg.inv(Q)
-    U1_from_S = jnp.block(
+    Q = ee.diag(q)
+    Q_i = ee.inv(Q)
+    U1_from_S = ee.block(
         [
             [-Kx @ Ky, Kx ** 2 - E_conv],
             [o_E_conv_i - Ky ** 2, Ky @ Kx]
@@ -146,6 +152,7 @@ def transfer_2d_wv(ff, Kx, E_i, Ky, o_E_conv_i, E_conv, center):
     return W, V, q
 
 
+# @partial(jax.jit, static_argnums=(4, ))
 def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T):
 
     q1 = q[:center]
@@ -161,11 +168,11 @@ def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T):
     V_21 = V[center:, :center]
     V_22 = V[center:, center:]
 
-    X_1 = jnp.diag(jnp.exp(-k0 * q1 * d))
-    X_2 = jnp.diag(jnp.exp(-k0 * q2 * d))
+    X_1 = ee.diag(ee.exp(-k0 * q1 * d))
+    X_2 = ee.diag(ee.exp(-k0 * q2 * d))
 
-    F_c = jnp.diag(jnp.cos(varphi))
-    F_s = jnp.diag(jnp.sin(varphi))
+    F_c = ee.diag(ee.cos(varphi))
+    F_s = ee.diag(ee.sin(varphi))
 
     W_ss = F_c @ W_21 - F_s @ W_11
     W_sp = F_c @ W_22 - F_s @ W_12
@@ -177,18 +184,18 @@ def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T):
     V_ps = F_c @ V_21 - F_s @ V_11
     V_pp = F_c @ V_22 - F_s @ V_12
 
-    big_I = jnp.eye(2 * (len(I)))
-    big_X = jnp.block([[X_1, O], [O, X_2]])
-    big_W = jnp.block([[W_ss, W_sp], [W_ps, W_pp]])
-    big_V = jnp.block([[V_ss, V_sp], [V_ps, V_pp]])
+    big_I = ee.eye(2 * (len(I)))
+    big_X = ee.block([[X_1, O], [O, X_2]])
+    big_W = ee.block([[W_ss, W_sp], [W_ps, W_pp]])
+    big_V = ee.block([[V_ss, V_sp], [V_ps, V_pp]])
 
-    big_W_i = jnp.linalg.inv(big_W)
-    big_V_i = jnp.linalg.inv(big_V)
+    big_W_i = ee.inv(big_W)
+    big_V_i = ee.inv(big_V)
 
     big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
     big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
 
-    big_A_i = jnp.linalg.inv(big_A)
+    big_A_i = ee.inv(big_A)
 
     big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
     big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
@@ -199,8 +206,8 @@ def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T):
 
 
 def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z):
-    I = jnp.eye(ff ** 2)
-    O = jnp.zeros((ff ** 2, ff ** 2))
+    I = ee.eye(ff ** 2)
+    O = ee.zeros((ff ** 2, ff ** 2))
 
     big_F_11 = big_F[:center, :center]
     big_F_12 = big_F[:center, center:]
@@ -213,7 +220,7 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     big_G_22 = big_G[center:, center:]
 
     # Final Equation in form of AX=B
-    final_A = jnp.block(
+    final_A = ee.block(
         [
             [I, O, -big_F_11, -big_F_12],
             [O, -1j * Z_I, -big_F_21, -big_F_22],
@@ -222,16 +229,16 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
         ]
     )
 
-    final_B = jnp.block(
+    final_B = ee.block(
         [
-            [-jnp.sin(psi) * delta_i0],
-            [-jnp.cos(psi) * jnp.cos(theta) * delta_i0],
-            [-1j * jnp.sin(psi) * n_I * jnp.cos(theta) * delta_i0],
-            [1j * n_I * jnp.cos(psi) * delta_i0]
+            [-ee.sin(psi) * delta_i0],
+            [-ee.cos(psi) * ee.cos(theta) * delta_i0],
+            [-1j * ee.sin(psi) * n_I * ee.cos(theta) * delta_i0],
+            [1j * n_I * ee.cos(psi) * delta_i0]
         ]
     )
 
-    final_RT = jnp.linalg.inv(final_A) @ final_B
+    final_RT = ee.inv(final_A) @ final_B
 
     R_s = final_RT[:ff ** 2, :].flatten()
     R_p = final_RT[ff ** 2:2 * ff ** 2, :].flatten()
@@ -242,15 +249,15 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     T_s = big_T[:ff ** 2, :].flatten()
     T_p = big_T[ff ** 2:, :].flatten()
 
-    de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
-            + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
+    de_ri = R_s * ee.conj(R_s) * ee.real(k_I_z / (k0 * n_I * ee.cos(theta))) \
+            + R_p * ee.conj(R_p) * ee.real((k_I_z / n_I ** 2) / (k0 * n_I * ee.cos(theta)))
 
-    de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
-            + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))
+    de_ti = T_s * ee.conj(T_s) * ee.real(k_II_z / (k0 * n_I * ee.cos(theta))) \
+            + T_p * ee.conj(T_p) * ee.real((k_II_z / n_II ** 2) / (k0 * n_I * ee.cos(theta)))
 
     return de_ri.real, de_ti.real, big_T1
 
-    # final_X = jnp.linalg.inv(final_A) @ final_B
+    # final_X = ee.inv(final_A) @ final_B
     #
     # R_s = final_X[:ff ** 2, :].flatten()
     # R_p = final_X[ff ** 2:2 * ff ** 2, :].flatten()
@@ -259,11 +266,11 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     # T_s = big_T[:ff ** 2, :].flatten()
     # T_p = big_T[ff ** 2:, :].flatten()
     #
-    # de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
-    #         + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
+    # de_ri = R_s * ee.conj(R_s) * ee.real(k_I_z / (k0 * n_I * ee.cos(theta))) \
+    #         + R_p * ee.conj(R_p) * ee.real((k_I_z / n_I ** 2) / (k0 * n_I * ee.cos(theta)))
     #
-    # de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
-    #         + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))
+    # de_ti = T_s * ee.conj(T_s) * ee.real(k_II_z / (k0 * n_I * ee.cos(theta))) \
+    #         + T_p * ee.conj(T_p) * ee.real((k_II_z / n_II ** 2) / (k0 * n_I * ee.cos(theta)))
     #
     # # Aa = de_ri.sum()
     # # Aaa = de_ti.sum()
@@ -281,12 +288,12 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
 
 
 def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wl, perturbation=1E-20*(1+1j)):
-    I = jnp.eye(ff)
-    O = jnp.zeros((ff, ff))
+    I = ee.eye(ff)
+    O = ee.zeros((ff, ff))
 
-    kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) - fourier_indices * (wl / period[0])).astype(
+    kx_vector = k0 * (n_I * ee.sin(theta) * ee.cos(phi) - fourier_indices * (wl / period[0])).astype(
         'complex')
-    ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
+    ky = k0 * n_I * ee.sin(theta) * ee.sin(phi)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
@@ -294,64 +301,64 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi
     k_I_z = k_I_z.conjugate()
     k_II_z = k_II_z.conjugate()
 
-    idx = jnp.nonzero(kx_vector == 0)[0]
+    idx = ee.nonzero(kx_vector == 0)[0]
     if len(idx):
         # TODO: need imaginary part?
         # TODO: make imaginary part sign consistent
         kx_vector = kx_vector.at[idx].set(perturbation)
         print(wl, 'varphi divide by 0: adding perturbation')
 
-    varphi = jnp.arctan(ky / kx_vector)
+    varphi = ee.arctan(ky / kx_vector)
 
-    Y_I = jnp.diag(k_I_z / k0)
-    Y_II = jnp.diag(k_II_z / k0)
+    Y_I = ee.diag(k_I_z / k0)
+    Y_II = ee.diag(k_II_z / k0)
 
-    Z_I = jnp.diag(k_I_z / (k0 * n_I ** 2))
-    Z_II = jnp.diag(k_II_z / (k0 * n_II ** 2))
+    Z_I = ee.diag(k_I_z / (k0 * n_I ** 2))
+    Z_II = ee.diag(k_II_z / (k0 * n_II ** 2))
 
-    Kx = jnp.diag(kx_vector / k0)
+    Kx = ee.diag(kx_vector / k0)
 
-    big_F = jnp.block([[I, O], [O, 1j * Z_II]])
-    big_G = jnp.block([[1j * Y_II, O], [O, I]])
+    big_F = ee.block([[I, O], [O, 1j * Z_II]])
+    big_G = ee.block([[1j * Y_II, O], [O, I]])
 
-    big_T = jnp.eye(2 * ff)
+    big_T = ee.eye(2 * ff)
 
     return Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
 def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varphi, big_F, big_G, big_T):
 
-    I = jnp.eye(ff)
-    O = jnp.zeros((ff, ff))
+    I = ee.eye(ff)
+    O = ee.zeros((ff, ff))
 
     A = Kx ** 2 - E_conv
     B = Kx @ E_i @ Kx - I
-    A_i = jnp.linalg.inv(A)
-    B_i = jnp.linalg.inv(B)
+    A_i = ee.inv(A)
+    B_i = ee.inv(B)
 
     to_decompose_W_1 = ky ** 2 * I + A
     to_decompose_W_2 = ky ** 2 * I + B @ oneover_E_conv_i
 
     # TODO: using eigh?
-    eigenvalues_1, W_1 = jnp.linalg.eig(to_decompose_W_1)
-    eigenvalues_2, W_2 = jnp.linalg.eig(to_decompose_W_2)
+    eigenvalues_1, W_1 = ee.eig(to_decompose_W_1)
+    eigenvalues_2, W_2 = ee.eig(to_decompose_W_2)
 
     q_1 = eigenvalues_1 ** 0.5
     q_2 = eigenvalues_2 ** 0.5
 
-    Q_1 = jnp.diag(q_1)
-    Q_2 = jnp.diag(q_2)
+    Q_1 = ee.diag(q_1)
+    Q_2 = ee.diag(q_2)
 
     V_11 = A_i @ W_1 @ Q_1
     V_12 = (ky / k0) * A_i @ Kx @ W_2
     V_21 = (ky / k0) * B_i @ Kx @ E_i @ W_1
     V_22 = B_i @ W_2 @ Q_2
 
-    X_1 = jnp.diag(jnp.exp(-k0 * q_1 * d))
-    X_2 = jnp.diag(jnp.exp(-k0 * q_2 * d))
+    X_1 = ee.diag(ee.exp(-k0 * q_1 * d))
+    X_2 = ee.diag(ee.exp(-k0 * q_2 * d))
 
-    F_c = jnp.diag(jnp.cos(varphi))
-    F_s = jnp.diag(jnp.sin(varphi))
+    F_c = ee.diag(ee.cos(varphi))
+    F_s = ee.diag(ee.sin(varphi))
 
     V_ss = F_c @ V_11
     V_sp = F_c @ V_12 - F_s @ W_2
@@ -362,18 +369,18 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
     V_ps = F_c @ V_21 - F_s @ W_1
     V_pp = F_c @ V_22
 
-    big_I = jnp.eye(2 * (len(I)))
-    big_X = jnp.block([[X_1, O], [O, X_2]])
-    big_W = jnp.block([[V_ss, V_sp], [W_ps, W_pp]])
-    big_V = jnp.block([[W_ss, W_sp], [V_ps, V_pp]])
+    big_I = ee.eye(2 * (len(I)))
+    big_X = ee.block([[X_1, O], [O, X_2]])
+    big_W = ee.block([[V_ss, V_sp], [W_ps, W_pp]])
+    big_V = ee.block([[W_ss, W_sp], [V_ps, V_pp]])
 
-    big_W_i = jnp.linalg.inv(big_W)
-    big_V_i = jnp.linalg.inv(big_V)
+    big_W_i = ee.inv(big_W)
+    big_V_i = ee.inv(big_V)
 
     big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
     big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
 
-    big_A_i = jnp.linalg.inv(big_A)
+    big_A_i = ee.inv(big_A)
 
     big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
     big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
@@ -384,8 +391,8 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
 
 
 def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z):
-    I = jnp.eye(ff)
-    O = jnp.zeros((ff, ff))
+    I = ee.eye(ff)
+    O = ee.zeros((ff, ff))
 
     big_F_11 = big_F[:ff, :ff]
     big_F_12 = big_F[:ff, ff:]
@@ -398,7 +405,7 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     big_G_22 = big_G[ff:, ff:]
 
     # Final Equation in form of AX=B
-    final_A = jnp.block(
+    final_A = ee.block(
         [
             [I, O, -big_F_11, -big_F_12],
             [O, -1j * Z_I, -big_F_21, -big_F_22],
@@ -407,14 +414,14 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
         ]
     )
 
-    final_B = jnp.hstack([
-        [-jnp.sin(psi) * delta_i0],
-        [-jnp.cos(psi) * jnp.cos(theta) * delta_i0],
-        [-1j * jnp.sin(psi) * n_I * jnp.cos(theta) * delta_i0],
-        [1j * n_I * jnp.cos(psi) * delta_i0]
+    final_B = ee.hstack([
+        [-ee.sin(psi) * delta_i0],
+        [-ee.cos(psi) * ee.cos(theta) * delta_i0],
+        [-1j * ee.sin(psi) * n_I * ee.cos(theta) * delta_i0],
+        [1j * n_I * ee.cos(psi) * delta_i0]
     ]).T
 
-    final_X = jnp.linalg.inv(final_A) @ final_B
+    final_X = ee.inv(final_A) @ final_B
 
     R_s = final_X[:ff, :].flatten()
     R_p = final_X[ff:2 * ff, :].flatten()
@@ -423,11 +430,11 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     T_s = big_T[:ff, :].flatten()
     T_p = big_T[ff:, :].flatten()
 
-    de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
-            + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
+    de_ri = R_s * ee.conj(R_s) * ee.real(k_I_z / (k0 * n_I * ee.cos(theta))) \
+            + R_p * ee.conj(R_p) * ee.real((k_I_z / n_I ** 2) / (k0 * n_I * ee.cos(theta)))
 
-    de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
-            + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))
+    de_ti = T_s * ee.conj(T_s) * ee.real(k_II_z / (k0 * n_I * ee.cos(theta))) \
+            + T_p * ee.conj(T_p) * ee.real((k_II_z / n_II ** 2) / (k0 * n_I * ee.cos(theta)))
 
     return de_ri.real, de_ti.real
 

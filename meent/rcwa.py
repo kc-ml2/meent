@@ -1,7 +1,10 @@
 import numpy as np
 import meent.integ.backend
+import jax
+from functools import partial
 
 
+# @partial(jax.jit, static_argnums=(0, 1))
 def call_solver(mode=0, *args, **kwargs):
     """
     decide backend and return RCWA solver instance
@@ -21,12 +24,15 @@ def call_solver(mode=0, *args, **kwargs):
     elif mode == 1:
         from meent.on_jax.rcwa import RCWAOpt
         RCWA = RCWAOpt(mode, *args, **kwargs)
-
     elif mode == 2:
+        from meent.on_torch.rcwa import RCWAOpt
+        RCWA = RCWAOpt(mode, *args, **kwargs)
+
+    elif mode == 3:
         meent.integ.backend.mode = 2
         from meent.integ.rcwa import RCWAInteg
         RCWA = RCWAInteg(mode, *args, **kwargs)
-    elif mode == 3:
+    elif mode == 4:
         meent.integ.backend.mode = 3
 
         from meent.integ.rcwa import RCWAInteg

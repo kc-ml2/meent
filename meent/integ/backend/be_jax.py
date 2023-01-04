@@ -42,8 +42,40 @@ arctan = np.arctan
 hstack = np.hstack
 eig = np.linalg.eig
 
+from jax import jit
+
+
+# @jit
+def _assign_row_all(arr, index, value):
+    row, col = arr.shape
+    return arr.at[:, index].set(value)
+
+
+@jit
+def _assign_col_all(arr, index, value):
+    row, col = arr.shape
+    return arr.at[index, np.arange(col)].set(value)
+
+
+@jit
+def _assign(arr, index, value):
+    return arr.at[index].set(value)
+
 
 def assign(arr, index, value, row_all=False, col_all=False):
+    if type(index) == list:
+        index = tuple(index)
+
+    if row_all:
+        arr = _assign_row_all(arr, index, value)
+    elif col_all:
+        arr = _assign_col_all(arr, index, value)
+    else:
+        arr = _assign(arr, index, value)
+    return arr
+
+
+def assign1(arr, index, value, row_all=False, col_all=False):
     if type(index) == list:
         index = tuple(index)
 

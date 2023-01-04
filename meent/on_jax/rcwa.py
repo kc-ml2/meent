@@ -85,13 +85,18 @@ class RCWAOpt(_BaseRCWA):
     #     return self.spectrum_r, self.spectrum_t
 
     def run_ucell(self):
-
+        t0 = time.time()
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength)
-
+        t1 = time.time()
         e_conv_all = to_conv_mat(ucell, self.fourier_order)
+        t2 = time.time()
+
         o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
+        t3 = time.time()
 
         de_ri, de_ti = self.solve(self.wavelength, e_conv_all, o_e_conv_all)
+        t4 = time.time()
+        print(t1 -t0, t2-t1,t3-t2,t4-t3)
 
         return de_ri, de_ti
 

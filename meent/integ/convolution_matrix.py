@@ -54,7 +54,7 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
             for x in range(ucell.shape[2]):
                 material = mat_list[ucell[z, y, x]]
                 if type(material) == str:
-                    # res[z, y, x] = find_nk_index(material, mat_table, wl) ** 2
+                    # res[z, y, x] = find_nk_index(material, mat_table, wavelength) ** 2
                     assign_index = [z, y, x]
                     assign_value = find_nk_index(material, mat_table, wl) ** 2
                     res = ee.assign(res, assign_index, assign_value)
