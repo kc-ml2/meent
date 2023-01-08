@@ -7,48 +7,9 @@ from scipy.linalg import circulant
 from pathlib import Path
 
 
-# def put_n_ridge_in_pattern_fill_factor(pattern_all, mat_table, wavelength):
-#
-#     pattern_all = copy.deepcopy(pattern_all)
-#
-#     for i, (n_ridge, n_groove, pattern) in enumerate(pattern_all):
-#
-#         if type(n_ridge) == str:
-#             material = n_ridge
-#             n_ridge = find_nk_index(material, mat_table, wavelength)
-#         pattern_all[i][0] = n_ridge
-#     return pattern_all
+def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=np.complex128):
 
-
-# def get_material_index_in_ucell(ucell_comp, mat_list):
-#
-#     res = [[[] for _ in mat_list] for _ in ucell_comp]
-#
-#     for z, ucell_xy in enumerate(ucell_comp):
-#         for y in range(ucell_xy.shape[0]):
-#             for x in range(ucell_xy.shape[1]):
-#                 res[z][ucell_xy[y, x]].append([y, x])
-#     return res
-
-
-# def put_permittivity_in_ucell_object_comps(ucell, mat_list, obj_list, mat_table, wavelength):
-#
-#     res = np.zeros(ucell.shape, dtype='complex')
-#
-#     for obj_xy in obj_list:
-#         for material, obj_index in zip(mat_list, obj_xy):
-#             obj_index = np.array(obj_index).T
-#             if type(material) == str:
-#                 res[obj_index[0], obj_index[1]] = find_nk_index(material, mat_table, wavelength) ** 2
-#             else:
-#                 res[obj_index[0], obj_index[1]] = material ** 2
-#
-#     return res
-
-
-def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
-
-    res = np.zeros(ucell.shape, dtype='complex')
+    res = np.zeros(ucell.shape, dtype=type_complex)
 
     for z in range(ucell.shape[0]):
         for y in range(ucell.shape[1]):
@@ -62,9 +23,10 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
     return res
 
 
-def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl):
+def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl,
+                                     type_complex=np.complex128):
     # TODO: under development
-    res = np.zeros(ucell_size, dtype='complex')
+    res = np.zeros(ucell_size, dtype=type_complex)
 
     for material, obj_index in zip(mat_list, obj_list):
         if type(material) == str:
@@ -117,9 +79,9 @@ def read_material_table(nk_path=None):
     return mat_table
 
 
-def cell_compression(cell):
+def cell_compression(cell, type_float=np.float64):
     # find discontinuities in x
-    step_y, step_x = 1. / np.array(cell.shape)
+    step_y, step_x = 1. / np.array(cell.shape, dtype=type_float)  # todo: activate this option?
     x = []
     y = []
     cell_x = []
@@ -147,7 +109,8 @@ def cell_compression(cell):
     return cell_comp, x, y
 
 
-def fft_piecewise_constant(cell, fourier_order):
+def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
+
     if cell.shape[0] == 1:
         fourier_order = [0, fourier_order]
     else:
@@ -160,9 +123,10 @@ def fft_piecewise_constant(cell, fourier_order):
 
     modes = np.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1)
 
-    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes[None, :])
+    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes[None, :], dtype=type_complex)
     c = f_coeffs_x.shape[1] // 2
 
+    # x_next = np.vstack(np.roll(x, -1, axis=0)[:-1]) - x
     x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], 1)) - x
 
     f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
@@ -176,7 +140,7 @@ def fft_piecewise_constant(cell, fourier_order):
 
     modes = np.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1)
 
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes[None, :])
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes[None, :], dtype=type_complex)
     c = f_coeffs_xy.shape[1] // 2
 
     y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], 1)) - y
@@ -191,7 +155,7 @@ def fft_piecewise_constant(cell, fourier_order):
     return f_coeffs_xy.T
 
 
-def to_conv_mat(pmt, fourier_order):
+def to_conv_mat(pmt, fourier_order, type_complex=np.complex128):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -200,10 +164,11 @@ def to_conv_mat(pmt, fourier_order):
 
     if pmt.shape[1] == 1:  # 1D
 
-        res = np.zeros((pmt.shape[0], ff, ff)).astype('complex')
+        res = np.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
 
         for i, layer in enumerate(pmt):
-            f_coeffs = fft_piecewise_constant(layer, fourier_order)
+            # TODO: use manual circulant function
+            f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
             A = np.roll(circulant(f_coeffs.flatten()), (f_coeffs.size + 1) // 2, 0)
             res[i] = A[:2 * fourier_order + 1, :2 * fourier_order + 1]
 
@@ -211,10 +176,10 @@ def to_conv_mat(pmt, fourier_order):
         # attention on the order of axis (Z Y X)
 
         # TODO: separate fourier order
-        res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype('complex')
+        res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
 
         for i, layer in enumerate(pmt):
-            pmtvy_fft = fft_piecewise_constant(layer, fourier_order)
+            pmtvy_fft = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
 
             center = np.array(pmtvy_fft.shape) // 2
 
@@ -234,31 +199,3 @@ def to_conv_mat(pmt, fourier_order):
     # plt.show()
     #
     return res
-
-
-# def draw_fill_factor(patterns_fill_factor, grating_type, resolution=1000, mode=0):
-#
-#     # res in Z X Y
-#     if grating_type == 2:
-#         res = np.zeros((len(patterns_fill_factor), resolution, resolution), dtype='complex')
-#     else:
-#         res = np.zeros((len(patterns_fill_factor), 1, resolution), dtype='complex')
-#
-#     if grating_type in (0, 1):  # TODO: handle this by len(fill_factor)
-#         # fill_factor is not exactly implemented.
-#         for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
-#             permittivity = np.ones((1, resolution), dtype='complex')
-#             cut = int(resolution * fill_factor)
-#             permittivity[0, :cut] *= n_ridge ** 2
-#             permittivity[0, cut:] *= n_groove ** 2
-#             res[i, 0] = permittivity
-#     else:  # 2D
-#         for i, (n_ridge, n_groove, fill_factor) in enumerate(patterns_fill_factor):
-#             fill_factor = np.array(fill_factor)
-#             permittivity = np.ones((resolution, resolution), dtype='complex')
-#             cut = (resolution * fill_factor)  # TODO: need parenthesis?
-#             permittivity *= n_groove ** 2
-#             permittivity[:int(cut[1]), :int(cut[0])] *= n_ridge ** 2
-#             res[i] = permittivity
-#
-#     return res

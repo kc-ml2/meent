@@ -1,159 +1,150 @@
 import time
+from functools import partial
+
+import jax
 import jax.numpy as jnp
 import numpy as np
 
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table
-# from .field_distribution import field_dist_1d, field_dist_2d, field_plot_zx
+from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot
 
 
-class RCWAOpt(_BaseRCWA):
+class RCWAJax(_BaseRCWA):
     def __init__(self, mode=0, grating_type=0, n_I=1., n_II=1., theta=0, phi=0, psi=0, fourier_order=40, period=(100,),
-                 wavelength=jnp.linspace(900, 900, 1), pol=0, patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM'):
+                 wavelength=jnp.linspace(900, 900, 1), pol=0, patterns=None, ucell=None, ucell_materials=None,
+                 thickness=None, algo='TMM',
+                 device='cpu', type_complex=np.complex128):
 
         super().__init__(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wavelength, pol, patterns, ucell, ucell_materials,
-                         thickness, algo)
+                         thickness, algo, device, type_complex)
         self.mode = mode
         self.spectrum_r, self.spectrum_t = None, None
         # self.init_spectrum_array()
         self.mat_table = read_material_table()
+        self.layer_info_list = []
 
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
+        # TODO: perturbation
+        self.perturbation = 1E-20
 
-        # TODO: !handle uniform layer
+        # TODO: move to _base?
+        def get_kx_vector(perturbation=self.perturbation):
+
+            k0 = 2 * jnp.pi / self.wavelength
+            fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
+            if self.grating_type == 0:
+                kx_vector = k0 * (self.n_I * jnp.sin(self.theta) - fourier_indices * (self.wavelength / self.period[0])
+                                  ).astype(self.type_complex)
+            else:
+                kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) - fourier_indices * (self.wavelength / self.period[0])
+                                  ).astype(self.type_complex)
+
+            idx = jnp.nonzero(kx_vector == 0)[0]
+            if len(idx):
+                # TODO: need imaginary part?
+                # TODO: make imaginary part sign consistent
+                kx_vector = kx_vector.at[idx].set(perturbation)
+                print('varphi divide by 0: adding perturbation')
+
+            self.kx_vector = kx_vector
+            return kx_vector
+
+        # TODO: handle uniform layer
+
+        t0=time.time()
+        get_kx_vector()
 
         if self.grating_type == 0:
-            de_ri, de_ti = self.solve_1d(wavelength, e_conv_all, o_e_conv_all)
+            solve_1d = jax.jit(self.solve_1d)
+            de_ri, de_ti, layer_info_list, T1 = solve_1d(wavelength, e_conv_all, o_e_conv_all)
         elif self.grating_type == 1:
-            de_ri, de_ti = self.solve_1d_conical(wavelength, e_conv_all, o_e_conv_all)
+            solve_1d_conical = jax.jit(self.solve_1d_conical)
+            de_ri, de_ti, layer_info_list, T1 = solve_1d_conical(wavelength, e_conv_all, o_e_conv_all)
+
         elif self.grating_type == 2:
-            de_ri, de_ti = self.solve_2d(wavelength, e_conv_all, o_e_conv_all)
+            solve_2d = jax.jit(self.solve_2d)
+            de_ri, de_ti, layer_info_list, T1 = solve_2d(wavelength, e_conv_all, o_e_conv_all)
         else:
             raise ValueError
 
+        self.layer_info_list = layer_info_list
+        self.T1 = T1
+
+        print('solve time', time.time() - t0)
+
         return de_ri.real, de_ti.real
 
-    # def loop_wavelength_fill_factor(self, wavelength_array=None):
-    #
-    #     if wavelength_array is not None:
-    #         self.wls = wavelength_array
-    #         # self.init_spectrum_array()
-    #
-    #     for i, wavelength in enumerate(self.wls):
-    #
-    #         ucell = fill_factor_to_ucell(self.patterns, wavelength, self.grating_type)
-    #         e_conv_all = to_conv_mat(ucell, self.fourier_order)
-    #         o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
-    #
-    #         de_ri, de_ti = self.solve(wavelength, e_conv_all, o_e_conv_all)
-    #
-    #         self.spectrum_r = self.spectrum_r.at[i].set(de_ri)
-    #         self.spectrum_t = self.spectrum_t.at[i].set(de_ti)
-    #
-    #     return self.spectrum_r, self.spectrum_t
-    #
-    # def loop_wavelength_ucell(self):
-    #     # si = [[z_begin, z_end], [y_begin, y_end], [x_begin, x_end]]
-    #     if self.grating_type == 0:
-    #         cell = jnp.ones((2, 1, 10))
-    #         si = [3.48, 0, 1, 0, 1, 0, 3]
-    #         ox = [3.48, 1, 2, 0, 1, 0, 3]
-    #     elif self.grating_type == 1:
-    #         cell = jnp.ones((2, 1, 10))
-    #         si = [3.48, 0, 1, 0, 1, 0, 3]
-    #         ox = [3.48, 1, 2, 0, 1, 0, 3]
-    #     elif self.grating_type == 2:
-    #         cell = jnp.ones((2, 10, 10))
-    #         si = [3.48, 0, 1, 0, 10, 0, 3]
-    #         ox = [3.48, 1, 2, 0, 10, 0, 3]
-    #     else:
-    #         raise ValueError
-    #
-    #     for i, wavelength in enumerate(self.wls):
-    #         for material, z_begin, z_end, y_begin, y_end, x_begin, x_end in [si, ox]:
-    #             n_index = find_n_index(material, wavelength) if type(material) == str else material
-    #             cell = cell.at[z_begin:z_end, y_begin:y_end, x_begin:x_end].set(n_index**2)
-    #
-    #         e_conv_all = to_conv_mat(cell, self.fourier_order)
-    #         o_e_conv_all = to_conv_mat(1 / cell, self.fourier_order)
-    #
-    #         de_ri, de_ti = self.solve(wavelength, e_conv_all, o_e_conv_all)
-    #
-    #         self.spectrum_r = self.spectrum_r.at[i].set(de_ri)
-    #         self.spectrum_t = self.spectrum_t.at[i].set(de_ti)
-    #
-    #     return self.spectrum_r, self.spectrum_t
-
     def run_ucell(self):
-        t0 = time.time()
-        ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength)
-        t1 = time.time()
-        e_conv_all = to_conv_mat(ucell, self.fourier_order)
-        t2 = time.time()
 
-        o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
-        t3 = time.time()
+        ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
 
-        de_ri, de_ti = self.solve(self.wavelength, e_conv_all, o_e_conv_all)
-        t4 = time.time()
-        print(t1 -t0, t2-t1,t3-t2,t4-t3)
+        E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
 
         return de_ri, de_ti
 
-    def jax_test(self):
-        # TODO
-        wls = np.linspace(1000, 2000, 20)
-        de_ri, de_ti = jnp.zeros(wls.shape), jnp.zeros(wls.shape)
+    def calculate_field(self, resolution=None, plot=True):
 
-        for i, wl in enumerate(wls):
-            e_conv_all = to_conv_mat(self.patterns, self.fourier_order)
-            oneover_e_conv_all = to_conv_mat(1 / self.patterns, self.fourier_order)
+        if self.grating_type == 0:
+            resolution = [100, 1, 100] if not resolution else resolution
+            field_cell = field_dist_1d(self.wavelength, self.kx_vector, self.n_I, self.theta, self.fourier_order, self.T1,
+                                       self.layer_info_list, self.period, self.pol, resolution=resolution,
+                                       type_complex=self.type_complex)
+        elif self.grating_type == 1:
+            resolution = [100, 1, 100] if not resolution else resolution
+            field_cell = field_dist_1d_conical(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi, self.fourier_order, self.T1,
+                                               self.layer_info_list, self.period, resolution=resolution,
+                                               type_complex=self.type_complex)
 
-            res_r, res_t = self.solve(wl, e_conv_all, oneover_e_conv_all)
-            de_ri = de_ri.at[i].set(res_r.sum())
-            de_ti = de_ti.at[i].set(res_t.sum())
-        return de_ri, de_ti
+        else:
+            resolution = [10, 10, 10] if not resolution else resolution
+            field_cell = field_dist_2d(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi, self.fourier_order, self.T1,
+                                       self.layer_info_list, self.period, resolution=resolution,
+                                       type_complex=self.type_complex)
+        if plot:
+            field_plot(field_cell, self.pol)
+        return field_cell
+
+    # def calculate_field_jax(self, resolution=None, plot=True):
+    #
+    #     ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength)
+    #     e_conv_all = to_conv_mat(ucell, self.fourier_order)
+    #
+    #     o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
+    #
+    #     field_cell = self.bb(e_conv_all, o_e_conv_all, resolution=resolution, plot=plot)
+    #     if plot:
+    #         field_plot(field_cell, self.pol, zx=True, yx=False)
+    #
+    #     return e_conv_all, o_e_conv_all
+    #
+    # @partial(jax.jit, static_argnums=(0, 3, 4))
+    # def bb(self, e_conv_all, o_e_conv_all, resolution=None, plot=True):
+    #     print('bb compile')
+    #     t0= time.time()
+    #     # self.solve(self.wavelength, e_conv_all, o_e_conv_all, jit=True)
+    #     # self.solve_2d(self.wavelength, e_conv_all, o_e_conv_all)
+    #     if self.grating_type == 0:
+    #         resolution = (100, 1, 100) if not resolution else resolution
+    #         field_cell = field_dist_1d(self.wavelength, self.n_I, self.theta, self.fourier_order, self.T1,
+    #                             self.layer_info_list, self.period, self.pol, resolution=resolution)
+    #     elif self.grating_type == 1:
+    #         resolution = (100, 1, 100) if not resolution else resolution
+    #         field_cell = field_dist_1d_conical(self.wavelength, self.n_I, self.theta, self.phi, self.fourier_order, self.T1,
+    #                             self.layer_info_list, self.period, resolution=resolution)
+    #     else:
+    #         resolution = (20, 20, 20) if not resolution else resolution
+    #         field_cell = field_dist_2d(self.wavelength, self.n_I, self.theta, self.phi, self.fourier_order, self.T1,
+    #                                    self.layer_info_list, self.period, resolution=resolution)
+    #     print('bb', time.time() -t0)
+    #     # if plot:
+    #     #     field_plot(field_cell, self.pol, zx=True, yx=False)
+    #     return field_cell
 
 
 if __name__ == '__main__':
-    grating_type = 0
-    pol = 0
-
-    n_I = 1
-    n_II = 1
-
-    theta = 0
-    phi = 0
-    psi = 0 if pol else 90
-
-    wls = jnp.linspace(500, 1300, 100)
-    # wavelength = np.linspace(600, 800, 3)
-
-    if grating_type in (0, 1):
-        period = [700]
-        patterns = [[3.48, 1, 0], [3.48, 1, 0]]  # n_ridge, n_groove, fill_factor
-        fourier_order = 40
-
-    elif grating_type == 2:
-        period = [700, 700]
-        patterns = [[3.48, 1, [0.3, 1]], [3.48, 1, [0.3, 1]]]  # n_ridge, n_groove, fill_factor[x, y]
-        fourier_order = 2
-    else:
-        raise ValueError
-
-    thickness = [460, 660]
-
-    mode = 0  # 0: speed mode; 1: backprop mode;
-
-    AA = RCWAOpt(grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wavelength=wls, period=period, patterns=patterns, thickness=thickness, mode=mode)
-    t0 = time.perf_counter()
-
-    a, b = AA.loop_wavelength_fill_factor()
-    AA.plot()
-
-    print(time.perf_counter() - t0)
-
-    # AA.loop_wavelength_ucell()
-    # AA.plot()
-    # print('end')
+    pass

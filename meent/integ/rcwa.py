@@ -1,34 +1,15 @@
 import time
 
-# import meentpy as mp
-# from .meentpy import eig
-
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table
 from .field_distribution import field_dist_1d, field_dist_2d, field_plot_zx
-
-# from .backend import *
 
 
 class RCWAInteg(_BaseRCWA):
 
     def __init__(self, mode=0, grating_type=0, n_I=1., n_II=1., theta=0, phi=0, psi=0, fourier_order=40, period=(100,),
-                 wavelength=900, pol=0, patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM'):
-        # if mode == 2:
-        #     # from .backend.be_numpy import BackendNumpy
-        #     from .backend.be_numpy import BackendNumpy as np
-        # elif mode == 3:
-        #     from .backend.be_jax import BackendJax as np
-        #
-        #
-        #
-        #     # BackendNumpy.__init__()
-        #     import numpy as np
-        #
-        #     # mp.eig = np.linalg.eig
-        #
-        #     print(2)
-
+                 wavelength=900, pol=0, patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM',
+                 *args, **kwargs):
 
         super().__init__(grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wavelength, pol, patterns, ucell, ucell_materials,
                          thickness, algo)
@@ -52,43 +33,6 @@ class RCWAInteg(_BaseRCWA):
             raise ValueError
 
         return de_ri.real, de_ti.real
-
-    # def loop_wavelength_fill_factor_(self, wavelength_array=None):
-    #
-    #     if wavelength_array is not None:
-    #         self.wavelength = wavelength_array
-    #         self.init_spectrum_array()
-    #
-    #     for i, wavelength in enumerate(self.wavelength):
-    #
-    #         ucell = fill_factor_to_ucell(self.patterns, wavelength, self.grating_type, self.mat_table)
-    #         e_conv_all = to_conv_mat(ucell, self.fourier_order)
-    #         o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
-    #
-    #         de_ri, de_ti = self.solve(wavelength, e_conv_all, o_e_conv_all)
-    #         self.spectrum_r[i] = de_ri
-    #         self.spectrum_t[i] = de_ti
-    #
-    #     return self.spectrum_r, self.spectrum_t
-    #
-    # def loop_wavelength_ucell_(self, wavelength_array=None):
-    #
-    #     if wavelength_array is not None:
-    #         self.wavelength = wavelength_array
-    #         self.init_spectrum_array()
-    #
-    #     for i, wavelength in enumerate(self.wavelength):
-    #
-    #         ucell = put_permittivity_in_ucell(self.ucell, wavelength, self.grating_type, self.mat_table)
-    #         e_conv_all = to_conv_mat(ucell, self.fourier_order)
-    #         o_e_conv_all = to_conv_mat(1 / ucell, self.fourier_order)
-    #
-    #         de_ri, de_ti = self.solve(wavelength, e_conv_all, o_e_conv_all)
-    #
-    #         self.spectrum_r[i] = de_ri
-    #         self.spectrum_t[i] = de_ti
-    #
-    #     return self.spectrum_r, self.spectrum_t
 
     def run_ucell(self):
 

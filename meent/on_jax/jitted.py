@@ -91,23 +91,25 @@ def assign(arr, index, value, row_all=False, col_all=False):
 
 
 # eig = jax.jit(jnp.linalg.eig)
-def _eig_host(matrix: jnp.ndarray) -> tuple[jnp.ndarray, jnp.ndarray]:
+@partial(jax.jit, static_argnums=(1, ))
+def eig(matrix: jnp.ndarray, type_complex=jnp.complex128) -> tuple[jnp.ndarray, jnp.ndarray]:
     """Wraps jnp.linalg.eig so that it can be jit-ed on a machine with GPUs."""
     print('_eig_host_compile')
-    eigenvalues_shape = jax.ShapeDtypeStruct(matrix.shape[:-1], complex)
-    eigenvectors_shape = jax.ShapeDtypeStruct(matrix.shape, complex)
+    eigenvalues_shape = jax.ShapeDtypeStruct(matrix.shape[:-1], type_complex)
+    eigenvectors_shape = jax.ShapeDtypeStruct(matrix.shape, type_complex)
     return host_callback.call(
         # We force this computation to be performed on the cpu by jit-ing and
         # explicitly specifying the device.
-        jax.jit(jnp.linalg.eig, device=jax.devices("cpu")[0]),
-        matrix.astype(complex),
+        jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0]),
+        matrix.astype(type_complex),
         result_shape=(eigenvalues_shape, eigenvectors_shape),
     )
 
 
-eig = jax.jit(_eig_host)  # This works, we can jit on GPU.
+# eig = jax.jit(_eig_host)  # This works, we can jit on GPU.
 # eig = jax.jit(_eig_host, device=jax.devices("cpu")[0])  # This works, we can jit on GPU.
 # eig = jnp.linalg.eig
+# eig = _eig_host
 
 
 # import time

@@ -1,3 +1,4 @@
+from copy import copy, deepcopy
 from functools import partial
 
 import jax
@@ -5,7 +6,7 @@ import jax.numpy as jnp
 
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
-from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2,\
+from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, \
     transfer_1d_conical_3, transfer_2d_1, transfer_2d_wv, transfer_2d_2, transfer_2d_3
 
 import meent.on_jax.jitted as ee
@@ -14,8 +15,11 @@ import meent.on_jax.jitted as ee
 class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
                  period=0.7, wavelength=ee.linspace(0.5, 2.3, 400), pol=0,
-                 patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM'):
-        # super().__init__(grating_type)
+                 patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM',
+                 device='cpu', type_complex=jnp.complex128):
+
+        self.device = device
+        self.type_complex = type_complex
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
         self.n_I = n_I
@@ -37,33 +41,39 @@ class _BaseRCWA:
         self.fourier_order = fourier_order
         self.ff = 2 * self.fourier_order + 1
 
-        self.period = period
+        self.period = deepcopy(period)
 
         self.wavelength = wavelength
 
         self.patterns = patterns
-        self.ucell = ucell
+        self.ucell = deepcopy(ucell)
         self.ucell_materials = ucell_materials
-        self.thickness = thickness
+        self.thickness = deepcopy(thickness)
 
         self.algo = algo
 
         self.layer_info_list = []
         self.T1 = None
 
+        self.kx_vector = None
+
     def solve_1d(self, wl, E_conv_all, o_E_conv_all):
+
+        self.layer_info_list = []
+        self.T1 = None
 
         fourier_indices = ee.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = ee.zeros(self.ff)
+        delta_i0 = ee.zeros(self.ff, dtype=self.type_complex)
         delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
         k0 = 2 * ee.pi / wl
 
         if self.algo == 'TMM':
             kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T \
-                = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II,
-                                self.theta, delta_i0, self.fourier_order, fourier_indices, wl, self.period)
+                = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II, self.kx_vector,
+                                self.theta, delta_i0, self.fourier_order, fourier_indices, wl, self.period,
+                                type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices, self.period,
@@ -77,7 +87,7 @@ class _BaseRCWA:
             if self.pol == 0:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
-                eigenvalues, W = ee.eig(A)
+                eigenvalues, W = ee.eig(A, type_complex=self.type_complex)
                 q = eigenvalues ** 0.5
 
                 Q = ee.diag(q)
@@ -85,10 +95,10 @@ class _BaseRCWA:
 
             elif self.pol == 1:
                 E_conv_i = ee.inv(E_conv)
-                B = Kx @ E_conv_i @ Kx - ee.eye(E_conv.shape[0])
+                B = Kx @ E_conv_i @ Kx - ee.eye(E_conv.shape[0], dtype=self.type_complex)
                 o_E_conv_i = ee.inv(o_E_conv)
 
-                eigenvalues, W = ee.eig(o_E_conv_i @ B)
+                eigenvalues, W = ee.eig(o_E_conv_i @ B, type_complex=self.type_complex)
                 q = eigenvalues ** 0.5
 
                 Q = ee.diag(q)
@@ -98,7 +108,8 @@ class _BaseRCWA:
                 raise ValueError
 
             if self.algo == 'TMM':
-                X, f, g, T, a_i, b = transfer_1d_2(k0, q, d, W, V, f, g, self.fourier_order, T)
+                X, f, g, T, a_i, b = transfer_1d_2(k0, q, d, W, V, f, g, self.fourier_order, T,
+                                                   type_complex=self.type_complex)
 
                 layer_info = [E_conv_i, q, W, X, a_i, b, d]
                 self.layer_info_list.append(layer_info)
@@ -110,7 +121,7 @@ class _BaseRCWA:
 
         if self.algo == 'TMM':
             de_ri, de_ti, T1 = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II,
-                                         self.theta, self.pol, k_II_z)
+                                             self.theta, self.pol, k_II_z)
             self.T1 = T1
 
         elif self.algo == 'SMM':
@@ -119,60 +130,77 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri, de_ti
+        return de_ri, de_ti, self.layer_info_list, self.T1
 
     # TODO: scattering method
-    def solve_1d_conical(self, wl, e_conv_all, o_e_conv_all):
+    def solve_1d_conical(self, wl, E_conv_all, o_E_conv_all):
+
+        self.layer_info_list = []
+        self.T1 = None
 
         fourier_indices = ee.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = ee.zeros(self.ff)
+        delta_i0 = ee.zeros(self.ff, dtype=self.type_complex)
         delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
         k0 = 2 * ee.pi / wl
 
         if self.algo == 'TMM':
             Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
-                = transfer_1d_conical_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta, self.phi, wl)
+                = transfer_1d_conical_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.theta, self.phi,
+                                        type_complex=self.type_complex)
         elif self.algo == 'SMM':
             print('SMM for 1D conical is not implemented')
             return ee.nan, ee.nan
         else:
             raise ValueError
 
-        for e_conv, o_e_conv, d in zip(e_conv_all[::-1], o_e_conv_all[::-1], self.thickness[::-1]):
-            e_conv_i = ee.inv(e_conv)
-            o_e_conv_i = ee.inv(o_e_conv)
+        for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+            E_conv_i = ee.inv(E_conv)
+            o_E_conv_i = ee.inv(o_E_conv)
 
             if self.algo == 'TMM':
-                big_F, big_G, big_T = transfer_1d_conical_2(k0, Kx, ky, e_conv, e_conv_i, o_e_conv_i, self.ff, d,
-                                                            varphi, big_F, big_G, big_T)
+                # big_F, big_G, big_T\
+                big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2 \
+                    = transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, self.ff, d,
+                                            varphi, big_F, big_G, big_T,
+                                            type_complex=self.type_complex)
+
+                layer_info = [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d]
+                self.layer_info_list.append(layer_info)
+
             elif self.algo == 'SMM':
                 raise ValueError
             else:
                 raise ValueError
 
         if self.algo == 'TMM':
-             de_ri, de_ti = transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
-                                                  delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z)
+            de_ri, de_ti, big_T1 = transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
+                                                         delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z,
+                                                         type_complex=self.type_complex)
+            self.T1 = big_T1
+
         elif self.algo == 'SMM':
             raise ValueError
         else:
             raise ValueError
 
-        return de_ri, de_ti
+        return de_ri, de_ti, self.layer_info_list, self.T1
 
-    @partial(jax.jit, static_argnums=(0, ))
+    # @partial(jax.jit, static_argnums=(0, ))
     def solve_2d(self, wl, E_conv_all, o_E_conv_all):
         print('solve_new')
 
+        self.layer_info_list = []
+        self.T1 = None
+
         fourier_indices = ee.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = ee.zeros((self.ff ** 2, 1))
+        delta_i0 = ee.zeros((self.ff ** 2, 1), dtype=self.type_complex)
         delta_i0 = delta_i0.at[self.ff ** 2 // 2, 0].set(1)
 
-        I = ee.eye(self.ff ** 2)
-        O = ee.zeros((self.ff ** 2, self.ff ** 2))
+        I = ee.eye(self.ff ** 2, dtype=self.type_complex)
+        O = ee.zeros((self.ff ** 2, self.ff ** 2), dtype=self.type_complex)
 
         center = self.ff ** 2
 
@@ -180,7 +208,8 @@ class _BaseRCWA:
 
         if self.algo == 'TMM':
             kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
-                = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta, self.phi, wl)
+                = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.period, fourier_indices, self.theta, self.phi,
+                                wl, type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_2d_1(self.n_I, self.n_II, self.theta, self.phi, k0, self.period, self.fourier_order)
@@ -193,11 +222,12 @@ class _BaseRCWA:
             o_E_conv_i = ee.inv(o_E_conv)
 
             if self.algo == 'TMM':  # TODO: MERGE W V part
-                W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, center)
+                W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=self.type_complex)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                 W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22 \
-                    = transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T)
+                    = transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T,
+                                    type_complex=self.type_complex)
 
                 layer_info = [E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d]
                 self.layer_info_list.append(layer_info)
@@ -210,7 +240,8 @@ class _BaseRCWA:
 
         if self.algo == 'TMM':
             de_ri, de_ti, big_T1 = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
-                                         delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z)
+                                                 delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z,
+                                                 type_complex=self.type_complex)
             self.T1 = big_T1
 
         elif self.algo == 'SMM':
@@ -219,4 +250,4 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape((self.ff, self.ff)).real
+        return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape((self.ff, self.ff)).real, self.layer_info_list, self.T1

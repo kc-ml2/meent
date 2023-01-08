@@ -2,47 +2,7 @@ import meent.integ.backend.meentpy as ee
 
 from os import walk
 from scipy.io import loadmat
-# from scipy.linalg import circulant
 from pathlib import Path
-
-
-# def put_n_ridge_in_pattern_fill_factor(pattern_all, mat_table, wavelength):
-#
-#     pattern_all = copy.deepcopy(pattern_all)
-#
-#     for i, (n_ridge, n_groove, pattern) in enumerate(pattern_all):
-#
-#         if type(n_ridge) == str:
-#             material = n_ridge
-#             n_ridge = find_nk_index(material, mat_table, wavelength)
-#         pattern_all[i][0] = n_ridge
-#     return pattern_all
-
-
-# def get_material_index_in_ucell(ucell_comp, mat_list):
-#
-#     res = [[[] for _ in mat_list] for _ in ucell_comp]
-#
-#     for z, ucell_xy in enumerate(ucell_comp):
-#         for y in range(ucell_xy.shape[0]):
-#             for x in range(ucell_xy.shape[1]):
-#                 res[z][ucell_xy[y, x]].append([y, x])
-#     return res
-
-
-# def put_permittivity_in_ucell_object_comps(ucell, mat_list, obj_list, mat_table, wavelength):
-#
-#     res = ee.zeros(ucell.shape, dtype='complex')
-#
-#     for obj_xy in obj_list:
-#         for material, obj_index in zip(mat_list, obj_xy):
-#             obj_index = ee.array(obj_index).T
-#             if type(material) == str:
-#                 res[obj_index[0], obj_index[1]] = find_nk_index(material, mat_table, wavelength) ** 2
-#             else:
-#                 res[obj_index[0], obj_index[1]] = material ** 2
-#
-#     return res
 
 
 def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl):
@@ -240,7 +200,7 @@ def to_conv_mat(pmt, fourier_order):
 
             center = f_coeffs.shape[1] // 2
 
-            conv_idx = ee.arange(ff - 1, -ff, -1)
+            conv_idx = ee.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
 
             e_conv = f_coeffs[0, center + conv_idx]
