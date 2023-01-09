@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from meent.on_numpy.rcwa import RCWALight as RCWA
+from meent.on_numpy.rcwa import RCWANumpy as RCWA
 from meent.on_numpy.convolution_matrix import to_conv_mat, find_nk_index
 
 

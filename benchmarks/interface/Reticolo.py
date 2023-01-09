@@ -80,7 +80,7 @@ class Reticolo(Base):
         if wls is None:
             wls = self.wavelength
         else:
-            self.wavelength = wls  # TODO: handle better.
+            self.wavelength = wls
 
         if type(n_si) == str and n_si.upper() == 'SILICON':
             n_si = find_nk_index(n_si, self.mat_table, self.wavelength)
