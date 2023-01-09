@@ -13,15 +13,15 @@ jax.config.update('jax_platform_name', 'cpu')
 
 # Torch
 device = torch.device('cuda')
-device = torch.device('cpu')
+# device = torch.device('cpu')
 
 type_complex = torch.complex128
 type_complex = torch.complex64
-type_complex = np.complex64
-type_complex = jnp.complex64
+# type_complex = np.complex64
+# type_complex = jnp.complex64
 
 # common
-grating_type = 1  # 0: 1D, 1: 1D conical, 2:2D.
+grating_type = 2  # 0: 1D, 1: 1D conical, 2:2D.
 pol = 1  # 0: TE, 1: TM
 
 n_I = 1  # n_incidence
@@ -36,7 +36,7 @@ wavelength = 900  # TODO: in numpy mode, np.array([900]) and 900 shows different
 
 if grating_type in (0, 1):
     period = [1000]
-    fourier_order = 2
+    fourier_order = 20
 
     ucell = np.array([
 
@@ -45,18 +45,18 @@ if grating_type in (0, 1):
                 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
             ],
         ],
-        [
-            [
-                0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-            ],
-        ],
+        # [
+        #     [
+        #         0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+        #     ],
+        # ],
     ])
 
 else:
     # period = torch.tensor([1000, 1000])
     period = [1000, 1000]
     fourier_order = 15
-    fourier_order = 2
+    fourier_order = 20
 
     # ucell = torch.tensor([
     ucell = np.array([
@@ -121,11 +121,10 @@ thickness = [500]
 
 
 ucell_materials = [1, 3.48]
-# ucell_materials = [3.48, 1]
 
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', 3: 'numpy_integ', 4: 'JAX_integ',}
 
-mode_key = 1
+mode_key = 2
 
 n_iter = 1
 

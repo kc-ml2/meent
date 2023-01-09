@@ -11,7 +11,7 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
                  period=0.7, wavelength=np.linspace(0.5, 2.3, 400), pol=0,
-                 patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM',
+                 patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=np.complex128):
 
         self.device = device
@@ -47,9 +47,33 @@ class _BaseRCWA:
         self.thickness = deepcopy(thickness)
 
         self.algo = algo
+        self.perturbation = perturbation
 
         self.layer_info_list = []
         self.T1 = None
+
+        self.kx_vector = None
+
+    def get_kx_vector(self):
+
+        k0 = 2 * np.pi / self.wavelength
+        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
+        if self.grating_type == 0:
+            kx_vector = k0 * (self.n_I * np.sin(self.theta) - fourier_indices * (self.wavelength / self.period[0])
+                              ).astype(self.type_complex)
+        else:
+            kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
+                    self.wavelength / self.period[0])
+                              ).astype(self.type_complex)
+
+        idx = np.nonzero(kx_vector == 0)[0]
+        if len(idx):
+            # TODO: need imaginary part?
+            # TODO: make imaginary part sign consistent
+            kx_vector[idx] = self.perturbation
+            print('varphi divide by 0: adding perturbation')
+
+        self.kx_vector = kx_vector
 
     def solve_1d(self, wl, E_conv_all, o_E_conv_all):
 
@@ -65,9 +89,8 @@ class _BaseRCWA:
 
         if self.algo == 'TMM':
             kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \
-                = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II,
-                                self.theta, delta_i0, self.fourier_order, fourier_indices, wl, self.period,
-                                type_complex=self.type_complex)
+                = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II, self.kx_vector,
+                                self.theta, delta_i0, self.fourier_order, type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices, self.period,
@@ -138,7 +161,7 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
+        # fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
         delta_i0 = np.zeros(self.ff, dtype=self.type_complex)
         delta_i0[self.fourier_order] = 1
@@ -147,8 +170,8 @@ class _BaseRCWA:
 
         if self.algo == 'TMM':
             Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
-                = transfer_1d_conical_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta,
-                                        self.phi, wl, type_complex=self.type_complex)
+                = transfer_1d_conical_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.theta, self.phi,
+                                        type_complex=self.type_complex)
         elif self.algo == 'SMM':
             print('SMM for 1D conical is not implemented')
             return np.nan, np.nan
@@ -212,8 +235,8 @@ class _BaseRCWA:
 
         if self.algo == 'TMM':
             kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
-                = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.period, fourier_indices, self.theta, self.phi,
-                                wl, type_complex=self.type_complex)
+                = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.period, fourier_indices,
+                                self.theta, self.phi, wl, type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_2d_1(self.n_I, self.n_II, self.theta, self.phi, k0, self.period, self.fourier_order)

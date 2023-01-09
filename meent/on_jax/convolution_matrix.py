@@ -10,7 +10,6 @@ import meent.on_jax.jitted as ee
 from os import walk
 from scipy.io import loadmat
 from pathlib import Path
-from jax import jit
 
 
 # @jax.jit
@@ -90,9 +89,15 @@ def read_material_table(nk_path=None):
 
 
 # can't jit
-def cell_compression(cell, type_float=jnp.float64):
+def cell_compression(cell, type_complex=jnp.complex128):
+
+    if type_complex == jnp.complex128:
+        type_float = jnp.float64
+    else:
+        type_float = jnp.float32
+
     # find discontinuities in x
-    step_y, step_x = 1. / ee.array(cell.shape, dtype=type_float)  # TODO: activate?
+    step_y, step_x = 1. / ee.array(cell.shape, dtype=type_float)
     x = []
     y = []
     cell_x = []
@@ -121,14 +126,14 @@ def cell_compression(cell, type_float=jnp.float64):
     return cell_comp, x, y
 
 
-# @partial(jax.jit, static_argnums=(1, ))
+# @partial(jax.jit, static_argnums=(1,2 ))
 def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
 
     if cell.shape[0] == 1:
         fourier_order = [0, fourier_order]
     else:
         fourier_order = [fourier_order, fourier_order]
-    cell, x, y = cell_compression(cell)
+    cell, x, y = cell_compression(cell, type_complex=type_complex)
 
     # X axis
     cell_next_x = ee.roll(cell, -1, axis=1)
@@ -144,8 +149,8 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
     assign_index = (ee.arange(len(f_coeffs_x)), ee.array([c]))
     assign_value = (cell @ ee.vstack((x[0], x_next[:-1]))).flatten().astype(type_complex)
 
-    # f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value)
-    f_coeffs_x = f_coeffs_x.at[assign_index].set(assign_value)
+    f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value)
+    # f_coeffs_x = f_coeffs_x.at[assign_index].set(assign_value)
 
     mask_int = ee.hstack([ee.arange(c), ee.arange(c+1, f_coeffs_x.shape[1])])
 
@@ -153,8 +158,8 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
 
     assign_value = f_coeffs_x[:, mask_int] / (1j * 2 * ee.pi * modes[mask_int])
 
-    # f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value, row_all=True)  # TODO check correct
-    f_coeffs_x = f_coeffs_x.at[:, assign_index].set(assign_value)
+    f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value, row_all=True)
+    # f_coeffs_x = f_coeffs_x.at[:, assign_index].set(assign_value)
 
     # Y axis
     f_coeffs_x_next_y = ee.roll(f_coeffs_x, -1, axis=0)
@@ -169,8 +174,8 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
 
     assign_index = [c]
     assign_value = f_coeffs_x.T @ ee.vstack((y[0], y_next[:-1])).astype(type_complex)
-    # f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)  # todo: correct?
-    f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
+    f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)
+    # f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
 
 
     if c:
@@ -179,8 +184,8 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
         assign_index = mask_int
         assign_value = f_coeffs_xy[:, mask_int] / (1j * 2 * ee.pi * modes[mask_int])
 
-        # f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)
-        f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
+        f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)
+        # f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
 
     return f_coeffs_xy.T
 
@@ -212,7 +217,6 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
     else:  # 2D
         # attention on the order of axis (Z Y X)
 
-        # TODO: separate fourier order
         res = ee.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
 
         for i, layer in enumerate(pmt):

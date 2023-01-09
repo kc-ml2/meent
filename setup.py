@@ -9,7 +9,6 @@ setup(
     packages=['meent'] + find_packages(include=['meent.*']),
     install_requires=[
         'numpy==1.23.3',
-        'scipy==1.9.1',
         'jax==0.3.21',
         'matplotlib==3.5.3',
     ],

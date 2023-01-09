@@ -6,7 +6,7 @@ from scipy.io import loadmat
 from pathlib import Path
 
 
-def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device='cpu', type_complex=torch.complex128):
+def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device=torch.device('cpu'), type_complex=torch.complex128):
 
     res = torch.zeros(ucell.shape, device=device).type(type_complex)
 
@@ -22,7 +22,7 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device='cpu', type
     return res
 
 
-def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl, device='cpu',
+def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl, device=torch.device('cpu'),
                                      type_complex=torch.complex128):
     # TODO: under development
     res = torch.zeros(ucell_size, device=device).type(type_complex)
@@ -78,9 +78,15 @@ def read_material_table(nk_path=None):
     return mat_table
 
 
-def cell_compression(cell, device='cpu', type_complex=torch.complex128):
+def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.complex128):
+
+    if type_complex == torch.complex128:
+        type_float = torch.float64
+    else:
+        type_float = torch.float32
+
     # find discontinuities in x
-    step_y, step_x = 1. / torch.tensor(cell.shape, device=device)
+    step_y, step_x = 1. / torch.tensor(cell.shape, device=device, dtype=type_float)
     x = []
     y = []
     cell_x = []
@@ -109,7 +115,7 @@ def cell_compression(cell, device='cpu', type_complex=torch.complex128):
     return cell_comp, x, y
 
 
-def fft_piecewise_constant(cell, fourier_order, device='cpu', type_complex=torch.complex128):
+def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
     if cell.shape[0] == 1:
         fourier_order = [0, fourier_order]
     else:
@@ -153,7 +159,7 @@ def fft_piecewise_constant(cell, fourier_order, device='cpu', type_complex=torch
     return f_coeffs_xy.T
 
 
-def to_conv_mat(pmt, fourier_order, device='cpu', type_complex=torch.complex128):
+def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -166,27 +172,16 @@ def to_conv_mat(pmt, fourier_order, device='cpu', type_complex=torch.complex128)
 
         for i, layer in enumerate(pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, device=device, type_complex=type_complex)
-            # A = torch.roll(circulant(f_coeffs.flatten(), device), (f_coeffs.size + 1) // 2, 0)
-            # res[i] = A[:2 * fourier_order + 1, :2 * fourier_order + 1]
 
-            center = f_coeffs.shape[1] // 2  # TODO: which one?
-            # center = torch.tensor(pmtvy_fft.shape, device=device) // 2
-
-            # TODO: check range in other backends
-            # conv_idx = torch.arange(ff - 1, -ff, -1, device=device).type(torch.long)
+            center = f_coeffs.shape[1] // 2
             conv_idx = torch.arange(-ff + 1, ff, 1, device=device).type(torch.long)
-
             conv_idx = circulant(conv_idx, device)
-
             e_conv = f_coeffs[0, center + conv_idx]
             res[i] = e_conv
-            # # res = res.at[i].set(e_conv)
-            # res = ee.assign(res, i, e_conv)
 
     else:  # 2D
         # attention on the order of axis (Z Y X)
 
-        # TODO: separate fourier order
         res = torch.zeros((pmt.shape[0], ff ** 2, ff ** 2), device=device).type(type_complex)
 
         for i, layer in enumerate(pmt):
@@ -212,7 +207,7 @@ def to_conv_mat(pmt, fourier_order, device='cpu', type_complex=torch.complex128)
     return res
 
 
-def circulant(c, device='cpu'):
+def circulant(c, device=torch.device('cpu')):
 
     center = c.shape[0] // 2
     circ = torch.zeros((center + 1, center + 1), device=device).type(torch.long)

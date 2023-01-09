@@ -2,10 +2,10 @@ import numpy as np
 import torch
 
 
-def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_order, fourier_indices, wavelength, period,
+def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
                   device='cpu', type_complex=torch.complex128):
 
-    kx_vector = k0 * (n_I * torch.sin(theta) - fourier_indices * (wavelength / period[0])).type(type_complex)
+    # kx_vector = k0 * (n_I * torch.sin(theta) - fourier_indices * (wavelength / period[0])).type(type_complex)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2) ** 0.5
@@ -79,14 +79,13 @@ def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, the
     return de_ri, de_ti, T1
 
 
-def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavelength,
-                          perturbation=1E-20 * (1 + 1j), device='cpu', type_complex=torch.complex128):
+def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, device='cpu', type_complex=torch.complex128):
 
     I = torch.eye(ff, device=device, dtype=type_complex)
     O = torch.zeros((ff, ff), device=device, dtype=type_complex)
 
-    kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) - fourier_indices * (
-            wavelength / period[0])).type(type_complex)
+    # kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) - fourier_indices * (
+    #         wavelength / period[0])).type(type_complex)
 
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
 
@@ -97,13 +96,6 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi
     k_II_z = torch.conj(k_II_z.flatten())
 
     Kx = torch.diag(kx_vector / k0)
-
-    idx = torch.nonzero(kx_vector == 0)
-    if len(idx):
-        # TODO: need imaginary part?
-        # TODO: make imaginary part sign consistent
-        kx_vector[idx] = perturbation  # TODO: test
-        print(wavelength, 'varphi divide by 0: adding perturbation')
 
     varphi = torch.arctan(ky / kx_vector)
 
@@ -252,21 +244,21 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     de_ri = R_s * torch.conj(R_s) * torch.real(k_I_z / (k0 * n_I * torch.cos(theta))) \
            + R_p * torch.conj(R_p) * torch.real((k_I_z / n_I ** 2) / (k0 * n_I * torch.cos(theta)))
 
-    de_ti = T_s * np.conj(T_s) * torch.real(k_II_z / (k0 * n_I * torch.cos(theta))) \
+    de_ti = T_s * torch.conj(T_s) * torch.real(k_II_z / (k0 * n_I * torch.cos(theta))) \
            + T_p * torch.conj(T_p) * torch.real((k_II_z / n_II ** 2) / (k0 * n_I * torch.cos(theta)))
 
     return de_ri.real, de_ti.real, big_T1
 
 
 
-def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavelength, perturbation=1E-20 * (1 + 1j),
+def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, phi, wavelength,
                   device='cpu', type_complex=torch.complex128):
 
     I = torch.eye(ff ** 2, device=device, dtype=type_complex)
     O = torch.zeros((ff ** 2, ff ** 2), device=device, dtype=type_complex)
 
-    kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) - fourier_indices * (
-            wavelength / period[0])).type(type_complex)
+    # kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) - fourier_indices * (
+    #         wavelength / period[0])).type(type_complex)
     ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) - fourier_indices * (
             wavelength / period[1])).type(type_complex)
 
@@ -278,13 +270,6 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavele
 
     Kx = torch.diag(kx_vector.tile(ff).flatten() / k0)
     Ky = torch.diag(ky_vector.reshape((-1, 1)).tile(ff).flatten() / k0)
-
-    idx = torch.nonzero(kx_vector == 0)
-    if len(idx):
-        # TODO: need imaginary part?
-        # TODO: make imaginary part sign consistent
-        kx_vector[idx] = perturbation
-        print(wavelength, 'varphi divide by 0: adding perturbation')
 
     varphi = torch.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
 
@@ -313,17 +298,17 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavele
     return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_2d_wv(ff, Kx, E_i, Ky, o_E_conv_i, E_conv, device='cpu', type_complex=torch.complex128):
+def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', type_complex=torch.complex128):
 
     I = torch.eye(ff ** 2, device=device, dtype=type_complex)
 
-    B = Kx @ E_i @ Kx - I
-    D = Ky @ E_i @ Ky - I
+    B = Kx @ E_conv_i @ Kx - I
+    D = Ky @ E_conv_i @ Ky - I
 
     S2_from_S = torch.cat(
         [
-            torch.cat([Ky ** 2 + B @ o_E_conv_i, Kx @ (E_i @ Ky @ E_conv - Ky)], dim=1),
-            torch.cat([Ky @ (E_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv], dim=1)
+            torch.cat([Ky ** 2 + B @ o_E_conv_i, Kx @ (E_conv_i @ Ky @ E_conv - Ky)], dim=1),
+            torch.cat([Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv], dim=1)
         ])
 
     eigenvalues, W = torch.linalg.eig(S2_from_S)

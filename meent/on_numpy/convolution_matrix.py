@@ -1,9 +1,11 @@
 import copy
+import time
+
 import numpy as np
 
 from os import walk
 from scipy.io import loadmat
-from scipy.linalg import circulant
+from scipy.linalg import circulant as circulant_scipy
 from pathlib import Path
 
 
@@ -79,9 +81,15 @@ def read_material_table(nk_path=None):
     return mat_table
 
 
-def cell_compression(cell, type_float=np.float64):
+def cell_compression(cell, type_complex=np.complex128):
+
+    if type_complex == np.complex128:
+        type_float = np.float64
+    else:
+        type_float = np.float32
+
     # find discontinuities in x
-    step_y, step_x = 1. / np.array(cell.shape, dtype=type_float)  # todo: activate this option?
+    step_y, step_x = 1. / np.array(cell.shape, dtype=type_float)
     x = []
     y = []
     cell_x = []
@@ -115,7 +123,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
         fourier_order = [0, fourier_order]
     else:
         fourier_order = [fourier_order, fourier_order]
-    cell, x, y = cell_compression(cell)
+    cell, x, y = cell_compression(cell, type_complex=type_complex)
 
     # X axis
     cell_next_x = np.roll(cell, -1, axis=1)
@@ -167,15 +175,17 @@ def to_conv_mat(pmt, fourier_order, type_complex=np.complex128):
         res = np.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
 
         for i, layer in enumerate(pmt):
-            # TODO: use manual circulant function
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
-            A = np.roll(circulant(f_coeffs.flatten()), (f_coeffs.size + 1) // 2, 0)
-            res[i] = A[:2 * fourier_order + 1, :2 * fourier_order + 1]
+
+            center = f_coeffs.shape[1] // 2
+            conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
+            conv_idx = circulant(conv_idx)
+            e_conv = f_coeffs[0, center + conv_idx]
+            res[i] = e_conv
 
     else:  # 2D
         # attention on the order of axis (Z Y X)
 
-        # TODO: separate fourier order
         res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
 
         for i, layer in enumerate(pmt):
@@ -184,7 +194,8 @@ def to_conv_mat(pmt, fourier_order, type_complex=np.complex128):
             center = np.array(pmtvy_fft.shape) // 2
 
             conv_idx = np.arange(-ff + 1, ff, 1)
-            conv_idx = circulant(conv_idx)[ff - 1:, :ff]
+            # conv_idx = circulant(conv_idx)[ff - 1:, :ff]
+            conv_idx = circulant(conv_idx)
 
             conv_i = np.repeat(conv_idx, ff, axis=1)
             conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
@@ -199,3 +210,17 @@ def to_conv_mat(pmt, fourier_order, type_complex=np.complex128):
     # plt.show()
     #
     return res
+
+
+def circulant(c):
+
+    center = c.shape[0] // 2
+    circ = np.zeros((center + 1, center + 1), dtype=int)
+
+    for r in range(center+1):
+        idx = np.arange(r, r - center - 1, -1, dtype=int)
+
+        assign_value = c[center + idx]
+        circ[r] = assign_value
+
+    return circ

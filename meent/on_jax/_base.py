@@ -15,7 +15,7 @@ import meent.on_jax.jitted as ee
 class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
                  period=0.7, wavelength=ee.linspace(0.5, 2.3, 400), pol=0,
-                 patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM',
+                 patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=jnp.complex128):
 
         self.device = device
@@ -51,12 +51,33 @@ class _BaseRCWA:
         self.thickness = deepcopy(thickness)
 
         self.algo = algo
+        self.perturbation = perturbation
 
         self.layer_info_list = []
         self.T1 = None
 
         self.kx_vector = None
 
+    def get_kx_vector(self):
+
+        k0 = 2 * jnp.pi / self.wavelength
+        fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
+        if self.grating_type == 0:
+            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) - fourier_indices * (self.wavelength / self.period[0])
+                              ).astype(self.type_complex)
+        else:
+            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) - fourier_indices * (
+                        self.wavelength / self.period[0])).astype(self.type_complex)
+
+        idx = jnp.nonzero(kx_vector == 0)[0]
+        if len(idx):
+            # TODO: need imaginary part? make imaginary part sign consistent
+            kx_vector = kx_vector.at[idx].set(self.perturbation)
+            print('varphi divide by 0: adding perturbation')
+
+        self.kx_vector = kx_vector
+
+    @partial(jax.jit, static_argnums=(0,))
     def solve_1d(self, wl, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
@@ -72,8 +93,7 @@ class _BaseRCWA:
         if self.algo == 'TMM':
             kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T \
                 = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II, self.kx_vector,
-                                self.theta, delta_i0, self.fourier_order, fourier_indices, wl, self.period,
-                                type_complex=self.type_complex)
+                                self.theta, delta_i0, self.fourier_order, type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices, self.period,
@@ -95,7 +115,7 @@ class _BaseRCWA:
 
             elif self.pol == 1:
                 E_conv_i = ee.inv(E_conv)
-                B = Kx @ E_conv_i @ Kx - ee.eye(E_conv.shape[0], dtype=self.type_complex)
+                B = Kx @ E_conv_i @ Kx - ee.eye(E_conv.shape[0]).astype(self.type_complex)
                 o_E_conv_i = ee.inv(o_E_conv)
 
                 eigenvalues, W = ee.eig(o_E_conv_i @ B, type_complex=self.type_complex)
@@ -133,12 +153,13 @@ class _BaseRCWA:
         return de_ri, de_ti, self.layer_info_list, self.T1
 
     # TODO: scattering method
+    @partial(jax.jit, static_argnums=(0,))
     def solve_1d_conical(self, wl, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
         self.T1 = None
 
-        fourier_indices = ee.arange(-self.fourier_order, self.fourier_order + 1)
+        # fourier_indices = ee.arange(-self.fourier_order, self.fourier_order + 1)
 
         delta_i0 = ee.zeros(self.ff, dtype=self.type_complex)
         delta_i0 = delta_i0.at[self.fourier_order].set(1)
@@ -187,9 +208,8 @@ class _BaseRCWA:
 
         return de_ri, de_ti, self.layer_info_list, self.T1
 
-    # @partial(jax.jit, static_argnums=(0, ))
-    def solve_2d(self, wl, E_conv_all, o_E_conv_all):
-        print('solve_new')
+    @partial(jax.jit, static_argnums=(0,))
+    def solve_2d(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
         self.T1 = None
@@ -199,17 +219,17 @@ class _BaseRCWA:
         delta_i0 = ee.zeros((self.ff ** 2, 1), dtype=self.type_complex)
         delta_i0 = delta_i0.at[self.ff ** 2 // 2, 0].set(1)
 
-        I = ee.eye(self.ff ** 2, dtype=self.type_complex)
+        I = ee.eye(self.ff ** 2).astype(self.type_complex)
         O = ee.zeros((self.ff ** 2, self.ff ** 2), dtype=self.type_complex)
 
         center = self.ff ** 2
 
-        k0 = 2 * ee.pi / wl
+        k0 = 2 * ee.pi / wavelength
 
         if self.algo == 'TMM':
             kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
-                = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.period, fourier_indices, self.theta, self.phi,
-                                wl, type_complex=self.type_complex)
+                = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.period, fourier_indices,
+                                self.theta, self.phi, wavelength, type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_2d_1(self.n_I, self.n_II, self.theta, self.phi, k0, self.period, self.fourier_order)
@@ -250,4 +270,5 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape((self.ff, self.ff)).real, self.layer_info_list, self.T1
+        return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape(
+            (self.ff, self.ff)).real, self.layer_info_list, self.T1

@@ -56,11 +56,11 @@ def field_dist_1d(wavelength, n_I, theta, fourier_order, T1, layer_info_list, pe
                     for i in range(resolution_x):
                         x = i * period[0] / resolution_x
 
-                        Ey = Sy.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x, dtype=type_complex)  # todo need dtype?
-                        Hx = -1j * Ux.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x, dtype=type_complex)
-                        Hz = f_here.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x, dtype=type_complex)
+                        Ey = Sy.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Hx = -1j * Ux.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Hz = f_here.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
 
-                        field_cell[resolution_z * idx_layer + k, j, i] = Ey, Hx, Hz
+                        field_cell[resolution_z * idx_layer + k, j, i] = [Ey[0, 0], Hx[0, 0], Hz[0, 0]]
             else:  # TM
                 Uy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
                 Sx = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
@@ -71,11 +71,11 @@ def field_dist_1d(wavelength, n_I, theta, fourier_order, T1, layer_info_list, pe
                     for i in range(resolution_x):
                         x = i * period[0] / resolution_x
 
-                        Hy = Uy.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x, dtype=type_complex)
-                        Ex = 1j * Sx.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x, dtype=type_complex)
-                        Ez = f_here.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x, dtype=type_complex)
+                        Hy = Uy.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Ex = 1j * Sx.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Ez = f_here.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
 
-                        field_cell[resolution_z * idx_layer + k, j, i] = Hy, Ex, Ez
+                        field_cell[resolution_z * idx_layer + k, j, i] = [Hy[0, 0], Ex[0, 0], Ez[0, 0]]
 
         T_layer = a_i @ X @ T_layer
 
@@ -149,7 +149,7 @@ def field_dist_1d_conical(wavelength, n_I, theta, phi, fourier_order, T1, layer_
                     Hy = -1j * Uy.T @ exp_K
                     Hz = -1j * Uz.T @ exp_K
 
-                    field_cell[resolution_z * idx_layer + k, j, i] = [Ex, Ey, Ez, Hx, Hy, Hz]
+                    field_cell[resolution_z * idx_layer + k, j, i] = [Ex[0, 0], Ey[0, 0], Ez[0, 0], Hx[0, 0], Hy[0, 0], Hz[0, 0]]
 
         T_layer = big_A_i @ big_X @ T_layer
 
@@ -232,7 +232,7 @@ def field_dist_2d(wavelength, n_I, theta, phi, fourier_order, T1, layer_info_lis
                     Hy = -1j * Uy.T @ exp_K
                     Hz = -1j * Uz.T @ exp_K
 
-                    field_cell[resolution_z * idx_layer + k, j, i] = [Ex, Ey, Ez, Hx, Hy, Hz]
+                    field_cell[resolution_z * idx_layer + k, j, i] = [Ex[0], Ey[0], Ez[0], Hx[0], Hy[0], Hz[0]]
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell

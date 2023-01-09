@@ -1,10 +1,10 @@
 import numpy as np
 
 
-def transfer_1d_1(ff, polarization, k0, n_I, n_II, theta, delta_i0, fourier_order, fourier_indices, wavelength, period,
+def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
                   type_complex=np.complex128):
 
-    kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
+    # kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2) ** 0.5
@@ -78,14 +78,13 @@ def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, the
     return de_ri, de_ti, T1
 
 
-def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavelength,
-                          perturbation=1E-20 * (1 + 1j), type_complex=np.complex128):
+def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex=np.complex128):
 
     I = np.eye(ff, dtype=type_complex)
     O = np.zeros((ff, ff), dtype=type_complex)
 
-    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (wavelength / period[0])
-                      ).astype(type_complex)
+    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (wavelength / period[0])
+    #                   ).astype(type_complex)
 
     ky = k0 * n_I * np.sin(theta) * np.sin(phi)
 
@@ -96,13 +95,6 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi
     k_II_z = k_II_z.conjugate()
 
     Kx = np.diag(kx_vector / k0)
-
-    idx = np.nonzero(kx_vector == 0)[0]  # TODO: take out as in JAX
-    if len(idx):
-        # TODO: need imaginary part?
-        # TODO: make imaginary part sign consistent
-        kx_vector[idx] = perturbation  # TODO: test
-        print(wavelength, 'varphi divide by 0: adding perturbation')
 
     varphi = np.arctan(ky / kx_vector)
 
@@ -120,19 +112,19 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi
     return Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
+def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
                           type_complex=np.complex128):
 
     I = np.eye(ff, dtype=type_complex)
     O = np.zeros((ff, ff), dtype=type_complex)
 
     A = Kx ** 2 - E_conv
-    B = Kx @ E_i @ Kx - I
+    B = Kx @ E_conv_i @ Kx - I
     A_i = np.linalg.inv(A)
     B_i = np.linalg.inv(B)
 
     to_decompose_W_1 = ky ** 2 * I + A
-    to_decompose_W_2 = ky ** 2 * I + B @ oneover_E_conv_i
+    to_decompose_W_2 = ky ** 2 * I + B @ o_E_conv_i
 
     eigenvalues_1, W_1 = np.linalg.eig(to_decompose_W_1)
     eigenvalues_2, W_2 = np.linalg.eig(to_decompose_W_2)
@@ -145,7 +137,7 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
 
     V_11 = A_i @ W_1 @ Q_1
     V_12 = (ky / k0) * A_i @ Kx @ W_2
-    V_21 = (ky / k0) * B_i @ Kx @ E_i @ W_1
+    V_21 = (ky / k0) * B_i @ Kx @ E_conv_i @ W_1
     V_22 = B_i @ W_2 @ Q_2
 
     X_1 = np.diag(np.exp(-k0 * q_1 * d))
@@ -237,14 +229,15 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     return de_ri.real, de_ti.real, big_T1
 
 
-def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavelength, perturbation=1E-20 * (1 + 1j),
+def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, phi, wavelength,
                   type_complex=np.complex128):
 
     I = np.eye(ff ** 2, dtype=type_complex)
     O = np.zeros((ff ** 2, ff ** 2), dtype=type_complex)
 
-    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
-            wavelength / period[0])).astype(type_complex)
+    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
+    #         wavelength / period[0])).astype(type_complex)
+
     ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) - fourier_indices * (
             wavelength / period[1])).astype(type_complex)
 
@@ -256,14 +249,6 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavele
 
     Kx = np.diag(np.tile(kx_vector, ff).flatten()) / k0
     Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), ff).flatten()) / k0
-
-    # TODO: take outside
-    idx = np.nonzero(kx_vector == 0)[0]
-    if len(idx):
-        # TODO: need imaginary part?
-        # TODO: make imaginary part sign consistent
-        kx_vector[idx] = perturbation
-        print(wavelength, 'varphi divide by 0: adding perturbation')
 
     varphi = np.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
 
@@ -281,17 +266,17 @@ def transfer_2d_1(ff, k0, n_I, n_II, period, fourier_indices, theta, phi, wavele
     return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_2d_wv(ff, Kx, E_i, Ky, o_E_conv_i, E_conv, type_complex=np.complex128):
+def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=np.complex128):
 
     I = np.eye(ff ** 2, dtype=type_complex)
 
-    B = Kx @ E_i @ Kx - I
-    D = Ky @ E_i @ Ky - I
+    B = Kx @ E_conv_i @ Kx - I
+    D = Ky @ E_conv_i @ Ky - I
 
     S2_from_S = np.block(
         [
-            [Ky ** 2 + B @ o_E_conv_i, Kx @ (E_i @ Ky @ E_conv - Ky)],
-            [Ky @ (E_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
+            [Ky ** 2 + B @ o_E_conv_i, Kx @ (E_conv_i @ Ky @ E_conv - Ky)],
+            [Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
     eigenvalues, W = np.linalg.eig(S2_from_S)
@@ -311,8 +296,7 @@ def transfer_2d_wv(ff, Kx, E_i, Ky, o_E_conv_i, E_conv, type_complex=np.complex1
     return W, V, q
 
 
-def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T,
-                  type_complex=np.complex128):
+def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T, type_complex=np.complex128):
 
     q1 = q[:center]
     q2 = q[center:]

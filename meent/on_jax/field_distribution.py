@@ -83,7 +83,7 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order,
 
     T_layer = T1
 
-    big_I = ee.eye((len(T1)), dtype=type_complex)
+    big_I = ee.eye((len(T1))).astype(type_complex)
 
     # From the first layer
     for idx_layer, [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d] \
@@ -125,7 +125,7 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
 
     T_layer = T1
 
-    big_I = ee.eye((len(T1)), dtype=type_complex)
+    big_I = ee.eye((len(T1))).astype(type_complex)
 
     # From the first layer
     for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
@@ -147,6 +147,7 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
 
 @partial(jax.jit, static_argnums=(0,))
 def z_loop_1d(pol, k0, Kx, W, V, Q, c1, c2, d, z, EKx):
+
     if pol == 0:  # TE
         Sy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
         Ux = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
@@ -192,6 +193,7 @@ def x_loop_1d(pol, resolution_x, period, i, A, B, C, kx_vector):
 
 @jax.jit
 def z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, d):
+
     z = k / resolution_z * d
 
     ff = len(c) // 4
@@ -223,7 +225,7 @@ def z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W
 
 @jax.jit
 def x_loop_1d_conical(period, resolution_x, kx_vector, Sx, Sy, Sz, Ux, Uy, Uz, i):
-    print('compile')
+
     x = i * period[0] / resolution_x
 
     exp_K = ee.exp(-1j * kx_vector.reshape((-1, 1)) * x)
@@ -243,6 +245,7 @@ def x_loop_1d_conical(period, resolution_x, kx_vector, Sx, Sy, Sz, Ux, Uy, Uz, i
 
 @jax.jit
 def z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d):
+
     z = k / resolution_z * d
 
     ff = len(c) // 4
@@ -278,7 +281,7 @@ def z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_2
 
 @jax.jit
 def x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i):
-    # print('compile')
+
     x = i * period[0] / resolution_x
 
     exp_K = ee.exp(-1j * kx_vector.reshape((1, -1)) * x) * ee.exp(-1j * ky_vector.reshape((-1, 1)) * y)

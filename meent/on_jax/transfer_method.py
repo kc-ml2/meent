@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import meent.on_jax.jitted as ee
 
 
-def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order, fourier_indices, wavelength, period,
+def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
                   type_complex=jnp.complex128):
 
     # kx_vector = k0 * (n_I * ee.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
@@ -20,7 +20,7 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, f
 
     Kx = ee.diag(kx_vector / k0)
 
-    f = ee.eye(ff, dtype=type_complex)
+    f = ee.eye(ff).astype(type_complex)
 
     if polarization == 0:  # TE
         Y_I = ee.diag(k_I_z / k0)
@@ -41,12 +41,13 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, f
     else:
         raise ValueError
 
-    T = ee.eye(2 * fourier_order + 1, dtype=type_complex)
+    T = ee.eye(2 * fourier_order + 1).astype(type_complex)
 
     return kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T
 
 
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=jnp.complex128):
+
     X = ee.diag(ee.exp(-k0 * q * d))
 
     W_i = ee.inv(W)
@@ -57,14 +58,15 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=jnp.compl
 
     a_i = ee.inv(a)
 
-    f = W @ (ee.eye(2 * fourier_order + 1, dtype=type_complex) + X @ b @ a_i @ X)
-    g = V @ (ee.eye(2 * fourier_order + 1, dtype=type_complex) - X @ b @ a_i @ X)
+    f = W @ (ee.eye(2 * fourier_order + 1).astype(type_complex) + X @ b @ a_i @ X)
+    g = V @ (ee.eye(2 * fourier_order + 1).astype(type_complex) - X @ b @ a_i @ X)
     T = T @ a_i @ X
 
     return X, f, g, T, a_i, b
 
 
 def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
+
     T1 = ee.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
     R = f @ T1 - delta_i0
     T = T @ T1
@@ -83,10 +85,11 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
 
 
 def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex=jnp.complex128):
-    I = ee.eye(ff, dtype=type_complex)
-    O = ee.zeros((ff, ff), dtype=type_complex)
 
-    # kx_vector = k0 * (n_I * ee.sin(theta) * ee.cos(phi) - fourier_indices * (wl / period[0])
+    I = ee.eye(ff).astype(type_complex)
+    O = ee.zeros((ff, ff)).astype(type_complex)
+
+    # kx_vector = k0 * (n_I * ee.sin(theta) * ee.cos(phi) - fourier_indices * (wavelength / period[0])
     #                   ).astype(type_complex)
 
     ky = k0 * n_I * ee.sin(theta) * ee.sin(phi)
@@ -97,6 +100,8 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex
     k_I_z = k_I_z.conjugate()
     k_II_z = k_II_z.conjugate()
 
+    Kx = ee.diag(kx_vector / k0)
+
     varphi = ee.arctan(ky / kx_vector)
 
     Y_I = ee.diag(k_I_z / k0)
@@ -105,29 +110,27 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex
     Z_I = ee.diag(k_I_z / (k0 * n_I ** 2))
     Z_II = ee.diag(k_II_z / (k0 * n_II ** 2))
 
-    Kx = ee.diag(kx_vector / k0)
-
     big_F = ee.block([[I, O], [O, 1j * Z_II]])
     big_G = ee.block([[1j * Y_II, O], [O, I]])
 
-    big_T = ee.eye(2 * ff, dtype=type_complex)
+    big_T = ee.eye(2 * ff).astype(type_complex)
 
     return Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
+def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
                           type_complex=jnp.complex128):
 
-    I = ee.eye(ff, dtype=type_complex)
-    O = ee.zeros((ff, ff), dtype=type_complex)
+    I = ee.eye(ff).astype(type_complex)
+    O = ee.zeros((ff, ff)).astype(type_complex)
 
     A = Kx ** 2 - E_conv
-    B = Kx @ E_i @ Kx - I
+    B = Kx @ E_conv_i @ Kx - I
     A_i = ee.inv(A)
     B_i = ee.inv(B)
 
     to_decompose_W_1 = ky ** 2 * I + A
-    to_decompose_W_2 = ky ** 2 * I + B @ oneover_E_conv_i
+    to_decompose_W_2 = ky ** 2 * I + B @ o_E_conv_i
 
     eigenvalues_1, W_1 = ee.eig(to_decompose_W_1, type_complex=type_complex)
     eigenvalues_2, W_2 = ee.eig(to_decompose_W_2, type_complex=type_complex)
@@ -140,7 +143,7 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
 
     V_11 = A_i @ W_1 @ Q_1
     V_12 = (ky / k0) * A_i @ Kx @ W_2
-    V_21 = (ky / k0) * B_i @ Kx @ E_i @ W_1
+    V_21 = (ky / k0) * B_i @ Kx @ E_conv_i @ W_1
     V_22 = B_i @ W_2 @ Q_2
 
     X_1 = ee.diag(ee.exp(-k0 * q_1 * d))
@@ -158,7 +161,7 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
     V_ps = F_c @ V_21 - F_s @ W_1
     V_pp = F_c @ V_22
 
-    big_I = ee.eye(2 * (len(I)), dtype=type_complex)
+    big_I = ee.eye(2 * (len(I))).astype(type_complex)
     big_X = ee.block([[X_1, O], [O, X_2]])
     big_W = ee.block([[V_ss, V_sp], [W_ps, W_pp]])
     big_V = ee.block([[W_ss, W_sp], [V_ps, V_pp]])
@@ -182,7 +185,7 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, oneover_E_conv_i, ff, d, varp
 def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z,
                           type_complex=jnp.complex128):
 
-    I = ee.eye(ff, dtype=type_complex)
+    I = ee.eye(ff).astype(type_complex)
     O = ee.zeros((ff, ff), dtype=type_complex)
 
     big_F_11 = big_F[:ff, :ff]
@@ -236,7 +239,7 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
 def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, phi, wavelength,
                   type_complex=jnp.complex128):
 
-    I = ee.eye(ff ** 2, dtype=type_complex)
+    I = ee.eye(ff ** 2).astype(type_complex)
     O = ee.zeros((ff ** 2, ff ** 2), dtype=type_complex)
 
     # kx_vector = k0 * (n_I * ee.sin(theta) * ee.cos(phi) - fourier_indices * (
@@ -265,22 +268,22 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
     big_F = ee.block([[I, O], [O, 1j * Z_II]])
     big_G = ee.block([[1j * Y_II, O], [O, I]])
 
-    big_T = ee.eye(ff ** 2 * 2, dtype=type_complex)
+    big_T = ee.eye(ff ** 2 * 2).astype(type_complex)
 
     return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_2d_wv(ff, Kx, E_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex128):
+def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex128):
 
-    I = ee.eye(ff ** 2, dtype=type_complex)
+    I = ee.eye(ff ** 2).astype(type_complex)
 
-    B = Kx @ E_i @ Kx - I
-    D = Ky @ E_i @ Ky - I
+    B = Kx @ E_conv_i @ Kx - I
+    D = Ky @ E_conv_i @ Ky - I
 
     S2_from_S = ee.block(
         [
-            [Ky ** 2 + B @ o_E_conv_i, Kx @ (E_i @ Ky @ E_conv - Ky)],
-            [Ky @ (E_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
+            [Ky ** 2 + B @ o_E_conv_i, Kx @ (E_conv_i @ Ky @ E_conv - Ky)],
+            [Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
     eigenvalues, W = ee.eig(S2_from_S, type_complex=type_complex)
@@ -300,9 +303,7 @@ def transfer_2d_wv(ff, Kx, E_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex
     return W, V, q
 
 
-# @partial(jax.jit, static_argnums=(4, ))
-def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T,
-                  type_complex=jnp.complex128):
+def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T, type_complex=jnp.complex128):
 
     q1 = q[:center]
     q2 = q[center:]
@@ -333,7 +334,7 @@ def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T,
     V_ps = F_c @ V_21 - F_s @ V_11
     V_pp = F_c @ V_22 - F_s @ V_12
 
-    big_I = ee.eye(2 * (len(I)), dtype=type_complex)
+    big_I = ee.eye(2 * (len(I))).astype(type_complex)
     big_X = ee.block([[X_1, O], [O, X_2]])
     big_W = ee.block([[W_ss, W_sp], [W_ps, W_pp]])
     big_V = ee.block([[V_ss, V_sp], [V_ps, V_pp]])
@@ -357,7 +358,7 @@ def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T,
 def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z,
                   type_complex=jnp.complex128):
 
-    I = ee.eye(ff ** 2, dtype=type_complex)
+    I = ee.eye(ff ** 2).astype(type_complex)
     O = ee.zeros((ff ** 2, ff ** 2), dtype=type_complex)
 
     big_F_11 = big_F[:center, :center]
