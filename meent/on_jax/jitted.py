@@ -77,7 +77,7 @@ def assign(arr, index, value, row_all=False, col_all=False):
 
 
 @partial(jax.jit, static_argnums=(1, ))
-def eig(matrix: jnp.ndarray, type_complex=jnp.complex128) -> tuple[jnp.ndarray, jnp.ndarray]:
+def eig(matrix, type_complex=jnp.complex128):
     """Wraps jnp.linalg.eig so that it can be jit-ed on a machine with GPUs."""
     eigenvalues_shape = jax.ShapeDtypeStruct(matrix.shape[:-1], type_complex)
     eigenvectors_shape = jax.ShapeDtypeStruct(matrix.shape, type_complex)
