@@ -1,5 +1,4 @@
 import numpy as np
-import meent.integ.backend
 import jax
 from functools import partial
 
@@ -19,25 +18,14 @@ def call_solver(mode=0, *args, **kwargs):
 
     """
     if mode == 0:
-        from meent.on_numpy.rcwa import RCWANumpy
+        from .on_numpy.rcwa import RCWANumpy
         RCWA = RCWANumpy(mode, *args, **kwargs)
     elif mode == 1:
-        from meent.on_jax.rcwa import RCWAJax
+        from .on_jax.rcwa import RCWAJax
         RCWA = RCWAJax(mode, *args, **kwargs)
     elif mode == 2:
-        from meent.on_torch.rcwa import RCWATorch
+        from .on_torch.rcwa import RCWATorch
         RCWA = RCWATorch(mode, *args, **kwargs)
-
-    elif mode == 3:
-        meent.integ.backend.mode = 2
-        from meent.integ.rcwa import RCWAInteg
-        RCWA = RCWAInteg(mode, *args, **kwargs)
-    elif mode == 4:
-        meent.integ.backend.mode = 3
-
-        from meent.integ.rcwa import RCWAInteg
-        RCWA = RCWAInteg(mode, *args, **kwargs)
-
     else:
         raise ValueError
 
