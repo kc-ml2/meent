@@ -5,7 +5,9 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
-import meent.on_jax.jitted as ee
+# import meent.on_jax.jitted as ee
+# import jitted as ee
+from . import jitted as ee
 
 from os import walk
 from scipy.io import loadmat
@@ -24,9 +26,11 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.c
                 assign_index = (z, y, x)
 
                 if type(material) == str:
-                    assign_value = find_nk_index(material, mat_table, wl) ** 2
+                    assign_value = find_nk_index(material, mat_table, wl, type_complex=type_complex) ** 2
                 else:
-                    assign_value = material ** 2
+                    assign_value = type_complex(material ** 2)  # TODO: need type complex?
+
+                # res = res.at[assign_index].set(assign_value)
                 res = ee.assign(res, assign_index, assign_value)
 
     return res
@@ -39,14 +43,14 @@ def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, 
 
     for material, obj_index in zip(mat_list, obj_list):
         if type(material) == str:
-            res[obj_index] = find_nk_index(material, mat_table, wl) ** 2
+            res[obj_index] = find_nk_index(material, mat_table, wl, type_complex=type_complex) ** 2
         else:
             res[obj_index] = material ** 2
 
     return res
 
 
-def find_nk_index(material, mat_table, wl):
+def find_nk_index(material, mat_table, wl, type_complex=jnp.complex128):
     if material[-6:] == '__real':
         material = material[:-6]
         n_only = True
@@ -61,12 +65,13 @@ def find_nk_index(material, mat_table, wl):
         return n_index
 
     k_index = ee.interp(wl, mat_data[:, 0], mat_data[:, 2])
-    nk = n_index + 1j * k_index
+    nk = (n_index + 1j * k_index).astype(type_complex)
 
     return nk
 
 
-def read_material_table(nk_path=None):
+def read_material_table(nk_path=None, type_complex=jnp.complex128):
+
     mat_table = {}
 
     if nk_path is None:
@@ -79,10 +84,15 @@ def read_material_table(nk_path=None):
     for path, name in zip(full_path_list, name_list):
         if name[-3:] == 'txt':
             data = ee.loadtxt(path, skiprows=1)
-            mat_table[name[:-4].upper()] = data
+            mat_table[name[:-4].upper()] = type_complex(data)
 
         elif name[-3:] == 'mat':
             data = loadmat(path)
+
+            # TODO: need astype?
+            # data = ee.array([data['WL'], data['n'], data['k']])[:, :, 0].T
+            data['WL'], data['n'], data['k'] = data['WL'].astype(type_complex), data['n'].astype(type_complex), data['k'].astype(type_complex)
+
             data = ee.array([data['WL'], data['n'], data['k']])[:, :, 0].T
             mat_table[name[:-4].upper()] = data
     return mat_table

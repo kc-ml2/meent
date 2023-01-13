@@ -1,3 +1,4 @@
+import time
 from copy import copy, deepcopy
 from functools import partial
 
@@ -9,21 +10,26 @@ from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3
 from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, \
     transfer_1d_conical_3, transfer_2d_1, transfer_2d_wv, transfer_2d_2, transfer_2d_3
 
-import meent.on_jax.jitted as ee
+# import meent.on_jax.jitted as ee
+# import .jitted as ee
+from . import jitted as ee
 
 
 class _BaseRCWA:
+
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
-                 period=0.7, wavelength=ee.linspace(0.5, 2.3, 400), pol=0,
+                 period=0.7, wavelength=900, pol=0,
                  patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=jnp.complex128):
 
         self.device = device
         self.type_complex = type_complex
+        self.type_int = jnp.int64 if self.type_complex == jnp.complex128 else jnp.int32
+        self.type_float = jnp.float64 if self.type_complex == jnp.complex128 else jnp.float32
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
-        self.n_I = n_I
-        self.n_II = n_II
+        self.n_I = self.type_complex(n_I)
+        self.n_II = self.type_complex(n_II)
 
         self.theta = theta * ee.pi / 180
         self.phi = phi * ee.pi / 180
@@ -77,7 +83,7 @@ class _BaseRCWA:
 
         self.kx_vector = kx_vector
 
-    @partial(jax.jit, static_argnums=(0,))  # TODO: pytree?
+    # @partial(jax.jit, static_argnums=(0,))
     def solve_1d(self, wl, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
@@ -107,7 +113,7 @@ class _BaseRCWA:
             if self.pol == 0:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
-                eigenvalues, W = ee.eig(A, type_complex=self.type_complex)
+                eigenvalues, W = ee.eig(A, time.time())
                 q = eigenvalues ** 0.5
 
                 Q = ee.diag(q)
@@ -118,7 +124,7 @@ class _BaseRCWA:
                 B = Kx @ E_conv_i @ Kx - ee.eye(E_conv.shape[0]).astype(self.type_complex)
                 o_E_conv_i = ee.inv(o_E_conv)
 
-                eigenvalues, W = ee.eig(o_E_conv_i @ B, type_complex=self.type_complex)
+                eigenvalues, W = ee.eig(o_E_conv_i @ B, time.time())
                 q = eigenvalues ** 0.5
 
                 Q = ee.diag(q)
@@ -153,7 +159,7 @@ class _BaseRCWA:
         return de_ri, de_ti, self.layer_info_list, self.T1
 
     # TODO: scattering method
-    @partial(jax.jit, static_argnums=(0,))
+    # @partial(jax.jit, static_argnums=(0,))
     def solve_1d_conical(self, wl, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
@@ -181,7 +187,6 @@ class _BaseRCWA:
             o_E_conv_i = ee.inv(o_E_conv)
 
             if self.algo == 'TMM':
-                # big_F, big_G, big_T\
                 big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2 \
                     = transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, self.ff, d,
                                             varphi, big_F, big_G, big_T,
@@ -208,7 +213,7 @@ class _BaseRCWA:
 
         return de_ri, de_ti, self.layer_info_list, self.T1
 
-    @partial(jax.jit, static_argnums=(0,))
+    # @partial(jax.jit, static_argnums=(0,))
     def solve_2d(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
