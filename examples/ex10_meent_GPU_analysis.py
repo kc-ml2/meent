@@ -50,7 +50,7 @@ try:
     import os
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '1,2,3'
 except:
     pass
 
@@ -76,7 +76,7 @@ thickness = [500]
 ucell_materials = [1, 3.48]
 
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', 3: 'numpy_integ', 4: 'JAX_integ',}
-n_iter = 2
+n_iter = 3
 
 
 def run_test(grating_type, mode_key, dtype, device):
@@ -87,7 +87,7 @@ def run_test(grating_type, mode_key, dtype, device):
         fourier_order = 100
     else:
         period = [1000, 1000]
-        fourier_order = 30
+        fourier_order = 20
 
 
     if mode_key == 0:
@@ -167,21 +167,24 @@ def run_loop(a,b, c, d):
 
 a = [2]
 b = [1]
-c = [1, 0]
+c = [1]
 
+# with jax.default_device(jax.devices("cpu")[0]):
+#     t0 = time.time()
+#     run_loop(a, b, c, [0])
+    # print(time.time() - t0)
+#
+with jax.default_device(jax.devices("gpu")[0]):
+    run_loop(a, b, c, [1])
 
 with jax.default_device(jax.devices("cpu")[0]):
-    t0 = time.time()
     run_loop(a, b, c, [0])
-    print(time.time() - t0)
 
-with jax.default_device(jax.devices("gpu")[0]):
-    t0 = time.time()
+with jax.default_device(jax.devices("gpu")[1]):
     run_loop(a, b, c, [1])
-    # print(time.time() - t0)
 
 
-
+# run_loop(a, [2], [1], [0])
 
 
 

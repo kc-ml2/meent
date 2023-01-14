@@ -101,6 +101,4 @@ def assign(arr, index, value, row_all=False, col_all=False):
 @partial(jax.jit, static_argnums=(1, ), backend='cpu')
 def eig(mat, _):
     # _ in args is used for not to jit compile. Refer https://github.com/google/jax/issues/13959#issue-1528545365
-    jnp.linalg.eig(mat)
-    # print('eig')
     return jnp.linalg.eig(mat)
