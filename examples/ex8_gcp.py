@@ -18,8 +18,10 @@ try:
 except:
     pass
 
-
-# import torch
+try:
+    import torch
+except:
+    pass
 
 # from ex2_ucell_functions import get_cond_numpy, get_cond_jax, get_cond_torch, load_ucell
 from ex2_ucell_functions import get_cond_numpy, get_cond_jax, load_ucell
@@ -41,7 +43,7 @@ thickness = [500]
 ucell_materials = [1, 3.48]
 
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', 3: 'numpy_integ', 4: 'JAX_integ',}
-n_iter = 2
+n_iter = 1
 
 
 def run_test(grating_type, mode_key, dtype, device):
@@ -66,9 +68,12 @@ def run_test(grating_type, mode_key, dtype, device):
     elif mode_key == 1:
         # JAX
         if device == 0:
-            jax.config.update('jax_platform_name', 'cpu')
+            device = 'cpu'
+            jax.config.update('jax_platform_name', device)
+
         else:
-            jax.config.update('jax_platform_name', 'gpu')
+            device = 'gpu'
+            jax.config.update('jax_platform_name', device)
 
         if dtype == 0:
             from jax.config import config
@@ -114,7 +119,7 @@ def run_test(grating_type, mode_key, dtype, device):
 
 def run_loop():
     for grating_type in [2]:
-        for bd in [1]:
+        for bd in [1, 2]:
             for dtype in [0, 1]:
                 for device in [0, 1]:
                     # run_test(grating_type, bd, dtype, device)
