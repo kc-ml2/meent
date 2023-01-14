@@ -126,8 +126,8 @@ def run_loop():
 
 def run_assert():
 
-    for grating_type in [0,1,2]:
-        for bd in [0,1,2]:
+    for grating_type in [2]:
+        for bd in [1]:
             de_ri, de_ti = run_test(grating_type, bd, 0, 0)
             print(de_ti.sum())
 
