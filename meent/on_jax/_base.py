@@ -28,8 +28,12 @@ class _BaseRCWA:
         self.type_float = jnp.float64 if self.type_complex == jnp.complex128 else jnp.float32
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
-        self.n_I = self.type_complex(n_I)
-        self.n_II = self.type_complex(n_II)
+
+        # self.n_I = self.type_complex(n_I)
+        # self.n_II = self.type_complex(n_II)
+
+        self.n_I = n_I
+        self.n_II = n_II
 
         self.theta = theta * ee.pi / 180
         self.phi = phi * ee.pi / 180
