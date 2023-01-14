@@ -169,11 +169,13 @@ a = [2]
 b = [1]
 c = [1]
 
-# with jax.default_device(jax.devices("cpu")[0]):
-#     t0 = time.time()
-#     run_loop(a, b, c, [0])
-    # print(time.time() - t0)
-#
+
+# This is interesting.
+# run with cpu first and then gpu, makes gpu run faster.
+# run gpu first then run cpu and gpu, slow gpu run.
+# run gpu first then run cpu, slow gpu run.
+# Each test should be performed separate python process. Perform one case for a single run.
+
 with jax.default_device(jax.devices("gpu")[0]):
     run_loop(a, b, c, [1])
 
