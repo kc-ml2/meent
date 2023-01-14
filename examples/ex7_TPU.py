@@ -7,9 +7,14 @@ except:
     pass
 # jax.device_count()
 
-if 0:
-    import drive.MyDrive.meent
-    from drive.MyDrive.meent.rcwa import call_solver
+gdrive_mounted = False
+
+if gdrive_mounted:
+    try:
+        import drive.MyDrive.meent
+        from drive.MyDrive.meent.rcwa import call_solver
+    except:
+        pass
 else:
     import meent
     from meent.rcwa import call_solver
