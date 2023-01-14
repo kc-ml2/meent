@@ -1,7 +1,5 @@
 import numpy as np
-import jax.numpy as jnp
 
-import torch
 
 fourier_order = 1
 
@@ -167,6 +165,8 @@ def get_cond_numpy(grating_type):
 
 def get_cond_jax(grating_type):
 
+    import jax.numpy as jnp
+
     if grating_type in [0, 1]:
 
         period = [1000]
@@ -249,6 +249,8 @@ def get_cond_jax(grating_type):
 
 
 def get_cond_torch(grating_type):
+
+    import torch
 
     if grating_type in [0, 1]:
 
