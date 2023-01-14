@@ -170,10 +170,10 @@ b = [1]
 c = [1, 0]
 
 
-# with jax.default_device(jax.devices("cpu")[0]):
-#     t0 = time.time()
-#     run_loop(a, b, c, [0])
-    # print(time.time() - t0)
+with jax.default_device(jax.devices("cpu")[0]):
+    t0 = time.time()
+    run_loop(a, b, c, [0])
+    print(time.time() - t0)
 
 with jax.default_device(jax.devices("gpu")[0]):
     t0 = time.time()
