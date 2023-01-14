@@ -1,4 +1,44 @@
 import time
+import jax
+import jax.numpy as jnp
+
+import numpy as np
+
+from jax import device_put
+
+size = 500
+
+from jax.config import config
+# config.update("jax_enable_x64", True)
+
+
+# config.update("jax_enable_x64", True)
+# with jax.default_device(jax.devices("cpu")[0]):
+#     aa = jnp.arange(size**2).reshape((size, size))
+#     t0 = time.time();[jnp.linalg.inv(aa) for _ in range(2000)];print(time.time() - t0)
+#
+# with jax.default_device(jax.devices("gpu")[0]):
+#     aa = jnp.arange(size**2).reshape((size, size))
+#     # bb = device_put(aa)
+#     t0 = time.time();[jnp.linalg.inv(aa) for _ in range(2000)];print(time.time() - t0)
+#
+# config.update("jax_enable_x64", False)
+# with jax.default_device(jax.devices("cpu")[0]):
+#     aa = jnp.arange(size**2).reshape((size, size))
+#     t0 = time.time();[jnp.linalg.inv(aa) for _ in range(2000)];print(time.time() - t0)
+#
+# with jax.default_device(jax.devices("gpu")[0]):
+#     aa = jnp.arange(size**2).reshape((size, size))
+#     # bb = device_put(aa)
+#     t0 = time.time();[jnp.linalg.inv(aa) for _ in range(2000)];print(time.time() - t0)
+#
+# print(1)
+
+
+# import sys
+# sys.path.append('/home/yongha/meent')
+
+import time
 
 import matplotlib.pyplot as plt
 import jax.numpy as jnp
@@ -6,18 +46,18 @@ import numpy as np
 from meent.rcwa import call_solver, sweep_wavelength
 import jax
 
-
 try:
     import os
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 except:
     pass
 
 import torch
 
-from ex2_ucell_functions import get_cond_numpy, get_cond_jax, get_cond_torch, load_ucell
+
+from ex2_ucell_functions import get_cond_numpy, get_cond_jax, load_ucell
 
 # common
 # grating_type = 1  # 0: 1D, 1: 1D conical, 2:2D.
@@ -47,7 +87,7 @@ def run_test(grating_type, mode_key, dtype, device):
         fourier_order = 100
     else:
         period = [1000, 1000]
-        fourier_order = 15
+        fourier_order = 30
 
 
     if mode_key == 0:
@@ -60,10 +100,13 @@ def run_test(grating_type, mode_key, dtype, device):
 
     elif mode_key == 1:
         # JAX
-        if device == 0:
-            jax.config.update('jax_platform_name', 'cpu')
-        else:
-            jax.config.update('jax_platform_name', 'gpu')
+        # if device == 0:
+        #     device = 'cpu'
+        #     jax.config.update('jax_platform_name', device)
+        #
+        # else:
+        #     device = 'gpu'
+        #     jax.config.update('jax_platform_name', device)
 
         if dtype == 0:
             from jax.config import config
@@ -107,11 +150,11 @@ def run_test(grating_type, mode_key, dtype, device):
     return de_ri, de_ti
 
 
-def run_loop():
-    for grating_type in [2]:
-        for bd in [1]:
-            for dtype in [1]:
-                for device in [0,1]:
+def run_loop(a,b, c, d):
+    for grating_type in a:
+        for bd in b:
+            for dtype in c:
+                for device in d:
                     # run_test(grating_type, bd, dtype, device)
 
                     try:
@@ -122,15 +165,26 @@ def run_loop():
                     except Exception as e:
                         print(e)
 
+a = [2]
+b = [1]
+c = [1, 0]
 
 
-def run_assert():
+# with jax.default_device(jax.devices("cpu")[0]):
+#     t0 = time.time()
+#     run_loop(a, b, c, [0])
+    # print(time.time() - t0)
 
-    for grating_type in [0,1,2]:
-        for bd in [0,1,2]:
-            de_ri, de_ti = run_test(grating_type, bd, 0, 0)
-            print(de_ti.sum())
+with jax.default_device(jax.devices("gpu")[0]):
+    t0 = time.time()
+    run_loop(a, b, c, [1])
+    # print(time.time() - t0)
 
 
-if __name__ == '__main__':
-    run_loop()
+
+
+
+
+
+
+

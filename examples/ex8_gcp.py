@@ -13,8 +13,8 @@ import jax
 try:
     import os
 
-    # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    # os.environ["CUDA_VISIBLE_DEVICES"] = '2'
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 except:
     pass
 
@@ -120,8 +120,8 @@ def run_test(grating_type, mode_key, dtype, device):
 def run_loop():
     for grating_type in [2]:
         for bd in [1, 2]:
-            for dtype in [0, 1]:
-                for device in [0, 1]:
+            for dtype in [1, 0]:
+                for device in [1]:
                     # run_test(grating_type, bd, dtype, device)
 
                     try:
