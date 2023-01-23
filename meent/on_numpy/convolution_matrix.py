@@ -5,7 +5,6 @@ import numpy as np
 
 from os import walk
 from scipy.io import loadmat
-from scipy.linalg import circulant as circulant_scipy
 from pathlib import Path
 
 
@@ -164,7 +163,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
 
 
 def to_conv_mat(pmt, fourier_order, type_complex=np.complex128):
-
+    # TODO: do conv and 1/conv in simultaneously?
     if len(pmt.shape) == 2:
         print('shape is 2')
         raise ValueError

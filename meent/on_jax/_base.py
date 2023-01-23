@@ -77,7 +77,7 @@ class _BaseRCWA:
 
         self.kx_vector = kx_vector
 
-    @partial(jax.jit, static_argnums=(0,))
+    @partial(jax.jit, static_argnums=(0,))  # TODO: pytree?
     def solve_1d(self, wl, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
