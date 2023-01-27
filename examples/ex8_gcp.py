@@ -1,4 +1,7 @@
 import sys
+
+from examples.ex_ucell import load_ucell
+
 sys.path.append('/home/yongha/meent')
 
 import time
@@ -6,7 +9,7 @@ import time
 import matplotlib.pyplot as plt
 import jax.numpy as jnp
 import numpy as np
-from meent.rcwa import call_solver, sweep_wavelength
+from meent.rcwa import call_solver
 import jax
 
 
@@ -14,7 +17,7 @@ try:
     import os
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '2,3'
 except:
     pass
 
@@ -23,8 +26,6 @@ try:
 except:
     pass
 
-# from ex2_ucell_functions import get_cond_numpy, get_cond_jax, get_cond_torch, load_ucell
-from ex2_ucell_functions import get_cond_numpy, get_cond_jax, load_ucell
 
 # common
 # grating_type = 1  # 0: 1D, 1: 1D conical, 2:2D.
@@ -49,13 +50,13 @@ n_iter = 1
 def run_test(grating_type, mode_key, dtype, device):
 
     ucell = load_ucell(grating_type)
+
     if grating_type in [0, 1]:
         period = [1000]
         fourier_order = 100
     else:
         period = [1000, 1000]
         fourier_order = 15
-
 
     if mode_key == 0:
         if device != 0:

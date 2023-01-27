@@ -1,11 +1,24 @@
 import jax
 import jax.numpy as jnp
 
+try:
+    import jax.tools.colab_tpu
+    jax.tools.colab_tpu.setup_tpu()
+except:
+    pass
 # jax.device_count()
 
-import meent
-from meent.rcwa import call_solver
+gdrive_mounted = False
 
+if gdrive_mounted:
+    try:
+        import drive.MyDrive.meent
+        from drive.MyDrive.meent.rcwa import call_solver
+    except:
+        pass
+else:
+    import meent
+    from meent.rcwa import call_solver
 
 import time
 
@@ -30,12 +43,11 @@ wavelength = 900
 thickness = [500]
 ucell_materials = [1, 3.48]
 
-mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', 3: 'numpy_integ', 4: 'JAX_integ', }
+mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 n_iter = 2
 
 
 def run_test(grating_type, mode_key, dtype, device):
-
     ucell = load_ucell(grating_type)
     if grating_type in [0, 1]:
         period = [1000]
@@ -55,27 +67,21 @@ def run_test(grating_type, mode_key, dtype, device):
 
     # JAX
     elif mode_key == 1:
-
         if device == 0:
-
             device = 'cpu'
             jax.config.update('jax_platform_name', device)
         elif device == 1:
             jax.config.update('jax_platform_name', 'gpu')
         elif device == 2:
-            # TODO
+            # import jax.tools.colab_tpu
+            # jax.tools.colab_tpu.setup_tpu()
             pass
 
         if dtype == 0:
-            # from jax.config import config
-            # config.update("jax_enable_x64", True)
             jax.config.update("jax_enable_x64", True)
-
             type_complex = jnp.complex128
 
         elif dtype == 1:
-            # from jax.config import config
-            # config.update("jax_enable_x64", False)
             jax.config.update("jax_enable_x64", False)
             type_complex = jnp.complex64
         else:
@@ -116,8 +122,7 @@ def run_test(grating_type, mode_key, dtype, device):
     return de_ri, de_ti
 
 
-
-def run_loop(a,b, c, d):
+def run_loop(a, b, c, d=(0,)):
     for grating_type in a:
         for bd in b:
             for dtype in c:
@@ -126,26 +131,14 @@ def run_loop(a,b, c, d):
 
                     try:
                         print(f'grating:{grating_type}, backend:{bd}, dtype:{dtype}, dev:{device}')
-                        de_ri, de_ti = run_test(grating_type, bd, dtype, device)
-                        # print(de_ti.sum())
+                        run_test(grating_type, bd, dtype, device)
 
                     except Exception as e:
                         print(e)
 
-a = [2]
-b = [1]
-c = [0,1]
 
-with jax.default_device(jax.devices("cpu")[0]):
-    run_loop(a, b, c, [0])
+gratings = [2]
+backends = [1]
+dtypes = [0, 1]
 
-with jax.default_device(jax.devices("gpu")[0]):
-    run_loop(a, b, c, [1])
-
-with jax.default_device(jax.devices("cpu")[0]):
-    run_loop(a, b, c, [0])
-
-
-
-
-
+run_loop(gratings, backends, dtypes)
