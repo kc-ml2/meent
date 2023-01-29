@@ -81,14 +81,16 @@ class RCWAJax(_BaseRCWA):
         E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
         o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
 
-        de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
+        # de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
 
-        a = jnp.array([self.wavelength] * 1)
-        b = jnp.array([E_conv_all] * 1)
-        c = jnp.array([o_E_conv_all] * 1)
+        num_dev = jax.local_device_count()
+        num_dev = 1
+        a = jnp.array([self.wavelength] * num_dev)
+        b = jnp.array([E_conv_all] * num_dev)
+        c = jnp.array([o_E_conv_all] * num_dev)
 
         # TODO: vmap can't be used due to platform issue in eigen-decomposition
-        # de_ri, de_ti = jax.vmap(self.solve)(a, b, c)
+        de_ri, de_ti = jax.vmap(self.solve)(a, b, c)
         # de_ri, de_ti = jax.pmap(self.solve)(a, b, c)
 
         return de_ri, de_ti

@@ -76,42 +76,11 @@ def assign(arr, index, value, row_all=False, col_all=False):
 
 
 
-@partial(jax.jit, static_argnums=(1, ))
-def eig(matrix, type_complex=jnp.complex128):
+# @partial(jax.jit, static_argnums=(1, ))
+def eig2(matrix, type_complex=jnp.complex128):
     """Wraps jnp.linalg.eig so that it can be jit-ed on a machine with GPUs."""
     eigenvalues_shape = jax.ShapeDtypeStruct(matrix.shape[:-1], type_complex)
     eigenvectors_shape = jax.ShapeDtypeStruct(matrix.shape, type_complex)
-    # print(eigenvectors_shape)
-    # print(eigenvalues_shape)
-    # print(jax.devices('cpu'))
-
-    # result_shape_dtype = jax.ShapeDtypeStruct(
-    #     shape=jnp.broadcast_shapes(eigenvalues_shape.shape, eigenvectors_shape.shape),
-    #     # shape=(1922,1922,1922),
-    #     dtype=type_complex)
-    #
-    # a = pure_callback(
-    #     # We force this computation to be performed on the cpu by jit-ing and
-    #     # explicitly specifying the device.
-    #     jax.jit(jnp.linalg.eig),
-    #     # matrix.astype(type_complex),
-    #     # result_shape=(eigenvalues_shape, eigenvectors_shape),
-    #     result_shape_dtypes=result_shape_dtype
-    # )
-
-    # b = pure_callback(
-    #     jnp.linalg.eig,
-    #     (eigenvalues_shape, eigenvectors_shape)
-    # )
-    #
-    # return b
-    # b = host_callback.call(
-    #         # We force this computation to be performed on the cpu by jit-ing and
-    #         # explicitly specifying the device.
-    #         jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0]),
-    #         matrix.astype(type_complex),
-    #         result_shape=(eigenvalues_shape, eigenvectors_shape),
-    #     )
 
     return host_callback.call(
         # We force this computation to be performed on the cpu by jit-ing and
@@ -120,6 +89,22 @@ def eig(matrix, type_complex=jnp.complex128):
         matrix.astype(type_complex),
         result_shape=(eigenvalues_shape, eigenvectors_shape),
     )
+
+# @partial(jax.jit, static_argnums=(1,))
+def eig(X, type_complex):
+    import numpy as np
+    # jax.config.update('jax_enable_x64', True)
+
+    # type_complex = jnp.complex128
+    # X = np.array(X, dtype=np.complex64)
+    _eig = lambda x: jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0])(x)
+
+    eigenvalues_shape = jax.ShapeDtypeStruct(X.shape[:-1], type_complex)
+    eigenvectors_shape = jax.ShapeDtypeStruct(X.shape, type_complex)
+
+    result_shape_dtype = (eigenvalues_shape, eigenvectors_shape)
+
+    return jax.pure_callback(_eig, result_shape_dtype, X)
 
 # eig = partial(jax.jit, backend='cpu')(jnp.linalg.eig)
 # eig = jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0])

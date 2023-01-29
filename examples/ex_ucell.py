@@ -9,7 +9,7 @@ from meent.rcwa import call_solver
 
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = '1,2,3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '2,3'
 
 # common
 # grating_type = 1  # 0: 1D, 1: 1D conical, 2:2D.
@@ -27,9 +27,9 @@ wavelength = 900
 thickness = [500]
 ucell_materials = [1, 3.48]
 period = [100, 100]
-fourier_order = 15
+fourier_order = 20
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', 3: 'numpy_integ', 4: 'JAX_integ',}
-n_iter = 3
+n_iter = 2
 
 
 def run_test(grating_type, mode_key, dtype, device):
@@ -129,7 +129,7 @@ def load_ucell(grating_type):
         ])
     else:
 
-        ucell = jnp.array([
+        ucell = np.array([
             # [
             #     [0, 0, 0, 1, 1, 1, 1, 0, 0, 0,],
             #     [0, 0, 0, 1, 1, 0, 1, 1, 1, 1,],
@@ -190,5 +190,5 @@ def load_ucell(grating_type):
 
 if __name__ == '__main__':
     t0 = time.time()
-    run_loop([2], [1], [1], [1])
+    run_loop([2], [2], [0], [1])
     print('jit on', time.time() - t0)

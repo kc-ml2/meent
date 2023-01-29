@@ -45,6 +45,8 @@ c = 0
 d = 1
 
 device = 1
+dtype = 1
+
 if device == 0:
     device = 'cpu'
     jax.config.update('jax_platform_name', device)
@@ -52,12 +54,18 @@ else:
     device = 'gpu'
     jax.config.update('jax_platform_name', device)
 
+if dtype == 0:
+    jax.config.update('jax_enable_x64', True)
+    type_complex = jnp.complex128
+else:
+    type_complex = jnp.complex64
+
 
 def load_ucell(grating_type):
     if grating_type in [0, 1]:
         ucell = np.array([[[0, 0, 0, 1, 1, 1, 1, 1, 1, 1,],],])
     else:
-        ucell = jnp.array([[
+        ucell = np.array([[
                 [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
                 [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
                 [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
@@ -71,19 +79,20 @@ def load_ucell(grating_type):
     return ucell
 
 
+
+
 ucell = load_ucell(2)
 mat_list = [1, 3.48]
 wavelength = 900
-fourier_order = 15
-type_complex = jnp.complex64
+fourier_order = 20
 
 grating_type = 2
 n_I = 1
 n_II = 1
-period = [10, 10]
+period = [100, 100]
 theta = 0
 phi = 0
-thickness = [10]
+thickness = [500]
 psi = 0
 perturbation = 1E-10
 AA = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
@@ -92,7 +101,7 @@ AA = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II,
                      ucell_materials=ucell_materials,
                      thickness=thickness, device=0, type_complex=type_complex, )
 
-for i in range(n_iter+2):
+for i in range(n_iter+5):
     t0 = time.time()
     de_ri, de_ti = AA.run_ucell()
     print(f'run_cell: {i}: ', time.time() - t0)
