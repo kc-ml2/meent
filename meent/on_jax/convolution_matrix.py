@@ -14,7 +14,6 @@ from scipy.io import loadmat
 from pathlib import Path
 
 
-# @jax.jit
 def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.complex128):
 
     res = ee.zeros(ucell.shape, dtype=type_complex)
@@ -200,7 +199,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
     return f_coeffs_xy.T
 
 
-# @partial(jax.jit, static_argnums=(1, ))
+# @partial(jax.jit, static_argnums=(1, 2))
 def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
 
     if len(pmt.shape) == 2:

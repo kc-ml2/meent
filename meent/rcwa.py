@@ -2,6 +2,8 @@ import numpy as np
 import jax
 from functools import partial
 
+from jax import tree_util
+
 
 # @partial(jax.jit, static_argnums=(0, 1))
 def call_solver(mode=0, *args, **kwargs):
@@ -22,7 +24,12 @@ def call_solver(mode=0, *args, **kwargs):
         RCWA = RCWANumpy(mode, *args, **kwargs)
     elif mode == 1:
         from .on_jax.rcwa import RCWAJax
-        RCWA = RCWAJax(mode, *args, **kwargs)
+        tree_util.register_pytree_node(RCWAJax,
+                                       RCWAJax._tree_flatten,
+                                       RCWAJax._tree_unflatten)
+
+        RCWA = RCWAJax(mode=mode, *args, **kwargs)
+
     elif mode == 2:
         from .on_torch.rcwa import RCWATorch
         RCWA = RCWATorch(mode, *args, **kwargs)

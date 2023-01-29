@@ -14,12 +14,14 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 # import .jitted as ee
 from . import jitted as ee
 
+from jax import tree_util
+
 
 class _BaseRCWA:
 
-    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
-                 period=0.7, wavelength=900, pol=0,
-                 patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
+    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=10,
+                 period=0.7, wavelength=900,
+                 ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=jnp.complex128):
 
         self.device = device
@@ -36,6 +38,7 @@ class _BaseRCWA:
         self.n_II = n_II
 
         self.theta = theta * ee.pi / 180
+
         self.phi = phi * ee.pi / 180
         self.psi = psi * ee.pi / 180  # TODO: integrate psi and pol
 
@@ -55,7 +58,7 @@ class _BaseRCWA:
 
         self.wavelength = wavelength
 
-        self.patterns = patterns
+        # self.patterns = patterns
         self.ucell = deepcopy(ucell)
         self.ucell_materials = ucell_materials
         self.thickness = deepcopy(thickness)
@@ -68,6 +71,7 @@ class _BaseRCWA:
 
         self.kx_vector = None
 
+    # @jax.jit
     def get_kx_vector(self):
 
         k0 = 2 * jnp.pi / self.wavelength
@@ -77,17 +81,20 @@ class _BaseRCWA:
                               ).astype(self.type_complex)
         else:
             kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) - fourier_indices * (
-                        self.wavelength / self.period[0])).astype(self.type_complex)
+                    self.wavelength / self.period[0])).astype(self.type_complex)
 
-        idx = jnp.nonzero(kx_vector == 0)[0]
-        if len(idx):
-            # TODO: need imaginary part? make imaginary part sign consistent
-            kx_vector = kx_vector.at[idx].set(self.perturbation)
-            print('varphi divide by 0: adding perturbation')
+        # idx = jnp.nonzero(kx_vector == 0)[0]
+        # if len(idx):
+        #     # TODO: need imaginary part? make imaginary part sign consistent
+        #     kx_vector = kx_vector.at[idx].set(self.perturbation)
+        #     print('varphi divide by 0: adding perturbation')
+        kx_vector = jnp.where(kx_vector == 0, self.perturbation, kx_vector)
 
         self.kx_vector = kx_vector
 
-    # @partial(jax.jit, static_argnums=(0,))
+        return kx_vector
+
+    @partial(jax.jit, static_argnums=(0,))
     def solve_1d(self, wl, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
@@ -117,7 +124,8 @@ class _BaseRCWA:
             if self.pol == 0:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
-                eigenvalues, W = ee.eig(A, time.time())
+                # eigenvalues, W = ee.eig(A, time.time())
+                eigenvalues, W = ee.eig(A, type_complex=self.type_complex)
                 q = eigenvalues ** 0.5
 
                 Q = ee.diag(q)
@@ -128,7 +136,8 @@ class _BaseRCWA:
                 B = Kx @ E_conv_i @ Kx - ee.eye(E_conv.shape[0]).astype(self.type_complex)
                 o_E_conv_i = ee.inv(o_E_conv)
 
-                eigenvalues, W = ee.eig(o_E_conv_i @ B, time.time())
+                # eigenvalues, W = ee.eig(o_E_conv_i @ B, time.time())
+                eigenvalues, W = ee.eig(o_E_conv_i @ B, type_complex=self.type_complex)
                 q = eigenvalues ** 0.5
 
                 Q = ee.diag(q)
@@ -217,7 +226,8 @@ class _BaseRCWA:
 
         return de_ri, de_ti, self.layer_info_list, self.T1
 
-    # @partial(jax.jit, static_argnums=(0,))
+    # @partial(jax.jit, static_argnums=(0,))  # TODO: is this right way to do jit? no use pytree?
+    # @jax.jit
     def solve_2d(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
@@ -281,3 +291,8 @@ class _BaseRCWA:
 
         return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape(
             (self.ff, self.ff)).real, self.layer_info_list, self.T1
+
+
+# tree_util.register_pytree_node(_BaseRCWA,
+#                                _BaseRCWA._tree_flatten,
+#                                _BaseRCWA._tree_unflatten)

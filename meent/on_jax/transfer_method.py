@@ -3,6 +3,7 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
+from jax import pure_callback
 
 # import meent.on_jax.jitted as ee
 from . import jitted as ee
@@ -291,7 +292,43 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.co
             [Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
-    eigenvalues, W = ee.eig(S2_from_S, time.time())
+    # sketches for pure_callback test as an alternative for host_callback which doesn't go with vmap.
+
+    # # eigenvalues, W = ee.eig(S2_from_S, type_complex)
+    # eigenvalues_shape = jax.ShapeDtypeStruct(S2_from_S.shape[:-1], type_complex)
+    # eigenvectors_shape = jax.ShapeDtypeStruct(S2_from_S.shape, type_complex)
+    # # print(eigenvectors_shape)
+    # # print(eigenvalues_shape)
+    # # print(jax.devices('cpu'))
+    #
+    # result_shape_dtype = jax.ShapeDtypeStruct(
+    #     shape=jnp.broadcast_shapes(eigenvalues_shape.shape, eigenvectors_shape.shape),
+    #     # shape=(1922,1922,1922),
+    #     dtype=type_complex)
+    #
+    # # aaa = pure_callback(jnp.linalg.eig, (eigenvalues_shape, eigenvectors_shape), S2_from_S)
+    # # aaa = pure_callback(jnp.linalg.eig, result_shape_dtype, S2_from_S)
+    #
+    # def aadf(X):
+    #     _eig = lambda x: jnp.linalg.eig(x)
+    #     result_shape_dtype = jax.ShapeDtypeStruct(
+    #         shape=(eigenvalues_shape.shape, eigenvectors_shape.shape, eigenvectors_shape.shape),
+    #         # shape=(eigenvalues_shape, eigenvectors_shape),
+    #         # shape=((1922,),(1922,1922)),
+    #         dtype=type_complex)
+    #
+    #     return pure_callback(_eig, result_shape_dtype, X)
+    #
+    # print(aadf(S2_from_S))
+    #
+    # eigenvalues, W = aaa(S2_from_S)
+    #
+    #
+    # eigenvalues, W = pure_callback(eee, (eigenvalues_shape, eigenvectors_shape))(S2_from_S)
+    # eigenvalues, W = jnp.linalg.eig(S2_from_S)
+    # eigenvalues, W = ee.eig(S2_from_S, time.time())
+
+    eigenvalues, W = ee.eig(S2_from_S, type_complex)
 
     q = eigenvalues ** 0.5
 
