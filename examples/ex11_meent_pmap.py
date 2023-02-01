@@ -1,15 +1,25 @@
 import time
 from functools import partial
 
+from jax_smi import initialise_tracking
+initialise_tracking()
+# some computation...
+
+
 import jax
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 
 import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
 os.environ["MKL_NUM_THREADS"] = "4"  # export MKL_NUM_THREADS=6
+os.environ["OMP_NUM_THREADS"] = "4" # export OMP_NUM_THREADS=4
+os.environ["OPENBLAS_NUM_THREADS"] = "4" # export OPENBLAS_NUM_THREADS=4 
+os.environ["MKL_NUM_THREADS"] = "6" # export MKL_NUM_THREADS=6
+os.environ["VECLIB_MAXIMUM_THREADS"] = "4" # export VECLIB_MAXIMUM_THREADS=4
+os.environ["NUMEXPR_NUM_THREADS"] = "6" # export NUMEXPR_NUM_THREADS=6
 # os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=4'
 
 import sys
@@ -43,15 +53,15 @@ b = 1
 c = 0
 d = 1
 
-device = 1
+device = 0
 dtype = 1
 
-if device == 0:
-    device = 'cpu'
-    jax.config.update('jax_platform_name', device)
-else:
-    device = 'gpu'
-    jax.config.update('jax_platform_name', device)
+# if device == 0:
+#     device = 'cpu'
+#     jax.config.update('jax_platform_name', device)
+# else:
+#     device = 'gpu'
+#     jax.config.update('jax_platform_name', device)
 
 if dtype == 0:
     jax.config.update('jax_enable_x64', True)
@@ -83,7 +93,7 @@ def load_ucell(grating_type):
 ucell = load_ucell(2)
 mat_list = [1, 3.48]
 wavelength = 900
-fourier_order = 15  # 15 20 25 30
+fourier_order = 10  # 15 20 25 30
 
 grating_type = 2
 n_I = 1
@@ -102,10 +112,10 @@ AA = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II,
 
 n_iter = 3
 
-# for i in range(n_iter):
-#     t0 = time.time()
-#     de_ri, de_ti = AA.run_ucell()
-#     print(f'run_cell: {i}: ', time.time() - t0)
+for i in range(n_iter):
+    t0 = time.time()
+    de_ri, de_ti = AA.run_ucell()
+    print(f'run_cell: {i}: ', time.time() - t0)
 
 wls = [900, 901, 902]
 
@@ -115,6 +125,7 @@ wls = [900, 901, 902]
 #     de_ri, de_ti = AA.run_ucell_vmap()
 #     print(f'run_cell: {i}: ', time.time() - t0)
 
+print(jax.devices())
 
 for i in range(3):
     t0 = time.time()
