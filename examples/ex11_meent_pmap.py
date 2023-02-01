@@ -8,16 +8,16 @@ import numpy as np
 
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
+os.environ["MKL_NUM_THREADS"] = "4"  # export MKL_NUM_THREADS=6
+# os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=4'
 
-import torch
+import sys
+sys.path.append('/home/yongha/meent')
+
 
 from meent.rcwa import call_solver
-from ex_ucell import load_ucell
-
-from meent.on_jax.convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table
 from meent.on_jax.transfer_method import *
-# from ex_ucell import load_ucell
 
 
 # common
@@ -37,7 +37,6 @@ thickness = [500]
 ucell_materials = [1, 3.48]
 
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', 3: 'numpy_integ', 4: 'JAX_integ',}
-n_iter = 2
 
 a = 2
 b = 1
@@ -84,7 +83,7 @@ def load_ucell(grating_type):
 ucell = load_ucell(2)
 mat_list = [1, 3.48]
 wavelength = 900
-fourier_order = 20
+fourier_order = 15  # 15 20 25 30
 
 grating_type = 2
 n_I = 1
@@ -101,7 +100,24 @@ AA = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II,
                      ucell_materials=ucell_materials,
                      thickness=thickness, device=0, type_complex=type_complex, )
 
-for i in range(n_iter+5):
+n_iter = 3
+
+# for i in range(n_iter):
+#     t0 = time.time()
+#     de_ri, de_ti = AA.run_ucell()
+#     print(f'run_cell: {i}: ', time.time() - t0)
+
+wls = [900, 901, 902]
+
+# for i in range(n_iter):
+#     t0 = time.time()
+#     AA.wavelength = wls[i]
+#     de_ri, de_ti = AA.run_ucell_vmap()
+#     print(f'run_cell: {i}: ', time.time() - t0)
+
+
+for i in range(3):
     t0 = time.time()
-    de_ri, de_ti = AA.run_ucell()
+    AA.wavelength = wls[i]
+    de_ri, de_ti = AA.run_ucell_pmap()
     print(f'run_cell: {i}: ', time.time() - t0)

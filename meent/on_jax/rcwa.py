@@ -81,17 +81,84 @@ class RCWAJax(_BaseRCWA):
         E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
         o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
 
-        # de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
+        de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
 
-        num_dev = jax.local_device_count()
-        num_dev = 1
-        a = jnp.array([self.wavelength] * num_dev)
-        b = jnp.array([E_conv_all] * num_dev)
-        c = jnp.array([o_E_conv_all] * num_dev)
-
-        # TODO: vmap can't be used due to platform issue in eigen-decomposition
-        de_ri, de_ti = jax.vmap(self.solve)(a, b, c)
+        # num_dev = jax.local_device_count()
+        # num_dev = 1
+        # a = jnp.array([self.wavelength] * num_dev)
+        # b = jnp.array([E_conv_all] * num_dev)
+        # c = jnp.array([o_E_conv_all] * num_dev)
+        #
+        # de_ri, de_ti = jax.vmap(self.solve)(a, b, c)
         # de_ri, de_ti = jax.pmap(self.solve)(a, b, c)
+
+        return de_ri, de_ti
+
+
+    def run_ucell_vmap(self):
+
+        ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+        E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        self.wavelength = 901
+        ucell1 = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+        E_conv_all1 = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all1 = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        self.wavelength = 902
+        ucell2 = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+        E_conv_all2 = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all2 = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        self.wavelength = 903
+        ucell3 = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+        E_conv_all3 = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all3 = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        a = jnp.array([900, 901, 902, 903])
+        b = jnp.array([E_conv_all, E_conv_all1, E_conv_all2, E_conv_all3])
+        c = jnp.array([o_E_conv_all, o_E_conv_all1, o_E_conv_all2, o_E_conv_all3])
+
+        de_ri, de_ti = jax.vmap(self.solve)(a, b, c)
+
+        return de_ri, de_ti
+
+
+    def run_ucell_pmap(self):
+
+        ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+        E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        self.wavelength = 901
+        ucell1 = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+        E_conv_all1 = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all1 = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        self.wavelength = 902
+        ucell2 = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+        E_conv_all2 = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all2 = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        self.wavelength = 903
+        ucell3 = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+        E_conv_all3 = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all3 = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+
+        a = jnp.array([900, 901, 902, 903])
+        b = jnp.array([E_conv_all, E_conv_all1, E_conv_all2, E_conv_all3])
+        c = jnp.array([o_E_conv_all, o_E_conv_all1, o_E_conv_all2, o_E_conv_all3])
+
+        de_ri, de_ti = jax.pmap(self.solve)(a, b, c)
 
         return de_ri, de_ti
 
