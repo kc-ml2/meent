@@ -1,8 +1,6 @@
 # Meent
 Meent is a RCWA solver and its applications on optimization problem. We are expecting that this tool can accelerate ML research in photonics.
 
-{aaa}
-
 How to install
 ---
 You can install from PyPI
@@ -31,22 +29,20 @@ solver = meent.rcwa.call_solver(mode=mode_key, ...)
 
 ## When to use
 
-|                        |  Numpy  |  JAX  |  PyTorch  |
-|------------------------|:-------:|:-----:|:---------:|
-| 64bit support          |    O    |   O   |     O     |
-| 32bit support          |    O    |   O   |     O     |
-| GPU support            |    X    |   O   |     O     |
-| TPU support            |    X    |   O   |     X     |
-| AD support             |    X    |   O   |     O     |
-| Parallelization |    X    |   O   |     X     |
+|                 | Numpy | JAX | PyTorch |
+|-----------------|:-----:|:---:|:-------:|
+| 64bit support   |   O   |  O  |    O    |
+| 32bit support   |   O   |  O  |    O    |
+| GPU support     |   X   |  O  |    O    |
+| TPU support     |   X   |  X  |    X    |
+| AD support      |   X   |  X  |    O    |
+| Parallelization |   X   |  O  |    X    |
 
 
 Numpy is simple and light to use. Suggested as a baseline with small ~ medium scale optics problem.  
 JAX and PyTorch is recommended for cases having large scale or optimization part.  
 If you want parallelized computing with multiple devices(e.g., GPUs), JAX is ready for that.  
 But since JAX does jit compilation, it takes much time at the first run. 
-
-will be updated.
 
 
 # Reference

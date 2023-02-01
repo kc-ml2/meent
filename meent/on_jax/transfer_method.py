@@ -9,7 +9,6 @@ from jax import pure_callback
 from . import jitted as ee
 
 
-@partial(jax.jit, static_argnums=(0, 1, 8, 9, ))
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
                   type_complex=jnp.complex128):
 
@@ -49,7 +48,6 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, f
     return kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T
 
 
-@partial(jax.jit, static_argnums=(7, 9,))
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=jnp.complex128):
 
     X = ee.diag(ee.exp(-k0 * q * d))
@@ -69,7 +67,6 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=jnp.compl
     return X, f, g, T, a_i, b
 
 
-@partial(jax.jit, static_argnums=(11, ))
 def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
 
     T1 = ee.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
@@ -89,7 +86,6 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
     return de_ri, de_ti, T1
 
 
-@partial(jax.jit, static_argnums=(0, 7, ))
 def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex=jnp.complex128):
 
     I = ee.eye(ff).astype(type_complex)
@@ -187,7 +183,6 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
     return big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2
 
 
-@partial(jax.jit, static_argnums=(7, 14, ))
 def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z,
                           type_complex=jnp.complex128):
 

@@ -94,7 +94,6 @@ class _BaseRCWA:
 
         return kx_vector
 
-    @partial(jax.jit, static_argnums=(0,))
     def solve_1d(self, wl, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
@@ -172,7 +171,6 @@ class _BaseRCWA:
         return de_ri, de_ti, self.layer_info_list, self.T1
 
     # TODO: scattering method
-    # @partial(jax.jit, static_argnums=(0,))
     def solve_1d_conical(self, wl, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
@@ -226,8 +224,6 @@ class _BaseRCWA:
 
         return de_ri, de_ti, self.layer_info_list, self.T1
 
-    # @partial(jax.jit, static_argnums=(0,))  # TODO: is this right way to do jit? no use pytree?
-    # @jax.jit
     def solve_2d(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
@@ -291,8 +287,3 @@ class _BaseRCWA:
 
         return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape(
             (self.ff, self.ff)).real, self.layer_info_list, self.T1
-
-
-# tree_util.register_pytree_node(_BaseRCWA,
-#                                _BaseRCWA._tree_flatten,
-#                                _BaseRCWA._tree_unflatten)
