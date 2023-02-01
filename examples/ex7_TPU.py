@@ -31,7 +31,7 @@ thickness = [500]
 ucell_materials = [1, 3.48]
 
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', 3: 'numpy_integ', 4: 'JAX_integ', }
-n_iter = 2
+n_iter = 1
 
 
 def run_test(grating_type, mode_key, dtype, device):
@@ -42,7 +42,7 @@ def run_test(grating_type, mode_key, dtype, device):
         fourier_order = 100
     else:
         period = [1000, 1000]
-        fourier_order = 20
+        fourier_order = 40
 
     # Numpy
     if mode_key == 0:
@@ -108,7 +108,7 @@ def run_test(grating_type, mode_key, dtype, device):
         print(f'run_cell: {i}: ', time.time() - t0)
 
     resolution = (20, 20, 20)
-    for i in range(1):
+    for i in range(0):
         t0 = time.time()
         AA.calculate_field(resolution=resolution, plot=False)
         print(f'cal_field: {i}', time.time() - t0)
@@ -133,17 +133,17 @@ def run_loop(a,b, c, d):
                         print(e)
 
 a = [2]
-b = [1]
-c = [0,1]
+b = [0]
+c = [0]
 
 with jax.default_device(jax.devices("cpu")[0]):
     run_loop(a, b, c, [0])
 
-with jax.default_device(jax.devices("gpu")[0]):
-    run_loop(a, b, c, [1])
-
-with jax.default_device(jax.devices("cpu")[0]):
-    run_loop(a, b, c, [0])
+# with jax.default_device(jax.devices("gpu")[0]):
+#     run_loop(a, b, c, [1])
+#
+# with jax.default_device(jax.devices("cpu")[0]):
+#     run_loop(a, b, c, [0])
 
 
 
