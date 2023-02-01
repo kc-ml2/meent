@@ -19,9 +19,7 @@ def get_kx_vector(wavelength, fourier_order, grating_type, n_I, theta, phi, peri
         kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) - fourier_indices * (
                 wavelength / period[0])).astype(type_complex)
 
-    # aa=jnp.where(kx_vector == 0, kx_vector, 0).sum()
-    # if aa:
-    #     print('varphi divide by 0: adding perturbation')
+
     kx_vector = jnp.where(kx_vector == 0, perturbation, kx_vector)
     # TODO: need imaginary part? make imaginary part sign consistent
     # TODO: perturbation added silently

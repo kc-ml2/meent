@@ -7,16 +7,13 @@ from functools import partial
 from jax.experimental import host_callback
 from jax import pure_callback
 
-
 loadtxt = np.loadtxt
-
 
 backend = 'jax'
 
 pi = jnp.pi
 
 diag = jax.jit(jnp.diag)
-
 
 inv = jax.jit(jnp.linalg.inv)
 
@@ -37,13 +34,11 @@ real = jax.jit(jnp.real)
 imag = jax.jit(jnp.imag)
 conj = jax.jit(jnp.conj)
 
-
 arctan = jax.jit(jnp.arctan)
 
 hstack = jax.jit(jnp.hstack)
 
-
-array = partial(jax.jit, static_argnums=(1, ))(jnp.array)
+array = partial(jax.jit, static_argnums=(1,))(jnp.array)
 
 roll = partial(jax.jit, static_argnums=(2,))(jnp.roll)
 arange = partial(jax.jit, static_argnums=(0, 1, 2))(jnp.arange)
@@ -51,13 +46,13 @@ arange = partial(jax.jit, static_argnums=(0, 1, 2))(jnp.arange)
 ones = partial(jax.jit, static_argnums=(0, 1))(jnp.ones)
 zeros = partial(jax.jit, static_argnums=(0, 1))(jnp.zeros)
 
-repeat = partial(jax.jit, static_argnums=(1, 2, ))(jnp.repeat)
-tile = partial(jax.jit, static_argnums=(1, ))(jnp.tile)
+repeat = partial(jax.jit, static_argnums=(1, 2,))(jnp.repeat)
+tile = partial(jax.jit, static_argnums=(1,))(jnp.tile)
 
 linspace = partial(jax.jit, static_argnums=(0, 1, 2))(jnp.linspace)
 
-eye = partial(jax.jit, static_argnums=(0, ))(jnp.eye)
-nonzero = partial(jax.jit, static_argnums=(0, ))(jnp.nonzero)
+eye = partial(jax.jit, static_argnums=(0,))(jnp.eye)
+nonzero = partial(jax.jit, static_argnums=(0,))(jnp.nonzero)
 
 
 @partial(jax.jit, static_argnums=(3, 4))
@@ -74,10 +69,7 @@ def assign(arr, index, value, row_all=False, col_all=False):
     return arr
 
 
-
-
-# @partial(jax.jit, static_argnums=(1, ))
-def eig2(matrix, type_complex=jnp.complex128):
+def eig_host_callback(matrix, type_complex=jnp.complex128):
     """Wraps jnp.linalg.eig so that it can be jit-ed on a machine with GPUs."""
     eigenvalues_shape = jax.ShapeDtypeStruct(matrix.shape[:-1], type_complex)
     eigenvectors_shape = jax.ShapeDtypeStruct(matrix.shape, type_complex)
@@ -90,7 +82,7 @@ def eig2(matrix, type_complex=jnp.complex128):
         result_shape=(eigenvalues_shape, eigenvectors_shape),
     )
 
-# @partial(jax.jit, static_argnums=(1,))
+
 def eig(X, type_complex):
     import numpy as np
     # jax.config.update('jax_enable_x64', True)
@@ -125,4 +117,3 @@ def eig(X, type_complex):
 #     with jax.default_device(jax.devices('cpu')[0]):
 #         a=jnp.linalg.eig(mat)
 #         return a
-
