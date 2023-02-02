@@ -43,7 +43,7 @@ JAX and PyTorch is recommended for cases having large scale or optimization part
 If you want parallelized computing with multiple devices(e.g., GPUs), JAX is ready for that.  
 But since JAX does jit compilation, it takes much time at the first run. 
 
-
+will be updated.
 
 
 # Reference
