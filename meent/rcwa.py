@@ -24,10 +24,6 @@ def call_solver(mode=0, *args, **kwargs):
         RCWA = RCWANumpy(mode, *args, **kwargs)
     elif mode == 1:
         from .on_jax.rcwa import RCWAJax
-        tree_util.register_pytree_node(RCWAJax,
-                                       RCWAJax._tree_flatten,
-                                       RCWAJax._tree_unflatten)
-
         RCWA = RCWAJax(mode=mode, *args, **kwargs)
 
     elif mode == 2:

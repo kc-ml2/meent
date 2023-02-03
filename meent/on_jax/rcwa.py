@@ -74,7 +74,6 @@ class RCWAJax(_BaseRCWA):
 
         return de_ri.real, de_ti.real
 
-
     @jax.jit
     def aaa(self, ucell):
         E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
@@ -96,7 +95,6 @@ class RCWAJax(_BaseRCWA):
         # de_ri, de_ti = self.aaa(ucell)
 
         return de_ri, de_ti
-
 
     def run_ucell_vmap(self):
 
@@ -130,7 +128,6 @@ class RCWAJax(_BaseRCWA):
         de_ri, de_ti = jax.vmap(self.solve)(a, b, c)
 
         return de_ri, de_ti
-
 
     def run_ucell_pmap(self):
 

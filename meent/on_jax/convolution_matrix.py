@@ -212,30 +212,23 @@ def to_conv_mat_piecewise_continuous(pmt, fourier_order, type_complex=jnp.comple
 
         for i, layer in enumerate(pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
-
             center = f_coeffs.shape[1] // 2
-
             conv_idx = ee.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
-
             e_conv = f_coeffs[0, center + conv_idx]
             # res = res.at[i].set(e_conv)
             res = ee.assign(res, i, e_conv)
 
     else:  # 2D
         # attention on the order of axis (Z Y X)
-
         res = ee.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
 
         for i, layer in enumerate(pmt):
-
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
-
             center = ee.array(f_coeffs.shape) // 2
 
             conv_idx = ee.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
-
             conv_i = ee.repeat(conv_idx, ff, 1)
             conv_i = ee.repeat(conv_i, ff, axis=0)
             conv_j = ee.tile(conv_idx, (ff, ff))
@@ -289,29 +282,21 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
 
     else:  # 2D
         # attention on the order of axis (Z Y X)
-
         res = ee.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
         # extend array
-        # TODO: run test
         minimum_pattern_size = ff ** 2
         # TODO: what is theoretical minimum?
         # TODO: can be a scalability issue
 
         if pmt.shape[1] < minimum_pattern_size:
             n = minimum_pattern_size // pmt.shape[1]
-            # pmt = pmt.repeat_interleave(n+1, dim=1)
             pmt = jnp.repeat(pmt, n+1, axis=1)
-
         if pmt.shape[2] < minimum_pattern_size:
             n = minimum_pattern_size // pmt.shape[2]
-            # pmt = pmt.repeat_interleave(n+1, dim=2)
             pmt = np.repeat(pmt, n+1, axis=2)
 
         for i, layer in enumerate(pmt):
-
-            # f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
             f_coeffs = ee.fft.fftshift(ee.fft.fft2(layer / layer.size))
-
             center = ee.array(f_coeffs.shape) // 2
 
             conv_idx = ee.arange(-ff + 1, ff, 1)
