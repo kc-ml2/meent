@@ -21,7 +21,7 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.c
     for z in range(ucell.shape[0]):
         for y in range(ucell.shape[1]):
             for x in range(ucell.shape[2]):
-                material = mat_list[ucell[z, y, x]]
+                material = mat_list[int(ucell[z, y, x])]
                 assign_index = (z, y, x)
 
                 if type(material) == str:
@@ -200,7 +200,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
 
 
 # @partial(jax.jit, static_argnums=(1, 2))
-def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
+def to_conv_mat_piecewise_continuous(pmt, fourier_order, type_complex=jnp.complex128):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -235,7 +235,88 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
             center = ee.array(f_coeffs.shape) // 2
 
             conv_idx = ee.arange(-ff + 1, ff, 1)
+            conv_idx = circulant(conv_idx)
 
+            conv_i = ee.repeat(conv_idx, ff, 1)
+            conv_i = ee.repeat(conv_i, ff, axis=0)
+            conv_j = ee.tile(conv_idx, (ff, ff))
+
+            # res = res.at[i].set(f_coeffs[center[0] + conv_i, center[1] + conv_j])
+            assign_value = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            res = ee.assign(res, i, assign_value)
+
+    # import matplotlib.pyplot as plt
+    #
+    # plt.figure()
+    # plt.imshow(abs(res[0]), cmap='jet')
+    # plt.colorbar()
+    # plt.show()
+    # print('conv time: ', time.time() - t0)
+    return res
+
+
+@partial(jax.jit, static_argnums=(1, 2))
+def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
+
+    if len(pmt.shape) == 2:
+        print('shape is 2')
+        raise ValueError
+    ff = 2 * fourier_order + 1
+
+    if pmt.shape[1] == 1:  # 1D
+
+        res = ee.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
+
+        # extend array for FFT
+        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
+        # TODO: what is theoretical minimum?
+        # TODO: can be a scalability issue
+        if pmt.shape[2] < minimum_pattern_size:
+            n = minimum_pattern_size // pmt.shape[2]
+            # pmt = pmt.repeat_interleave(n+1, dim=2)
+            pmt = np.repeat(pmt, n+1, axis=2)
+
+        for i, layer in enumerate(pmt):
+            # f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
+            f_coeffs = ee.fft.fftshift(ee.fft.fft(layer / (layer.size(0)*layer.size(1))))
+            center = f_coeffs.shape[1] // 2
+
+            conv_idx = ee.arange(-ff + 1, ff, 1)
+            conv_idx = circulant(conv_idx)
+
+            e_conv = f_coeffs[0, center + conv_idx]
+            # res = res.at[i].set(e_conv)
+            res = ee.assign(res, i, e_conv)
+
+    else:  # 2D
+        # attention on the order of axis (Z Y X)
+
+        res = ee.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
+        # extend array
+        # TODO: run test
+        minimum_pattern_size = ff ** 2
+        # TODO: what is theoretical minimum?
+        # TODO: can be a scalability issue
+
+        if pmt.shape[1] < minimum_pattern_size:
+            n = minimum_pattern_size // pmt.shape[1]
+            # pmt = pmt.repeat_interleave(n+1, dim=1)
+            pmt = jnp.repeat(pmt, n+1, axis=1)
+
+        if pmt.shape[2] < minimum_pattern_size:
+            n = minimum_pattern_size // pmt.shape[2]
+            # pmt = pmt.repeat_interleave(n+1, dim=2)
+            pmt = np.repeat(pmt, n+1, axis=2)
+
+        for i, layer in enumerate(pmt):
+
+            # f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
+            # f_coeffs = ee.fft.fftshift(ee.fft.fft2(layer / (layer.size(0)*layer.size(1))))
+            f_coeffs = ee.fft.fftshift(ee.fft.fft2(layer / layer.size))
+
+            center = ee.array(f_coeffs.shape) // 2
+
+            conv_idx = ee.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
 
             conv_i = ee.repeat(conv_idx, ff, 1)

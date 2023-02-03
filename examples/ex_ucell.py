@@ -88,11 +88,11 @@ def run_test(grating_type, mode_key, dtype, device):
         de_ri, de_ti = AA.run_ucell()
         print(f'run_cell: {i}: ', time.time()-t0)
 
-    # resolution = (20, 20, 20)
-    # for i in range(0):
-    #     t0 = time.time()
-    #     AA.calculate_field(resolution=resolution, plot=False)
-    #     print(f'cal_field: {i}', time.time() - t0)
+    resolution = (20, 20, 20)
+    for i in range(0):
+        t0 = time.time()
+        AA.calculate_field(resolution=resolution, plot=False)
+        print(f'cal_field: {i}', time.time() - t0)
 
     return de_ri, de_ti
 

@@ -69,7 +69,7 @@ def assign(arr, index, value, row_all=False, col_all=False):
     return arr
 
 
-def eig_host_callback(matrix, type_complex=jnp.complex128):
+def eig2(matrix, type_complex=jnp.complex128):
     """Wraps jnp.linalg.eig so that it can be jit-ed on a machine with GPUs."""
     eigenvalues_shape = jax.ShapeDtypeStruct(matrix.shape[:-1], type_complex)
     eigenvectors_shape = jax.ShapeDtypeStruct(matrix.shape, type_complex)
@@ -98,8 +98,7 @@ def eig(X, type_complex):
 
     return jax.pure_callback(_eig, result_shape_dtype, X)
 
-# eig = partial(jax.jit, backend='cpu')(jnp.linalg.eig)
-# eig = jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0])
+
 # eig = jnp.linalg.eig
 
 # @partial(jax.jit, backend='cpu')
@@ -117,3 +116,5 @@ def eig(X, type_complex):
 #     with jax.default_device(jax.devices('cpu')[0]):
 #         a=jnp.linalg.eig(mat)
 #         return a
+
+fft = jnp.fft

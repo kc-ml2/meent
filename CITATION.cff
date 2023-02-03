@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+title: Meent
+message: If you use this software, please cite it using the metadata from this file.
+type: software
+authors:
+  - given-names: Yongha
+    family-names: Kim
+  - given-names: Sanmun
+    family-names: Kim
+  - given-names: Anthony Wonseok
+    family-names: Jeong
+  - given-names: Jinmyoung
+    family-names: Lee
+
+repository-code: 'https://github.com/kc-ml2/meent'
+license: MIT
