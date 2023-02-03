@@ -1,4 +1,7 @@
-from jax.config import config
+from jax import tree_util
 
+from .rcwa import RCWAJax
 
-config.update("jax_enable_x64", True)
+tree_util.register_pytree_node(RCWAJax,
+                               RCWAJax._tree_flatten,
+                               RCWAJax._tree_unflatten)

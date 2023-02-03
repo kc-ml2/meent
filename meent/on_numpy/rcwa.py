@@ -3,7 +3,7 @@ import numpy as np
 
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table
-from .field_distribution import field_dist_1d, field_dist_2d, field_plot_zx, field_dist_1d_conical
+from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot_zx
 
 
 class RCWANumpy(_BaseRCWA):
@@ -23,16 +23,25 @@ class RCWANumpy(_BaseRCWA):
         self.mat_table = read_material_table()
         self.layer_info_list = []
 
-    def solve(self, wavelength, e_conv_all, o_e_conv_all):
+    def put_permittivity_in_ucell(self):
+        ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
+                                          type_complex=self.type_complex)
+        return ucell
+
+    def to_conv_mat(self, ucell):
+        E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        return E_conv_all
+
+    def solve(self, e_conv_all, o_e_conv_all):
 
         self.get_kx_vector()
 
         if self.grating_type == 0:
-            de_ri, de_ti = self.solve_1d(wavelength, e_conv_all, o_e_conv_all)
+            de_ri, de_ti = self.solve_1d(self.wavelength, e_conv_all, o_e_conv_all)
         elif self.grating_type == 1:
-            de_ri, de_ti = self.solve_1d_conical(wavelength, e_conv_all, o_e_conv_all)
+            de_ri, de_ti = self.solve_1d_conical(self.wavelength, e_conv_all, o_e_conv_all)
         elif self.grating_type == 2:
-            de_ri, de_ti = self.solve_2d(wavelength, e_conv_all, o_e_conv_all)
+            de_ri, de_ti = self.solve_2d(self.wavelength, e_conv_all, o_e_conv_all)
         else:
             raise ValueError
 
@@ -46,7 +55,8 @@ class RCWANumpy(_BaseRCWA):
         E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
         o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
 
-        de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
+        # apply to other backends (removing wavelength arg)
+        de_ri, de_ti = self.solve(E_conv_all, o_E_conv_all)
 
         return de_ri, de_ti
 

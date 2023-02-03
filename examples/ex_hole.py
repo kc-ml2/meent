@@ -3,8 +3,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from meent.rcwa import call_solver, sweep_wavelength
-
+from meent.rcwa import call_solver
 
 grating_type = 2  # 0: 1D, 1: 1D conical, 2:2D.
 pol = 1  # 0: TE, 1: TM
@@ -16,7 +15,7 @@ theta = 0  # in degree, notation from Moharam paper
 phi = 0  # in degree, notation from Moharam paper
 psi = 0 if pol else 90  # in degree, notation from Moharam paper
 
-wavelength = np.linspace(900, 900, 1)  # wavelength
+wavelength = 900
 
 period = [700, 700]
 fourier_order = 2
@@ -33,11 +32,12 @@ x = x - ucell_x // 2
 y = y - ucell_y // 2
 
 colors = np.empty([*ucell.shape, 4], dtype=object)
-voxelarray =np.full(ucell.shape, False)
+voxelarray = np.full(ucell.shape, False)
+
 parts = {}
 for i in range(ucell_z):
     parts['base'] = 0
-    indices = (x**2 + y**2 < ((5*i//2)+20) ** 2) & (z == i)
+    indices = (x ** 2 + y ** 2 < ((5 * i // 2) + 20) ** 2) & (z == i)
     parts[f'hole{i}'] = indices
     ucell[indices] = 1
     colors[indices] = (0., 1., 0., 1)
@@ -54,16 +54,21 @@ plt.show()
 
 ucell_materials = ['p_si__real', 1]
 
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell, ucell_materials=ucell_materials,
-                 thickness=thickness)
-de_ri, de_ti = AA.run_ucell()
-print(de_ri, de_ti)
+solver = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                     fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                     ucell_materials=ucell_materials, thickness=thickness)
 
 wavelength_array = np.linspace(500, 1000, 100)
 
-de_ri, de_ti = sweep_wavelength(wavelength_array, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                                fourier_order=fourier_order, period=period, ucell=ucell, ucell_materials=ucell_materials, thickness=thickness)
+spectrum_r = np.zeros([len(wavelength_array)] + [2 * fourier_order + 1] * (grating_type // 2 + 1))
+spectrum_t = np.zeros([len(wavelength_array)] + [2 * fourier_order + 1] * (grating_type // 2 + 1))
 
-plt.plot(wavelength_array, de_ri.sum((1, 2)), wavelength_array, de_ti.sum((1, 2)))
+for i, wavelength in enumerate(wavelength_array):
+    solver.wavelength = wavelength
+    de_ri, de_ti = solver.run_ucell()
+
+    spectrum_r[i] = de_ri
+    spectrum_t[i] = de_ti
+
+plt.plot(wavelength_array, spectrum_r.sum((1, 2)), wavelength_array, spectrum_t.sum((1, 2)))
 plt.show()

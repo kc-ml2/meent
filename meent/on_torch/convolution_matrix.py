@@ -159,7 +159,7 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
     return f_coeffs_xy.T
 
 
-def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
+def to_conv_mat_piecewise_continuous(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -172,7 +172,6 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
 
         for i, layer in enumerate(pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, device=device, type_complex=type_complex)
-
             center = f_coeffs.shape[1] // 2
             conv_idx = torch.arange(-ff + 1, ff, 1, device=device).type(torch.long)
             conv_idx = circulant(conv_idx, device)
@@ -181,21 +180,18 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
 
     else:  # 2D
         # attention on the order of axis (Z Y X)
-
         res = torch.zeros((pmt.shape[0], ff ** 2, ff ** 2), device=device).type(type_complex)
 
         for i, layer in enumerate(pmt):
-            pmtvy_fft = fft_piecewise_constant(layer, fourier_order, device=device, type_complex=type_complex)
-
-            center = torch.div(torch.tensor(pmtvy_fft.shape, device=device), 2, rounding_mode='trunc')
+            f_coeffs = fft_piecewise_constant(layer, fourier_order, device=device, type_complex=type_complex)
+            center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
 
             conv_idx = torch.arange(-ff + 1, ff, 1, device=device).type(torch.long)
             conv_idx = circulant(conv_idx, device)
-
             conv_i = conv_idx.repeat_interleave(ff, dim=1).type(torch.long)
             conv_i = conv_i.repeat_interleave(ff, dim=0)
             conv_j = conv_idx.repeat(ff, ff).type(torch.long)
-            res[i] = pmtvy_fft[center[0] + conv_i, center[1] + conv_j]
+            res[i] = f_coeffs[center[0] + conv_i, center[1] + conv_j]
 
     # import matplotlib.pyplot as plt
     #
@@ -204,6 +200,72 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
     # plt.colorbar()
     # plt.show()
     #
+    return res
+
+
+def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
+
+    if len(pmt.shape) == 2:
+        print('shape is 2')
+        raise ValueError
+    ff = 2 * fourier_order + 1
+
+    if pmt.shape[1] == 1:  # 1D
+        ###############
+        res = torch.zeros((pmt.shape[0], ff, ff), device=device).type(type_complex)
+
+        # extend array for FFT
+        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
+        # TODO: what is theoretical minimum?
+        # TODO: can be a scalability issue
+        if pmt.shape[2] < minimum_pattern_size:
+            n = minimum_pattern_size // pmt.shape[2]
+            pmt = pmt.repeat_interleave(n+1, dim=2)
+
+        for i, layer in enumerate(pmt):
+            f_coeffs = torch.fft.fftshift(torch.fft.fftn(layer / (layer.size(0)*layer.size(1))))
+            center = f_coeffs.shape[1] // 2
+
+            conv_idx = torch.arange(-ff + 1, ff, 1, device=device).type(torch.long)
+            conv_idx = circulant(conv_idx, device)
+            e_conv = f_coeffs[0, center + conv_idx]
+            res[i] = e_conv
+
+    else:  # 2D
+
+        res = torch.zeros((pmt.shape[0], ff ** 2, ff ** 2), device=device).type(type_complex)
+        # extend array
+        minimum_pattern_size = ff ** 2
+        # TODO: what is theoretical minimum?
+        # TODO: can be a scalability issue
+
+        if pmt.shape[1] < minimum_pattern_size:
+            n = minimum_pattern_size // pmt.shape[1]
+            pmt = pmt.repeat_interleave(n+1, dim=1)
+        if pmt.shape[2] < minimum_pattern_size:
+            n = minimum_pattern_size // pmt.shape[2]
+            pmt = pmt.repeat_interleave(n+1, dim=2)
+
+        for i, layer in enumerate(pmt):
+            f_coeffs = torch.fft.fftshift(torch.fft.fft2(layer / (layer.size(0)*layer.size(1))))
+            center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
+
+            conv_idx = torch.arange(-ff + 1, ff, 1, device=device).type(torch.long)
+            conv_idx = circulant(conv_idx, device)
+
+            conv_i = conv_idx.repeat_interleave(ff, dim=1).type(torch.long)
+            conv_i = conv_i.repeat_interleave(ff, dim=0)
+            conv_j = conv_idx.repeat(ff, ff).type(torch.long)
+
+            res[i] = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+
+    # import matplotlib.pyplot as plt
+    #
+    # plt.figure()
+    # plt.imshow(abs(res[0]), cmap='jet')
+    # plt.colorbar()
+    # plt.show()
+
     return res
 
 

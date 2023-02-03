@@ -1,10 +1,12 @@
-# import jax.numpy as ee
+import time
 from functools import partial
 
 import jax
 import jax.numpy as jnp
+from jax import pure_callback
 
-import meent.on_jax.jitted as ee
+# import meent.on_jax.jitted as ee
+from . import jitted as ee
 
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
@@ -101,7 +103,6 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex
     k_II_z = k_II_z.conjugate()
 
     Kx = ee.diag(kx_vector / k0)
-
     varphi = ee.arctan(ky / kx_vector)
 
     Y_I = ee.diag(k_I_z / k0)
@@ -132,8 +133,8 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
     to_decompose_W_1 = ky ** 2 * I + A
     to_decompose_W_2 = ky ** 2 * I + B @ o_E_conv_i
 
-    eigenvalues_1, W_1 = ee.eig(to_decompose_W_1, type_complex=type_complex)
-    eigenvalues_2, W_2 = ee.eig(to_decompose_W_2, type_complex=type_complex)
+    eigenvalues_1, W_1 = ee.eig(to_decompose_W_1, time.time())  # TODO: separate to an independent func.
+    eigenvalues_2, W_2 = ee.eig(to_decompose_W_2, time.time())
 
     q_1 = eigenvalues_1 ** 0.5
     q_2 = eigenvalues_2 ** 0.5
@@ -286,7 +287,9 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.co
             [Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
-    eigenvalues, W = ee.eig(S2_from_S, type_complex=type_complex)
+    # TODO: custom jvp for AD
+    # eigenvalues, W = ee.eig(S2_from_S)
+    eigenvalues, W = ee.eig(S2_from_S, type_complex)
 
     q = eigenvalues ** 0.5
 
