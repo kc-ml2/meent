@@ -289,7 +289,10 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.co
 
     # TODO: custom jvp for AD
     # eigenvalues, W = ee.eig(S2_from_S)
-    eigenvalues, W = ee.eig(S2_from_S, type_complex)
+    # eigenvalues, W = ee.eig(S2_from_S, type_complex)
+
+    from .primitives import eig
+    eigenvalues, W = eig(S2_from_S)
 
     q = eigenvalues ** 0.5
 

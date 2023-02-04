@@ -83,7 +83,7 @@ def eig2(matrix, type_complex=jnp.complex128):
     )
 
 
-def eig(X, type_complex):
+def _eig(X, type_complex):
     import numpy as np
     # jax.config.update('jax_enable_x64', True)
 

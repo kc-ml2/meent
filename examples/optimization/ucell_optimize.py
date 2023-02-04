@@ -1,4 +1,4 @@
-import numpy as np
+# import numpy as np
 import jax
 import jax.numpy as jnp
 import time
@@ -134,12 +134,12 @@ if __name__ == '__main__':
 
     de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
+    solver.ucell = ucell_gt
+    a, b = solver.run_ucell()
 
     def loss(ucell):
 
         # solver.thickness = thickness_gt
-        solver.ucell = ucell_gt
-        a, b = solver.run_ucell()
         # ucell = put_permittivity_in_ucell(ucell, self.ucell_materials, self.mat_table, self.wavelength,
         #                                   type_complex=self.type_complex)
         E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
@@ -148,13 +148,13 @@ if __name__ == '__main__':
         de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
         # solver.thickness = [thickness]
-        solver.ucell = ucell
-        c, d = solver.run_ucell()
+        # solver.ucell = ucell
+        # c, d = solver.run_ucell()
 
-        gap = jnp.linalg.norm(a - c)
+        # gap = jnp.linalg.norm(a - c)
         # print('gap:', gap.primal)
-        res = a[2,2]
-        return de_ri
+        res = de_ti[2,2]
+        return res
 
     grad_loss = grad(loss)
     print('grad:', grad_loss(ucell))
@@ -181,17 +181,22 @@ if __name__ == '__main__':
     # s_t = jnp.array([2., 1., 0.])
 
     def mingd(x):
-        # print(x)
-        # print(grad_loss(x))
-        return x - 0.05*grad_loss(x)*x
 
-    domain = jnp.linspace(1100, 1200, num=1)
+        lr = 0.05
+        gd = grad_loss(x)
 
-    vfungd = vmap(mingd)
+        res = x - lr*gd*x
+        return res
+
+    domain = [ucell, ucell+1, ucell+2]
+
+    # vfungd = vmap(mingd)
+
     # Recurrent loop of gradient descent
-    for epoch in range(1000):
-        domain = vfungd(domain)
-        # print(domain)
+    for i in range(50):
+        # ucell = vfungd(ucell)
+        ucell = mingd(ucell)
+        print(ucell)
 
     minfunc = vmap(loss)
     minimums = minfunc(domain)
