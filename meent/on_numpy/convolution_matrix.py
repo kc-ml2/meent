@@ -162,7 +162,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     return f_coeffs_xy.T
 
 
-def to_conv_mat(pmt, fourier_order, type_complex=np.complex128):
+def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=np.complex128):
     # TODO: do conv and 1/conv in simultaneously?
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -207,6 +207,93 @@ def to_conv_mat(pmt, fourier_order, type_complex=np.complex128):
     # plt.imshow(abs(res[0]), cmap='jet')
     # plt.colorbar()
     # plt.show()
+
+    # import matplotlib.pyplot as plt
+    #
+    # plt.figure()
+    # plt.imshow(abs(pmtvy_fft), cmap='jet')
+    # plt.colorbar()
+    # plt.show()
+    #
+    # plt.figure()
+    # plt.imshow(abs(res[0]), cmap='jet')
+    # plt.colorbar()
+    # plt.show()
+
+    return res
+
+def to_conv_mat(pmt, fourier_order):
+    # FFT scaling: https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
+    if len(pmt.shape) == 2:
+        print('shape is 2')
+        raise ValueError
+    ff = 2 * fourier_order + 1
+
+    # if len(pmt.shape)==2 or pmt.shape[1] == 1:  # 1D
+    if pmt.shape[1] == 1:  # 1D  # TODO: confirm this handles all cases
+        res = np.zeros((pmt.shape[0], 2*fourier_order+1, 2*fourier_order+1)).astype('complex')
+
+        # extend array for FFT
+        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
+        # TODO: what is theoretical minimum?
+        # TODO: can be a scalability issue
+        if pmt.shape[2] < minimum_pattern_size:
+            n = minimum_pattern_size // pmt.shape[2]
+            pmt = np.repeat(pmt, n+1, axis=2)
+
+        for i, pmtvy in enumerate(pmt):
+            pmtvy_fft = np.fft.fftshift(np.fft.fftn(pmtvy / pmtvy.size))
+            center = pmtvy_fft.shape[1] // 2
+
+            pmtvy_fft_cut = (pmtvy_fft[0, -2*fourier_order + center: center + 2*fourier_order + 1])
+            A = np.roll(circulant(pmtvy_fft_cut.flatten()), (pmtvy_fft_cut.size + 1) // 2, 0)
+            res[i] = A[:2*fourier_order+1, :2*fourier_order+1]
+
+    else:  # 2D
+        # attention on the order of axis.
+        # Here X Y Z. Cell Drawing in CAD is Y X Z. Here is Z Y X
+
+        # TODO: separate fourier order
+        res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype('complex')
+
+        # extend array
+        # TODO: run test
+        minimum_pattern_size = ff ** 2
+        # TODO: what is theoretical minimum?
+        # TODO: can be a scalability issue
+
+        if pmt.shape[1] < minimum_pattern_size:
+            n = minimum_pattern_size // pmt.shape[1]
+            pmt = np.repeat(pmt, n+1, axis=1)
+        if pmt.shape[2] < minimum_pattern_size:
+            n = minimum_pattern_size // pmt.shape[2]
+            pmt = np.repeat(pmt, n+1, axis=2)
+
+        for i, layer in enumerate(pmt):
+            pmtvy_fft = np.fft.fftshift(np.fft.fft2(layer / layer.size))
+
+            center = np.array(pmtvy_fft.shape) // 2
+
+            conv_idx = np.arange(-ff + 1, ff, 1)
+            conv_idx = circulant(conv_idx)
+
+            conv_i = np.repeat(conv_idx, ff, axis=1)
+            conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
+            conv_j = np.tile(conv_idx, (ff, ff))
+            res[i] = pmtvy_fft[center[0] + conv_i, center[1] + conv_j]
+
+    # import matplotlib.pyplot as plt
+    #
+    # plt.figure()
+    # plt.imshow(abs(pmtvy_fft), cmap='jet')
+    # plt.colorbar()
+    # plt.show()
+    #
+    # plt.figure()
+    # plt.imshow(abs(res[0]), cmap='jet')
+    # plt.colorbar()
+    # plt.show()
+
     #
     return res
 

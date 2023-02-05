@@ -1,17 +1,25 @@
-# import numpy as np
+import meent.on_numpy.convolution_matrix
+
+try:
+    import os
+
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"] = '2,3'
+except:
+    pass
+
+
+import numpy as np
 import jax
 import jax.numpy as jnp
 import time
 
 from jax import grad, vmap
 
-from examples.ex_ucell import load_ucell
-from meent.on_jax.convolution_matrix import put_permittivity_in_ucell, to_conv_mat
-# from meent.rcwa import RCWA
+from meent.on_jax.convolution_matrix import put_permittivity_in_ucell, to_conv_mat, to_conv_mat_piecewise_constant
 
 from meent.rcwa import call_solver
-
-# from jax.config import config; config.update("jax_enable_x64", True)
+import torch
 
 
 class RCWAOptimizer:
@@ -47,18 +55,14 @@ if __name__ == '__main__':
 
     thickness_gt = [1120]
     ucell_materials = [1, 3.48]
-    period = [100, 100]
-    fourier_order = 2
+    period = [1000, 1000]
+    fourier_order = 3
+
     mode_key = 1
     device = 0
     dtype = 0
 
-    # ucell_gt = load_ucell(grating_type)
-    #
-    # ucell = ucell_gt.copy()
-    # ucell[0, 0, :] = 1
-
-    ucell_gt = jnp.array(
+    ucell_gt = np.array(
         [[
             [1., 1., 1., 1., 1.],
             [1., 1., 1., 1., 1.],
@@ -68,7 +72,7 @@ if __name__ == '__main__':
         ]]
     )
 
-    ucell = jnp.array(
+    ucell = np.array(
         [[
             [3., 1., 1., 1., 3.],
             [3., 1., 1., 1., 3.],
@@ -77,9 +81,6 @@ if __name__ == '__main__':
             [3., 1., 1., 1., 3.],
         ]]
     )
-
-    # ucell = ucell_gt.copy()
-    # ucell[0, 0, :] = 1
 
     if mode_key == 0:
         device = None
@@ -122,89 +123,80 @@ if __name__ == '__main__':
                          ucell_materials=ucell_materials,
                          thickness=thickness_gt, device=device, type_complex=type_complex, )
 
-    # ucell = put_permittivity_in_ucell(ucell, ucell_materials, self.mat_table, self.wavelength,
-    #                                       type_complex=self.type_complex)
-
-    solver.ucell = ucell_gt
-    a, b = solver.run_ucell()
-    # ucell = put_permittivity_in_ucell(ucell, self.ucell_materials, self.mat_table, self.wavelength,
-    #                                   type_complex=self.type_complex)
     E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
     o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
-
     de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
-    solver.ucell = ucell_gt
-    a, b = solver.run_ucell()
+    E_conv_all1 = to_conv_mat_piecewise_constant(ucell, fourier_order, type_complex=type_complex)
+    o_E_conv_all1 = to_conv_mat_piecewise_constant(1 / ucell, fourier_order, type_complex=type_complex)
+    de_ri1, de_ti1 = solver.solve(wavelength, E_conv_all1, o_E_conv_all1)
+
+    solver1 = call_solver(0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                         psi=psi,
+                         fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                         ucell_materials=ucell_materials,
+                         thickness=thickness_gt, device=device, type_complex=type_complex, )
+
+    E_conv_all2 = meent.on_numpy.convolution_matrix.to_conv_mat(ucell, fourier_order)
+    o_E_conv_all2 = meent.on_numpy.convolution_matrix.to_conv_mat(1/ucell, fourier_order)
+    de_ri2, de_ti2 = solver1.solve(wavelength, E_conv_all2, o_E_conv_all2)
+
+    E_conv_all2 = meent.on_numpy.convolution_matrix.to_conv_mat_piecewise_constant(ucell, fourier_order)
+    o_E_conv_all2 = meent.on_numpy.convolution_matrix.to_conv_mat_piecewise_constant(1/ucell, fourier_order)
+    de_ri3, de_ti3 = solver1.solve(wavelength, E_conv_all2, o_E_conv_all2)
+
+    ucell = torch.tensor(
+        [[
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+        ]], dtype=torch.float64, requires_grad=True)
+
+    type_complex = torch.complex128
+    device = torch.device('cpu')
+
+    solver2 = call_solver(2, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                         psi=psi,
+                         fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                         ucell_materials=ucell_materials,
+                         thickness=thickness_gt, device=device, type_complex=type_complex, )
+
+    E_conv_all2 = meent.on_torch.convolution_matrix.to_conv_mat(ucell, fourier_order)
+    o_E_conv_all2 = meent.on_torch.convolution_matrix.to_conv_mat(1/ucell, fourier_order)
+    de_ri2, de_ti2 = solver2.solve(wavelength, E_conv_all2, o_E_conv_all2)
+
+    E_conv_all2 = meent.on_torch.convolution_matrix.to_conv_mat_piecewise_constant(ucell, fourier_order)
+    o_E_conv_all2 = meent.on_torch.convolution_matrix.to_conv_mat_piecewise_constant(1/ucell, fourier_order)
+    de_ri3, de_ti3 = solver2.solve(wavelength, E_conv_all2, o_E_conv_all2)
+
 
     def loss(ucell):
 
-        # solver.thickness = thickness_gt
-        # ucell = put_permittivity_in_ucell(ucell, self.ucell_materials, self.mat_table, self.wavelength,
-        #                                   type_complex=self.type_complex)
         E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
         o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
-
         de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
-        # solver.thickness = [thickness]
-        # solver.ucell = ucell
-        # c, d = solver.run_ucell()
-
-        # gap = jnp.linalg.norm(a - c)
-        # print('gap:', gap.primal)
-        res = de_ti[2,2]
+        res = -de_ti[3,2]
+        # print(res)
         return res
 
     grad_loss = grad(loss)
     print('grad:', grad_loss(ucell))
-    # print('grad:', grad_loss(600.))
-    # print('grad:', grad_loss(1110.))
-    # print('grad:', grad_loss(1120.))
-    # print('grad:', grad_loss(1130.))
-
-    import jax.numpy as np
-    from jax import grad, jit, vmap
-    from jax import random
-    from jax import jacfwd, jacrev
-    from jax.numpy import linalg
-
-    from numpy import nanargmin, nanargmax
-
-    # key = random.PRNGKey(42)
-
-    # value_fn = lambda theta, state: jnp.dot(theta, state)
-    # theta = jnp.array([0.1, -0.1, 0.])
-    # # An example transition.
-    # s_tm1 = jnp.array([1., 2., -1.])
-    # r_t = jnp.array(1.)
-    # s_t = jnp.array([2., 1., 0.])
 
     def mingd(x):
 
-        lr = 0.05
+        lr = 0.01
         gd = grad_loss(x)
 
         res = x - lr*gd*x
         return res
 
-    domain = [ucell, ucell+1, ucell+2]
-
-    # vfungd = vmap(mingd)
-
     # Recurrent loop of gradient descent
-    for i in range(50):
+    for i in range(1):
         # ucell = vfungd(ucell)
         ucell = mingd(ucell)
-        print(ucell)
 
-    minfunc = vmap(loss)
-    minimums = minfunc(domain)
+    print(ucell)
 
-    arglist = nanargmin(minimums)
-    argmin = domain[arglist]
-    minimum = minimums[arglist]
-
-    print("The minimum is {} the argmin is {}".format(minimum, argmin))
-    print(time.time() - t0)
-    print('end')

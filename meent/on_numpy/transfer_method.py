@@ -280,6 +280,11 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=np.com
         ])
 
     eigenvalues, W = np.linalg.eig(S2_from_S)
+    aa =eigenvalues
+    aa.sort()
+    print('numpy')
+    print(aa.real.flatten())
+    print(aa.imag.flatten())
 
     q = eigenvalues ** 0.5
 

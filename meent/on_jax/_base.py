@@ -31,9 +31,6 @@ class _BaseRCWA:
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
 
-        # self.n_I = self.type_complex(n_I)
-        # self.n_II = self.type_complex(n_II)
-
         self.n_I = n_I
         self.n_II = n_II
 
@@ -58,7 +55,6 @@ class _BaseRCWA:
 
         self.wavelength = wavelength
 
-        # self.patterns = patterns
         self.ucell = deepcopy(ucell)
         self.ucell_materials = ucell_materials
         self.thickness = deepcopy(thickness)
@@ -71,7 +67,6 @@ class _BaseRCWA:
 
         self.kx_vector = None
 
-    # @jax.jit
     def get_kx_vector(self):
 
         k0 = 2 * jnp.pi / self.wavelength

@@ -34,10 +34,13 @@ def eig_bwd(res, g):
 
     grad_eigval = jnp.diag(grad_eigval)
 
-    s = eigval.reshape((1, -1)) - eigval.reshape((-1, 1))
+    s = eigval.reshape((-1, 1)) - eigval.reshape((1, -1))
 
     F = jnp.conj(s) / (jnp.abs(s) ** 2 + 1E-10)
+    # F = jnp.conj(s) / (jnp.abs(s) ** 2)
+    # F = jnp.conj(s)
     F = F.at[jnp.diag_indices_from(s)].set(0)
+
 
     XH = jnp.conj(eigvec).T
     tmp = jnp.conj(F) * (XH @ grad_eigvec)

@@ -128,9 +128,12 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
 
     modes = torch.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1, device=device).type(type_complex)
 
+    # TODO: bug
+    cell_diff_x = cell_diff_x.type(type_complex)
     f_coeffs_x = cell_diff_x @ torch.exp(-1j * 2 * np.pi * x @ modes[None, :]).type(type_complex)
     c = f_coeffs_x.shape[1] // 2
 
+    cell = cell.type(type_complex)
     x_next = torch.vstack((torch.roll(x, -1, dims=0)[:-1], torch.tensor([1], device=device))) - x
 
     f_coeffs_x[:, c] = (cell @ torch.vstack((x[0], x_next[:-1]))).flatten()
@@ -159,7 +162,7 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
     return f_coeffs_xy.T
 
 
-def to_conv_mat_piecewise_continuous(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
+def to_conv_mat_piecewise_constant(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
