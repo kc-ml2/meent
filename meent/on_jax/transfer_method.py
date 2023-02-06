@@ -288,26 +288,9 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.co
             [Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
-    # TODO: custom jvp for AD
-    # eigenvalues, W = ee.eig(S2_from_S)
-    # eigenvalues, W = ee.eig(S2_from_S, type_complex)
-
-
-    # a,b = jnp.linalg.eig(S2_from_S)
+    # TODO: merge jitted.py
     from .primitives import eig
     eigenvalues, W = eig(S2_from_S)
-    aa = eigenvalues
-    bb=aa.sort()
-    # print(aa)
-    # print(aa.sort())
-    # print(eigenvalues)
-    print('jax')
-    try:
-        print(aa.primal.sort())
-    except:
-        print(bb)
-
-    # np.save('/home/yongha/aa1', bb)
 
     q = eigenvalues ** 0.5
 

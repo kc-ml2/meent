@@ -141,9 +141,41 @@ if __name__ == '__main__':
     o_E_conv_all2 = meent.on_numpy.convolution_matrix.to_conv_mat(1/ucell, fourier_order)
     de_ri2, de_ti2 = solver1.solve(wavelength, E_conv_all2, o_E_conv_all2)
 
-    E_conv_all2 = meent.on_numpy.convolution_matrix.to_conv_mat_piecewise_constant(ucell, fourier_order)
-    o_E_conv_all2 = meent.on_numpy.convolution_matrix.to_conv_mat_piecewise_constant(1/ucell, fourier_order)
-    de_ri3, de_ti3 = solver1.solve(wavelength, E_conv_all2, o_E_conv_all2)
+
+    E_conv_all3 = meent.on_numpy.convolution_matrix.to_conv_mat_piecewise_constant(ucell, fourier_order)
+    o_E_conv_all3 = meent.on_numpy.convolution_matrix.to_conv_mat_piecewise_constant(1/ucell, fourier_order)
+    de_ri3, de_ti3 = solver1.solve(wavelength, E_conv_all3, o_E_conv_all3)
+
+    def loss(ucell):
+
+        E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+        o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+        de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+
+        res = -de_ti[3,2]
+        print(res)
+        return res
+
+    grad_loss = grad(loss)
+    print('grad:', grad_loss(ucell))
+
+
+    def mingd(x):
+
+        lr = 0.01
+        gd = grad_loss(x)
+
+        res = x - lr*gd*x
+        return res
+
+    # Recurrent loop of gradient descent
+    for i in range(1):
+        # ucell = vfungd(ucell)
+        ucell = mingd(ucell)
+
+    print(ucell)
+
+
 
     ucell = torch.tensor(
         [[
@@ -163,40 +195,26 @@ if __name__ == '__main__':
                          ucell_materials=ucell_materials,
                          thickness=thickness_gt, device=device, type_complex=type_complex, )
 
-    E_conv_all2 = meent.on_torch.convolution_matrix.to_conv_mat(ucell, fourier_order)
-    o_E_conv_all2 = meent.on_torch.convolution_matrix.to_conv_mat(1/ucell, fourier_order)
-    de_ri2, de_ti2 = solver2.solve(wavelength, E_conv_all2, o_E_conv_all2)
+    E_conv_all4 = meent.on_torch.convolution_matrix.to_conv_mat(ucell, fourier_order)
+    o_E_conv_all4 = meent.on_torch.convolution_matrix.to_conv_mat(1/ucell, fourier_order)
+    de_ri4, de_ti4 = solver2.solve(wavelength, E_conv_all4, o_E_conv_all4)
 
-    E_conv_all2 = meent.on_torch.convolution_matrix.to_conv_mat_piecewise_constant(ucell, fourier_order)
-    o_E_conv_all2 = meent.on_torch.convolution_matrix.to_conv_mat_piecewise_constant(1/ucell, fourier_order)
-    de_ri3, de_ti3 = solver2.solve(wavelength, E_conv_all2, o_E_conv_all2)
+    E_conv_all5 = meent.on_torch.convolution_matrix.to_conv_mat_piecewise_constant(ucell, fourier_order)
+    o_E_conv_all5 = meent.on_torch.convolution_matrix.to_conv_mat_piecewise_constant(1/ucell, fourier_order)
+    de_ri5, de_ti5 = solver2.solve(wavelength, E_conv_all5, o_E_conv_all5)
 
-
-    def loss(ucell):
-
-        E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
-        o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
-        de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
-
-        res = -de_ti[3,2]
-        # print(res)
-        return res
-
-    grad_loss = grad(loss)
-    print('grad:', grad_loss(ucell))
-
-    def mingd(x):
-
-        lr = 0.01
-        gd = grad_loss(x)
-
-        res = x - lr*gd*x
-        return res
-
-    # Recurrent loop of gradient descent
+    opt = torch.optim.SGD([ucell], lr=1E-2)
     for i in range(1):
-        # ucell = vfungd(ucell)
-        ucell = mingd(ucell)
+        E_conv_all = meent.on_torch.convolution_matrix.to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+        o_E_conv_all = meent.on_torch.convolution_matrix.to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+        de_ri, de_ti = solver2.solve(wavelength, E_conv_all, o_E_conv_all)
+        # loss = (torch.linalg.norm(de_ti - de_ti_gt) + torch.linalg.norm(de_ri-de_ri_gt)).sum()
+        loss = -de_ti[3, 2]
+        loss.backward()
+        print(ucell.grad)
+        opt.step()
+        opt.zero_grad()
+        print(loss)
 
     print(ucell)
 
