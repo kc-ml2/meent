@@ -54,7 +54,7 @@ class RCWAJax(_BaseRCWA):
     def _tree_unflatten(cls, aux_data, children):
         return cls(*children, **aux_data)
 
-    # @jax.jit
+    @jax.jit
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
 
         self.get_kx_vector()

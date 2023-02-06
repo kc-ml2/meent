@@ -71,7 +71,6 @@ class _BaseRCWA:
             # TODO: need imaginary part?
             # TODO: make imaginary part sign consistent
             kx_vector[idx] = self.perturbation
-            print('varphi divide by 0: adding perturbation')
 
         self.kx_vector = kx_vector
 

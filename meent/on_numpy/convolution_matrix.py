@@ -117,6 +117,9 @@ def cell_compression(cell, type_complex=np.complex128):
 
 
 def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
+    """
+    reference: reticolo
+    """
 
     if cell.shape[0] == 1:
         fourier_order = [0, fourier_order]
@@ -170,12 +173,10 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=np.complex12
     ff = 2 * fourier_order + 1
 
     if pmt.shape[1] == 1:  # 1D
-
         res = np.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
 
         for i, layer in enumerate(pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
-
             center = f_coeffs.shape[1] // 2
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
@@ -184,22 +185,19 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=np.complex12
 
     else:  # 2D
         # attention on the order of axis (Z Y X)
-
         res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
 
         for i, layer in enumerate(pmt):
-            pmtvy_fft = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
-
-            center = np.array(pmtvy_fft.shape) // 2
+            f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
+            center = np.array(f_coeffs.shape) // 2
 
             conv_idx = np.arange(-ff + 1, ff, 1)
-            # conv_idx = circulant(conv_idx)[ff - 1:, :ff]
             conv_idx = circulant(conv_idx)
-
             conv_i = np.repeat(conv_idx, ff, axis=1)
             conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
             conv_j = np.tile(conv_idx, (ff, ff))
-            res[i] = pmtvy_fft[center[0] + conv_i, center[1] + conv_j]
+            e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            res[i] = e_conv
 
     # import matplotlib.pyplot as plt
     #
@@ -222,45 +220,43 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=np.complex12
 
     return res
 
-def to_conv_mat(pmt, fourier_order):
-    # FFT scaling: https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
+
+def to_conv_mat(pmt, fourier_order, type_complex=np.complex128):
+    # TODO: large minimum size shows good convergence to piecewise_constant method. Add an option?
+
     if len(pmt.shape) == 2:
         print('shape is 2')
         raise ValueError
     ff = 2 * fourier_order + 1
 
-    # if len(pmt.shape)==2 or pmt.shape[1] == 1:  # 1D
-    if pmt.shape[1] == 1:  # 1D  # TODO: confirm this handles all cases
-        res = np.zeros((pmt.shape[0], 2*fourier_order+1, 2*fourier_order+1)).astype('complex')
+    if pmt.shape[1] == 1:  # 1D
+        res = np.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
 
-        # extend array for FFT
-        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
-        # TODO: what is theoretical minimum?
-        # TODO: can be a scalability issue
+        # extend array
+        minimum_pattern_size = 2 * ff
         if pmt.shape[2] < minimum_pattern_size:
             n = minimum_pattern_size // pmt.shape[2]
             pmt = np.repeat(pmt, n+1, axis=2)
 
-        for i, pmtvy in enumerate(pmt):
-            pmtvy_fft = np.fft.fftshift(np.fft.fftn(pmtvy / pmtvy.size))
-            center = pmtvy_fft.shape[1] // 2
+        for i, layer in enumerate(pmt):
+            f_coeffs = np.fft.fftshift(np.fft.fftn(layer / layer.size))
+            # FFT scaling:
+            # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
 
-            pmtvy_fft_cut = (pmtvy_fft[0, -2*fourier_order + center: center + 2*fourier_order + 1])
-            A = np.roll(circulant(pmtvy_fft_cut.flatten()), (pmtvy_fft_cut.size + 1) // 2, 0)
-            res[i] = A[:2*fourier_order+1, :2*fourier_order+1]
+            center = f_coeffs.shape[1] // 2
+
+            conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
+            conv_idx = circulant(conv_idx)
+            e_conv = f_coeffs[0, center + conv_idx]
+            res[i] = e_conv
 
     else:  # 2D
-        # attention on the order of axis.
-        # Here X Y Z. Cell Drawing in CAD is Y X Z. Here is Z Y X
-
+        # attention on the order of axis (Z Y X)
         # TODO: separate fourier order
-        res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype('complex')
+        res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
 
         # extend array
-        # TODO: run test
-        minimum_pattern_size = ff ** 2
-        # TODO: what is theoretical minimum?
-        # TODO: can be a scalability issue
+        minimum_pattern_size = 2 * ff
 
         if pmt.shape[1] < minimum_pattern_size:
             n = minimum_pattern_size // pmt.shape[1]
@@ -270,9 +266,8 @@ def to_conv_mat(pmt, fourier_order):
             pmt = np.repeat(pmt, n+1, axis=2)
 
         for i, layer in enumerate(pmt):
-            pmtvy_fft = np.fft.fftshift(np.fft.fft2(layer / layer.size))
-
-            center = np.array(pmtvy_fft.shape) // 2
+            f_coeffs = np.fft.fftshift(np.fft.fft2(layer / layer.size))
+            center = np.array(f_coeffs.shape) // 2
 
             conv_idx = np.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
@@ -280,7 +275,7 @@ def to_conv_mat(pmt, fourier_order):
             conv_i = np.repeat(conv_idx, ff, axis=1)
             conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
             conv_j = np.tile(conv_idx, (ff, ff))
-            res[i] = pmtvy_fft[center[0] + conv_i, center[1] + conv_j]
+            res[i] = f_coeffs[center[0] + conv_i, center[1] + conv_j]
 
     # import matplotlib.pyplot as plt
     #

@@ -128,7 +128,6 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
 
     modes = torch.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1, device=device).type(type_complex)
 
-    # TODO: bug
     cell_diff_x = cell_diff_x.type(type_complex)
     f_coeffs_x = cell_diff_x @ torch.exp(-1j * 2 * np.pi * x @ modes[None, :]).type(type_complex)
     c = f_coeffs_x.shape[1] // 2
@@ -170,7 +169,6 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, device=torch.device('cpu'
     ff = 2 * fourier_order + 1
 
     if pmt.shape[1] == 1:  # 1D
-
         res = torch.zeros((pmt.shape[0], ff, ff), device=device).type(type_complex)
 
         for i, layer in enumerate(pmt):
@@ -194,7 +192,8 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, device=torch.device('cpu'
             conv_i = conv_idx.repeat_interleave(ff, dim=1).type(torch.long)
             conv_i = conv_i.repeat_interleave(ff, dim=0)
             conv_j = conv_idx.repeat(ff, ff).type(torch.long)
-            res[i] = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            res[i] = e_conv
 
     # import matplotlib.pyplot as plt
     #
@@ -214,13 +213,10 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
     ff = 2 * fourier_order + 1
 
     if pmt.shape[1] == 1:  # 1D
-        ###############
         res = torch.zeros((pmt.shape[0], ff, ff), device=device).type(type_complex)
 
         # extend array for FFT
-        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
-        # TODO: what is theoretical minimum?
-        # TODO: can be a scalability issue
+        minimum_pattern_size = 2 * ff
         if pmt.shape[2] < minimum_pattern_size:
             n = minimum_pattern_size // pmt.shape[2]
             pmt = pmt.repeat_interleave(n+1, dim=2)
@@ -235,13 +231,10 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
             res[i] = e_conv
 
     else:  # 2D
-
         res = torch.zeros((pmt.shape[0], ff ** 2, ff ** 2), device=device).type(type_complex)
-        # extend array
-        minimum_pattern_size = ff ** 2
-        # TODO: what is theoretical minimum?
-        # TODO: can be a scalability issue
 
+        # extend array
+        minimum_pattern_size = 2 * ff
         if pmt.shape[1] < minimum_pattern_size:
             n = minimum_pattern_size // pmt.shape[1]
             pmt = pmt.repeat_interleave(n+1, dim=1)
@@ -259,8 +252,8 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
             conv_i = conv_idx.repeat_interleave(ff, dim=1).type(torch.long)
             conv_i = conv_i.repeat_interleave(ff, dim=0)
             conv_j = conv_idx.repeat(ff, ff).type(torch.long)
-
-            res[i] = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            res[i] = e_conv
 
     # import matplotlib.pyplot as plt
     #
@@ -273,6 +266,7 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
 
 
 def circulant(c, device=torch.device('cpu')):
+    # TODO: need device?
 
     center = c.shape[0] // 2
     circ = torch.zeros((center + 1, center + 1), device=device).type(torch.long)

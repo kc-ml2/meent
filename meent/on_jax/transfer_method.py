@@ -8,6 +8,7 @@ from jax import pure_callback
 
 # import meent.on_jax.jitted as ee
 from . import jitted as ee
+from .primitives import eig
 
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
@@ -121,7 +122,7 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex
 
 
 def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
-                          type_complex=jnp.complex128):
+                          type_complex=jnp.complex128, perturbation=1E-10):
 
     I = ee.eye(ff).astype(type_complex)
     O = ee.zeros((ff, ff)).astype(type_complex)
@@ -134,8 +135,9 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
     to_decompose_W_1 = ky ** 2 * I + A
     to_decompose_W_2 = ky ** 2 * I + B @ o_E_conv_i
 
-    eigenvalues_1, W_1 = ee.eig(to_decompose_W_1, time.time())  # TODO: separate to an independent func.
-    eigenvalues_2, W_2 = ee.eig(to_decompose_W_2, time.time())
+    # TODO: separate to an independent func (like 2D case).
+    eigenvalues_1, W_1 = eig(to_decompose_W_1, type_complex=type_complex, perturbation=perturbation)
+    eigenvalues_2, W_2 = eig(to_decompose_W_2, type_complex=type_complex, perturbation=perturbation)
 
     q_1 = eigenvalues_1 ** 0.5
     q_2 = eigenvalues_2 ** 0.5
@@ -275,7 +277,7 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
     return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex128):
+def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex128, perturbation=1E-10):
 
     I = ee.eye(ff ** 2).astype(type_complex)
 
@@ -288,9 +290,7 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.co
             [Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
-    # TODO: merge jitted.py
-    from .primitives import eig
-    eigenvalues, W = eig(S2_from_S)
+    eigenvalues, W = eig(S2_from_S, type_complex=type_complex, perturbation=perturbation)
 
     q = eigenvalues ** 0.5
 

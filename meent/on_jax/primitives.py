@@ -1,30 +1,28 @@
 import jax
 import jax.numpy as jnp
 
+from functools import partial
 
-def _eig(X, type_complex=jnp.complex128):
-    # _eig = lambda x: jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0])(x)
 
-    __eig = jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0])
+@partial(jax.custom_vjp, nondiff_argnums=(1, 2))
+def eig(x, type_complex=jnp.complex128, perturbation=1E-10):
+    # type_complex = jnp.complex128
 
-    eigenvalues_shape = jax.ShapeDtypeStruct(X.shape[:-1], type_complex)
-    eigenvectors_shape = jax.ShapeDtypeStruct(X.shape, type_complex)
+    _eig = jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0])
+
+    eigenvalues_shape = jax.ShapeDtypeStruct(x.shape[:-1], type_complex)
+    eigenvectors_shape = jax.ShapeDtypeStruct(x.shape, type_complex)
 
     result_shape_dtype = (eigenvalues_shape, eigenvectors_shape)
 
-    return jax.pure_callback(__eig, result_shape_dtype, X)
+    return jax.pure_callback(_eig, result_shape_dtype, x)
 
 
-@jax.custom_vjp
-def eig(x):
-    return _eig(x)
+def eig_fwd(x, type_complex, perturbation):
+    return eig(x, type_complex, perturbation), eig(x, type_complex, perturbation)
 
 
-def eig_fwd(x):
-    return eig(x), eig(x)
-
-
-def eig_bwd(res, g):
+def eig_bwd(type_complex, perturbation, res, g):
     """
     Gradient of a general square (complex valued) matrix
     Reference: https://github.com/kch3782/torcwa and https://github.com/weiliangjinca/grcwa
@@ -38,7 +36,7 @@ def eig_bwd(res, g):
     s = eigval.reshape((1, -1)) - eigval.reshape((-1, 1))
 
     # TODO: perturbation?
-    F = jnp.conj(s) / (jnp.abs(s) ** 2 + 1E-10)
+    F = jnp.conj(s) / (jnp.abs(s) ** 2 + perturbation)
     F = F.at[jnp.diag_indices_from(s)].set(0)
 
     XH = jnp.conj(eigvec).T
