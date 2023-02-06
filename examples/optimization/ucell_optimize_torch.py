@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import time
 import torch
 
-from meent.on_torch.convolution_matrix import put_permittivity_in_ucell, to_conv_mat
+from meent.on_torch.convolution_matrix import put_permittivity_in_ucell, to_conv_mat, to_conv_mat_piecewise_constant
 
 from meent.rcwa import call_solver
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     thickness_gt = [1120]
     ucell_materials = [1, 3.48]
     period = [1000, 1000]
-    fourier_order = 4
+    fourier_order = 3
 
     mode_key = 2
     device = 0
@@ -45,30 +45,20 @@ if __name__ == '__main__':
 
     ucell_gt = torch.tensor(
         [[
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
-            [1., 1., 1., 1., 1., 1., 1., 1., 3, 3.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 1.],
         ]], dtype=torch.float64)
 
     ucell = torch.tensor(
         [[
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
-            [3., 3, 1., 1., 1., 1., 1., 1., 3, 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
         ]], dtype=torch.float64, requires_grad=True)
 
     if mode_key == 0:
@@ -112,24 +102,24 @@ if __name__ == '__main__':
                          ucell_materials=ucell_materials,
                          thickness=thickness_gt, device=device, type_complex=type_complex, )
 
-    E_conv_all_gt = to_conv_mat(ucell_gt, fourier_order, type_complex=type_complex)
-    o_E_conv_all_gt = to_conv_mat(1 / ucell_gt, fourier_order, type_complex=type_complex)
-
-    de_ri_gt, de_ti_gt = solver.solve(wavelength, E_conv_all_gt, o_E_conv_all_gt)
-
+    # opt = torch.optim.Adam([ucell], lr=1E-2)
     E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
     o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
-
     de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
-    opt = torch.optim.Adam([ucell], lr=1E-2)
-    for i in range(500):
+    E_conv_all1 = to_conv_mat_piecewise_constant(ucell, fourier_order, type_complex=type_complex)
+    o_E_conv_all1 = to_conv_mat_piecewise_constant(1 / ucell, fourier_order, type_complex=type_complex)
+    de_ri1, de_ti1 = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+
+    opt = torch.optim.SGD([ucell], lr=1E-2)
+    for i in range(1):
         E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
         o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
         de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
         # loss = (torch.linalg.norm(de_ti - de_ti_gt) + torch.linalg.norm(de_ri-de_ri_gt)).sum()
-        loss = -de_ti[4, 5]
+        loss = -de_ti[3, 2]
         loss.backward()
+        print(ucell.grad)
         opt.step()
         opt.zero_grad()
         print(loss)

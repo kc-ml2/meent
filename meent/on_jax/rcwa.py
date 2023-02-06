@@ -7,7 +7,7 @@ import numpy as np
 
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table, \
-    to_conv_mat_piecewise_continuous
+    to_conv_mat_piecewise_constant
 from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot
 
 
@@ -87,8 +87,8 @@ class RCWAJax(_BaseRCWA):
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
                                           type_complex=self.type_complex)
 
-        E_conv_all = to_conv_mat_piecewise_continuous(ucell, self.fourier_order, type_complex=self.type_complex)
-        o_E_conv_all = to_conv_mat_piecewise_continuous(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        E_conv_all = to_conv_mat_piecewise_constant(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all = to_conv_mat_piecewise_constant(1 / ucell, self.fourier_order, type_complex=self.type_complex)
 
         de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
 

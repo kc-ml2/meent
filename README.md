@@ -29,14 +29,16 @@ solver = meent.rcwa.call_solver(mode=mode_key, ...)
 
 ## When to use
 
-|                 | Numpy | JAX | PyTorch |
-|-----------------|:-----:|:---:|:-------:|
-| 64bit support   |   O   |  O  |    O    |
-| 32bit support   |   O   |  O  |    O    |
-| GPU support     |   X   |  O  |    O    |
-| TPU support     |   X   |  X  |    X    |
-| AD support      |   X   |  X  |    O    |
-| Parallelization |   X   |  O  |    X    |
+
+|                 | Numpy | JAX  | PyTorch |
+|-----------------|:-----:|:----:|:-------:|
+| 64bit support   |   O   |  O   |    O    |
+| 32bit support   |   O   |  O   |    O    |
+| GPU support     |   X   |  O   |    O    |
+| TPU support     |   X   |  X   |    X    |
+| AD support      |   X   |  O   |    O    |
+| Parallelization |   X   |  O   |    X    |
+
 
 
 Numpy is simple and light to use. Suggested as a baseline with small ~ medium scale optics problem.  

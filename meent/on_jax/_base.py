@@ -13,7 +13,7 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 # import meent.on_jax.jitted as ee
 # import .jitted as ee
 from . import jitted as ee
-
+from .primitives import eig
 from jax import tree_util
 
 
@@ -30,9 +30,6 @@ class _BaseRCWA:
         self.type_float = jnp.float64 if self.type_complex == jnp.complex128 else jnp.float32
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
-
-        # self.n_I = self.type_complex(n_I)
-        # self.n_II = self.type_complex(n_II)
 
         self.n_I = n_I
         self.n_II = n_II
@@ -58,7 +55,6 @@ class _BaseRCWA:
 
         self.wavelength = wavelength
 
-        # self.patterns = patterns
         self.ucell = deepcopy(ucell)
         self.ucell_materials = ucell_materials
         self.thickness = deepcopy(thickness)
@@ -71,7 +67,6 @@ class _BaseRCWA:
 
         self.kx_vector = None
 
-    # @jax.jit
     def get_kx_vector(self):
 
         k0 = 2 * jnp.pi / self.wavelength
@@ -123,8 +118,7 @@ class _BaseRCWA:
             if self.pol == 0:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
-                # eigenvalues, W = ee.eig(A, time.time())
-                eigenvalues, W = ee.eig(A, type_complex=self.type_complex)
+                eigenvalues, W = eig(A, type_complex=self.type_complex, perturbation=self.perturbation)
                 q = eigenvalues ** 0.5
 
                 Q = ee.diag(q)
@@ -135,8 +129,7 @@ class _BaseRCWA:
                 B = Kx @ E_conv_i @ Kx - ee.eye(E_conv.shape[0]).astype(self.type_complex)
                 o_E_conv_i = ee.inv(o_E_conv)
 
-                # eigenvalues, W = ee.eig(o_E_conv_i @ B, time.time())
-                eigenvalues, W = ee.eig(o_E_conv_i @ B, type_complex=self.type_complex)
+                eigenvalues, W = eig(o_E_conv_i @ B, type_complex=self.type_complex, perturbation=self.perturbation)
                 q = eigenvalues ** 0.5
 
                 Q = ee.diag(q)

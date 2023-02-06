@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 
+from meent.on_torch.primitives import Eig
+
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
                   device='cpu', type_complex=torch.complex128):
@@ -311,7 +313,7 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', type_
             torch.cat([Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv], dim=1)
         ])
 
-    eigenvalues, W = torch.linalg.eig(S2_from_S)
+    eigenvalues, W = Eig.apply(S2_from_S)
 
     q = eigenvalues ** 0.5
 
