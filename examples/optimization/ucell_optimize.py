@@ -194,7 +194,7 @@ def optimize_torch(mode_key, dtype, device):
 if __name__ == '__main__':
     t0 = time.time()
 
-    dtype = 0
+    dtype = 1
     device = 0
 
     compare_conv_mat_method(mode_key=0, dtype=dtype, device=device)

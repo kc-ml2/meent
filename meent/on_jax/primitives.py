@@ -35,7 +35,6 @@ def eig_bwd(type_complex, perturbation, res, g):
 
     s = eigval.reshape((1, -1)) - eigval.reshape((-1, 1))
 
-    # TODO: perturbation?
     F = jnp.conj(s) / (jnp.abs(s) ** 2 + perturbation)
     F = F.at[jnp.diag_indices_from(s)].set(0)
 
