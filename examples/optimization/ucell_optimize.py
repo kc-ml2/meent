@@ -45,7 +45,7 @@ def load_setting(mode_key, dtype, device):
     thickness = [1120]
     ucell_materials = [1, 3.48]
     period = [1000, 1000]
-    fourier_order = 3
+    fourier_order = 15
 
     ucell = np.array(
         [[
@@ -104,10 +104,25 @@ def compare_conv_mat_method(mode_key, dtype, device):
                          psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                          ucell_materials=ucell_materials, thickness=thickness, device=device,
                          type_complex=type_complex, )
-
+    t0 = time.time()
     E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex)
     o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex)
     de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+    print(time.time() - t0)
+
+    t0 = time.time()
+    E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex)
+    o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex)
+    de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+    print(time.time() - t0)
+
+    t0=time.time()
+    solver.conv_solve(ucell)
+    print(time.time() - t0)
+
+    t0=time.time()
+    solver.conv_solve(ucell)
+    print(time.time() - t0)
 
     E_conv_all1 = conv2(ucell, fourier_order, type_complex=type_complex)
     o_E_conv_all1 = conv2(1 / ucell, fourier_order, type_complex=type_complex)
@@ -197,7 +212,7 @@ if __name__ == '__main__':
     dtype = 1
     device = 0
 
-    compare_conv_mat_method(mode_key=0, dtype=dtype, device=device)
+    # compare_conv_mat_method(mode_key=0, dtype=dtype, device=device)
     compare_conv_mat_method(1, dtype=dtype, device=device)
     compare_conv_mat_method(2, dtype=dtype, device=device)
 

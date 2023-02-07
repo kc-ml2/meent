@@ -75,7 +75,7 @@ class RCWAJax(_BaseRCWA):
         return de_ri.real, de_ti.real
 
     @jax.jit
-    def aaa(self, ucell):
+    def conv_solve(self, ucell):
         E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
         o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
 
