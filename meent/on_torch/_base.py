@@ -1,8 +1,10 @@
-from copy import deepcopy
-
-import numpy as np
 import torch
 
+import numpy as np
+
+from copy import deepcopy
+
+from .primitives import Eig
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
 from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, \
@@ -111,7 +113,9 @@ class _BaseRCWA:
             if self.pol == 0:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
-                eigenvalues, W = torch.linalg.eig(A)
+                # eigenvalues, W = torch.linalg.eig(A)
+                eigenvalues, W = Eig.apply(A)
+
                 q = eigenvalues ** 0.5
 
                 Q = torch.diag(q)
@@ -122,7 +126,8 @@ class _BaseRCWA:
                 B = Kx @ E_conv_i @ Kx - torch.eye(E_conv.shape[0], device=self.device, dtype=self.type_complex)
                 o_E_conv_i = torch.linalg.inv(o_E_conv)
 
-                eigenvalues, W = torch.linalg.eig(o_E_conv_i @ B)
+                # eigenvalues, W = torch.linalg.eig(o_E_conv_i @ B)
+                eigenvalues, W = Eig.apply(o_E_conv_i @ B)
                 q = eigenvalues ** 0.5
 
                 Q = torch.diag(q)

@@ -6,7 +6,6 @@ from functools import partial
 
 @partial(jax.custom_vjp, nondiff_argnums=(1, 2))
 def eig(x, type_complex=jnp.complex128, perturbation=1E-10):
-    # type_complex = jnp.complex128
 
     _eig = jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0])
 

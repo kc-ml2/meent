@@ -1,22 +1,18 @@
-import time
 from functools import partial
 
-import numpy as np
 import jax
-import jax.numpy as jnp
 
-# import meent.on_jax.jitted as ee
-# import jitted as ee
-from . import jitted as ee
+import jax.numpy as jnp
+import numpy as np
 
 from os import walk
-from scipy.io import loadmat
 from pathlib import Path
+from scipy.io import loadmat
 
 
 def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.complex128):
 
-    res = ee.zeros(ucell.shape, dtype=type_complex)
+    res = jnp.zeros(ucell.shape, dtype=type_complex)
 
     for z in range(ucell.shape[0]):
         for y in range(ucell.shape[1]):
@@ -29,8 +25,8 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.c
                 else:
                     assign_value = type_complex(material ** 2)  # TODO: need type complex?
 
-                # res = res.at[assign_index].set(assign_value)
-                res = ee.assign(res, assign_index, assign_value)
+                res = res.at[assign_index].set(assign_value)
+                # res = ee.assign(res, assign_index, assign_value)
 
     return res
 
@@ -38,7 +34,7 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.c
 def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl,
                                      type_complex=jnp.complex128):
     # TODO: under development
-    res = ee.zeros(ucell_size, dtype=type_complex)
+    res = jnp.zeros(ucell_size, dtype=type_complex)
 
     for material, obj_index in zip(mat_list, obj_list):
         if type(material) == str:
@@ -58,12 +54,12 @@ def find_nk_index(material, mat_table, wl, type_complex=jnp.complex128):
 
     mat_data = mat_table[material.upper()]
 
-    n_index = ee.interp(wl, mat_data[:, 0], mat_data[:, 1])
+    n_index = jnp.interp(wl, mat_data[:, 0], mat_data[:, 1])
 
     if n_only:
         return n_index
 
-    k_index = ee.interp(wl, mat_data[:, 0], mat_data[:, 2])
+    k_index = jnp.interp(wl, mat_data[:, 0], mat_data[:, 2])
     nk = (n_index + 1j * k_index).astype(type_complex)
 
     return nk
@@ -82,17 +78,17 @@ def read_material_table(nk_path=None, type_complex=jnp.complex128):
         name_list.extend(filenames)
     for path, name in zip(full_path_list, name_list):
         if name[-3:] == 'txt':
-            data = ee.loadtxt(path, skiprows=1)
+            data = np.loadtxt(path, skiprows=1)
             mat_table[name[:-4].upper()] = type_complex(data)
 
         elif name[-3:] == 'mat':
             data = loadmat(path)
 
             # TODO: need astype?
-            # data = ee.array([data['WL'], data['n'], data['k']])[:, :, 0].T
+            # data = jnp.array([data['WL'], data['n'], data['k']])[:, :, 0].T
             data['WL'], data['n'], data['k'] = data['WL'].astype(type_complex), data['n'].astype(type_complex), data['k'].astype(type_complex)
 
-            data = ee.array([data['WL'], data['n'], data['k']])[:, :, 0].T
+            data = jnp.array([data['WL'], data['n'], data['k']])[:, :, 0].T
             mat_table[name[:-4].upper()] = data
     return mat_table
 
@@ -106,13 +102,13 @@ def cell_compression(cell, type_complex=jnp.complex128):
         type_float = jnp.float32
 
     # find discontinuities in x
-    step_y, step_x = 1. / ee.array(cell.shape, dtype=type_float)
+    step_y, step_x = 1. / jnp.array(cell.shape, dtype=type_float)
     x = []
     y = []
     cell_x = []
     cell_xy = []
 
-    cell_next = ee.roll(cell, -1, axis=1)
+    cell_next = jnp.roll(cell, -1, axis=1)
 
     for col in range(cell.shape[1]):
         if not (cell[:, col] == cell_next[:, col]).all() or (col == cell.shape[1] - 1):
@@ -120,17 +116,17 @@ def cell_compression(cell, type_complex=jnp.complex128):
             x.append(step_x * (col + 1))
             cell_x.append(cell[:, col])
 
-    cell_x = ee.array(cell_x).T
-    cell_x_next = ee.roll(cell_x, -1, axis=0)
+    cell_x = jnp.array(cell_x).T
+    cell_x_next = jnp.roll(cell_x, -1, axis=0)
 
     for row in range(cell_x.shape[0]):
         if not (cell_x[row, :] == cell_x_next[row, :]).all() or (row == cell_x.shape[0] - 1):
             y.append(step_y * (row + 1))
             cell_xy.append(cell_x[row, :])
 
-    x = ee.array(x).reshape((-1, 1))
-    y = ee.array(y).reshape((-1, 1))
-    cell_comp = ee.array(cell_xy)
+    x = jnp.array(x).reshape((-1, 1))
+    y = jnp.array(y).reshape((-1, 1))
+    cell_comp = jnp.array(cell_xy)
 
     return cell_comp, x, y
 
@@ -145,56 +141,55 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
     cell, x, y = cell_compression(cell, type_complex=type_complex)
 
     # X axis
-    cell_next_x = ee.roll(cell, -1, axis=1)
+    cell_next_x = jnp.roll(cell, -1, axis=1)
     cell_diff_x = cell_next_x - cell
 
-    modes = ee.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1)
+    modes = jnp.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1)
 
-    f_coeffs_x = cell_diff_x @ ee.exp(-1j * 2 * ee.pi * x @ modes[None, :]).astype(type_complex)
+    f_coeffs_x = cell_diff_x @ jnp.exp(-1j * 2 * jnp.pi * x @ modes[None, :]).astype(type_complex)
     c = f_coeffs_x.shape[1] // 2
 
-    x_next = ee.vstack((ee.roll(x, -1, axis=0)[:-1], 1)) - x
+    x_next = jnp.vstack((jnp.roll(x, -1, axis=0)[:-1], 1)) - x
 
-    assign_index = (ee.arange(len(f_coeffs_x)), ee.array([c]))
-    assign_value = (cell @ ee.vstack((x[0], x_next[:-1]))).flatten().astype(type_complex)
+    assign_index = (jnp.arange(len(f_coeffs_x)), jnp.array([c]))
+    assign_value = (cell @ jnp.vstack((x[0], x_next[:-1]))).flatten().astype(type_complex)
 
-    f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value)
-    # f_coeffs_x = f_coeffs_x.at[assign_index].set(assign_value)
+    # f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value)
+    f_coeffs_x = f_coeffs_x.at[assign_index].set(assign_value)
 
-    mask_int = ee.hstack([ee.arange(c), ee.arange(c+1, f_coeffs_x.shape[1])])
+    mask_int = jnp.hstack([jnp.arange(c), jnp.arange(c+1, f_coeffs_x.shape[1])])
 
     assign_index = mask_int
 
-    assign_value = f_coeffs_x[:, mask_int] / (1j * 2 * ee.pi * modes[mask_int])
+    assign_value = f_coeffs_x[:, mask_int] / (1j * 2 * jnp.pi * modes[mask_int])
 
-    f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value, row_all=True)
-    # f_coeffs_x = f_coeffs_x.at[:, assign_index].set(assign_value)
+    # f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value, row_all=True)
+    f_coeffs_x = f_coeffs_x.at[:, assign_index].set(assign_value)
 
     # Y axis
-    f_coeffs_x_next_y = ee.roll(f_coeffs_x, -1, axis=0)
+    f_coeffs_x_next_y = jnp.roll(f_coeffs_x, -1, axis=0)
     f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
 
-    modes = ee.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1)
+    modes = jnp.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1)
 
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ ee.exp(-1j * 2 * ee.pi * y @ modes[None, :]).astype(type_complex)
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ jnp.exp(-1j * 2 * jnp.pi * y @ modes[None, :]).astype(type_complex)
     c = f_coeffs_xy.shape[1] // 2
 
-    y_next = ee.vstack((ee.roll(y, -1, axis=0)[:-1], 1)) - y
+    y_next = jnp.vstack((jnp.roll(y, -1, axis=0)[:-1], 1)) - y
 
     assign_index = [c]
-    assign_value = f_coeffs_x.T @ ee.vstack((y[0], y_next[:-1])).astype(type_complex)
-    f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)
-    # f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
-
+    assign_value = f_coeffs_x.T @ jnp.vstack((y[0], y_next[:-1])).astype(type_complex)
+    # f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)
+    f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
 
     if c:
-        mask_int = ee.hstack([ee.arange(c), ee.arange(c + 1, f_coeffs_x.shape[1])])
+        mask_int = jnp.hstack([jnp.arange(c), jnp.arange(c + 1, f_coeffs_x.shape[1])])
 
         assign_index = mask_int
-        assign_value = f_coeffs_xy[:, mask_int] / (1j * 2 * ee.pi * modes[mask_int])
+        assign_value = f_coeffs_xy[:, mask_int] / (1j * 2 * jnp.pi * modes[mask_int])
 
-        f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)
-        # f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
+        # f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)
+        f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
 
     return f_coeffs_xy.T
 
@@ -207,12 +202,12 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex1
     ff = 2 * fourier_order + 1
 
     if pmt.shape[1] == 1:  # 1D
-        res = ee.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
+        res = jnp.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
 
         for i, layer in enumerate(pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
             center = f_coeffs.shape[1] // 2
-            conv_idx = ee.arange(-ff + 1, ff, 1)
+            conv_idx = jnp.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
             e_conv = f_coeffs[0, center + conv_idx]
             res = res.at[i].set(e_conv)
@@ -220,17 +215,17 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex1
 
     else:  # 2D
         # attention on the order of axis (Z Y X)
-        res = ee.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
+        res = jnp.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
 
         for i, layer in enumerate(pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
-            center = ee.array(f_coeffs.shape) // 2
+            center = jnp.array(f_coeffs.shape) // 2
 
-            conv_idx = ee.arange(-ff + 1, ff, 1)
+            conv_idx = jnp.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
-            conv_i = ee.repeat(conv_idx, ff, 1)
-            conv_i = ee.repeat(conv_i, ff, axis=0)
-            conv_j = ee.tile(conv_idx, (ff, ff))
+            conv_i = jnp.repeat(conv_idx, ff, 1)
+            conv_i = jnp.repeat(conv_i, ff, axis=0)
+            conv_j = jnp.tile(conv_idx, (ff, ff))
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res = res.at[i].set(e_conv)
             # res = res.at[i].set(f_coeffs[center[0] + conv_i, center[1] + conv_j])
@@ -247,6 +242,7 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex1
     return res
 
 
+@partial(jax.jit, static_argnums=(1,2))
 def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
 
     if len(pmt.shape) == 2:
@@ -269,7 +265,7 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
             f_coeffs = jnp.fft.fftshift(jnp.fft.fft(layer / layer.size))
             center = f_coeffs.shape[1] // 2
 
-            conv_idx = ee.arange(-ff + 1, ff, 1)
+            conv_idx = jnp.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
             e_conv = f_coeffs[0, center + conv_idx]
             res = res.at[i].set(e_conv)
@@ -315,16 +311,11 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
 
 
 def circulant(c):
-
     center = c.shape[0] // 2
-    # circ = ee.zeros((center[0] + 1, center[0] + 1), dtype='int32')
-    circ = ee.zeros((center + 1, center + 1), int)
+    circ = jnp.zeros((center + 1, center + 1), int)
 
     for r in range(center+1):
-        idx = ee.arange(r, r - center - 1, -1)
-
-        # circ = circ.at[r].set(c[center + idx])
-        assign_value = c[center + idx]
-        circ = ee.assign(circ, r, assign_value)
+        idx = jnp.arange(r, r - center - 1, -1)
+        circ = circ.at[r].set(c[center + idx])
 
     return circ

@@ -1,7 +1,6 @@
-import numpy as np
 import torch
 
-from meent.on_torch.primitives import Eig
+from .primitives import Eig
 
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
@@ -140,8 +139,11 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, o_E_conv_i, ff, d, varphi, bi
     to_decompose_W_1 = ky ** 2 * I + A
     to_decompose_W_2 = ky ** 2 * I + B @ o_E_conv_i
 
-    eigenvalues_1, W_1 = torch.linalg.eig(to_decompose_W_1)
-    eigenvalues_2, W_2 = torch.linalg.eig(to_decompose_W_2)
+    # eigenvalues_1, W_1 = torch.linalg.eig(to_decompose_W_1)
+    # eigenvalues_2, W_2 = torch.linalg.eig(to_decompose_W_2)
+
+    eigenvalues_1, W_1 = Eig.apply(to_decompose_W_1)
+    eigenvalues_2, W_2 = Eig.apply(to_decompose_W_2)
 
     q_1 = eigenvalues_1 ** 0.5
     q_2 = eigenvalues_2 ** 0.5
