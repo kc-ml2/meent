@@ -14,6 +14,7 @@ from meent.rcwa import call_solver
 import torch
 
 
+
 class RCWAOptimizer:
 
     def __init__(self, gt, model):
@@ -45,12 +46,12 @@ def load_setting(mode_key, dtype, device):
     ucell_materials = [1, 3.48]
     # thickness = [1120]
     # period = [1000, 1000]
-    fourier_order = 5
+    fourier_order = 1
 
     thickness, period = [1120], [100, 100]
     thickness, period = [500], [100, 100]
     thickness, period = [500], [1000, 1000]
-    thickness, period = [1120], [1000, 1000]
+    thickness, period = np.array([1120.]), [1000, 1000]
 
     ucell = np.array(
         [[
@@ -64,6 +65,15 @@ def load_setting(mode_key, dtype, device):
             [3., 1., 1., 1., 3.] * 2,
             [3., 1., 1., 1., 3.] * 2,
             [3., 1., 1., 1., 3.] * 2,
+        ]]
+    )
+    ucell = np.array(
+        [[
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
+            [3., 1., 1., 1., 3.],
         ]]
     )
     # ucell = np.array([
@@ -96,7 +106,7 @@ def load_setting(mode_key, dtype, device):
             config.update("jax_enable_x64", True)
             type_complex = jnp.complex128
             ucell = ucell.astype(type_complex)
-            # ucell = ucell.astype(jnp.float64)
+            ucell = ucell.astype(jnp.float64)
         else:
             type_complex = jnp.complex64
             ucell = ucell.astype(type_complex)
@@ -199,7 +209,7 @@ def compare_conv_mat_method(mode_key, dtype, device):
     return
 
 
-def optimize_jax(mode_key, dtype, device):
+def optimize_jax_thickness(mode_key, dtype, device):
     from meent.on_jax.convolution_matrix import to_conv_mat
 
     grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
@@ -210,16 +220,102 @@ def optimize_jax(mode_key, dtype, device):
                          ucell_materials=ucell_materials, thickness=thickness, device=device,
                          type_complex=type_complex, )
 
+    E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+    o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+    de_ri_gt, de_ti_gt = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+
+    thickness = jnp.array([1000.])
+
+    @jax.grad
+    def grad_loss(thickness):
+
+        # E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+        # o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+        solver.thickness = thickness
+        de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+
+        loss = jnp.linalg.norm(de_ti_gt - de_ti) + jnp.linalg.norm(de_ri_gt - de_ri)
+        print(thickness.primal, loss.primal)
+        return loss
+
+    print('grad:', grad_loss(thickness))
+
+    def mingd(x):
+        lr = 0.1
+        gd = grad_loss(x)
+
+        res = x - lr*gd*x
+        return res
+
+    # Recurrent loop of gradient descent
+    for i in range(1000):
+        # ucell = vfungd(ucell)
+        thickness = mingd(thickness)
+
+    print(thickness)
+    # E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+    # o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+    solver.thickness = thickness
+    de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+    print(de_ti)
+
+
+def optimize_jax_ucell(mode_key, dtype, device):
+    from meent.on_jax.convolution_matrix import to_conv_mat
+
+    grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
+    type_complex, device, ucell = load_setting(mode_key, dtype, device)
+
+
+    solver = call_solver(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                         ucell_materials=ucell_materials, thickness=thickness, device=device,
+                         type_complex=type_complex, )
+    ucell_gt = jnp.array(
+        [[
+            [3., 1.5, 1., 1.2, 3.],
+            [3., 1.5, 1., 1.3, 3.],
+            # [3., 1.5, 1., 1.4, 3.],
+            # [3., 1.5, 1., 1.2, 3.],
+            # [3., 1.5, 1., 1.9, 3.],
+        ]], dtype=jnp.float64
+    )
+    E_conv_all = to_conv_mat(ucell_gt, fourier_order, type_complex=type_complex)
+    o_E_conv_all = to_conv_mat(1 / ucell_gt, fourier_order, type_complex=type_complex)
+    de_ri_gt, de_ti_gt = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+
+    # val = np.array([3.1])
+    ucell = jnp.array(
+        [[
+            [3.1, 1.5, 1., 1.2, 3.],
+            [3., 1.5, 1., 1.3, 3.],
+            # [3., 1.5, 1., 1.4, 3.],
+            # [3., 1.5, 1., 1.2, 3.],
+            # [3., 1.5, 1., 1.9, 3.],
+        ]], dtype=jnp.float64
+    )
     @jax.grad
     def grad_loss(ucell):
+
+        # ucell = jnp.array(
+        #     [[
+        #         [3., 1.5, 1., 1.2, 3.],
+        #         [3., 1.5, 1., 1.3, 3.],
+        #         # [3., 1.5, 1., 1.4, 3.],
+        #         # [3., 1.5, 1., 1.2, 3.],
+        #         # [3., 1.5, 1., 1.9, 3.],
+        #     ]], dtype=jnp.float64
+        # )
+        #
+        # ucell = ucell.at[0,0,0].set(val[0])
 
         E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
         o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
         de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
-        res = -de_ti[3,2]
-        print(res)
-        return res
+        loss = jnp.linalg.norm(de_ti_gt - de_ti) + jnp.linalg.norm(de_ri_gt - de_ri)
+        print(loss.primal)
+        return loss
 
     print('grad:', grad_loss(ucell))
 
@@ -228,14 +324,20 @@ def optimize_jax(mode_key, dtype, device):
         gd = grad_loss(x)
 
         res = x - lr*gd*x
+        # print(res)
         return res
 
     # Recurrent loop of gradient descent
-    for i in range(1):
+    for i in range(10000):
         # ucell = vfungd(ucell)
         ucell = mingd(ucell)
 
     print(ucell)
+    # ucell = ucell.at[0,0,0].set(val[0])
+    # E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+    # o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+    # de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+    # print(de_ti)
 
 
 def optimize_torch(mode_key, dtype, device):
@@ -264,7 +366,7 @@ def optimize_torch(mode_key, dtype, device):
         opt.zero_grad()
         print(loss)
 
-    print(ucell)
+    # print(ucell)
 
 
 if __name__ == '__main__':
@@ -275,8 +377,8 @@ if __name__ == '__main__':
 
     # compare_conv_mat_method(mode_key=0, dtype=dtype, device=device)
     # compare_conv_mat_method(mode_key=0, dtype=dtype, device=device)
-    compare_conv_mat_method(1, dtype=dtype, device=device)
-    compare_conv_mat_method(1, dtype=dtype, device=device)
+    # compare_conv_mat_method(1, dtype=dtype, device=device)
+    # compare_conv_mat_method(1, dtype=dtype, device=device)
     # compare_conv_mat_method(2, dtype=dtype, device=device)
     # compare_conv_mat_method(2, dtype=dtype, device=device)
 
@@ -284,6 +386,7 @@ if __name__ == '__main__':
     device = 0
     dtype = 0
 
-    # optimize_jax(1, 0, 0)
+    # optimize_jax_thickness(1, 0, 0)
+    optimize_jax_ucell(1, 0, 0)
     # optimize_torch(2, 0, 0)
 

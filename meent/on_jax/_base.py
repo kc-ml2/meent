@@ -1,19 +1,12 @@
-import time
-from copy import copy, deepcopy
-from functools import partial
-
-import jax
 import jax.numpy as jnp
 
+from copy import deepcopy
+
+from .primitives import eig
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
 from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, \
     transfer_1d_conical_3, transfer_2d_1, transfer_2d_wv, transfer_2d_2, transfer_2d_3
-
-# import meent.on_jax.jitted as ee
-# import .jitted as ee
-# from . import jitted as ee
-from .primitives import eig
 
 
 class _BaseRCWA:
@@ -77,11 +70,6 @@ class _BaseRCWA:
             kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) - fourier_indices * (
                     self.wavelength / self.period[0])).astype(self.type_complex)
 
-        # idx = jnp.nonzero(kx_vector == 0)[0]
-        # if len(idx):
-        #     # TODO: need imaginary part? make imaginary part sign consistent
-        #     kx_vector = kx_vector.at[idx].set(self.perturbation)
-        #     print('varphi divide by 0: adding perturbation')
         kx_vector = jnp.where(kx_vector == 0, self.perturbation, kx_vector)
 
         self.kx_vector = kx_vector
