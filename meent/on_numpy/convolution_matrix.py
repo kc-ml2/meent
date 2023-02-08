@@ -165,7 +165,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     return f_coeffs_xy.T
 
 
-def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=np.complex128):
+def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=np.complex128, device=None):
     # TODO: do conv and 1/conv in simultaneously?
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -221,7 +221,7 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=np.complex12
     return res
 
 
-def to_conv_mat(pmt, fourier_order, type_complex=np.complex128):
+def to_conv_mat(pmt, fourier_order, type_complex=np.complex128, device=None):
     # TODO: large minimum size shows good convergence to piecewise_constant method. Add an option?
 
     if len(pmt.shape) == 2:

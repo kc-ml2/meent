@@ -82,13 +82,18 @@ class RCWAJax(_BaseRCWA):
         de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
         return de_ri, de_ti
 
-    def run_ucell(self):
+    def run_ucell(self, fft_type='default'):
 
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
                                           type_complex=self.type_complex)
-
-        E_conv_all = to_conv_mat_piecewise_constant(ucell, self.fourier_order, type_complex=self.type_complex)
-        o_E_conv_all = to_conv_mat_piecewise_constant(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        if fft_type == 'default':
+            E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+            o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        elif fft_type == 'piecewise':
+            E_conv_all = to_conv_mat_piecewise_constant(ucell, self.fourier_order, type_complex=self.type_complex)
+            o_E_conv_all = to_conv_mat_piecewise_constant(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        else:
+            raise ValueError
 
         de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
 

@@ -2,7 +2,8 @@ import time
 import numpy as np
 
 from ._base import _BaseRCWA
-from .convolution_matrix import to_conv_mat_piecewise_constant, put_permittivity_in_ucell, read_material_table
+from .convolution_matrix import to_conv_mat_piecewise_constant, put_permittivity_in_ucell, read_material_table, \
+    to_conv_mat
 from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot_zx
 
 
@@ -28,9 +29,9 @@ class RCWANumpy(_BaseRCWA):
                                           type_complex=self.type_complex)
         return ucell
 
-    def to_conv_mat(self, ucell):
-        E_conv_all = to_conv_mat_piecewise_constant(ucell, self.fourier_order, type_complex=self.type_complex)
-        return E_conv_all
+    # def to_conv_mat(self, ucell):
+    #     E_conv_all = to_conv_mat_piecewise_constant(ucell, self.fourier_order, type_complex=self.type_complex)
+    #     return E_conv_all
 
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
 
@@ -47,16 +48,22 @@ class RCWANumpy(_BaseRCWA):
 
         return de_ri.real, de_ti.real
 
-    def run_ucell(self):
+    def run_ucell(self, fft_type='default'):
 
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
                                           type_complex=self.type_complex)
 
-        E_conv_all = to_conv_mat_piecewise_constant(ucell, self.fourier_order, type_complex=self.type_complex)
-        o_E_conv_all = to_conv_mat_piecewise_constant(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        if fft_type == 'default':
+            E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+            o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        elif fft_type == 'piecewise':
+            E_conv_all = to_conv_mat_piecewise_constant(ucell, self.fourier_order, type_complex=self.type_complex)
+            o_E_conv_all = to_conv_mat_piecewise_constant(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        else:
+            raise ValueError
 
         # apply to other backends (removing wavelength arg)
-        de_ri, de_ti = self.solve(E_conv_all, o_E_conv_all)
+        de_ri, de_ti = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
 
         return de_ri, de_ti
 
