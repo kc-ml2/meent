@@ -4,7 +4,7 @@ from functools import partial
 
 from jax import tree_util
 
-
+print(324234234)
 # @partial(jax.jit, static_argnums=(0, 1))
 def call_solver(mode=0, *args, **kwargs):
     """
