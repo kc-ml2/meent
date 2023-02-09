@@ -19,7 +19,7 @@ import torch
 
 from meent.rcwa import call_solver
 
-a=777
+a=111
 # common
 pol = 1  # 0: TE, 1: TM
 
