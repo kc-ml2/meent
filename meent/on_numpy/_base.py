@@ -34,7 +34,7 @@ class _BaseRCWA:
             print('not implemented yet')
             raise ValueError
 
-        self.fourier_order = fourier_order
+        self.fourier_order = int(fourier_order)
         self.ff = 2 * self.fourier_order + 1
 
         self.period = deepcopy(period)

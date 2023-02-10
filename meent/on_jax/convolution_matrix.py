@@ -194,7 +194,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
     return f_coeffs_xy.T
 
 
-def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex128):
+def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex128, device=None):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -242,8 +242,8 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex1
     return res
 
 
-@partial(jax.jit, static_argnums=(1,2))
-def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128):
+@partial(jax.jit, static_argnums=(1,2,3))
+def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128, device=None):
 
     if len(pmt.shape) == 2:
         print('shape is 2')

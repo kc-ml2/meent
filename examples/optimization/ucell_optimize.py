@@ -1,7 +1,7 @@
 try:
     import os
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = '2,3'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 except:
     pass
 
@@ -12,6 +12,7 @@ import time
 
 from meent.rcwa import call_solver
 import torch
+
 
 
 class RCWAOptimizer:
@@ -42,11 +43,30 @@ def load_setting(mode_key, dtype, device):
 
     wavelength = 900
 
-    thickness = [1120]
     ucell_materials = [1, 3.48]
-    period = [1000, 1000]
-    fourier_order = 15
+    # thickness = [1120]
+    # period = [1000, 1000]
+    fourier_order = 1
 
+    thickness, period = [1120], [100, 100]
+    thickness, period = [500], [100, 100]
+    thickness, period = [500], [1000, 1000]
+    thickness, period = np.array([1120.]), [1000, 1000]
+
+    ucell = np.array(
+        [[
+            [3., 1., 1., 1., 3.] * 2,
+            [3., 1., 1., 1., 3.] * 2,
+            [3., 1., 1., 1., 3.] * 2,
+            [3., 1., 1., 1., 3.] * 2,
+            [3., 1., 1., 1., 3.] * 2,
+            [3., 1., 1., 1., 3.] * 2,
+            [3., 1., 1., 1., 3.] * 2,
+            [3., 1., 1., 1., 3.] * 2,
+            [3., 1., 1., 1., 3.] * 2,
+            [3., 1., 1., 1., 3.] * 2,
+        ]]
+    )
     ucell = np.array(
         [[
             [3., 1., 1., 1., 3.],
@@ -56,6 +76,21 @@ def load_setting(mode_key, dtype, device):
             [3., 1., 1., 1., 3.],
         ]]
     )
+    # ucell = np.array([
+    #
+    #     [
+    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+    #     ],
+    # ])
 
     if mode_key == 0:
         device = 0
@@ -71,6 +106,7 @@ def load_setting(mode_key, dtype, device):
             config.update("jax_enable_x64", True)
             type_complex = jnp.complex128
             ucell = ucell.astype(type_complex)
+            ucell = ucell.astype(jnp.float64)
         else:
             type_complex = jnp.complex64
             ucell = ucell.astype(type_complex)
@@ -78,7 +114,8 @@ def load_setting(mode_key, dtype, device):
     else:  # Torch
         device = torch.device('cpu') if device == 0 else torch.device('cuda')
         type_complex = torch.complex128 if dtype == 0 else torch.complex64
-        ucell = torch.tensor(ucell, dtype=type_complex)
+        ucell = torch.tensor(ucell, dtype=type_complex, device=device)
+        # ucell = torch.tensor(ucell, dtype=torch.float64)
 
     return grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order,\
            type_complex, device, ucell
@@ -100,45 +137,79 @@ def compare_conv_mat_method(mode_key, dtype, device):
         from meent.on_torch.convolution_matrix import to_conv_mat as conv1
         from meent.on_torch.convolution_matrix import to_conv_mat_piecewise_constant as conv2
 
-    solver = call_solver(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                         ucell_materials=ucell_materials, thickness=thickness, device=device,
-                         type_complex=type_complex, )
-    t0 = time.time()
-    E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex)
-    o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex)
-    de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
-    print(time.time() - t0)
+    # thickness, period = [1120], [100, 100]
+    # thickness, period = [500], [100, 100]
+    # thickness, period = [500], [1000, 1000]
+    # thickness, period = [1120], [1000, 1000]
 
-    t0 = time.time()
-    E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex)
-    o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex)
-    de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
-    print(time.time() - t0)
 
-    t0=time.time()
-    solver.conv_solve(ucell)
-    print(time.time() - t0)
 
-    t0=time.time()
-    solver.conv_solve(ucell)
-    print(time.time() - t0)
+    for thickness, period in zip([[1120], [500], [500], [1120]], [[100,100],[100,100],[1000,1000],[1000,1000]]):
 
-    E_conv_all1 = conv2(ucell, fourier_order, type_complex=type_complex)
-    o_E_conv_all1 = conv2(1 / ucell, fourier_order, type_complex=type_complex)
-    de_ri1, de_ti1 = solver.solve(wavelength, E_conv_all1, o_E_conv_all1)
+        solver = call_solver(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                             psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                             ucell_materials=ucell_materials, thickness=thickness, device=device,
+                             type_complex=type_complex, )
+        t0 = time.time()
+        E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex, device=device)
+        o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex, device=device)
+        de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+        print(np.round(time.time() - t0, 5))
 
-    try:
-        print('de_ri norm: ', np.linalg.norm(de_ri - de_ri1))
-        print('de_ti norm: ', np.linalg.norm(de_ti - de_ti1))
-    except:
-        print('de_ri norm: ', torch.linalg.norm(de_ri - de_ri1))
-        print('de_ti norm: ', torch.linalg.norm(de_ti - de_ti1))
+        t0 = time.time()
+        for i in range(100):
+            E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex, device=device)
+            o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex, device=device)
+            de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+        print(np.round(time.time() - t0, 5)/100)
+
+        # t0 = time.time()
+        # E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex, device=device)
+        # o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex, device=device)
+        # de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+        # print(2, np.round(time.time() - t0, 1))
+
+        # try:
+        #     t0=time.time()
+        #     solver.conv_solve(ucell)
+        #     print(3, time.time() - t0)
+        #
+        #     t0=time.time()
+        #     solver.conv_solve(ucell)
+        #     print(4, time.time() - t0)
+        # except:
+        #     pass
+        #
+        t0 = time.time()
+        E_conv_all1 = conv2(ucell, fourier_order, type_complex=type_complex, device=device)
+        o_E_conv_all1 = conv2(1 / ucell, fourier_order, type_complex=type_complex, device=device)
+        de_ri1, de_ti1 = solver.solve(wavelength, E_conv_all1, o_E_conv_all1)
+        print(np.round(time.time() - t0, 5))
+
+        t0 = time.time()
+        for i in range(100):
+            E_conv_all1 = conv2(ucell, fourier_order, type_complex=type_complex, device=device)
+            o_E_conv_all1 = conv2(1 / ucell, fourier_order, type_complex=type_complex, device=device)
+            de_ri1, de_ti1 = solver.solve(wavelength, E_conv_all1, o_E_conv_all1)
+        print(np.round(time.time() - t0, 5)/100)
+
+        # t0 = time.time()
+        # E_conv_all1 = conv2(ucell, fourier_order, type_complex=type_complex, device=device)
+        # o_E_conv_all1 = conv2(1 / ucell, fourier_order, type_complex=type_complex, device=device)
+        # de_ri1, de_ti1 = solver.solve(wavelength, E_conv_all1, o_E_conv_all1)
+        # print(6, np.round(time.time() - t0, 1))
+
+        # try:
+        #     print('de_ri norm: ', np.linalg.norm(de_ri - de_ri1))
+        #     print('de_ti norm: ', np.linalg.norm(de_ti - de_ti1))
+        # except:
+        #     print('de_ri norm: ', torch.linalg.norm(de_ri - de_ri1))
+        #     print('de_ti norm: ', torch.linalg.norm(de_ti - de_ti1))
 
     return
 
 
-def optimize_jax(mode_key, dtype, device):
+def optimize_jax_thickness(mode_key, dtype, device):
     from meent.on_jax.convolution_matrix import to_conv_mat
 
     grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
@@ -149,16 +220,102 @@ def optimize_jax(mode_key, dtype, device):
                          ucell_materials=ucell_materials, thickness=thickness, device=device,
                          type_complex=type_complex, )
 
+    E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+    o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+    de_ri_gt, de_ti_gt = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+
+    thickness = jnp.array([1000.])
+
+    @jax.grad
+    def grad_loss(thickness):
+
+        # E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+        # o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+        solver.thickness = thickness
+        de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+
+        loss = jnp.linalg.norm(de_ti_gt - de_ti) + jnp.linalg.norm(de_ri_gt - de_ri)
+        print(thickness.primal, loss.primal)
+        return loss
+
+    print('grad:', grad_loss(thickness))
+
+    def mingd(x):
+        lr = 0.1
+        gd = grad_loss(x)
+
+        res = x - lr*gd*x
+        return res
+
+    # Recurrent loop of gradient descent
+    for i in range(1000):
+        # ucell = vfungd(ucell)
+        thickness = mingd(thickness)
+
+    print(thickness)
+    # E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+    # o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+    solver.thickness = thickness
+    de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+    print(de_ti)
+
+
+def optimize_jax_ucell(mode_key, dtype, device):
+    from meent.on_jax.convolution_matrix import to_conv_mat
+
+    grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
+    type_complex, device, ucell = load_setting(mode_key, dtype, device)
+
+
+    solver = call_solver(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                         ucell_materials=ucell_materials, thickness=thickness, device=device,
+                         type_complex=type_complex, )
+    ucell_gt = jnp.array(
+        [[
+            [3., 1.5, 1., 1.2, 3.],
+            [3., 1.5, 1., 1.3, 3.],
+            # [3., 1.5, 1., 1.4, 3.],
+            # [3., 1.5, 1., 1.2, 3.],
+            # [3., 1.5, 1., 1.9, 3.],
+        ]], dtype=jnp.float64
+    )
+    E_conv_all = to_conv_mat(ucell_gt, fourier_order, type_complex=type_complex)
+    o_E_conv_all = to_conv_mat(1 / ucell_gt, fourier_order, type_complex=type_complex)
+    de_ri_gt, de_ti_gt = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+
+    # val = np.array([3.1])
+    ucell = jnp.array(
+        [[
+            [3.1, 1.5, 1., 1.2, 3.],
+            [3., 1.5, 1., 1.3, 3.],
+            # [3., 1.5, 1., 1.4, 3.],
+            # [3., 1.5, 1., 1.2, 3.],
+            # [3., 1.5, 1., 1.9, 3.],
+        ]], dtype=jnp.float64
+    )
     @jax.grad
     def grad_loss(ucell):
+
+        # ucell = jnp.array(
+        #     [[
+        #         [3., 1.5, 1., 1.2, 3.],
+        #         [3., 1.5, 1., 1.3, 3.],
+        #         # [3., 1.5, 1., 1.4, 3.],
+        #         # [3., 1.5, 1., 1.2, 3.],
+        #         # [3., 1.5, 1., 1.9, 3.],
+        #     ]], dtype=jnp.float64
+        # )
+        #
+        # ucell = ucell.at[0,0,0].set(val[0])
 
         E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
         o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
         de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
-        res = -de_ti[3,2]
-        print(res)
-        return res
+        loss = jnp.linalg.norm(de_ti_gt - de_ti) + jnp.linalg.norm(de_ri_gt - de_ri)
+        print(loss.primal)
+        return loss
 
     print('grad:', grad_loss(ucell))
 
@@ -167,14 +324,20 @@ def optimize_jax(mode_key, dtype, device):
         gd = grad_loss(x)
 
         res = x - lr*gd*x
+        # print(res)
         return res
 
     # Recurrent loop of gradient descent
-    for i in range(1):
+    for i in range(10000):
         # ucell = vfungd(ucell)
         ucell = mingd(ucell)
 
     print(ucell)
+    # ucell = ucell.at[0,0,0].set(val[0])
+    # E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
+    # o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
+    # de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+    # print(de_ti)
 
 
 def optimize_torch(mode_key, dtype, device):
@@ -203,23 +366,27 @@ def optimize_torch(mode_key, dtype, device):
         opt.zero_grad()
         print(loss)
 
-    print(ucell)
+    # print(ucell)
 
 
 if __name__ == '__main__':
     t0 = time.time()
 
-    dtype = 1
+    dtype = 0
     device = 0
 
     # compare_conv_mat_method(mode_key=0, dtype=dtype, device=device)
-    compare_conv_mat_method(1, dtype=dtype, device=device)
-    compare_conv_mat_method(2, dtype=dtype, device=device)
+    # compare_conv_mat_method(mode_key=0, dtype=dtype, device=device)
+    # compare_conv_mat_method(1, dtype=dtype, device=device)
+    # compare_conv_mat_method(1, dtype=dtype, device=device)
+    # compare_conv_mat_method(2, dtype=dtype, device=device)
+    # compare_conv_mat_method(2, dtype=dtype, device=device)
 
     mode_key = 1
     device = 0
     dtype = 0
 
-    optimize_jax(1, 0, 0)
+    optimize_jax_thickness(1, 0, 0)
+    optimize_jax_ucell(1, 0, 0)
     optimize_torch(2, 0, 0)
 
