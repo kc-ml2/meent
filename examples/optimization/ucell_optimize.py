@@ -386,7 +386,7 @@ if __name__ == '__main__':
     device = 0
     dtype = 0
 
-    # optimize_jax_thickness(1, 0, 0)
+    optimize_jax_thickness(1, 0, 0)
     optimize_jax_ucell(1, 0, 0)
-    # optimize_torch(2, 0, 0)
+    optimize_torch(2, 0, 0)
 
