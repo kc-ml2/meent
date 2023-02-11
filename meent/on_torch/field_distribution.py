@@ -15,13 +15,13 @@ def field_distribution(grating_type, *args, **kwargs):
     return res
 
 
-def field_dist_1d(wavelength, n_I, theta, fourier_order, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
+def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
                   device='cpu', type_complex=torch.complex128):
 
     k0 = 2 * np.pi / wavelength
     fourier_indices = torch.arange(-fourier_order, fourier_order + 1, device=device)
 
-    kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).type(type_complex)
+    # kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).type(type_complex)
     Kx = torch.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
@@ -84,14 +84,14 @@ def field_dist_1d(wavelength, n_I, theta, fourier_order, T1, layer_info_list, pe
     return field_cell
 
 
-def field_dist_1d_conical(wavelength, n_I, theta, phi, fourier_order, T1, layer_info_list, period, resolution=(100, 1, 100),
+def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, layer_info_list, period, resolution=(100, 1, 100),
                           device='cpu', type_complex=torch.complex128):
 
     k0 = 2 * np.pi / wavelength
     fourier_indices = torch.arange(-fourier_order, fourier_order + 1, device=device)
 
-    kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) - fourier_indices * (
-            wavelength / period[0])).type(type_complex)
+    # kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) - fourier_indices * (
+    #         wavelength / period[0])).type(type_complex)
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
 
     Kx = torch.diag(kx_vector / k0)
@@ -157,15 +157,15 @@ def field_dist_1d_conical(wavelength, n_I, theta, phi, fourier_order, T1, layer_
     return field_cell
 
 
-def field_dist_2d(wavelength, n_I, theta, phi, fourier_order, T1, layer_info_list, period, resolution=(100, 100, 100),
+def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, layer_info_list, period, resolution=(100, 100, 100),
                   device='cpu', type_complex=torch.complex128):
 
     k0 = 2 * np.pi / wavelength
     fourier_indices = torch.arange(-fourier_order, fourier_order + 1, device=device)
     ff = 2 * fourier_order + 1
 
-    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
-            wavelength / period[0])).type(type_complex)
+    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
+    #         wavelength / period[0])).type(type_complex)
     ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) - fourier_indices * (
             wavelength / period[1])).type(type_complex)
 

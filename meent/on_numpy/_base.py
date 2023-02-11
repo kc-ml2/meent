@@ -64,9 +64,7 @@ class _BaseRCWA:
             kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
                     wavelength / self.period[0])).astype(self.type_complex)
 
-        idx = np.nonzero(kx_vector == 0)[0]
-        if len(idx):
-            kx_vector[idx] = self.perturbation
+        kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector
 
@@ -148,7 +146,7 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri, de_ti
+        return de_ri, de_ti, self.layer_info_list, self.T1
 
     def solve_1d_conical(self, wavelength, E_conv_all, o_E_conv_all):
 
@@ -208,7 +206,7 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri, de_ti
+        return de_ri, de_ti, self.layer_info_list, self.T1
 
     def solve_2d(self, wavelength, E_conv_all, o_E_conv_all):
 
@@ -278,5 +276,8 @@ class _BaseRCWA:
                                            self.pol, self.theta, self.phi, self.fourier_order, self.ff)
         else:
             raise ValueError
+        de_ri = de_ri.reshape((self.ff, self.ff)).real
+        de_ti = de_ti.reshape((self.ff, self.ff)).real
 
-        return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape((self.ff, self.ff)).real
+        return de_ri, de_ti, self.layer_info_list, self.T1
+

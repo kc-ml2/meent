@@ -68,9 +68,7 @@ class _BaseRCWA:
             kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) - fourier_indices * (
                     wavelength / self.period[0])).type(self.type_complex)
 
-        idx = torch.nonzero(kx_vector == 0)
-        if len(idx):
-            kx_vector[idx] = self.perturbation
+        kx_vector = torch.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector
 
@@ -111,7 +109,8 @@ class _BaseRCWA:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
                 # eigenvalues, W = torch.linalg.eig(A)
-                eigenvalues, W = Eig.apply(A)
+                Eig.broadening_parameter = self.perturbation
+                eigenvalues, W = Eig.apply(A)  # can't control perturbation
 
                 q = eigenvalues ** 0.5
 
@@ -124,6 +123,7 @@ class _BaseRCWA:
                 o_E_conv_i = torch.linalg.inv(o_E_conv)
 
                 # eigenvalues, W = torch.linalg.eig(o_E_conv_i @ B)
+                Eig.broadening_parameter = self.perturbation
                 eigenvalues, W = Eig.apply(o_E_conv_i @ B)
                 q = eigenvalues ** 0.5
 
@@ -156,7 +156,7 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri, de_ti
+        return de_ri, de_ti, self.layer_info_list, self.T1
 
     def solve_1d_conical(self, wavelength, E_conv_all, o_E_conv_all):
 
@@ -217,7 +217,7 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri, de_ti
+        return de_ri, de_ti, self.layer_info_list, self.T1
 
     def solve_2d(self, wavelength, E_conv_all, o_E_conv_all):
 
@@ -288,4 +288,7 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape((self.ff, self.ff)).real
+        de_ri = de_ri.reshape((self.ff, self.ff)).real
+        de_ti = de_ti.reshape((self.ff, self.ff)).real
+
+        return de_ri, de_ti, self.layer_info_list, self.T1

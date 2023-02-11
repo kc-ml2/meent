@@ -22,13 +22,13 @@ class RCWAJax(_BaseRCWA):
                  wavelength=900,
                  ucell=None,
                  thickness=None,
-                 perturbation=1E-10,
                  mode=1,
                  grating_type=0,
                  pol=0,
                  fourier_order=40,
                  ucell_materials=None,
                  algo='TMM',
+                 perturbation=1E-10,
                  device='cpu',
                  type_complex=jnp.complex128,
                  fft_type='default',
@@ -50,7 +50,7 @@ class RCWAJax(_BaseRCWA):
 
     def _tree_flatten(self):
         children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
-                    self.period, self.wavelength, self.ucell, self.thickness, self.perturbation)
+                    self.period, self.wavelength, self.ucell, self.thickness)
         aux_data = {
             'mode': self.mode,
             'grating_type': self.grating_type,
@@ -58,6 +58,7 @@ class RCWAJax(_BaseRCWA):
             'fourier_order': self.fourier_order,
             'ucell_materials': self.ucell_materials,
             'algo': self.algo,
+            'perturbation': self.perturbation,
             'device': self.device,
             'type_complex': self.type_complex,
             'fft_type': self.fft_type,
@@ -82,7 +83,7 @@ class RCWAJax(_BaseRCWA):
         else:
             raise ValueError
 
-        return de_ri.real, de_ti.real, layer_info_list, T1
+        return de_ri.real, de_ti.real, layer_info_list, T1, self.kx_vector
 
     @jax.jit
     def conv_solve(self, ucell):
@@ -103,14 +104,18 @@ class RCWAJax(_BaseRCWA):
         else:
             raise ValueError
 
-        de_ri, de_ti, layer_info_list, T1 = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
+        de_ri, de_ti, layer_info_list, T1, kx_vector = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
 
         self.layer_info_list = layer_info_list
         self.T1 = T1
+        self.kx_vector = kx_vector
 
         return de_ri, de_ti
 
     def run_ucell_vmap(self):
+        """
+        under development
+        """
 
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
                                           type_complex=self.type_complex)
@@ -139,11 +144,14 @@ class RCWAJax(_BaseRCWA):
         b = jnp.array([E_conv_all, E_conv_all1, E_conv_all2, E_conv_all3])
         c = jnp.array([o_E_conv_all, o_E_conv_all1, o_E_conv_all2, o_E_conv_all3])
 
-        de_ri, de_ti = jax.vmap(self.solve)(a, b, c)
+        de_ri, de_ti, _, _, _ = jax.vmap(self.solve)(a, b, c)
 
         return de_ri, de_ti
 
     def run_ucell_pmap(self):
+        """
+        under development
+        """
 
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
                                           type_complex=self.type_complex)
@@ -172,7 +180,7 @@ class RCWAJax(_BaseRCWA):
         b = jnp.array([E_conv_all, E_conv_all1, E_conv_all2, E_conv_all3])
         c = jnp.array([o_E_conv_all, o_E_conv_all1, o_E_conv_all2, o_E_conv_all3])
 
-        de_ri, de_ti = jax.pmap(self.solve)(a, b, c)
+        de_ri, de_ti, _, _, _ = jax.pmap(self.solve)(a, b, c)
 
         return de_ri, de_ti
 

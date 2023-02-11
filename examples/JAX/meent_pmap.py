@@ -9,7 +9,7 @@ os.environ["MKL_NUM_THREADS"] = "4"  # export MKL_NUM_THREADS=6
 # os.environ["VECLIB_MAXIMUM_THREADS"] = "4" # export VECLIB_MAXIMUM_THREADS=4
 # os.environ["NUMEXPR_NUM_THREADS"] = "6" # export NUMEXPR_NUM_THREADS=6
 
-# os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=4'
+os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=4'
 
 import sys
 sys.path.append('/home/yongha/meent')
@@ -123,8 +123,6 @@ wls = [900, 901, 902]
 
 print(jax.devices())
 
-for i in range(3):
-    t0 = time.time()
-    AA.wavelength = wls[i]
-    de_ri, de_ti = AA.run_ucell_pmap()
-    print(f'run_cell: {i}: ', time.time() - t0)
+t0 = time.time()
+de_ri, de_ti = AA.run_ucell_pmap()
+print(f'run_cell: ', time.time() - t0)

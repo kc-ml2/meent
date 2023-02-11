@@ -126,7 +126,7 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, device='cpu'
 
 
 def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, o_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
-                          device='cpu', type_complex=torch.complex128):
+                          device='cpu', type_complex=torch.complex128, perturbation=1E-10):
 
     I = torch.eye(ff, device=device, dtype=type_complex)
     O = torch.zeros((ff, ff), device=device, dtype=type_complex)
@@ -142,6 +142,7 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, o_E_conv_i, ff, d, varphi, bi
     # eigenvalues_1, W_1 = torch.linalg.eig(to_decompose_W_1)
     # eigenvalues_2, W_2 = torch.linalg.eig(to_decompose_W_2)
 
+    Eig.broadening_parameter = perturbation
     eigenvalues_1, W_1 = Eig.apply(to_decompose_W_1)
     eigenvalues_2, W_2 = Eig.apply(to_decompose_W_2)
 
@@ -302,7 +303,8 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
     return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', type_complex=torch.complex128):
+def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', type_complex=torch.complex128,
+                   perturbation=1E-10):
 
     I = torch.eye(ff ** 2, device=device, dtype=type_complex)
 
@@ -314,7 +316,7 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', type_
             torch.cat([Ky ** 2 + B @ o_E_conv_i, Kx @ (E_conv_i @ Ky @ E_conv - Ky)], dim=1),
             torch.cat([Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv], dim=1)
         ])
-
+    Eig.broadening_parameter = perturbation
     eigenvalues, W = Eig.apply(S2_from_S)
 
     q = eigenvalues ** 0.5

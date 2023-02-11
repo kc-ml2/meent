@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -14,13 +12,13 @@ def field_distribution(grating_type, *args, **kwargs):
     return res
 
 
-def field_dist_1d(wavelength, n_I, theta, fourier_order, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
+def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
                   type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     fourier_indices = np.arange(-fourier_order, fourier_order + 1)
 
-    kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
+    # kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
     Kx = np.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
@@ -82,14 +80,14 @@ def field_dist_1d(wavelength, n_I, theta, fourier_order, T1, layer_info_list, pe
     return field_cell
 
 
-def field_dist_1d_conical(wavelength, n_I, theta, phi, fourier_order, T1, layer_info_list, period,
+def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, layer_info_list, period,
                           resolution=(100, 100, 100), type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     fourier_indices = np.arange(-fourier_order, fourier_order + 1)
 
-    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
-            wavelength / period[0])).astype(type_complex)
+    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
+    #         wavelength / period[0])).astype(type_complex)
     ky = k0 * n_I * np.sin(theta) * np.sin(phi)
 
     Kx = np.diag(kx_vector / k0)
@@ -156,15 +154,15 @@ def field_dist_1d_conical(wavelength, n_I, theta, phi, fourier_order, T1, layer_
     return field_cell
 
 
-def field_dist_2d(wavelength, n_I, theta, phi, fourier_order, T1, layer_info_list, period, resolution=(100, 100, 100),
+def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, layer_info_list, period, resolution=(100, 100, 100),
                   type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     fourier_indices = np.arange(-fourier_order, fourier_order + 1)
     ff = 2 * fourier_order + 1
 
-    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
-            wavelength / period[0])).astype(type_complex)
+    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
+    #         wavelength / period[0])).astype(type_complex)
     ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) - fourier_indices * (
             wavelength / period[1])).astype(type_complex)
 
@@ -238,7 +236,7 @@ def field_dist_2d(wavelength, n_I, theta, phi, fourier_order, T1, layer_info_lis
     return field_cell
 
 
-def field_plot_zx(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_slice=-1, zx=True, yx=False):
+def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_slice=-1, zx=True, yx=True):
 
     if field_cell.shape[-1] == 6:  # 2D grating
         title = ['2D Ex', '2D Ey', '2D Ez', '2D Hx', '2D Hy', '2D Hz', ]

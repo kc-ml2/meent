@@ -265,5 +265,7 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape(
-            (self.ff, self.ff)).real, self.layer_info_list, self.T1
+        de_ri = de_ri.reshape((self.ff, self.ff)).real
+        de_ti = de_ti.reshape((self.ff, self.ff)).real
+
+        return de_ri, de_ti, self.layer_info_list, self.T1

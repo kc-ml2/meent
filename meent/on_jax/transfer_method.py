@@ -206,7 +206,7 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
 
     final_B = jnp.block(
         [
-            [-jnp.sin(psi) * delta_i0,
+            [ -jnp.sin(psi) * delta_i0,
              -jnp.cos(psi) * jnp.cos(theta) * delta_i0,
              -1j * jnp.sin(psi) * n_I * jnp.cos(theta) * delta_i0,
              1j * n_I * jnp.cos(psi) * delta_i0]

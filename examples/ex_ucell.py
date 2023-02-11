@@ -9,9 +9,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 # os.environ["VECLIB_MAXIMUM_THREADS"] = "4" # export VECLIB_MAXIMUM_THREADS=4
 # os.environ["NUMEXPR_NUM_THREADS"] = "6" # export NUMEXPR_NUM_THREADS=6
 
-# import sys
-# sys.path.append('/home/yongha/meent')
-
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -35,7 +32,7 @@ thickness = [500]
 ucell_materials = [1, 3.48]
 period = [100, 100]
 # period = [1000, 1000]
-fourier_order = 2
+fourier_order = 10
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 n_iter = 2
 
