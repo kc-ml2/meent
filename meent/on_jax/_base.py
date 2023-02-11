@@ -1,3 +1,4 @@
+import jax
 import jax.numpy as jnp
 
 from copy import deepcopy
@@ -18,6 +19,9 @@ class _BaseRCWA:
 
         self.device = device
         self.type_complex = type_complex
+        if self.type_complex == jnp.complex128:
+            jax.config.update('jax_enable_x64', True)
+
         self.type_int = jnp.int64 if self.type_complex == jnp.complex128 else jnp.int32
         self.type_float = jnp.float64 if self.type_complex == jnp.complex128 else jnp.float32
 

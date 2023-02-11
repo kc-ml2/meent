@@ -52,7 +52,7 @@ else:
         ]
     )
 
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+AA = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                  ucell_materials=ucell_materials,
                  thickness=thickness, )
