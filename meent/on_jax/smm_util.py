@@ -8,8 +8,8 @@ Currently SMM is not supported
 # also refer our fork https://github.com/yonghakim/zhaonat-rcwa
 
 import jax.numpy as jnp
-from jax.numpy.linalg import inv, pinv  # TODO: try pseudo-inverse?
-from scipy.linalg import block_diag  # TODO: ok by jax?
+from jax.numpy.linalg import inv
+from scipy.linalg import block_diag
 
 
 def A_B_matrices_half_space(V_layer, Vg):
@@ -53,8 +53,7 @@ def S_layer(A, B, d, k0, modes):
 
     # sign convention (EMLAB is exp(-1i*k\dot r))
     X = jnp.diag(jnp.exp(-jnp.diag(modes) * d * k0))
-    # TODO: Check
-    # TODO: expm
+    # CHECK: expm
 
     A_i = inv(A)
     term_i = inv(A - X @ B @ A_i @ X @ B)
@@ -105,8 +104,6 @@ def homogeneous_module(Kx, Ky, e_r, m_r=1, perturbation=1E-16, wl=None, comment=
     idx = jnp.nonzero(diag == 0)[0]
     if len(idx):
         # Adding pertub* to Q and pertub to Kz.
-        # TODO: check why this works.
-        # TODO: make imaginary part sign consistent
         Q[idx, idx] = jnp.conj(perturbation)
         print(wl, comment, 'non-invertible Q: adding perturbation')
         # print(Q.diagonal())
@@ -117,7 +114,7 @@ def homogeneous_module(Kx, Ky, e_r, m_r=1, perturbation=1E-16, wl=None, comment=
     # Kz = np.conj(np.sqrt(arg))  # conjugate enforces the negative sign convention (we also have to conjugate er and mur if they are complex)
 
     Kz = jnp.sqrt(Kz2)  # conjugate enforces the negative sign convention (we also have to conjugate er and mur if they are complex)
-    Kz = jnp.conj(Kz)  # TODO: conjugate?
+    Kz = jnp.conj(Kz)  # check: conjugate?
 
     diag = jnp.diag(Kz)
     idx = jnp.nonzero(diag == 0)[0]
@@ -156,16 +153,13 @@ def homogeneous_1D(Kx, n_index, m_r=1, pol=None, perturbation=1E-20*(1+1j), wl=N
     idx = jnp.nonzero(diag == 0)[0]
     if len(idx):
         # Adding pertub* to Q and pertub to Kz.
-        # TODO: check why this works.
-        # TODO: make imaginary part sign consistent
         Q[idx, idx] = jnp.conj(perturbation)
         print(wl, comment, 'non-invertible Q: adding perturbation')
         # print(Q.diagonal())
 
     Kz = jnp.sqrt(m_r * e_r * I - Kx ** 2)
-    Kz = jnp.conj(Kz)  # TODO: conjugate?
+    Kz = jnp.conj(Kz)  # CHECK: conjugate?
 
-    # TODO: check Singular or ill-conditioned; spread this to whole code
     # invertible check
     diag = jnp.diag(Kz)
     idx = jnp.nonzero(diag == 0)[0]
@@ -174,7 +168,6 @@ def homogeneous_1D(Kx, n_index, m_r=1, pol=None, perturbation=1E-20*(1+1j), wl=N
         print(wl, comment, 'non-invertible Kz: adding perturbation')
         # print(Kz.diagonal())
 
-    # TODO: why this works...
     if pol:  # 0: TE, 1: TM
         Kz = Kz * (n_index ** 2)
 
@@ -219,10 +212,10 @@ def P_Q_kz(Kx, Ky, e_conv, mu_conv, oneover_E_conv, oneover_E_conv_i, E_i):
     '''
     argument = e_conv - Kx ** 2 - Ky ** 2
     Kz = jnp.conj(jnp.sqrt(argument.astype('complex')))
-    # Kz = np.sqrt(argument.astype('complex'))  # TODO: conjugate?
+    # Kz = np.sqrt(argument.astype('complex'))  # CHECK: conjugate?
 
-    # TODO: confirm whether oneonver_E_conv is indeed not used
-    # TODO: Check sign of P and Q
+    # CHECK: confirm whether oneonver_E_conv is indeed not used
+    # CHECK: Check sign of P and Q
     P = jnp.block([
         [Kx @ E_i @ Ky, -Kx @ E_i @ Kx + mu_conv],
         [Ky @ E_i @ Ky - mu_conv,  -Ky @ E_i @ Kx]

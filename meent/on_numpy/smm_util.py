@@ -7,9 +7,9 @@ currently SMM is not supported
 
 import numpy as np
 from numpy.linalg import inv, pinv
-# TODO: try pseudo-inverse?
+# CHECK: try pseudo-inverse?
 from scipy.linalg import block_diag
-# TODO: ok by jax?
+# CHECK: Replace for jax
 
 
 def A_B_matrices_half_space(V_layer, Vg):
@@ -53,8 +53,7 @@ def S_layer(A, B, d, k0, modes):
 
     # sign convention (EMLAB is exp(-1i*k\dot r))
     X = np.diag(np.exp(-np.diag(modes)*d*k0))
-    # TODO: Check
-    # TODO: expm
+    # CHECK: double check it is expm
 
     A_i = inv(A)
     term_i = inv(A - X @ B @ A_i @ X @ B)
@@ -87,7 +86,7 @@ def S_RT(A, B, ref_mode):
     return S, S_dict
 
 
-def homogeneous_module(Kx, Ky, e_r, m_r=1, perturbation=1E-16, wl=None, comment=None):
+def homogeneous_module(Kx, Ky, e_r, m_r=1, perturbation=1E-10, wl=None, comment=None):
     """
     homogeneous layer is much simpler to do, so we will create an isolated module to deal with it
     :return:
@@ -105,9 +104,8 @@ def homogeneous_module(Kx, Ky, e_r, m_r=1, perturbation=1E-16, wl=None, comment=
     idx = np.nonzero(diag == 0)[0]
     if len(idx):
         # Adding pertub* to Q and pertub to Kz.
-        # TODO: check why this works.
-        # TODO: make imaginary part sign consistent
         Q[idx, idx] = np.conj(perturbation)
+        # Q[idx, idx] = perturbation
         print(wl, comment, 'non-invertible Q: adding perturbation')
         # print(Q.diagonal())
 
@@ -117,7 +115,7 @@ def homogeneous_module(Kx, Ky, e_r, m_r=1, perturbation=1E-16, wl=None, comment=
     # Kz = np.conj(np.sqrt(arg))  # conjugate enforces the negative sign convention (we also have to conjugate er and mur if they are complex)
 
     Kz = np.sqrt(Kz2)  # conjugate enforces the negative sign convention (we also have to conjugate er and mur if they are complex)
-    Kz = np.conj(Kz)  # TODO: conjugate?
+    Kz = np.conj(Kz)  # CHECK: conjugate?
 
     diag = np.diag(Kz)
     idx = np.nonzero(diag == 0)[0]
@@ -135,7 +133,7 @@ def homogeneous_module(Kx, Ky, e_r, m_r=1, perturbation=1E-16, wl=None, comment=
     return W, V, Kz
 
 
-def homogeneous_1D(Kx, n_index, m_r=1, pol=None, perturbation=1E-20*(1+1j), wl=None, comment=None):
+def homogeneous_1D(Kx, n_index, m_r=1, pol=None, perturbation=1E-10, wl=None, comment=None):
     """
     efficient homogeneous 1D module
     :param Kx:
@@ -156,16 +154,13 @@ def homogeneous_1D(Kx, n_index, m_r=1, pol=None, perturbation=1E-20*(1+1j), wl=N
     idx = np.nonzero(diag == 0)[0]
     if len(idx):
         # Adding pertub* to Q and pertub to Kz.
-        # TODO: check why this works.
-        # TODO: make imaginary part sign consistent
         Q[idx, idx] = np.conj(perturbation)
         print(wl, comment, 'non-invertible Q: adding perturbation')
         # print(Q.diagonal())
 
     Kz = np.sqrt(m_r*e_r*I-Kx**2)
-    Kz = np.conj(Kz)  # TODO: conjugate?
+    Kz = np.conj(Kz)  # CHECK: conjugate?
 
-    # TODO: check Singular or ill-conditioned; spread this to whole code
     # invertible check
     diag = np.diag(Kz)
     idx = np.nonzero(diag == 0)[0]
@@ -174,7 +169,6 @@ def homogeneous_1D(Kx, n_index, m_r=1, pol=None, perturbation=1E-20*(1+1j), wl=N
         print(wl, comment, 'non-invertible Kz: adding perturbation')
         # print(Kz.diagonal())
 
-    # TODO: why this works...
     if pol:  # 0: TE, 1: TM
         Kz = Kz * (n_index ** 2)
 
@@ -219,10 +213,10 @@ def P_Q_kz(Kx, Ky, e_conv, mu_conv, oneover_E_conv, oneover_E_conv_i, E_i):
     '''
     argument = e_conv - Kx ** 2 - Ky ** 2
     Kz = np.conj(np.sqrt(argument.astype('complex')))
-    # Kz = np.sqrt(argument.astype('complex'))  # TODO: conjugate?
+    # Kz = np.sqrt(argument.astype('complex'))  # CHECK: conjugate?
 
-    # TODO: confirm whether oneonver_E_conv is indeed not used
-    # TODO: Check sign of P and Q
+    # CHECK: confirm whether oneonver_E_conv is indeed not used
+    # CHECK: Check sign of P and Q
     P = np.block([
         [Kx @ E_i @ Ky, -Kx @ E_i @ Kx + mu_conv],
         [Ky @ E_i @ Ky - mu_conv,  -Ky @ E_i @ Kx]

@@ -11,7 +11,6 @@ from .primitives import eig
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
                   type_complex=jnp.complex128):
-
     # kx_vector = k0 * (n_I * jnp.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2) ** 0.5
@@ -49,7 +48,6 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, f
 
 
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=jnp.complex128):
-
     X = jnp.diag(jnp.exp(-k0 * q * d))
 
     W_i = jnp.linalg.inv(W)
@@ -68,7 +66,6 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=jnp.compl
 
 
 def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta, polarization, k_II_z):
-
     T1 = jnp.linalg.inv(g + 1j * YZ_I @ f) @ (1j * YZ_I @ delta_i0 + inc_term)
     R = f @ T1 - delta_i0
     T = T @ T1
@@ -87,7 +84,6 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
 
 
 def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex=jnp.complex128):
-
     I = jnp.eye(ff).astype(type_complex)
     O = jnp.zeros((ff, ff)).astype(type_complex)
 
@@ -121,7 +117,6 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex
 
 def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
                           type_complex=jnp.complex128, perturbation=1E-10):
-
     I = jnp.eye(ff).astype(type_complex)
     O = jnp.zeros((ff, ff)).astype(type_complex)
 
@@ -186,7 +181,6 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
 
 def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z,
                           type_complex=jnp.complex128):
-
     I = jnp.eye(ff).astype(type_complex)
     O = jnp.zeros((ff, ff), dtype=type_complex)
 
@@ -210,13 +204,13 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
         ]
     )
 
-    # tODO: correct?
-    final_B = jnp.hstack([
-        [-jnp.sin(psi) * delta_i0],
-        [-jnp.cos(psi) * jnp.cos(theta) * delta_i0],
-        [-1j * jnp.sin(psi) * n_I * jnp.cos(theta) * delta_i0],
-        [1j * n_I * jnp.cos(psi) * delta_i0]
-    ]).T
+    final_B = jnp.block(
+        [
+            [ -jnp.sin(psi) * delta_i0,
+             -jnp.cos(psi) * jnp.cos(theta) * delta_i0,
+             -1j * jnp.sin(psi) * n_I * jnp.cos(theta) * delta_i0,
+             1j * n_I * jnp.cos(psi) * delta_i0]
+        ]).T
 
     final_RT = jnp.linalg.inv(final_A) @ final_B
 
@@ -240,7 +234,6 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
 
 def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, phi, wavelength,
                   type_complex=jnp.complex128):
-
     I = jnp.eye(ff ** 2).astype(type_complex)
     O = jnp.zeros((ff ** 2, ff ** 2), dtype=type_complex)
 
@@ -276,7 +269,6 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
 
 
 def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex128, perturbation=1E-10):
-
     I = jnp.eye(ff ** 2).astype(type_complex)
 
     B = Kx @ E_conv_i @ Kx - I
@@ -306,7 +298,6 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.co
 
 
 def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T, type_complex=jnp.complex128):
-
     q1 = q[:center]
     q2 = q[center:]
 
@@ -359,7 +350,6 @@ def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T, typ
 
 def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z,
                   type_complex=jnp.complex128):
-
     I = jnp.eye(ff ** 2).astype(type_complex)
     O = jnp.zeros((ff ** 2, ff ** 2), dtype=type_complex)
 

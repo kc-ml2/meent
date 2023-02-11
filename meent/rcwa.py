@@ -21,14 +21,14 @@ def call_solver(mode=0, *args, **kwargs):
     """
     if mode == 0:
         from .on_numpy.rcwa import RCWANumpy
-        RCWA = RCWANumpy(mode, *args, **kwargs)
+        RCWA = RCWANumpy(mode=mode, *args, **kwargs)
     elif mode == 1:
         from .on_jax.rcwa import RCWAJax
         RCWA = RCWAJax(mode=mode, *args, **kwargs)
 
     elif mode == 2:
         from .on_torch.rcwa import RCWATorch
-        RCWA = RCWATorch(mode, *args, **kwargs)
+        RCWA = RCWATorch(mode=mode, *args, **kwargs)
     else:
         raise ValueError
 

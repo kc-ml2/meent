@@ -24,7 +24,9 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device=torch.devic
 
 def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl, device=torch.device('cpu'),
                                      type_complex=torch.complex128):
-    # TODO: under development
+    """
+    Under development
+    """
     res = torch.zeros(ucell_size, device=device).type(type_complex)
 
     for material, obj_index in zip(mat_list, obj_list):
@@ -56,7 +58,14 @@ def find_nk_index(material, mat_table, wl):
     return nk
 
 
-def read_material_table(nk_path=None):
+def read_material_table(nk_path=None, type_complex=np.complex128):
+    if type_complex == torch.complex128:
+        type_complex = np.float64
+    elif type_complex == torch.complex64:
+        type_complex = np.float32
+    else:
+        raise ValueError
+
     mat_table = {}
 
     if nk_path is None:
@@ -69,12 +78,13 @@ def read_material_table(nk_path=None):
     for path, name in zip(full_path_list, name_list):
         if name[-3:] == 'txt':
             data = np.loadtxt(path, skiprows=1)
-            mat_table[name[:-4].upper()] = data
+            mat_table[name[:-4].upper()] = data.astype(type_complex)
 
         elif name[-3:] == 'mat':
             data = loadmat(path)
-            data = np.array([data['WL'], data['n'], data['k']])[:, :, 0].T
+            data = np.array([data['WL'], data['n'], data['k']], dtype=type_complex)[:, :, 0].T
             mat_table[name[:-4].upper()] = data
+
     return mat_table
 
 
@@ -98,8 +108,7 @@ def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.comple
         if not (cell[:, col] == cell_next[:, col]).all() or (col == cell.shape[1] - 1):
             x.append(step_x * (col + 1))
             cell_x.append(cell[:, col].reshape((1, -1)))
-    # cell_xa = torch.cat(cell_x, dim=0)
-    # cell_xaa = torch.cat(cell_x, dim=1)
+
     cell_x = torch.cat(cell_x, dim=0).T
     cell_x_next = torch.roll(cell_x, -1, dims=0)
 
@@ -266,7 +275,6 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
 
 
 def circulant(c, device=torch.device('cpu')):
-    # TODO: need device?
 
     center = c.shape[0] // 2
     circ = torch.zeros((center + 1, center + 1), device=device).type(torch.long)

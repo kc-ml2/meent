@@ -1,11 +1,10 @@
-import time
-from functools import partial
-
 import jax
+
 import jax.numpy as jnp
-import numpy as np
 import matplotlib.pyplot as plt
-# import meent.on_jax.jitted as ee
+import numpy as np
+
+from functools import partial
 
 
 def field_distribution(grating_type, *args, **kwargs):
@@ -22,7 +21,7 @@ def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_in
                   type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
-    # fourier_indices = jnp.arange(-fourier_order, fourier_order + 1)
+    fourier_indices = jnp.arange(-fourier_order, fourier_order + 1)
     # kx_vector = k0 * (n_I * jnp.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
 
     Kx = jnp.diag(kx_vector / k0)
@@ -68,7 +67,7 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order,
                           resolution=(100, 100, 100), type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
-    # fourier_indices = jnp.arange(-fourier_order, fourier_order + 1)
+    fourier_indices = jnp.arange(-fourier_order, fourier_order + 1)
 
     # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) - fourier_indices * (
     #         wavelength / period[0])).astype(type_complex)

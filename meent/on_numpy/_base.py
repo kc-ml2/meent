@@ -9,9 +9,9 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 
 
 class _BaseRCWA:
-    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., fourier_order=10,
-                 period=0.7, wavelength=np.linspace(0.5, 2.3, 400), pol=0,
-                 patterns=None, ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
+    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=10,
+                 period=(100, 100), wavelength=900,
+                 ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=np.complex128):
 
         self.device = device
@@ -41,7 +41,6 @@ class _BaseRCWA:
 
         self.wavelength = wavelength
 
-        self.patterns = patterns
         self.ucell = deepcopy(ucell)
         self.ucell_materials = ucell_materials
         self.thickness = deepcopy(thickness)
@@ -54,27 +53,22 @@ class _BaseRCWA:
 
         self.kx_vector = None
 
-    def get_kx_vector(self):
+    def get_kx_vector(self, wavelength):
 
-        k0 = 2 * np.pi / self.wavelength
+        k0 = 2 * np.pi / wavelength
         fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) - fourier_indices * (self.wavelength / self.period[0])
+            kx_vector = k0 * (self.n_I * np.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
                               ).astype(self.type_complex)
         else:
             kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
-                    self.wavelength / self.period[0])
-                              ).astype(self.type_complex)
+                    wavelength / self.period[0])).astype(self.type_complex)
 
-        idx = np.nonzero(kx_vector == 0)[0]
-        if len(idx):
-            # TODO: need imaginary part?
-            # TODO: make imaginary part sign consistent
-            kx_vector[idx] = self.perturbation
+        kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
 
-        self.kx_vector = kx_vector
+        return kx_vector
 
-    def solve_1d(self, wl, E_conv_all, o_E_conv_all):
+    def solve_1d(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
         self.T1 = None
@@ -84,7 +78,7 @@ class _BaseRCWA:
         delta_i0 = np.zeros(self.ff, dtype=self.type_complex)
         delta_i0[self.fourier_order] = 1
 
-        k0 = 2 * np.pi / wl
+        k0 = 2 * np.pi / wavelength
 
         if self.algo == 'TMM':
             kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \
@@ -93,7 +87,7 @@ class _BaseRCWA:
         elif self.algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices, self.period,
-                                  self.pol, wl=wl)
+                                  self.pol, wl=wavelength)
         else:
             raise ValueError
 
@@ -152,10 +146,9 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri, de_ti
+        return de_ri, de_ti, self.layer_info_list, self.T1
 
-    # TODO: scattering method
-    def solve_1d_conical(self, wl, E_conv_all, o_E_conv_all):
+    def solve_1d_conical(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
         self.T1 = None
@@ -165,7 +158,7 @@ class _BaseRCWA:
         delta_i0 = np.zeros(self.ff, dtype=self.type_complex)
         delta_i0[self.fourier_order] = 1
 
-        k0 = 2 * np.pi / wl
+        k0 = 2 * np.pi / wavelength
 
         if self.algo == 'TMM':
             Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
@@ -213,9 +206,9 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri, de_ti
+        return de_ri, de_ti, self.layer_info_list, self.T1
 
-    def solve_2d(self, wl, E_conv_all, o_E_conv_all):
+    def solve_2d(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
         self.T1 = None
@@ -230,12 +223,13 @@ class _BaseRCWA:
 
         center = self.ff ** 2
 
-        k0 = 2 * np.pi / wl
+        k0 = 2 * np.pi / wavelength
 
         if self.algo == 'TMM':
             kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
                 = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.period, fourier_indices,
-                                self.theta, self.phi, wl, type_complex=self.type_complex)
+                                self.theta, self.phi, wavelength, type_complex=self.type_complex)
+
         elif self.algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_2d_1(self.n_I, self.n_II, self.theta, self.phi, k0, self.period, self.fourier_order)
@@ -254,7 +248,7 @@ class _BaseRCWA:
             E_conv_i = np.linalg.inv(E_conv)
             o_E_conv_i = np.linalg.inv(o_E_conv)
 
-            if self.algo == 'TMM':  # TODO: MERGE W V part
+            if self.algo == 'TMM':
                 W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=self.type_complex)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
@@ -266,8 +260,8 @@ class _BaseRCWA:
                 self.layer_info_list.append(layer_info)
 
             elif self.algo == 'SMM':
-                W, V, LAMBDA = scattering_2d_wv(self.ff, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
-                A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
+                W, V, q = scattering_2d_wv(self.ff, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
+                A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, q)
             else:
                 raise ValueError
 
@@ -282,5 +276,8 @@ class _BaseRCWA:
                                            self.pol, self.theta, self.phi, self.fourier_order, self.ff)
         else:
             raise ValueError
+        de_ri = de_ri.reshape((self.ff, self.ff)).real
+        de_ti = de_ti.reshape((self.ff, self.ff)).real
 
-        return de_ri.reshape((self.ff, self.ff)).real, de_ti.reshape((self.ff, self.ff)).real
+        return de_ri, de_ti, self.layer_info_list, self.T1
+
