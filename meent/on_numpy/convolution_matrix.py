@@ -58,7 +58,14 @@ def find_nk_index(material, mat_table, wl):
     return nk
 
 
-def read_material_table(nk_path=None):
+def read_material_table(nk_path=None, type_complex=np.complex128):
+    if type_complex == np.complex128:
+        type_complex = np.float64
+    elif type_complex == np.complex64:
+        type_complex = np.float32
+    else:
+        raise ValueError
+
     mat_table = {}
 
     if nk_path is None:
@@ -71,11 +78,11 @@ def read_material_table(nk_path=None):
     for path, name in zip(full_path_list, name_list):
         if name[-3:] == 'txt':
             data = np.loadtxt(path, skiprows=1)
-            mat_table[name[:-4].upper()] = data
+            mat_table[name[:-4].upper()] = data.astype(type_complex)
 
         elif name[-3:] == 'mat':
             data = loadmat(path)
-            data = np.array([data['WL'], data['n'], data['k']])[:, :, 0].T
+            data = np.array([data['WL'], data['n'], data['k']], dtype=type_complex)[:, :, 0].T
             mat_table[name[:-4].upper()] = data
     return mat_table
 

@@ -12,7 +12,7 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 class _BaseRCWA:
 
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=10,
-                 period=0.7, wavelength=900,
+                 period=(100, 100), wavelength=900,
                  ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=jnp.complex128):
 
@@ -59,24 +59,22 @@ class _BaseRCWA:
 
         self.kx_vector = None
 
-    def get_kx_vector(self):
+    def get_kx_vector(self, wavelength):
 
-        k0 = 2 * jnp.pi / self.wavelength
+        k0 = 2 * jnp.pi / wavelength
         fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) - fourier_indices * (self.wavelength / self.period[0])
+            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
                               ).astype(self.type_complex)
         else:
             kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) - fourier_indices * (
-                    self.wavelength / self.period[0])).astype(self.type_complex)
+                    wavelength / self.period[0])).astype(self.type_complex)
 
         kx_vector = jnp.where(kx_vector == 0, self.perturbation, kx_vector)
 
-        self.kx_vector = kx_vector
-
         return kx_vector
 
-    def solve_1d(self, wl, E_conv_all, o_E_conv_all):
+    def solve_1d(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
         self.T1 = None
@@ -86,7 +84,7 @@ class _BaseRCWA:
         delta_i0 = jnp.zeros(self.ff, dtype=self.type_complex)
         delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
-        k0 = 2 * jnp.pi / wl
+        k0 = 2 * jnp.pi / wavelength
 
         if self.algo == 'TMM':
             kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T \
@@ -95,7 +93,7 @@ class _BaseRCWA:
         elif self.algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices, self.period,
-                                  self.pol, wl=wl)
+                                  self.pol, wl=wavelength)
         else:
             raise ValueError
 
@@ -115,7 +113,6 @@ class _BaseRCWA:
                 E_conv_i = jnp.linalg.inv(E_conv)
                 B = Kx @ E_conv_i @ Kx - jnp.eye(E_conv.shape[0]).astype(self.type_complex)
                 o_E_conv_i = jnp.linalg.inv(o_E_conv)
-
                 eigenvalues, W = eig(o_E_conv_i @ B, type_complex=self.type_complex, perturbation=self.perturbation)
                 q = eigenvalues ** 0.5
 
@@ -150,8 +147,7 @@ class _BaseRCWA:
 
         return de_ri, de_ti, self.layer_info_list, self.T1
 
-    # TODO: scattering method
-    def solve_1d_conical(self, wl, E_conv_all, o_E_conv_all):
+    def solve_1d_conical(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
         self.T1 = None
@@ -161,7 +157,7 @@ class _BaseRCWA:
         delta_i0 = jnp.zeros(self.ff, dtype=self.type_complex)
         delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
-        k0 = 2 * jnp.pi / wl
+        k0 = 2 * jnp.pi / wavelength
 
         if self.algo == 'TMM':
             Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
@@ -236,7 +232,7 @@ class _BaseRCWA:
             E_conv_i = jnp.linalg.inv(E_conv)
             o_E_conv_i = jnp.linalg.inv(o_E_conv)
 
-            if self.algo == 'TMM':  # TODO: MERGE W V part
+            if self.algo == 'TMM':
                 W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=self.type_complex)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \

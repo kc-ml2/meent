@@ -23,7 +23,7 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.c
                 if type(material) == str:
                     assign_value = find_nk_index(material, mat_table, wl, type_complex=type_complex) ** 2
                 else:
-                    assign_value = type_complex(material ** 2)  # TODO: need type complex?
+                    assign_value = type_complex(material ** 2)
 
                 res = res.at[assign_index].set(assign_value)
                 # res = ee.assign(res, assign_index, assign_value)
@@ -33,7 +33,9 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.c
 
 def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl,
                                      type_complex=jnp.complex128):
-    # TODO: under development
+    """
+    under development
+    """
     res = jnp.zeros(ucell_size, dtype=type_complex)
 
     for material, obj_index in zip(mat_list, obj_list):
@@ -66,6 +68,12 @@ def find_nk_index(material, mat_table, wl, type_complex=jnp.complex128):
 
 
 def read_material_table(nk_path=None, type_complex=jnp.complex128):
+    if type_complex == jnp.complex128:
+        type_complex = jnp.float64
+    elif type_complex == jnp.complex64:
+        type_complex = jnp.float32
+    else:
+        raise ValueError
 
     mat_table = {}
 
@@ -83,17 +91,11 @@ def read_material_table(nk_path=None, type_complex=jnp.complex128):
 
         elif name[-3:] == 'mat':
             data = loadmat(path)
-
-            # TODO: need astype?
-            # data = jnp.array([data['WL'], data['n'], data['k']])[:, :, 0].T
-            data['WL'], data['n'], data['k'] = data['WL'].astype(type_complex), data['n'].astype(type_complex), data['k'].astype(type_complex)
-
-            data = jnp.array([data['WL'], data['n'], data['k']])[:, :, 0].T
+            data = jnp.array([type_complex(data['WL']), type_complex(data['n']), type_complex(data['k'])])[:, :, 0].T
             mat_table[name[:-4].upper()] = data
     return mat_table
 
 
-# can't jit
 def cell_compression(cell, type_complex=jnp.complex128):
 
     if type_complex == jnp.complex128:
@@ -153,17 +155,11 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
 
     assign_index = (jnp.arange(len(f_coeffs_x)), jnp.array([c]))
     assign_value = (cell @ jnp.vstack((x[0], x_next[:-1]))).flatten().astype(type_complex)
-
-    # f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value)
     f_coeffs_x = f_coeffs_x.at[assign_index].set(assign_value)
 
     mask_int = jnp.hstack([jnp.arange(c), jnp.arange(c+1, f_coeffs_x.shape[1])])
-
     assign_index = mask_int
-
     assign_value = f_coeffs_x[:, mask_int] / (1j * 2 * jnp.pi * modes[mask_int])
-
-    # f_coeffs_x = ee.assign(f_coeffs_x, assign_index, assign_value, row_all=True)
     f_coeffs_x = f_coeffs_x.at[:, assign_index].set(assign_value)
 
     # Y axis
@@ -179,7 +175,6 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
 
     assign_index = [c]
     assign_value = f_coeffs_x.T @ jnp.vstack((y[0], y_next[:-1])).astype(type_complex)
-    # f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)
     f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
 
     if c:
@@ -188,7 +183,6 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
         assign_index = mask_int
         assign_value = f_coeffs_xy[:, mask_int] / (1j * 2 * jnp.pi * modes[mask_int])
 
-        # f_coeffs_xy = ee.assign(f_coeffs_xy, assign_index, assign_value, row_all=True)
         f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
 
     return f_coeffs_xy.T
@@ -211,7 +205,6 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex1
             conv_idx = circulant(conv_idx)
             e_conv = f_coeffs[0, center + conv_idx]
             res = res.at[i].set(e_conv)
-            # res = ee.assign(res, i, e_conv)
 
     else:  # 2D
         # attention on the order of axis (Z Y X)
@@ -228,9 +221,6 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex1
             conv_j = jnp.tile(conv_idx, (ff, ff))
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res = res.at[i].set(e_conv)
-            # res = res.at[i].set(f_coeffs[center[0] + conv_i, center[1] + conv_j])
-            # assign_value = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            # res = ee.assign(res, i, assign_value)
 
     # import matplotlib.pyplot as plt
     #
@@ -269,7 +259,6 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128, device=None):
             conv_idx = circulant(conv_idx)
             e_conv = f_coeffs[0, center + conv_idx]
             res = res.at[i].set(e_conv)
-            # res = ee.assign(res, i, e_conv)
 
     else:  # 2D
         # attention on the order of axis (Z Y X)
@@ -296,9 +285,6 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128, device=None):
             conv_j = jnp.tile(conv_idx, (ff, ff))
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res = res.at[i].set(e_conv)
-
-            # res = res.at[i].set(f_coeffs[center[0] + conv_i, center[1] + conv_j])
-            # res = ee.assign(res, i, assign_value)
 
     # import matplotlib.pyplot as plt
     #

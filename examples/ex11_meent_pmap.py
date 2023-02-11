@@ -10,12 +10,15 @@ os.environ["MKL_NUM_THREADS"] = "4"  # export MKL_NUM_THREADS=6
 # os.environ["NUMEXPR_NUM_THREADS"] = "6" # export NUMEXPR_NUM_THREADS=6
 
 # os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=4'
+
 import sys
 sys.path.append('/home/yongha/meent')
-
-from jax_smi import initialise_tracking
-initialise_tracking()
-# some computation...
+try:
+    from jax_smi import initialise_tracking
+    initialise_tracking()
+    # some computation...
+except:
+    pass
 
 import jax
 import jax.numpy as jnp
