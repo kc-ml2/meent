@@ -13,12 +13,7 @@ os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=4'
 
 import sys
 sys.path.append('/home/yongha/meent')
-try:
-    from jax_smi import initialise_tracking
-    initialise_tracking()
-    # some computation...
-except:
-    pass
+
 
 import jax
 import jax.numpy as jnp

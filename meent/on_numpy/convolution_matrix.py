@@ -26,7 +26,9 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=np.co
 
 def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl,
                                      type_complex=np.complex128):
-    # TODO: under development
+    """
+    Under development
+    """
     res = np.zeros(ucell_size, dtype=type_complex)
 
     for material, obj_index in zip(mat_list, obj_list):
