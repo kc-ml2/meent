@@ -1,22 +1,23 @@
 import os
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
+import pathlib
+import sys
+sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
 
-os.environ["MKL_NUM_THREADS"] = "4"  # export MKL_NUM_THREADS=6
+import time
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = '1,2,3'
+
+os.environ["MKL_NUM_THREADS"] = "8"  # export MKL_NUM_THREADS=6
 
 # os.environ["OMP_NUM_THREADS"] = "4" # export OMP_NUM_THREADS=4
 # os.environ["OPENBLAS_NUM_THREADS"] = "4" # export OPENBLAS_NUM_THREADS=4
 # os.environ["VECLIB_MAXIMUM_THREADS"] = "4" # export VECLIB_MAXIMUM_THREADS=4
 # os.environ["NUMEXPR_NUM_THREADS"] = "6" # export NUMEXPR_NUM_THREADS=6
 
-os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=4'
-
-import sys
-sys.path.append('/home/yongha/meent')
+# os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=24'
 
 
-import jax
-import jax.numpy as jnp
 import numpy as np
 
 from meent.rcwa import call_solver
@@ -30,7 +31,7 @@ pol = 1  # 0: TE, 1: TM
 n_I = 1  # n_incidence
 n_II = 1  # n_transmission
 
-theta = 1E-10
+theta = 0
 phi = 0
 psi = 0 if pol else 90
 
@@ -39,15 +40,17 @@ wavelength = 900
 thickness = [500]
 ucell_materials = [1, 3.48]
 
-mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', 3: 'numpy_integ', 4: 'JAX_integ',}
+mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
+mat_list = [1, 3.48]
+fourier_order = 15  # 15 20 25 30
 
-a = 2
-b = 1
-c = 0
-d = 1
+grating_type = 2
 
-device = 0
-dtype = 1
+period = [100, 100]
+perturbation = 1E-10
+
+device = 1
+dtype = 0
 
 if device == 0:
     device = 'cpu'
@@ -62,62 +65,56 @@ if dtype == 0:
 else:
     type_complex = jnp.complex64
 
-
-def load_ucell(grating_type):
-    if grating_type in [0, 1]:
-        ucell = np.array([[[0, 0, 0, 1, 1, 1, 1, 1, 1, 1,],],])
-    else:
-        ucell = np.array([[
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
-                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],],])
-    return ucell
-
-
-ucell = load_ucell(2)
-mat_list = [1, 3.48]
-wavelength = 900
-fourier_order = 15  # 15 20 25 30
-
-grating_type = 2
-n_I = 1
-n_II = 1
-period = [100, 100]
-theta = 0
-phi = 0
-thickness = [500]
-psi = 0
-perturbation = 1E-10
-AA = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                     psi=psi,
-                     fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+solver = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                     psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period,
                      ucell_materials=ucell_materials,
-                     thickness=thickness, device=0, type_complex=type_complex, )
+                     thickness=thickness, device=device, type_complex=type_complex, )
 
-n_iter = 3
+ucell = np.array([
+    [
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+    ],
+], dtype=np.float64)
 
-# for i in range(n_iter):
-#     t0 = time.time()
-#     de_ri, de_ti = AA.run_ucell()
-#     print(f'run_cell: {i}: ', time.time() - t0)
+ucell *= 2.48
+ucell += 1.
 
-wls = [900, 901, 902]
+ucell1 = ucell.copy()
+ucell2 = ucell.copy()
+ucell3 = ucell.copy()
 
-# for i in range(n_iter):
-#     t0 = time.time()
-#     AA.wavelength = wls[i]
-#     de_ri, de_ti = AA.run_ucell_vmap()
-#     print(f'run_cell: {i}: ', time.time() - t0)
+ucell1[0, :, 0] = 1
+ucell2[0, :, 1] = 1
+ucell3[0, :, 2] = 1
 
-print(jax.devices())
+ucell_list = np.array([ucell1]*3)
+
+for i, ucell in enumerate(ucell_list[:2]):
+    t0 = time.time()
+    de_ri, de_ti = solver.conv_solve(ucell)
+    print(f'run_cell: {i}: ', time.time() - t0)
+
+# t0 = time.time()
+# de_ri, de_ti = solver.run_ucell_vmap(ucell_list)
+# print(f'vmap: ', time.time() - t0)
+#
+# t0 = time.time()
+# de_ri, de_ti = solver.run_ucell_vmap(ucell_list)
+# print(f'vmap: ', time.time() - t0)
 
 t0 = time.time()
-de_ri, de_ti = AA.run_ucell_pmap()
-print(f'run_cell: ', time.time() - t0)
+de_ri, de_ti = solver.run_ucell_pmap(ucell_list)
+print(f'pmap: ', time.time() - t0)
+
+t0 = time.time()
+de_ri, de_ti = solver.run_ucell_pmap(ucell_list)
+print(f'pmap: ', time.time() - t0)

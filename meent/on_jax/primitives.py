@@ -4,8 +4,8 @@ import jax.numpy as jnp
 from functools import partial
 
 
-@partial(jax.custom_vjp, nondiff_argnums=(1, 2))
-def eig(x, type_complex=jnp.complex128, perturbation=1E-10):
+@partial(jax.custom_vjp, nondiff_argnums=(1, 2, 3))
+def eig(x, type_complex=jnp.complex128, perturbation=1E-10, device='cpu'):
 
     _eig = jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0])
 
@@ -13,15 +13,19 @@ def eig(x, type_complex=jnp.complex128, perturbation=1E-10):
     eigenvectors_shape = jax.ShapeDtypeStruct(x.shape, type_complex)
 
     result_shape_dtype = (eigenvalues_shape, eigenvectors_shape)
+    if device == 'cpu':
+        res = _eig(x)
+    else:
+        res = jax.pure_callback(_eig, result_shape_dtype, x)
 
-    return jax.pure_callback(_eig, result_shape_dtype, x)
+    return res
 
 
-def eig_fwd(x, type_complex, perturbation):
+def eig_fwd(x, type_complex, perturbation, device):
     return eig(x, type_complex, perturbation), eig(x, type_complex, perturbation)
 
 
-def eig_bwd(type_complex, perturbation, res, g):
+def eig_bwd(type_complex, perturbation, device, res, g):
     """
     Gradient of a general square (complex valued) matrix
     Reference: https://github.com/kch3782/torcwa and https://github.com/weiliangjinca/grcwa

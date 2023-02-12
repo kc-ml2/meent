@@ -107,7 +107,7 @@ class _BaseRCWA:
             if self.pol == 0:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
-                eigenvalues, W = eig(A, type_complex=self.type_complex, perturbation=self.perturbation)
+                eigenvalues, W = eig(A, type_complex=self.type_complex, perturbation=self.perturbation, device=self.device)
                 q = eigenvalues ** 0.5
 
                 Q = jnp.diag(q)
@@ -117,7 +117,8 @@ class _BaseRCWA:
                 E_conv_i = jnp.linalg.inv(E_conv)
                 B = Kx @ E_conv_i @ Kx - jnp.eye(E_conv.shape[0]).astype(self.type_complex)
                 o_E_conv_i = jnp.linalg.inv(o_E_conv)
-                eigenvalues, W = eig(o_E_conv_i @ B, type_complex=self.type_complex, perturbation=self.perturbation)
+                eigenvalues, W = eig(o_E_conv_i @ B, type_complex=self.type_complex, perturbation=self.perturbation,
+                                     device=self.device)
                 q = eigenvalues ** 0.5
 
                 Q = jnp.diag(q)
@@ -181,7 +182,7 @@ class _BaseRCWA:
                 big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2 \
                     = transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, self.ff, d,
                                             varphi, big_F, big_G, big_T,
-                                            type_complex=self.type_complex)
+                                            type_complex=self.type_complex, device=self.device)
 
                 layer_info = [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d]
                 self.layer_info_list.append(layer_info)
@@ -237,7 +238,8 @@ class _BaseRCWA:
             o_E_conv_i = jnp.linalg.inv(o_E_conv)
 
             if self.algo == 'TMM':
-                W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=self.type_complex)
+                W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=self.type_complex,
+                                         device=self.device)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                 W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22 \
