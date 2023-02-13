@@ -11,7 +11,6 @@ from .primitives import eig
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
                   type_complex=jnp.complex128):
-    # kx_vector = k0 * (n_I * jnp.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2) ** 0.5
@@ -116,7 +115,7 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex
 
 
 def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
-                          type_complex=jnp.complex128, perturbation=1E-10):
+                          type_complex=jnp.complex128, perturbation=1E-10, device='cpu'):
     I = jnp.eye(ff).astype(type_complex)
     O = jnp.zeros((ff, ff)).astype(type_complex)
 
@@ -129,8 +128,8 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
     to_decompose_W_2 = ky ** 2 * I + B @ o_E_conv_i
 
     # TODO: separate to an independent func (like 2D case).
-    eigenvalues_1, W_1 = eig(to_decompose_W_1, type_complex=type_complex, perturbation=perturbation)
-    eigenvalues_2, W_2 = eig(to_decompose_W_2, type_complex=type_complex, perturbation=perturbation)
+    eigenvalues_1, W_1 = eig(to_decompose_W_1, type_complex=type_complex, perturbation=perturbation, device=device)
+    eigenvalues_2, W_2 = eig(to_decompose_W_2, type_complex=type_complex, perturbation=perturbation, device=device)
 
     q_1 = eigenvalues_1 ** 0.5
     q_2 = eigenvalues_2 ** 0.5
@@ -268,7 +267,7 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
     return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex128, perturbation=1E-10):
+def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex128, perturbation=1E-10, device='cpu'):
     I = jnp.eye(ff ** 2).astype(type_complex)
 
     B = Kx @ E_conv_i @ Kx - I
@@ -280,7 +279,7 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.co
             [Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
         ])
 
-    eigenvalues, W = eig(S2_from_S, type_complex=type_complex, perturbation=perturbation)
+    eigenvalues, W = eig(S2_from_S, type_complex=type_complex, perturbation=perturbation, device=device)
 
     q = eigenvalues ** 0.5
 
