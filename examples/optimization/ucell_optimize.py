@@ -43,31 +43,12 @@ def load_setting(mode_key, dtype, device):
     wavelength = 900
 
     ucell_materials = [1, 3.48]
-    # thickness = [1120]
-    # period = [1000, 1000]
     fourier_order = 2
 
-    thickness, period = [1120], [100, 100]
-    thickness, period = [500], [100, 100]
-    thickness, period = [500], [1000, 1000]
     thickness, period = [1120.], [1000, 1000]
 
     ucell = np.array(
         [[
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-        ]]
-    )
-    ucell = np.array(
-        [[
             [3., 1., 1., 1., 3.],
             [3., 1., 1., 1., 3.],
             [3., 1., 1., 1., 3.],
@@ -75,21 +56,6 @@ def load_setting(mode_key, dtype, device):
             [3., 1., 1., 1., 3.],
         ]]
     )
-    # ucell = np.array([
-    #
-    #     [
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #     ],
-    # ])
 
     if mode_key == 0:
         device = 0
@@ -97,17 +63,19 @@ def load_setting(mode_key, dtype, device):
         ucell = ucell.astype(type_complex)
 
     elif mode_key == 1:  # JAX
-        ucell = jnp.array(ucell)
         jax.config.update('jax_platform_name', 'cpu') if device == 0 else jax.config.update('jax_platform_name', 'gpu')
 
         if dtype == 0:
-            from jax.config import config
-            config.update("jax_enable_x64", True)
+            jax.config.update("jax_enable_x64", True)
             type_complex = jnp.complex128
             ucell = ucell.astype(jnp.float64)
+            ucell = jnp.array(ucell, dtype=jnp.float64)
+
         else:
             type_complex = jnp.complex64
             ucell = ucell.astype(jnp.float32)
+            ucell = jnp.array(ucell, dtype=jnp.float32)
+
 
     else:  # Torch
         device = torch.device('cpu') if device == 0 else torch.device('cuda')
