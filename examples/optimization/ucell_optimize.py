@@ -238,17 +238,17 @@ def optimize_torch(mode_key, dtype, device):
                          ucell_materials=ucell_materials, thickness=thickness, device=device,
                          type_complex=type_complex, )
 
-    opt = torch.optim.SGD([ucell], lr=1E-2)
-    for i in range(100):
+    opt = torch.optim.Adam([ucell], lr = 0.001)
+    for i in range(1000):
         E_conv_all = to_conv_mat(ucell, fourier_order)
         o_E_conv_all = to_conv_mat(1 / ucell, fourier_order)
         de_ri, de_ti, _, _, _ = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
         loss = -de_ti[3, 2]
-        loss.backward()
-        print(ucell.grad)
-        opt.step()
         opt.zero_grad()
+        loss.backward()
+        #print(ucell.grad)
+        opt.step()
         print(loss)
 
 
