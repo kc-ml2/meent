@@ -1,11 +1,3 @@
-import numpy as np
-import jax
-from functools import partial
-
-from jax import tree_util
-
-
-# @partial(jax.jit, static_argnums=(0, 1))
 def call_solver(mode=0, *args, **kwargs):
     """
     decide backend and return RCWA solver instance

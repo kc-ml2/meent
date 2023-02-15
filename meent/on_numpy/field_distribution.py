@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def field_distribution(grating_type, *args, **kwargs):
@@ -237,6 +236,12 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
 
 
 def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_slice=-1, zx=True, yx=True):
+    try:
+        import matplotlib.pyplot as plt
+    except (ImportError, ModuleNotFoundError) as e:
+        print(e)
+        print('To use field_plot(), please install matplotlib')
+        raise e
 
     if field_cell.shape[-1] == 6:  # 2D grating
         title = ['2D Ex', '2D Ey', '2D Ez', '2D Hx', '2D Hy', '2D Hz', ]

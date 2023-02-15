@@ -5,7 +5,7 @@ import torch
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table, \
     to_conv_mat_piecewise_constant
-from .field_distribution import field_dist_1d, field_dist_2d, field_plot_zx, field_dist_1d_conical
+from .field_distribution import field_dist_1d, field_dist_2d, field_plot, field_dist_1d_conical
 
 
 class RCWATorch(_BaseRCWA):
@@ -99,6 +99,6 @@ class RCWATorch(_BaseRCWA):
                                        device=self.device, type_complex=self.type_complex)
 
         if plot:
-            field_plot_zx(field_cell, self.pol)
+            field_plot(field_cell, self.pol)
 
         return field_cell
