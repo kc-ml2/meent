@@ -325,7 +325,7 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', type_
     Q_i = torch.linalg.inv(Q)
     U1_from_S = torch.cat(
         [
-            torch.cat([-Kx @ Ky, Kx ** 2 - E_conv], dim=1),
+            torch.cat([-Kx @ Ky, Kx ** 2 - o_E_conv_i], dim=1),
             torch.cat([o_E_conv_i - Ky ** 2, Ky @ Kx], dim=1)
         ]
     )
