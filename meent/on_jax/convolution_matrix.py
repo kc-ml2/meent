@@ -159,7 +159,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
 
     mask_int = jnp.hstack([jnp.arange(c), jnp.arange(c+1, f_coeffs_x.shape[1])])
     assign_index = mask_int
-    assign_value = f_coeffs_x[:, mask_int] / (1j * 2 * jnp.pi * modes[mask_int])
+    assign_value = f_coeffs_x[:, mask_int] / (-1j * 2 * jnp.pi * modes[mask_int])
     f_coeffs_x = f_coeffs_x.at[:, assign_index].set(assign_value)
 
     # Y axis
@@ -181,7 +181,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
         mask_int = jnp.hstack([jnp.arange(c), jnp.arange(c + 1, f_coeffs_x.shape[1])])
 
         assign_index = mask_int
-        assign_value = f_coeffs_xy[:, mask_int] / (1j * 2 * jnp.pi * modes[mask_int])
+        assign_value = f_coeffs_xy[:, mask_int] / (-1j * 2 * jnp.pi * modes[mask_int])
 
         f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
 
