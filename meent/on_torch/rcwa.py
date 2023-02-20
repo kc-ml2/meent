@@ -36,7 +36,6 @@ class RCWATorch(_BaseRCWA):
                          ucell=ucell, ucell_materials=ucell_materials,
                          thickness=thickness, algo=algo, perturbation=perturbation,
                          device=device, type_complex=type_complex,)
-
         self.mode = mode
         self.device = device
         self.type_complex = type_complex

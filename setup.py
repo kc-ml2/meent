@@ -10,7 +10,6 @@ setup(
     install_requires=[
         'numpy==1.23.3',
         'jax==0.4.1',
-        'matplotlib==3.5.3',
     ],
     python_requires='>=3.8',
     long_description_content_type="text/markdown",

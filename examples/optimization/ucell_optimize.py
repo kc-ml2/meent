@@ -252,7 +252,6 @@ def optimize_torch(mode_key, dtype, device):
         print(loss)
 
 
-
 if __name__ == '__main__':
 
     optimize_jax_thickness(1, 0, 0)
