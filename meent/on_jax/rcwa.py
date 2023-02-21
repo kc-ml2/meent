@@ -92,6 +92,13 @@ class RCWAJax(_BaseRCWA):
         de_ri, de_ti, layer_info_list, T1, kx_vector = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
         return de_ri, de_ti
 
+    @jax.jit
+    def conv_solve_spectrum(self, ucell):
+        E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
+        o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        de_ri, de_ti, layer_info_list, T1, kx_vector = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
+        return de_ri, de_ti
+
     def run_ucell(self):
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
                                           type_complex=self.type_complex)
@@ -155,6 +162,20 @@ class RCWAJax(_BaseRCWA):
         if plot:
             field_plot(field_cell, self.pol)
         return field_cell
+
+    # def generate_spectrum(self, wl_list):
+    #     ucell = deepcopy(self.ucell)
+    #     spectrum_ri_pmap = np.zeros(wl_list.shape)
+    #     spectrum_ti_pmap = np.zeros(wl_list.shape)
+    #     for i, wavelength in enumerate(range(counter)):
+    #         b = i * num_device
+    #         de_ri_pmap, de_ti_pmap = jax.pmap(loop_wavelength)(wavelength_list[b:b + num_device],
+    #                                                            mat_pmtvy_interp[b:b + num_device])
+    #
+    #         spectrum_ri_pmap[b:b + num_device] = de_ri_pmap.sum(axis=(1, 2))
+    #         spectrum_ti_pmap[b:b + num_device] = de_ti_pmap.sum(axis=(1, 2))
+    #
+    #     return spectrum_ri_pmap, spectrum_ti_pmap
 
 
 if __name__ == '__main__':

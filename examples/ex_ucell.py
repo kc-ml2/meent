@@ -139,4 +139,4 @@ def load_ucell(grating_type):
 
 
 if __name__ == '__main__':
-    run_loop([2], [0, 1, 2], [0], [0])
+    run_loop([2], [1, 2], [0], [0])

@@ -31,6 +31,27 @@ def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.c
     return res
 
 
+def put_permittivity_in_ucell_new(ucell, mat_list, mat_table, wl, type_complex=jnp.complex128):
+
+    res = jnp.zeros(ucell.shape, dtype=type_complex)
+
+    for z in range(ucell.shape[0]):
+        for y in range(ucell.shape[1]):
+            for x in range(ucell.shape[2]):
+                material = mat_list[int(ucell[z, y, x])]
+                assign_index = (z, y, x)
+
+                if type(material) == str:
+                    assign_value = find_nk_index(material, mat_table, wl, type_complex=type_complex) ** 2
+                else:
+                    assign_value = type_complex(material ** 2)
+
+                res = res.at[assign_index].set(assign_value)
+                # res = ee.assign(res, assign_index, assign_value)
+
+    return res
+
+
 def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl,
                                      type_complex=jnp.complex128):
     """
