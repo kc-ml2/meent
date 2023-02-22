@@ -10,14 +10,14 @@ from pathlib import Path
 from scipy.io import loadmat
 
 
-def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.complex128):
-    res = jnp.array(ucell, dtype=type_complex)
-
+def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.complex128):  # TODO: other backends
+    res = jnp.zeros(ucell.shape, dtype=type_complex)
+    ucell_mask = jnp.array(ucell, dtype=type_complex)
     for i_mat, material in enumerate(mat_list):
-        mask = jnp.nonzero(ucell == i_mat)
+        mask = jnp.nonzero(ucell_mask == i_mat)
 
         if type(material) == str:
-            assign_value = find_nk_index(material, mat_table, wl, type_complex=type_complex) ** 2
+            assign_value = find_nk_index(material, mat_table, wl) ** 2
         else:
             assign_value = type_complex(material ** 2)
 
@@ -42,7 +42,6 @@ def put_permittivity_in_ucell_old(ucell, mat_list, mat_table, wl, type_complex=j
                     assign_value = type_complex(material ** 2)
 
                 res = res.at[assign_index].set(assign_value)
-                # res = ee.assign(res, assign_index, assign_value)
 
     return res
 
@@ -63,7 +62,7 @@ def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, 
     return res
 
 
-def find_nk_index(material, mat_table, wl, type_complex=jnp.complex128):
+def find_nk_index(material, mat_table, wl):
     if material[-6:] == '__real':
         material = material[:-6]
         n_only = True
@@ -78,7 +77,7 @@ def find_nk_index(material, mat_table, wl, type_complex=jnp.complex128):
         return n_index
 
     k_index = jnp.interp(wl, mat_data[:, 0], mat_data[:, 2])
-    nk = (n_index + 1j * k_index).astype(type_complex)
+    nk = (n_index + 1j * k_index)
 
     return nk
 

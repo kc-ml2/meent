@@ -6,7 +6,22 @@ from scipy.io import loadmat
 from pathlib import Path
 
 
-def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device=torch.device('cpu'), type_complex=torch.complex128):
+def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device=torch.device('cpu'), type_complex=torch.complex128):  # TODO: other backends
+    res = torch.zeros(ucell.shape, device=device, dtype=type_complex)
+    ucell_mask = torch.tensor(ucell, device=device, dtype=type_complex)
+    for i_mat, material in enumerate(mat_list):
+        mask = torch.nonzero(ucell_mask == i_mat, as_tuple=True)
+
+        if type(material) == str:
+            assign_value = find_nk_index(material, mat_table, wl) ** 2
+        else:
+            assign_value = material ** 2
+        res[mask] = assign_value
+
+    return res
+
+
+def put_permittivity_in_ucell_old(ucell, mat_list, mat_table, wl, device=torch.device('cpu'), type_complex=torch.complex128):
 
     res = torch.zeros(ucell.shape, device=device).type(type_complex)
 

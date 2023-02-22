@@ -22,15 +22,15 @@ pol = 1  # 0: TE, 1: TM
 n_I = 1  # n_incidence
 n_II = 1  # n_transmission
 
-theta = 10
-phi = 0
-psi = 0 if pol else 90
+theta = 10 * np.pi / 180
+phi = 0 * np.pi / 180
+psi = 0 if pol else 90 * np.pi / 180
 
 wavelength = 900
 
 thickness = [500]
 ucell_materials = [1, 3.48]
-period = [100, 100]
+period = [1000, 1000]
 # period = [1000, 1000]
 fourier_order = 10
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
@@ -83,12 +83,12 @@ def run_test(grating_type, mode_key, dtype, device):
         t0 = time.time()
         de_ri, de_ti = AA.run_ucell()
         print(f'run_cell: {i}: ', time.time() - t0)
-
     resolution = (20, 20, 20)
     for i in range(0):
         t0 = time.time()
         AA.calculate_field(resolution=resolution, plot=False)
         print(f'cal_field: {i}', time.time() - t0)
+    print(de_ri[9:12, 9:12])
 
     return de_ri, de_ti
 
@@ -139,4 +139,4 @@ def load_ucell(grating_type):
 
 
 if __name__ == '__main__':
-    run_loop([2], [1, 2], [0], [0])
+    run_loop([2], [0, 1, 2], [0], [0])

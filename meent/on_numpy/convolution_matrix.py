@@ -9,6 +9,21 @@ from pathlib import Path
 
 
 def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=np.complex128):
+    res = np.zeros(ucell.shape, dtype=type_complex)
+    ucell_mask = np.array(ucell, dtype=type_complex)
+    for i_mat, material in enumerate(mat_list):
+        mask = np.nonzero(ucell_mask == i_mat)
+
+        if type(material) == str:
+            assign_value = find_nk_index(material, mat_table, wl) ** 2
+        else:
+            assign_value = material ** 2
+        res[mask] = assign_value
+
+    return res
+
+
+def put_permittivity_in_ucell_old(ucell, mat_list, mat_table, wl, type_complex=np.complex128):
 
     res = np.zeros(ucell.shape, dtype=type_complex)
 

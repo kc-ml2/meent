@@ -21,15 +21,20 @@ class _BaseRCWA:
         self.n_I = n_I
         self.n_II = n_II
 
-        self.theta = theta * np.pi / 180
-        self.phi = phi * np.pi / 180
-        self.psi = psi * np.pi / 180  # TODO: integrate psi and pol
+        # self.theta = theta * np.pi / 180
+        # self.phi = phi * np.pi / 180
+        # self.psi = psi * np.pi / 180  # TODO: integrate psi and pol
+
+        # degree to radian due to JAX JIT
+        self.theta = theta
+        self.phi = phi
+        self.psi = psi  # TODO: integrate psi and pol
 
         self.pol = pol  # TE 0, TM 1
         if self.pol == 0:  # TE
-            self.psi = 90 * np.pi / 180
+            self.psi = np.pi / 2
         elif self.pol == 1:  # TM
-            self.psi = 0 * np.pi / 180
+            self.psi = 0
         else:
             print('not implemented yet')
             raise ValueError

@@ -25,15 +25,20 @@ class _BaseRCWA:
         self.n_I = n_I
         self.n_II = n_II
 
-        self.theta = torch.tensor(theta * np.pi / 180)
-        self.phi = torch.tensor(phi * np.pi / 180)
-        self.psi = torch.tensor(psi * np.pi / 180)  # TODO: integrate psi and pol
+        # self.theta = torch.tensor(theta * np.pi / 180)
+        # self.phi = torch.tensor(phi * np.pi / 180)
+        # self.psi = torch.tensor(psi * np.pi / 180)  # TODO: integrate psi and pol
+
+        # degree to radian due to JAX JIT
+        self.theta = torch.tensor(theta)
+        self.phi = torch.tensor(phi)
+        self.psi = torch.tensor(psi)  # TODO: integrate psi and pol
 
         self.pol = pol  # TE 0, TM 1
         if self.pol == 0:  # TE
-            self.psi = torch.tensor(90 * np.pi / 180, device=self.device)
+            self.psi = torch.tensor(np.pi / 2, device=self.device)
         elif self.pol == 1:  # TM
-            self.psi = torch.tensor(0 * np.pi / 180, device=self.device)
+            self.psi = torch.tensor(0, device=self.device)
         else:
             print('not implemented yet')
             raise ValueError
