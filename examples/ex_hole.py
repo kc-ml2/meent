@@ -11,9 +11,9 @@ pol = 1  # 0: TE, 1: TM
 n_I = 1  # n_incidence
 n_II = 1  # n_transmission
 
-theta = 0  # in degree, notation from Moharam paper
-phi = 0  # in degree, notation from Moharam paper
-psi = 0 if pol else 90  # in degree, notation from Moharam paper
+theta = 0 * np.pi / 180
+phi = 0 * np.pi / 180
+psi = 0 if pol else 90 * np.pi / 180  # in degree, notation from Moharam paper
 
 wavelength = 900
 

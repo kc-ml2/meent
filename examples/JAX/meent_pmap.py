@@ -6,9 +6,9 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
 import time
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = '1,2,3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
 
-os.environ["MKL_NUM_THREADS"] = "8"  # export MKL_NUM_THREADS=6
+# os.environ["MKL_NUM_THREADS"] = "48"  # export MKL_NUM_THREADS=6
 
 # os.environ["OMP_NUM_THREADS"] = "4" # export OMP_NUM_THREADS=4
 # os.environ["OPENBLAS_NUM_THREADS"] = "4" # export OPENBLAS_NUM_THREADS=4
@@ -31,9 +31,9 @@ pol = 1  # 0: TE, 1: TM
 n_I = 1  # n_incidence
 n_II = 1  # n_transmission
 
-theta = 0
-phi = 0
-psi = 0 if pol else 90
+theta = 0 * np.pi / 180
+phi = 0 * np.pi / 180
+psi = 0 * np.pi / 180 if pol else 90 * np.pi / 180
 
 wavelength = 900
 
@@ -42,11 +42,11 @@ ucell_materials = [1, 3.48]
 
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 mat_list = [1, 3.48]
-fourier_order = 15  # 15 20 25 30
+fourier_order = 5  # 15 20 25 30
 
 grating_type = 2
 
-period = [100, 100]
+period = [1000, 1000]
 perturbation = 1E-10
 
 device = 1
@@ -96,12 +96,17 @@ ucell1[0, :, 0] = 1
 ucell2[0, :, 1] = 1
 ucell3[0, :, 2] = 1
 
-ucell_list = np.array([ucell1]*3)
+ucell_list = np.array([ucell1]*2)
 
 for i, ucell in enumerate(ucell_list[:2]):
     t0 = time.time()
     de_ri, de_ti = solver.conv_solve(ucell)
-    print(f'run_cell: {i}: ', time.time() - t0)
+    print(time.time() - t0)
+
+# for i, ucell in enumerate(ucell_list[:2]):
+#     t0 = time.time()
+#     de_ri, de_ti = solver.conv_solve(ucell)
+#     print(time.time() - t0)
 
 # t0 = time.time()
 # de_ri, de_ti = solver.run_ucell_vmap(ucell_list)
@@ -113,8 +118,8 @@ for i, ucell in enumerate(ucell_list[:2]):
 
 t0 = time.time()
 de_ri, de_ti = solver.run_ucell_pmap(ucell_list)
-print(f'pmap: ', time.time() - t0)
+print(time.time() - t0)
 
 t0 = time.time()
 de_ri, de_ti = solver.run_ucell_pmap(ucell_list)
-print(f'pmap: ', time.time() - t0)
+print(time.time() - t0)

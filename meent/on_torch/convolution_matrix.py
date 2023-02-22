@@ -6,7 +6,22 @@ from scipy.io import loadmat
 from pathlib import Path
 
 
-def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device=torch.device('cpu'), type_complex=torch.complex128):
+def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device=torch.device('cpu'), type_complex=torch.complex128):  # TODO: other backends
+    res = torch.zeros(ucell.shape, device=device, dtype=type_complex)
+    ucell_mask = torch.tensor(ucell, device=device, dtype=type_complex)
+    for i_mat, material in enumerate(mat_list):
+        mask = torch.nonzero(ucell_mask == i_mat, as_tuple=True)
+
+        if type(material) == str:
+            assign_value = find_nk_index(material, mat_table, wl) ** 2
+        else:
+            assign_value = material ** 2
+        res[mask] = assign_value
+
+    return res
+
+
+def put_permittivity_in_ucell_old(ucell, mat_list, mat_table, wl, device=torch.device('cpu'), type_complex=torch.complex128):
 
     res = torch.zeros(ucell.shape, device=device).type(type_complex)
 
@@ -147,7 +162,7 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
     f_coeffs_x[:, c] = (cell @ torch.vstack((x[0], x_next[:-1]))).flatten()
     mask = torch.ones(f_coeffs_x.shape[1], device=device).type(torch.bool)
     mask[c] = False
-    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes[mask])
+    f_coeffs_x[:, mask] /= (-1j * 2 * np.pi * modes[mask])
 
     # Y axis
     f_coeffs_x_next_y = torch.roll(f_coeffs_x, -1, dims=0)
@@ -165,7 +180,7 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
     if c:
         mask = torch.ones(f_coeffs_xy.shape[1], device=device).type(torch.bool)
         mask[c] = False
-        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])
+        f_coeffs_xy[:, mask] /= (-1j * 2 * np.pi * modes[mask])
 
     return f_coeffs_xy.T
 

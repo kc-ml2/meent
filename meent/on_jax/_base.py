@@ -30,16 +30,20 @@ class _BaseRCWA:
         self.n_I = n_I
         self.n_II = n_II
 
-        self.theta = theta * jnp.pi / 180
+        # self.theta = theta * jnp.pi / 180
+        # self.phi = phi * jnp.pi / 180
+        # self.psi = psi * jnp.pi / 180  # TODO: integrate psi and pol
 
-        self.phi = phi * jnp.pi / 180
-        self.psi = psi * jnp.pi / 180  # TODO: integrate psi and pol
+        # degree to radian due to JAX JIT
+        self.theta = theta
+        self.phi = phi
+        self.psi = psi  # TODO: integrate psi and pol
 
         self.pol = pol  # TE 0, TM 1
         if self.pol == 0:  # TE
-            self.psi = 90 * jnp.pi / 180
+            self.psi = jnp.pi / 2
         elif self.pol == 1:  # TM
-            self.psi = 0 * jnp.pi / 180
+            self.psi = 0
         else:
             print('not implemented yet')
             raise ValueError
@@ -47,7 +51,7 @@ class _BaseRCWA:
         self.fourier_order = int(fourier_order)
         self.ff = 2 * self.fourier_order + 1
 
-        self.period = deepcopy(period)
+        self.period = deepcopy(period)  # TODO: worth? apply to other backends
 
         self.wavelength = wavelength
 

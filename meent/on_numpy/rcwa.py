@@ -57,6 +57,7 @@ class RCWANumpy(_BaseRCWA):
             raise ValueError
 
         return de_ri.real, de_ti.real, layer_info_list, T1, self.kx_vector
+        # TODO de_ri.real, de_ti.real, (layer_info_list, T1, self.kx_vector)
 
     def run_ucell(self):
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,

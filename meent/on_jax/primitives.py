@@ -38,11 +38,11 @@ def eig_bwd(type_complex, perturbation, device, res, g):
 
     s = eigval.reshape((1, -1)) - eigval.reshape((-1, 1))
 
-    F = jnp.conj(s) / (jnp.abs(s) ** 2 + perturbation)
+    F = s / (jnp.abs(s) ** 2 + perturbation)
     F = F.at[jnp.diag_indices_from(s)].set(0)
 
-    XH = jnp.conj(eigvec).T
-    tmp = jnp.conj(F) * (XH @ grad_eigvec)
+    XH = eigvec.T
+    tmp = F * (XH @ grad_eigvec)
 
     XH_i = jnp.linalg.inv(XH)
 

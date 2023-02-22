@@ -9,6 +9,21 @@ from pathlib import Path
 
 
 def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=np.complex128):
+    res = np.zeros(ucell.shape, dtype=type_complex)
+    ucell_mask = np.array(ucell, dtype=type_complex)
+    for i_mat, material in enumerate(mat_list):
+        mask = np.nonzero(ucell_mask == i_mat)
+
+        if type(material) == str:
+            assign_value = find_nk_index(material, mat_table, wl) ** 2
+        else:
+            assign_value = material ** 2
+        res[mask] = assign_value
+
+    return res
+
+
+def put_permittivity_in_ucell_old(ucell, mat_list, mat_table, wl, type_complex=np.complex128):
 
     res = np.zeros(ucell.shape, dtype=type_complex)
 
@@ -151,7 +166,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
     mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
     mask[c] = False
-    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes[mask])
+    f_coeffs_x[:, mask] /= (-1j * 2 * np.pi * modes[mask])
 
     # Y axis
     f_coeffs_x_next_y = np.roll(f_coeffs_x, -1, axis=0)
@@ -169,7 +184,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     if c:
         mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
         mask[c] = False
-        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])
+        f_coeffs_xy[:, mask] /= (-1j * 2 * np.pi * modes[mask])
 
     return f_coeffs_xy.T
 
