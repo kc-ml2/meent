@@ -31,9 +31,9 @@ pol = 1  # 0: TE, 1: TM
 n_I = 1  # n_incidence
 n_II = 1  # n_transmission
 
-theta = 0
-phi = 0
-psi = 0 if pol else 90
+theta = 0 * np.pi / 180
+phi = 0 * np.pi / 180
+psi = 0 * np.pi / 180 if pol else 90 * np.pi / 180
 
 wavelength = 900
 

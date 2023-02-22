@@ -37,9 +37,9 @@ pol = 1  # 0: TE, 1: TM
 n_I = 1  # n_incidence
 n_II = 1  # n_transmission
 
-theta = 0
-phi = 0
-psi = 0 if pol else 90
+theta = 0 * np.pi / 180
+phi = 0 * np.pi / 180
+psi = 0 * np.pi / 180 if pol else 90 * np.pi / 180
 
 wavelength = 900
 
@@ -124,8 +124,6 @@ mat_wl = mat_table['P_SI'][:, 0]
 mat_permittivity_real = mat_table['P_SI'][:, 1]
 mat_permittivity_imag = mat_table['P_SI'][:, 2]
 
-
-
 wavelength_list = jnp.arange(500, 1000, 50)
 num_device = jax.device_count()
 
@@ -147,6 +145,7 @@ def loop_wavelength(wavelength1, permittivity1):
     de_ri, de_ti = solver.conv_solve_spectrum(ucell1)
     return de_ri, de_ti
 
+
 def generate_spectrum_pmap():
 
     spectrum_ri_pmap = np.zeros(wavelength_list.shape)
@@ -158,7 +157,6 @@ def generate_spectrum_pmap():
 
         spectrum_ri_pmap[b:b+num_device] = de_ri_pmap.sum(axis=(1, 2))
         spectrum_ti_pmap[b:b+num_device] = de_ti_pmap.sum(axis=(1, 2))
-
 
     return spectrum_ri_pmap, spectrum_ti_pmap
 
