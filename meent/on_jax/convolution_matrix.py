@@ -10,7 +10,7 @@ from pathlib import Path
 from scipy.io import loadmat
 
 
-def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.complex128):  # TODO: other backends
+def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.complex128):
     res = jnp.zeros(ucell.shape, dtype=type_complex)
     ucell_mask = jnp.array(ucell, dtype=type_complex)
     for i_mat, material in enumerate(mat_list):
