@@ -112,15 +112,15 @@ def compare_conv_mat_method(mode_key, dtype, device):
         = load_setting(mode_key, dtype, device)
 
     if mode_key == 0:
-        from meent.on_numpy.convolution_matrix import to_conv_mat as conv1
-        from meent.on_numpy.convolution_matrix import to_conv_mat_piecewise_constant as conv2
+        from meent.on_numpy.convolution_matrix import to_conv_mat_discrete as conv1
+        from meent.on_numpy.convolution_matrix import to_conv_mat_continuous as conv2
 
     elif mode_key == 1:
-        from meent.on_jax.convolution_matrix import to_conv_mat as conv1
-        from meent.on_jax.convolution_matrix import to_conv_mat_piecewise_constant as conv2
+        from meent.on_jax.convolution_matrix import to_conv_mat_discrete as conv1
+        from meent.on_jax.convolution_matrix import to_conv_mat_continuous as conv2
     else:
-        from meent.on_torch.convolution_matrix import to_conv_mat as conv1
-        from meent.on_torch.convolution_matrix import to_conv_mat_piecewise_constant as conv2
+        from meent.on_torch.convolution_matrix import to_conv_mat_discrete as conv1
+        from meent.on_torch.convolution_matrix import to_conv_mat_continuous as conv2
 
     for thickness, period in zip([[1120], [500], [500], [1120]], [[100, 100], [100, 100], [1000, 1000], [1000, 1000]]):
 

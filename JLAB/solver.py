@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 from meent.on_numpy.rcwa import RCWANumpy as RCWA
-from meent.on_numpy.convolution_matrix import to_conv_mat_piecewise_constant, find_nk_index
+from meent.on_numpy.convolution_matrix import to_conv_mat_continuous, find_nk_index
 
 
 class JLABCode(RCWA):
@@ -21,8 +21,8 @@ class JLABCode(RCWA):
         self.ucell = (self.ucell + 1) / 2
         self.ucell = self.ucell * (n_ridge ** 2 - n_groove ** 2) + n_groove ** 2
 
-        e_conv_all = to_conv_mat_piecewise_constant(self.ucell, self.fourier_order)
-        o_e_conv_all = to_conv_mat_piecewise_constant(1 / self.ucell, self.fourier_order)
+        e_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order)
+        o_e_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order)
 
         de_ri, de_ti = self.solve(self.wavelength, e_conv_all, o_e_conv_all)
 
