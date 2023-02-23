@@ -6,8 +6,8 @@ import jax.numpy as jnp
 import numpy as np
 
 from ._base import _BaseRCWA
-from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table, \
-    to_conv_mat_piecewise_constant
+from .convolution_matrix import to_conv_mat_discrete, put_permittivity_in_ucell, read_material_table, \
+    to_conv_mat_continuous
 from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot
 
 
@@ -31,7 +31,8 @@ class RCWAJax(_BaseRCWA):
                  perturbation=1E-10,
                  device='cpu',
                  type_complex=jnp.complex128,
-                 fft_type='default',
+                 fft_type=0,
+                 improve_dft=True,
                  ):
 
         super().__init__(grating_type=grating_type, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi, pol=pol,
@@ -44,6 +45,7 @@ class RCWAJax(_BaseRCWA):
         self.device = device
         self.type_complex = type_complex
         self.fft_type = fft_type
+        self.improve_dft = improve_dft
 
         self.mat_table = read_material_table(type_complex=self.type_complex)
         self.layer_info_list = []
@@ -70,7 +72,7 @@ class RCWAJax(_BaseRCWA):
     def _tree_unflatten(cls, aux_data, children):
         return cls(*children, **aux_data)
 
-    # @jax.jit
+    @jax.jit
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
         self.kx_vector = self.get_kx_vector(wavelength)
 
@@ -87,27 +89,27 @@ class RCWAJax(_BaseRCWA):
 
     @jax.jit
     def conv_solve(self, ucell):
-        E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
-        o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        E_conv_all = to_conv_mat_discrete(ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+        o_E_conv_all = to_conv_mat_discrete(1 / ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
         de_ri, de_ti, layer_info_list, T1, kx_vector = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
         return de_ri, de_ti
 
     @jax.jit
     def conv_solve_spectrum(self, ucell):
-        E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
-        o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        E_conv_all = to_conv_mat_discrete(ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+        o_E_conv_all = to_conv_mat_discrete(1 / ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
         de_ri, de_ti, layer_info_list, T1, kx_vector = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
         return de_ri, de_ti
 
     def run_ucell(self):
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
                                           type_complex=self.type_complex)
-        if self.fft_type == 'default':
-            E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
-            o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
-        elif self.fft_type == 'piecewise':
-            E_conv_all = to_conv_mat_piecewise_constant(ucell, self.fourier_order, type_complex=self.type_complex)
-            o_E_conv_all = to_conv_mat_piecewise_constant(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        if self.fft_type == 0:
+            E_conv_all = to_conv_mat_discrete(ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+            o_E_conv_all = to_conv_mat_discrete(1 / ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+        elif self.fft_type == 1:
+            E_conv_all = to_conv_mat_continuous(ucell, self.fourier_order, type_complex=self.type_complex)
+            o_E_conv_all = to_conv_mat_continuous(1 / ucell, self.fourier_order, type_complex=self.type_complex)
         else:
             raise ValueError
 

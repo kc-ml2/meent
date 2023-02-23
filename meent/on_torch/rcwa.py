@@ -3,8 +3,8 @@ import numpy as np
 import torch
 
 from ._base import _BaseRCWA
-from .convolution_matrix import to_conv_mat, put_permittivity_in_ucell, read_material_table, \
-    to_conv_mat_piecewise_constant
+from .convolution_matrix import to_conv_mat_discrete, put_permittivity_in_ucell, read_material_table, \
+    to_conv_mat_continuous
 from .field_distribution import field_dist_1d, field_dist_2d, field_plot, field_dist_1d_conical
 
 
@@ -28,7 +28,8 @@ class RCWATorch(_BaseRCWA):
                  perturbation=1E-10,
                  device='cpu',
                  type_complex=torch.complex128,
-                 fft_type='default',
+                 fft_type=0,
+                 improve_dft=True,
                  ):
 
         super().__init__(grating_type=grating_type, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi, pol=pol,
@@ -40,6 +41,7 @@ class RCWATorch(_BaseRCWA):
         self.device = device
         self.type_complex = type_complex
         self.fft_type = fft_type
+        self.improve_dft = improve_dft
 
         self.mat_table = read_material_table(type_complex=self.type_complex)
         self.layer_info_list = []
@@ -61,12 +63,12 @@ class RCWATorch(_BaseRCWA):
     def run_ucell(self):
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
                                           self.device, type_complex=self.type_complex)
-        if self.fft_type == 'default':
-            E_conv_all = to_conv_mat(ucell, self.fourier_order, type_complex=self.type_complex)
-            o_E_conv_all = to_conv_mat(1 / ucell, self.fourier_order, type_complex=self.type_complex)
-        elif self.fft_type == 'piecewise':
-            E_conv_all = to_conv_mat_piecewise_constant(ucell, self.fourier_order, type_complex=self.type_complex)
-            o_E_conv_all = to_conv_mat_piecewise_constant(1 / ucell, self.fourier_order, type_complex=self.type_complex)
+        if self.fft_type == 0:
+            E_conv_all = to_conv_mat_discrete(ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+            o_E_conv_all = to_conv_mat_discrete(1 / ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+        elif self.fft_type == 1:
+            E_conv_all = to_conv_mat_continuous(ucell, self.fourier_order, type_complex=self.type_complex)
+            o_E_conv_all = to_conv_mat_continuous(1 / ucell, self.fourier_order, type_complex=self.type_complex)
         else:
             raise ValueError
 

@@ -77,7 +77,7 @@ def run_test(grating_type, mode_key, dtype, device):
     AA = meent.call_solver(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                            psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                            ucell_materials=ucell_materials,
-                           thickness=thickness, device=device, type_complex=type_complex, fft_type='piecewise')
+                           thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
 
     for i in range(n_iter):
         t0 = time.time()
@@ -88,7 +88,11 @@ def run_test(grating_type, mode_key, dtype, device):
         t0 = time.time()
         AA.calculate_field(resolution=resolution, plot=False)
         print(f'cal_field: {i}', time.time() - t0)
-    print(de_ri[9:12, 9:12])
+
+    try:
+        print(de_ri[9:12, 9:12])
+    except:
+        print(de_ri[9:12])
 
     return de_ri, de_ti
 
@@ -139,4 +143,4 @@ def load_ucell(grating_type):
 
 
 if __name__ == '__main__':
-    run_loop([2], [0, 1, 2], [0], [0])
+    run_loop([0, 1, 2], [0, 1, 2], [0], [0])

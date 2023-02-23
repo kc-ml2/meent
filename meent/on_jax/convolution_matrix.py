@@ -10,7 +10,7 @@ from pathlib import Path
 from scipy.io import loadmat
 
 
-def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.complex128):  # TODO: other backends
+def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=jnp.complex128):
     res = jnp.zeros(ucell.shape, dtype=type_complex)
     ucell_mask = jnp.array(ucell, dtype=type_complex)
     for i_mat, material in enumerate(mat_list):
@@ -203,7 +203,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=jnp.complex128):
     return f_coeffs_xy.T
 
 
-def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex128, device=None):
+def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=jnp.complex128):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -247,8 +247,8 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=jnp.complex1
     return res
 
 
-@partial(jax.jit, static_argnums=(1,2,3))
-def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128, device=None):
+@partial(jax.jit, static_argnums=(1, 2, 3, 4))
+def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=jnp.complex128, improve_dft=True):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -257,16 +257,13 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128, device=None):
 
     if pmt.shape[1] == 1:  # 1D
         res = jnp.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
-
-        # extend array for FFT
-        # minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
-        minimum_pattern_size = 2 * ff
-
-        if pmt.shape[2] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[2]
-            pmt = np.repeat(pmt, n+1, axis=2)
+        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
 
         for i, layer in enumerate(pmt):
+            if improve_dft and layer.shape[1] < minimum_pattern_size:  # extend array
+                n = minimum_pattern_size // layer.shape[1]
+                layer = np.repeat(layer, n + 1, axis=1)
+
             f_coeffs = jnp.fft.fftshift(jnp.fft.fft(layer / layer.size))
             center = f_coeffs.shape[1] // 2
 
@@ -278,17 +275,19 @@ def to_conv_mat(pmt, fourier_order, type_complex=jnp.complex128, device=None):
     else:  # 2D
         # attention on the order of axis (Z Y X)
         res = jnp.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
-
-        # extend array
-        minimum_pattern_size = 2 * ff
-        if pmt.shape[1] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[1]
-            pmt = jnp.repeat(pmt, n+1, axis=1)
-        if pmt.shape[2] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[2]
-            pmt = np.repeat(pmt, n+1, axis=2)
+        minimum_pattern_size_1 = 2 * ff * pmt.shape[1]
+        minimum_pattern_size_2 = 2 * ff * pmt.shape[2]
+        # 9 * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
 
         for i, layer in enumerate(pmt):
+            if improve_dft:  # extend array
+                if layer.shape[0] < minimum_pattern_size_1:
+                    n = minimum_pattern_size_1 // layer.shape[0]
+                    layer = jnp.repeat(layer, n + 1, axis=0)
+                if layer.shape[1] < minimum_pattern_size_2:
+                    n = minimum_pattern_size_2 // layer.shape[1]
+                    layer = jnp.repeat(layer, n + 1, axis=1)
+
             f_coeffs = jnp.fft.fftshift(jnp.fft.fft2(layer / layer.size))
             center = jnp.array(f_coeffs.shape) // 2
 

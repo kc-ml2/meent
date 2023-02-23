@@ -189,7 +189,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     return f_coeffs_xy.T
 
 
-def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=np.complex128, device=None):
+def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.complex128):
     # TODO: do conv and 1/conv in simultaneously?
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -245,7 +245,7 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, type_complex=np.complex12
     return res
 
 
-def to_conv_mat(pmt, fourier_order, type_complex=np.complex128, device=None):
+def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.complex128, improve_dft=True):
     # TODO: large minimum size shows good convergence to piecewise_constant method. Add an option?
 
     if len(pmt.shape) == 2:
@@ -255,14 +255,13 @@ def to_conv_mat(pmt, fourier_order, type_complex=np.complex128, device=None):
 
     if pmt.shape[1] == 1:  # 1D
         res = np.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
-
-        # extend array
-        minimum_pattern_size = 2 * ff
-        if pmt.shape[2] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[2]
-            pmt = np.repeat(pmt, n+1, axis=2)
+        minimum_pattern_size = 2 * ff * pmt.shape[2]
 
         for i, layer in enumerate(pmt):
+            if improve_dft and layer.shape[1] < minimum_pattern_size:  # extend array
+                n = minimum_pattern_size // layer.shape[1]
+                layer = np.repeat(layer, n + 1, axis=1)
+
             f_coeffs = np.fft.fftshift(np.fft.fftn(layer / layer.size))
             # FFT scaling:
             # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
@@ -278,18 +277,18 @@ def to_conv_mat(pmt, fourier_order, type_complex=np.complex128, device=None):
         # attention on the order of axis (Z Y X)
         # TODO: separate fourier order
         res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
-
-        # extend array
-        minimum_pattern_size = 2 * ff
-
-        if pmt.shape[1] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[1]
-            pmt = np.repeat(pmt, n+1, axis=1)
-        if pmt.shape[2] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[2]
-            pmt = np.repeat(pmt, n+1, axis=2)
+        minimum_pattern_size = 2 * ff * np.array(pmt.shape[1:])
+        # 9 * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
 
         for i, layer in enumerate(pmt):
+            if improve_dft:  # extend array
+                if layer.shape[0] < minimum_pattern_size[0]:
+                    n = minimum_pattern_size[0] // layer.shape[0]
+                    layer = np.repeat(layer, n + 1, axis=0)
+                if layer.shape[1] < minimum_pattern_size[1]:
+                    n = minimum_pattern_size[1] // layer.shape[1]
+                    layer = np.repeat(layer, n + 1, axis=1)
+
             f_coeffs = np.fft.fftshift(np.fft.fft2(layer / layer.size))
             center = np.array(f_coeffs.shape) // 2
 
@@ -299,7 +298,8 @@ def to_conv_mat(pmt, fourier_order, type_complex=np.complex128, device=None):
             conv_i = np.repeat(conv_idx, ff, axis=1)
             conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
             conv_j = np.tile(conv_idx, (ff, ff))
-            res[i] = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            res[i] =e_conv
 
     # import matplotlib.pyplot as plt
     #

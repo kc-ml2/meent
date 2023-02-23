@@ -6,7 +6,7 @@ from scipy.io import loadmat
 from pathlib import Path
 
 
-def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device=torch.device('cpu'), type_complex=torch.complex128):  # TODO: other backends
+def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, device=torch.device('cpu'), type_complex=torch.complex128):
     res = torch.zeros(ucell.shape, device=device, dtype=type_complex)
     ucell_mask = torch.tensor(ucell, device=device, dtype=type_complex)
     for i_mat, material in enumerate(mat_list):
@@ -185,7 +185,7 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
     return f_coeffs_xy.T
 
 
-def to_conv_mat_piecewise_constant(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
+def to_conv_mat_continuous(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -229,7 +229,7 @@ def to_conv_mat_piecewise_constant(pmt, fourier_order, device=torch.device('cpu'
     return res
 
 
-def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
+def to_conv_mat_discrete(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128, improve_dft=True):
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -238,14 +238,13 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
 
     if pmt.shape[1] == 1:  # 1D
         res = torch.zeros((pmt.shape[0], ff, ff), device=device).type(type_complex)
-
-        # extend array for FFT
-        minimum_pattern_size = 2 * ff
-        if pmt.shape[2] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[2]
-            pmt = pmt.repeat_interleave(n+1, dim=2)
+        minimum_pattern_size = 2 * ff * pmt.shape[2]
 
         for i, layer in enumerate(pmt):
+            if improve_dft and layer.shape[1] < minimum_pattern_size:  # extend array for FFT
+                n = minimum_pattern_size // layer.shape[1]
+                layer = layer.repeat_interleave(n + 1, axis=1)
+
             f_coeffs = torch.fft.fftshift(torch.fft.fftn(layer / (layer.size(0)*layer.size(1))))
             center = f_coeffs.shape[1] // 2
 
@@ -256,17 +255,17 @@ def to_conv_mat(pmt, fourier_order, device=torch.device('cpu'), type_complex=tor
 
     else:  # 2D
         res = torch.zeros((pmt.shape[0], ff ** 2, ff ** 2), device=device).type(type_complex)
-
-        # extend array
-        minimum_pattern_size = 2 * ff
-        if pmt.shape[1] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[1]
-            pmt = pmt.repeat_interleave(n+1, dim=1)
-        if pmt.shape[2] < minimum_pattern_size:
-            n = minimum_pattern_size // pmt.shape[2]
-            pmt = pmt.repeat_interleave(n+1, dim=2)
-
+        minimum_pattern_size = 2 * ff * torch.tensor(pmt.shape[1:])
+        # 9 * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
         for i, layer in enumerate(pmt):
+            if improve_dft:  # extend array
+                if layer.shape[0] < minimum_pattern_size[0]:
+                    n = torch.div(minimum_pattern_size[0], layer.shape[0], rounding_mode='trunc')
+                    layer = layer.repeat_interleave(n + 1, axis=0)
+                if layer.shape[1] < minimum_pattern_size[1]:
+                    n = torch.div(minimum_pattern_size[1], layer.shape[1], rounding_mode='trunc')
+                    layer = layer.repeat_interleave(n + 1, axis=1)
+
             f_coeffs = torch.fft.fftshift(torch.fft.fft2(layer / (layer.size(0)*layer.size(1))))
             center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
 

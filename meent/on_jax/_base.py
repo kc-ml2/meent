@@ -30,10 +30,6 @@ class _BaseRCWA:
         self.n_I = n_I
         self.n_II = n_II
 
-        # self.theta = theta * jnp.pi / 180
-        # self.phi = phi * jnp.pi / 180
-        # self.psi = psi * jnp.pi / 180  # TODO: integrate psi and pol
-
         # degree to radian due to JAX JIT
         self.theta = theta
         self.phi = phi
