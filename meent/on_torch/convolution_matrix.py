@@ -238,12 +238,13 @@ def to_conv_mat_discrete(pmt, fourier_order, device=torch.device('cpu'), type_co
 
     if pmt.shape[1] == 1:  # 1D
         res = torch.zeros((pmt.shape[0], ff, ff), device=device).type(type_complex)
-        minimum_pattern_size = 2 * ff * pmt.shape[2]
-
+        if improve_dft:
+            minimum_pattern_size = 2 * ff * pmt.shape[2]
+        else:
+            minimum_pattern_size = 2 * ff
         for i, layer in enumerate(pmt):
-            if improve_dft and layer.shape[1] < minimum_pattern_size:  # extend array for FFT
-                n = minimum_pattern_size // layer.shape[1]
-                layer = layer.repeat_interleave(n + 1, axis=1)
+            n = minimum_pattern_size // layer.shape[1]
+            layer = layer.repeat_interleave(n + 1, axis=1)
 
             f_coeffs = torch.fft.fftshift(torch.fft.fftn(layer / (layer.size(0)*layer.size(1))))
             center = f_coeffs.shape[1] // 2
@@ -255,16 +256,20 @@ def to_conv_mat_discrete(pmt, fourier_order, device=torch.device('cpu'), type_co
 
     else:  # 2D
         res = torch.zeros((pmt.shape[0], ff ** 2, ff ** 2), device=device).type(type_complex)
-        minimum_pattern_size = 2 * ff * torch.tensor(pmt.shape[1:])
+        if improve_dft:
+            minimum_pattern_size_1 = 2 * ff * pmt.shape[1]
+            minimum_pattern_size_2 = 2 * ff * pmt.shape[2]
+        else:
+            minimum_pattern_size_1 = 2 * ff
+            minimum_pattern_size_2 = 2 * ff
         # 9 * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
         for i, layer in enumerate(pmt):
-            if improve_dft:  # extend array
-                if layer.shape[0] < minimum_pattern_size[0]:
-                    n = torch.div(minimum_pattern_size[0], layer.shape[0], rounding_mode='trunc')
-                    layer = layer.repeat_interleave(n + 1, axis=0)
-                if layer.shape[1] < minimum_pattern_size[1]:
-                    n = torch.div(minimum_pattern_size[1], layer.shape[1], rounding_mode='trunc')
-                    layer = layer.repeat_interleave(n + 1, axis=1)
+            if layer.shape[0] < minimum_pattern_size_1:
+                n = torch.div(minimum_pattern_size_1, layer.shape[0], rounding_mode='trunc')
+                layer = layer.repeat_interleave(n + 1, axis=0)
+            if layer.shape[1] < minimum_pattern_size_2:
+                n = torch.div(minimum_pattern_size_2, layer.shape[1], rounding_mode='trunc')
+                layer = layer.repeat_interleave(n + 1, axis=1)
 
             f_coeffs = torch.fft.fftshift(torch.fft.fft2(layer / (layer.size(0)*layer.size(1))))
             center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
