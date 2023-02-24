@@ -257,14 +257,19 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=jnp.compl
 
     if pmt.shape[1] == 1:  # 1D
         res = jnp.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
-        minimum_pattern_size = (4 * fourier_order + 1) * pmt.shape[2]
+        if improve_dft:
+            minimum_pattern_size = 2 * ff * pmt.shape[2]
+        else:
+            minimum_pattern_size = 2 * ff
 
         for i, layer in enumerate(pmt):
-            if improve_dft and layer.shape[1] < minimum_pattern_size:  # extend array
-                n = minimum_pattern_size // layer.shape[1]
-                layer = np.repeat(layer, n + 1, axis=1)
+            n = minimum_pattern_size // layer.shape[1]
+            layer = np.repeat(layer, n + 1, axis=1)
 
             f_coeffs = jnp.fft.fftshift(jnp.fft.fft(layer / layer.size))
+            # FFT scaling:
+            # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
+
             center = f_coeffs.shape[1] // 2
 
             conv_idx = jnp.arange(-ff + 1, ff, 1)
@@ -275,18 +280,21 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=jnp.compl
     else:  # 2D
         # attention on the order of axis (Z Y X)
         res = jnp.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
-        minimum_pattern_size_1 = 2 * ff * pmt.shape[1]
-        minimum_pattern_size_2 = 2 * ff * pmt.shape[2]
+        if improve_dft:
+            minimum_pattern_size_1 = 2 * ff * pmt.shape[1]
+            minimum_pattern_size_2 = 2 * ff * pmt.shape[2]
+        else:
+            minimum_pattern_size_1 = 2 * ff
+            minimum_pattern_size_2 = 2 * ff
         # 9 * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
 
         for i, layer in enumerate(pmt):
-            if improve_dft:  # extend array
-                if layer.shape[0] < minimum_pattern_size_1:
-                    n = minimum_pattern_size_1 // layer.shape[0]
-                    layer = jnp.repeat(layer, n + 1, axis=0)
-                if layer.shape[1] < minimum_pattern_size_2:
-                    n = minimum_pattern_size_2 // layer.shape[1]
-                    layer = jnp.repeat(layer, n + 1, axis=1)
+            if layer.shape[0] < minimum_pattern_size_1:
+                n = minimum_pattern_size_1 // layer.shape[0]
+                layer = jnp.repeat(layer, n + 1, axis=0)
+            if layer.shape[1] < minimum_pattern_size_2:
+                n = minimum_pattern_size_2 // layer.shape[1]
+                layer = jnp.repeat(layer, n + 1, axis=1)
 
             f_coeffs = jnp.fft.fftshift(jnp.fft.fft2(layer / layer.size))
             center = jnp.array(f_coeffs.shape) // 2

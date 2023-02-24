@@ -128,8 +128,8 @@ def compare_conv_mat_method(mode_key, dtype, device):
                              psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                              ucell_materials=ucell_materials, thickness=thickness, device=device,
                              type_complex=type_complex, )
-        E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex, device=device)
-        o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex, device=device)
+        E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex, device=device, improve_dft=False)
+        o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex, device=device, improve_dft=False)
         de_ri, de_ti, _, _, _ = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
         E_conv_all1 = conv2(ucell, fourier_order, type_complex=type_complex, device=device)
