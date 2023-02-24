@@ -18,11 +18,11 @@ psi = 0 if pol else 90 * np.pi / 180  # in degree, notation from Moharam paper
 wavelength = 900
 
 period = [700, 700]
-fourier_order = 2
+fourier_order = 9
 
 thickness = [100] * 10
 
-ucell_z, ucell_y, ucell_x = 10, 100, 100
+ucell_z, ucell_y, ucell_x = 3, 100, 100
 
 ucell = np.zeros((ucell_z, ucell_y, ucell_x), dtype=int)
 
@@ -58,7 +58,7 @@ solver = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n
                      fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                      ucell_materials=ucell_materials, thickness=thickness)
 
-wavelength_array = np.linspace(500, 1000, 100)
+wavelength_array = np.linspace(500, 1000, 10)
 
 spectrum_r = np.zeros([len(wavelength_array)] + [2 * fourier_order + 1] * (grating_type // 2 + 1))
 spectrum_t = np.zeros([len(wavelength_array)] + [2 * fourier_order + 1] * (grating_type // 2 + 1))

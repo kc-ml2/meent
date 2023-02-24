@@ -12,7 +12,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
 import time
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = '1,2,3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '2,3'
 
 os.environ["MKL_NUM_THREADS"] = "8"  # export MKL_NUM_THREADS=6
 
@@ -21,7 +21,7 @@ os.environ["MKL_NUM_THREADS"] = "8"  # export MKL_NUM_THREADS=6
 # os.environ["VECLIB_MAXIMUM_THREADS"] = "4" # export VECLIB_MAXIMUM_THREADS=4
 # os.environ["NUMEXPR_NUM_THREADS"] = "6" # export NUMEXPR_NUM_THREADS=6
 
-# os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=24'
+os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=6'
 
 
 import numpy as np
@@ -178,12 +178,21 @@ t0 = time.time()
 spectrum_ri_pmap, spectrum_ti_pmap = generate_spectrum()
 print(time.time() - t0)
 
+
+t0 = time.time()
+spectrum_ri_pmap, spectrum_ti_pmap = generate_spectrum()
+print(time.time() - t0)
+
+t0 = time.time()
+spectrum_ri_single, spectrum_ti_single = generate_spectrum_pmap()
+print(time.time() - t0)
+
 t0 = time.time()
 spectrum_ri_single, spectrum_ti_single = generate_spectrum_pmap()
 print(time.time() - t0)
 
 
-print('difference de_ri:', np.linalg.norm(spectrum_ri_pmap - spectrum_ri_single))
-print('difference de_ti:', np.linalg.norm(spectrum_ti_pmap - spectrum_ti_single))
+# print('difference de_ri:', np.linalg.norm(spectrum_ri_pmap - spectrum_ri_single))
+# print('difference de_ti:', np.linalg.norm(spectrum_ti_pmap - spectrum_ti_single))
 
 print('End')
