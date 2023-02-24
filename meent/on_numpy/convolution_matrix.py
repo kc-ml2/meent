@@ -166,7 +166,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
     mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
     mask[c] = False
-    f_coeffs_x[:, mask] /= (-1j * 2 * np.pi * modes[mask])
+    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes[mask])  # TODO: sign difference from formulation
 
     # Y axis
     f_coeffs_x_next_y = np.roll(f_coeffs_x, -1, axis=0)
@@ -184,7 +184,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     if c:
         mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
         mask[c] = False
-        f_coeffs_xy[:, mask] /= (-1j * 2 * np.pi * modes[mask])
+        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])  # TODO: sign difference from formulation
 
     return f_coeffs_xy.T
 
@@ -299,7 +299,7 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.comple
             conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
             conv_j = np.tile(conv_idx, (ff, ff))
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            res[i] =e_conv
+            res[i] = e_conv
 
     # import matplotlib.pyplot as plt
     #
