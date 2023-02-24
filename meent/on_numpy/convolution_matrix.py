@@ -299,7 +299,7 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.comple
             conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
             conv_j = np.tile(conv_idx, (ff, ff))
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            res[i] =e_conv
+            res[i] = e_conv
 
     # import matplotlib.pyplot as plt
     #
