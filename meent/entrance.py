@@ -12,14 +12,14 @@ def call_solver(mode=0, *args, **kwargs):
 
     """
     if mode == 0:
-        from .on_numpy.rcwa import RCWANumpy
+        from .on_numpy.emsolver.rcwa import RCWANumpy
         RCWA = RCWANumpy(mode=mode, *args, **kwargs)
     elif mode == 1:
         from .on_jax.rcwa import RCWAJax
         RCWA = RCWAJax(mode=mode, *args, **kwargs)
 
     elif mode == 2:
-        from .on_torch.rcwa import RCWATorch
+        from .on_torch.emsolver.rcwa import RCWATorch
         RCWA = RCWATorch(mode=mode, *args, **kwargs)
     else:
         raise ValueError
@@ -27,19 +27,34 @@ def call_solver(mode=0, *args, **kwargs):
     return RCWA
 
 
+def call_optimizer(mode=1, *args, **kwargs):
+
+    if mode == 0:
+        print('NumPy is not supported for optimization')
+        raise ValueError
+    elif mode == 1:
+        pass
+    elif mode == 2:
+        from .on_torch.optimizer.optimizer import OptimizerTorch
+        yongha = OptimizerTorch(mode=mode, *args, **kwargs)
+    else:
+        raise ValueError
+
+    return yongha
+
 # def sweep_wavelength(wavelength_array, mode=0, *args, **kwargs):
 #     # wavelength = np.linspace(500, 1000, 10)
 #     # spectrum_r = []
 #     # spectrum_t = []
 #     spectrum_r = np.zeros(wavelength_array.shape[0])
 #     spectrum_t = np.zeros(wavelength_array.shape[0])
-#     solver = call_solver(mode, *args, **kwargs)
-#     spectrum_r, spectrum_t = init_spectrum_array(solver.grating_type, wavelength_array, solver.fourier_order)
+#     emsolver = call_solver(mode, *args, **kwargs)
+#     spectrum_r, spectrum_t = init_spectrum_array(emsolver.grating_type, wavelength_array, emsolver.fourier_order)
 #
 #     for i, wavelength in enumerate(wavelength_array):
 #
-#         solver.wavelength = np.array([wavelength])
-#         de_ri, de_ti = solver.run_ucell()
+#         emsolver.wavelength = np.array([wavelength])
+#         de_ri, de_ti = emsolver.run_ucell()
 #         # spectrum_r.append(de_ri)
 #         # spectrum_t.append(de_ti)
 #         spectrum_r[i] = de_ri
@@ -47,8 +62,8 @@ def call_solver(mode=0, *args, **kwargs):
 #
 #     # for i, wavelength in enumerate(wavelength):
 #     #     wavelength = np.array([wavelength])
-#     #     solver = call_solver(wavelength=wavelength, *args, **kwargs)
-#     #     de_ri, de_ti = solver.run_ucell()
+#     #     emsolver = call_solver(wavelength=wavelength, *args, **kwargs)
+#     #     de_ri, de_ti = emsolver.run_ucell()
 #     #     spectrum_r.append(de_ri)
 #     #     spectrum_t.append(de_ti)
 #     #     # spectrum_r[i] = de_ri

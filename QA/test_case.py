@@ -1,6 +1,6 @@
 import numpy as np
 
-from meent.rcwa import call_solver
+from meent.entrance import call_solver
 
 
 def test():

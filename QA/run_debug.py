@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from meent.rcwa import RCWA
+from meent.entrance import RCWA
 
 
 def run_debug_cases(n_I, n_II, theta, phi, grating_type, pol):
