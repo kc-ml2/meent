@@ -15,7 +15,7 @@ def call_solver(mode=0, *args, **kwargs):
         from .on_numpy.emsolver.rcwa import RCWANumpy
         RCWA = RCWANumpy(mode=mode, *args, **kwargs)
     elif mode == 1:
-        from .on_jax.rcwa import RCWAJax
+        from .on_jax.emsolver.rcwa import RCWAJax
         RCWA = RCWAJax(mode=mode, *args, **kwargs)
 
     elif mode == 2:

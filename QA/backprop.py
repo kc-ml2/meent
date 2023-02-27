@@ -101,7 +101,7 @@ def load_setting(mode_key, dtype, device):
 
 
 def optimize_jax_ucell_metasurface(mode_key, dtype, device):
-    from meent.on_jax.convolution_matrix import to_conv_mat_discrete
+    from meent.on_jax.emsolver.convolution_matrix import to_conv_mat_discrete
 
     grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
     type_complex, device, ucell = load_setting(mode_key, dtype, device)

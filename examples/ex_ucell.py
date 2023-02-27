@@ -74,7 +74,7 @@ def run_test(grating_type, mode_key, dtype, device):
         else:
             type_complex = torch.complex64
 
-    AA = meent.entrance.call_solver(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+    AA = meent.call_solver(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                            psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                            ucell_materials=ucell_materials,
                            thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
@@ -143,4 +143,4 @@ def load_ucell(grating_type):
 
 
 if __name__ == '__main__':
-    run_loop([0, 1, 2], [2], [0], [0])
+    run_loop([0, 1, 2], [0, 1, 2], [0], [0])
