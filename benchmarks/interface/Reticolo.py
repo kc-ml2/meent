@@ -2,31 +2,27 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from meent.on_numpy.convolution_matrix import find_nk_index
-
-try:
-    import matlab.engine
-except:
-    pass
+from meent.on_numpy.emsolver.convolution_matrix import find_nk_index
 
 os.environ['OCTAVE_EXECUTABLE'] = '/opt/homebrew/bin/octave-cli'
-from oct2py import octave
-
-from meent.on_numpy._base import Base
 
 
-class Reticolo(Base):
+class Reticolo:
 
-    def __init__(self, grating_type=0,
-                 n_I=1., n_II=1.45, theta=0., phi=0., fourier_order=40, period=(100,),
-                 wavelength=np.linspace(900, 900, 1), pol=1,
-                 textures=None, profile=None, thickness=None, deflected_angle=None,
-                 engine_type='octave'):
-        super().__init__(grating_type)
+    def __init__(self, engine_type='octave', *args, **kwargs):
 
         if engine_type == 'octave':
+            try:
+                from oct2py import octave
+            except Exception as e:
+                raise e
             self.eng = octave
+
         elif engine_type == 'matlab':
+            try:
+                import matlab.engine
+            except Exception as e:
+                raise e
             self.eng = matlab.engine.start_matlab()
         else:
             raise ValueError
@@ -35,36 +31,70 @@ class Reticolo(Base):
         m_path = os.path.dirname(__file__)
         self.eng.addpath(self.eng.genpath(m_path))
 
-        self.grating_type = grating_type
-        self.n_I = n_I
-        self.n_II = n_II
+    def run(self, period, fourier_order, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II, *args, **kwargs):
+        if grating_type in (0, 1):
+            period = period[0]
 
-        self.theta = theta * np.pi / 180
-        self.phi = phi * np.pi / 180
-        self.pol = pol  # TE 0, TM 1
+            fourier_order = fourier_order
+            Nx = ucell.shape[2]
+            period_x = period
+            grid_x = np.linspace(0, period, Nx + 1)[1:]
+            grid_x -= period_x / 2
 
-        self.fourier_order = fourier_order
-        self.ff = 2 * self.fourier_order + 1
+            # grid = np.linspace(0, period, Nx)
 
-        self.period = period
-        self.thickness = thickness
+            ucell_new = []
+            for z in range(ucell.shape[0]):
+                ucell_layer = [grid_x, ucell[z, 0]]
+                ucell_new.append(ucell_layer)
 
-        self.wavelength = wavelength
-        self.textures = textures
-        self.profile = profile
-        self.deflected_angle = deflected_angle
+            textures = [n_I, *ucell_new, n_II]
 
-        self.init_spectrum_array()
+        else:
+            fourier_order = [fourier_order, fourier_order]
 
-    def run(self):
+            Nx = ucell.shape[2]
+            Ny = ucell.shape[1]
+            period_x = period[0]
+            period_y = period[1]
 
-        for i, wl in enumerate(self.wavelength):
-            de_ri, de_ti = self.eng.run_reticolo(self.pol, self.theta, self.period, self.n_I, self.fourier_order,
-                                                 self.textures, self.profile, wl, nout=2)
+            unit_x = period_x / Nx
+            unit_y = period_y / Ny
 
-            self.save_spectrum_array(de_ri, de_ti, i)
+            grid_x = np.linspace(0, period[0], Nx + 1)[1:]
+            grid_y = np.linspace(0, period[1], Ny + 1)[1:]
 
-        return self.spectrum_r, self.spectrum_t
+            grid_x -= period_x / 2
+            grid_y -= period_y / 2
+
+            ucell_new = []
+            for z in range(ucell.shape[0]):
+                ucell_layer = [1]
+                for y, yval in enumerate(grid_y):
+                    for x, xval in enumerate(grid_x):
+                        obj = [xval, yval, unit_x, unit_y, ucell[z, y, x], 1]
+                        ucell_layer.append(obj)
+                ucell_new.append(ucell_layer)
+            textures = [n_I, *ucell_new, n_II]
+
+        profile = np.array([[0, *thickness, 0], range(1, len(thickness) + 3)])
+
+        # theta = theta * 180 / np.pi
+        # phi = phi * 180 / np.pi
+
+        top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info =\
+            self._run(pol, theta, phi, period, n_I, fourier_order, textures, profile, wavelength, grating_type,)
+
+        return top_refl_info.efficiency, top_tran_info.efficiency, bottom_refl_info.efficiency, bottom_tran_info.efficiency
+
+    def _run(self, pol, theta, phi, period, n_I, fourier_order,
+                                  textures, profile, wavelength, grating_type):
+
+        top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info =\
+            self.eng.run_reticolo(pol, theta, phi, period, n_I, fourier_order,
+                                  textures, profile, wavelength, grating_type, nout=4)
+
+        return top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info
 
     def run_acs(self, pattern, n_si='SILICON'):
         if type(n_si) == str and n_si.upper() == 'SILICON':
@@ -76,55 +106,65 @@ class Reticolo(Base):
 
         return abseff, effi_r, effi_t
 
-    def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None, n_si='SILICON'):
-        if wls is None:
-            wls = self.wavelength
-        else:
-            self.wavelength = wls
-
-        if type(n_si) == str and n_si.upper() == 'SILICON':
-            n_si = find_nk_index(n_si, self.mat_table, self.wavelength)
-
-        self.init_spectrum_array()
-
-        for i, wl in enumerate(wls):
-            _, de_ri, de_ti = self.eng.Eval_Eff_1D(pattern, wl, deflected_angle, self.fourier_order,
-                                                   self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
-            self.save_spectrum_array(de_ri.flatten(), de_ti.flatten(), i)
-
-        return self.spectrum_r, self.spectrum_t
+    # def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None, n_si='SILICON'):
+    #     if wls is None:
+    #         wls = self.wavelength
+    #     else:
+    #         self.wavelength = wls
+    #
+    #     if type(n_si) == str and n_si.upper() == 'SILICON':
+    #         n_si = find_nk_index(n_si, self.mat_table, self.wavelength)
+    #
+    #     self.init_spectrum_array()
+    #
+    #     for i, wl in enumerate(wls):
+    #         _, de_ri, de_ti = self.eng.Eval_Eff_1D(pattern, wl, deflected_angle, self.fourier_order,
+    #                                                self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
+    #         self.save_spectrum_array(de_ri.flatten(), de_ti.flatten(), i)
+    #
+    #     return self.spectrum_r, self.spectrum_t
 
 
 if __name__ == '__main__':
-    Nx = 1001
-    Ny = 1001
+    from meent.testcase import load_setting
+    mode = 0
+    dtype = 0
+    device = 0
+    grating_type = 1
 
-    n_I = 1.45
-    n_si = 3.48
-    n_II = 1
-    theta = 0
-    phi = 0
-    fourier_order = 40
+    pre = load_setting(mode, dtype, device, grating_type)
 
-    period = 700
-    wavelength = np.linspace(500, 2300, 100)
-    pol = 1
+    reti = Reticolo()
 
-    thickness = 1120
-    # eps for patterned layer
-    pattern = np.ones(Nx, dtype=float)
-    grid = np.linspace(0, period, 1001)
-    pattern[:300] = n_si
+    a,b,c,d=reti.run(**pre)
 
-    textures = [1, [grid, pattern], 1]
+    print(a.flatten()[::-1])
+    print(b.flatten()[::-1])
+    # print(c)
+    # print(d)
 
-    profile = np.array([[0, thickness, 0], [1, 2, 3]])
+    from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
 
-    AA = Reticolo(grating_type=0,
-                  n_I=n_I, n_II=n_II, theta=theta, phi=phi, fourier_order=fourier_order, period=period,
-                  wavelength=wavelength, pol=pol,
-                  textures=textures, profile=profile,
-                  engine_type='octave')
+    import meent
+    pre = load_setting(mode, dtype, device, grating_type)
 
-    refl, tran = AA.run()
-    AA.plot()
+    solver = meent.call_solver(mode=0, **pre)
+    solver.ucell = solver.ucell ** 2
+
+    E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
+    o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
+    # E_conv_all = to_conv_mat_discrete(solver.ucell, solver.fourier_order)
+    # o_E_conv_all = to_conv_mat_discrete(1 / solver.ucell, solver.fourier_order)
+
+    de_ri, de_ti, _, _, _ = solver.solve(solver.wavelength, E_conv_all, o_E_conv_all)
+    c = de_ri.shape[0]//2
+    try:
+        print(de_ri[c-1:c+2,c-1:c+2])
+        print(de_ti[c-1:c+2,c-1:c+2])
+    except:
+        # print(de_ri[c-1:c+2])
+        # print(de_ti[c-1:c+2])
+        print(de_ri)
+        print(de_ti)
+
+    print(a.sum()+b.sum(),de_ri.sum()+de_ti.sum())

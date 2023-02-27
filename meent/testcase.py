@@ -1,3 +1,4 @@
+import inspect
 import jax
 import torch
 
@@ -5,59 +6,82 @@ import jax.numpy as jnp
 import numpy as np
 
 
-def load_setting(mode_key, dtype, device):
-    grating_type = 2
+def load_setting(mode, dtype, device, grating_type):
 
     pol = 1  # 0: TE, 1: TM
 
     n_I = 1  # n_incidence
     n_II = 1  # n_transmission
 
-    theta = 0 * np.pi / 180
-    phi = 0 * np.pi / 180
+    theta = 20 * np.pi / 180
+    phi = 40 * np.pi / 180
     psi = 0 * np.pi / 180 if pol else 90 * np.pi / 180
 
     wavelength = 900
 
     ucell_materials = [1, 3.48]
     fourier_order = 2
-
-    period = [1000, 1000]
     thickness = [1120., 400, 300]
-    ucell = np.array(
-        [
-            [
-                [3.1, 1.1, 1.2, 1.6, 3.1],
-                [3.5, 1.4, 1.1, 1.2, 3.6],
-            ],
-            [
-                [3.5, 1.2, 1.5, 1.2, 3.3],
-                [3.1, 1.5, 1.5, 1.4, 3.1],
-            ],
-            [
-                [3.5, 1.2, 1.5, 1.2, 3.3],
-                [3.1, 1.5, 1.5, 1.4, 3.1],
-            ],
-        ]
-    )
+    # thickness = [150., ]
 
-    # thickness, period = [1120.], [1000, 1000]
-    #
-    # ucell = np.array(
-    #     [
-    #         [
-    #             [3.5, 1.2, 1.5, 1.2, 3.3],
-    #             [3.1, 1.5, 1.5, 1.4, 3.1],
-    #         ],
-    #     ]
-    # )
+    if grating_type in (0, 1):
+        period = [1000]
+        ucell = np.array(
+            [
+                [
+                    [3.1, 1.1, 1.2, 1.6, 3.1],
+                ],
+                [
+                    [3.5, 1.2, 1.5, 1.2, 3.3],
+                ],
+                [
+                    [3.1, 1.5, 1.5, 1.4, 3.1],
+                ],
+            ]
+        )
 
-    if mode_key == 0:
+    else:
+        period = [1000, 1000]
+        ucell = np.array(
+            [
+                # [
+                #     [1, 2, 3, 4, 5],
+                #     [6, 7, 8, 9, 10],
+                # ],
+                [
+                    [3.5, 1.2, 1.5, 1.2, 3.3],
+                    [3.1, 1.5, 1.5, 1.4, 3.1],
+                ],
+                # [
+                #     [3.5, 1.2, 1.5, 1.2, 3.3],
+                #     [3.1, 1.5, 1.5, 1.4, 3.1],
+                # ],
+            ]
+        )
+        ucell = np.array(
+            [
+                [
+                    [3.1, 1.1, 1.2, 1.6, 3.1],
+                    [3.1, 1.1, 1.5, 1.6, 3.1],
+                ],
+                [
+                    [3.5, 1.2, 1.5, 1.2, 3.3],
+                    [3.5, 1.2, 1.9, 1.2, 3.3],
+                ],
+                [
+                    [3.1, 1.5, 1.5, 1.4, 3.1],
+                    [3.1, 1.5, 1.5, 1.4, 3.1],
+                ],
+            ]
+        )
+
+    if mode == 0:
         device = 0
         type_complex = np.complex128 if dtype == 0 else np.complex64
         ucell = ucell.astype(type_complex)
+        thickness = np.array(thickness)
 
-    elif mode_key == 1:  # JAX
+    elif mode == 1:  # JAX
         jax.config.update('jax_platform_name', 'cpu') if device == 0 else jax.config.update('jax_platform_name', 'gpu')
 
         thickness = jnp.array(thickness)
@@ -86,9 +110,6 @@ def load_setting(mode_key, dtype, device):
         else:
             ucell = torch.tensor(ucell, dtype=torch.float32, device=device)
 
-    import inspect
-
-    x, y, z = 1, 2, 3
 
     def retrieve_name():
         callers_local_vars = inspect.currentframe().f_back.f_locals.items()
