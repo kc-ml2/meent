@@ -24,7 +24,7 @@ Meent provides Numpy, JAX and PyTorch as a backend.
 
 ```python
 import meent
-from meent.rcwa import call_solver
+from meent.entrance import call_solver
 
 # mode 0 = Numpy
 # mode 1 = JAX

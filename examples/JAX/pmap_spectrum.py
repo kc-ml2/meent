@@ -26,7 +26,7 @@ os.environ["MKL_NUM_THREADS"] = "8"  # export MKL_NUM_THREADS=6
 
 import numpy as np
 
-from meent.rcwa import call_solver
+from meent.entrance import call_solver
 from meent.on_jax.transfer_method import *
 
 
@@ -107,15 +107,15 @@ solver = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n
 #
 # for i, ucell in enumerate(ucell_list[:2]):
 #     t0 = time.time()
-#     de_ri, de_ti = solver.conv_solve(ucell)
+#     de_ri, de_ti = emsolver.conv_solve(ucell)
 #     print(time.time() - t0)
 #
 # t0 = time.time()
-# de_ri, de_ti = solver.run_ucell_pmap(ucell_list)
+# de_ri, de_ti = emsolver.run_ucell_pmap(ucell_list)
 # print(time.time() - t0)
 #
 # t0 = time.time()
-# de_ri, de_ti = solver.run_ucell_pmap(ucell_list)
+# de_ri, de_ti = emsolver.run_ucell_pmap(ucell_list)
 # print(time.time() - t0)
 
 mat_table = read_material_table()

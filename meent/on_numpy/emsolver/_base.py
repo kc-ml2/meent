@@ -1,10 +1,7 @@
-import torch
-
 import numpy as np
 
 from copy import deepcopy
 
-from .primitives import Eig
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
 from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, \
@@ -15,30 +12,25 @@ class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=10,
                  period=(100, 100), wavelength=900,
                  ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
-                 device='cpu', type_complex=torch.complex128):
+                 device='cpu', type_complex=np.complex128):
 
         self.device = device
         self.type_complex = type_complex
 
-        # common
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
         self.n_I = n_I
         self.n_II = n_II
 
-        # self.theta = torch.tensor(theta * np.pi / 180)
-        # self.phi = torch.tensor(phi * np.pi / 180)
-        # self.psi = torch.tensor(psi * np.pi / 180)  # TODO: integrate psi and pol
-
         # degree to radian due to JAX JIT
-        self.theta = torch.tensor(theta)
-        self.phi = torch.tensor(phi)
-        self.psi = torch.tensor(psi)  # TODO: integrate psi and pol
+        self.theta = np.array(theta)
+        self.phi = np.array(phi)
+        self.psi = np.array(psi)  # TODO: integrate psi and pol
 
         self.pol = pol  # TE 0, TM 1
         if self.pol == 0:  # TE
-            self.psi = torch.tensor(np.pi / 2, device=self.device)
+            self.psi = np.pi / 2
         elif self.pol == 1:  # TM
-            self.psi = torch.tensor(0, device=self.device)
+            self.psi = 0
         else:
             print('not implemented yet')
             raise ValueError
@@ -60,20 +52,23 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
+        if self.theta == 0:
+            self.theta = self.perturbation
+
         self.kx_vector = None
 
     def get_kx_vector(self, wavelength):
 
         k0 = 2 * np.pi / wavelength
-        fourier_indices = torch.arange(-self.fourier_order, self.fourier_order + 1, device=self.device)
+        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * torch.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
-                              ).type(self.type_complex)
+            kx_vector = k0 * (self.n_I * np.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
+                              ).astype(self.type_complex)
         else:
-            kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) - fourier_indices * (
-                    wavelength / self.period[0])).type(self.type_complex)
+            kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
+                    wavelength / self.period[0])).astype(self.type_complex)
 
-        kx_vector = torch.where(kx_vector == 0, self.perturbation, kx_vector)
+        # kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector
 
@@ -82,9 +77,9 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        fourier_indices = torch.arange(-self.fourier_order, self.fourier_order + 1, device=self.device)
+        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = torch.zeros(self.ff, device=self.device, dtype=self.type_complex)
+        delta_i0 = np.zeros(self.ff, dtype=self.type_complex)
         delta_i0[self.fourier_order] = 1
 
         k0 = 2 * np.pi / wavelength
@@ -92,8 +87,7 @@ class _BaseRCWA:
         if self.algo == 'TMM':
             kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \
                 = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II, self.kx_vector,
-                                self.theta, delta_i0, self.fourier_order,
-                                device=self.device, type_complex=self.type_complex)
+                                self.theta, delta_i0, self.fourier_order, type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices, self.period,
@@ -113,26 +107,21 @@ class _BaseRCWA:
             if self.pol == 0:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
-                # eigenvalues, W = torch.linalg.eig(A)
-                Eig.broadening_parameter = self.perturbation
-                eigenvalues, W = Eig.apply(A)  # can't control perturbation
-
+                eigenvalues, W = np.linalg.eig(A)
                 q = eigenvalues ** 0.5
 
-                Q = torch.diag(q)
+                Q = np.diag(q)
                 V = W @ Q
 
             elif self.pol == 1:
-                E_conv_i = torch.linalg.inv(E_conv)
-                B = Kx @ E_conv_i @ Kx - torch.eye(E_conv.shape[0], device=self.device, dtype=self.type_complex)
-                o_E_conv_i = torch.linalg.inv(o_E_conv)
+                E_conv_i = np.linalg.inv(E_conv)
+                B = Kx @ E_conv_i @ Kx - np.eye(E_conv.shape[0], dtype=self.type_complex)
+                o_E_conv_i = np.linalg.inv(o_E_conv)
 
-                # eigenvalues, W = torch.linalg.eig(o_E_conv_i @ B)
-                Eig.broadening_parameter = self.perturbation
-                eigenvalues, W = Eig.apply(o_E_conv_i @ B)
+                eigenvalues, W = np.linalg.eig(o_E_conv_i @ B)
                 q = eigenvalues ** 0.5
 
-                Q = torch.diag(q)
+                Q = np.diag(q)
                 V = o_E_conv @ W @ Q
 
             else:
@@ -140,7 +129,7 @@ class _BaseRCWA:
 
             if self.algo == 'TMM':
                 X, f, g, T, a_i, b = transfer_1d_2(k0, q, d, W, V, f, g, self.fourier_order, T,
-                                                   device=self.device, type_complex=self.type_complex)
+                                                   type_complex=self.type_complex)
 
                 layer_info = [E_conv_i, q, W, X, a_i, b, d]
                 self.layer_info_list.append(layer_info)
@@ -168,9 +157,9 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        fourier_indices = torch.arange(-self.fourier_order, self.fourier_order + 1, device=self.device)
+        # fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = torch.zeros(self.ff, device=self.device, dtype=self.type_complex)
+        delta_i0 = np.zeros(self.ff, dtype=self.type_complex)
         delta_i0[self.fourier_order] = 1
 
         k0 = 2 * np.pi / wavelength
@@ -178,7 +167,7 @@ class _BaseRCWA:
         if self.algo == 'TMM':
             Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
                 = transfer_1d_conical_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.theta, self.phi,
-                                        device=self.device, type_complex=self.type_complex)
+                                        type_complex=self.type_complex)
         elif self.algo == 'SMM':
             print('SMM for 1D conical is not implemented')
             return np.nan, np.nan
@@ -194,15 +183,14 @@ class _BaseRCWA:
             o_E_conv = o_E_conv_all[layer_index]
             d = self.thickness[layer_index]
 
-            E_conv_i = torch.linalg.inv(E_conv)
-            o_E_conv_i = torch.linalg.inv(o_E_conv)
+            E_conv_i = np.linalg.inv(E_conv)
+            o_E_conv_i = np.linalg.inv(o_E_conv)
 
             if self.algo == 'TMM':
-                big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2\
+                big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2 \
                     = transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, self.ff, d,
-                                                            varphi, big_F, big_G, big_T,
-                                                            device=self.device, type_complex=self.type_complex)
-
+                                            varphi, big_F, big_G, big_T,
+                                            type_complex=self.type_complex)
                 layer_info = [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d]
                 self.layer_info_list.append(layer_info)
 
@@ -213,8 +201,8 @@ class _BaseRCWA:
 
         if self.algo == 'TMM':
             de_ri, de_ti, big_T1 = transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
-                                                 delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z,
-                                                 device=self.device, type_complex=self.type_complex)
+                                                         delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z,
+                                                         type_complex=self.type_complex)
             self.T1 = big_T1
 
         elif self.algo == 'SMM':
@@ -229,13 +217,13 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        fourier_indices = torch.arange(-self.fourier_order, self.fourier_order + 1, device=self.device)
+        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = torch.zeros((self.ff ** 2, 1), device=self.device, dtype=self.type_complex)
+        delta_i0 = np.zeros((self.ff ** 2, 1), dtype=self.type_complex)
         delta_i0[self.ff ** 2 // 2, 0] = 1
 
-        I = torch.eye(self.ff ** 2, device=self.device, dtype=self.type_complex)
-        O = torch.zeros((self.ff ** 2, self.ff ** 2), device=self.device, dtype=self.type_complex)
+        I = np.eye(self.ff ** 2, dtype=self.type_complex)
+        O = np.zeros((self.ff ** 2, self.ff ** 2), dtype=self.type_complex)
 
         center = self.ff ** 2
 
@@ -244,7 +232,8 @@ class _BaseRCWA:
         if self.algo == 'TMM':
             kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
                 = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.period, fourier_indices,
-                                self.theta, self.phi, wavelength, device=self.device, type_complex=self.type_complex)
+                                self.theta, self.phi, wavelength, type_complex=self.type_complex)
+
         elif self.algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_2d_1(self.n_I, self.n_II, self.theta, self.phi, k0, self.period, self.fourier_order)
@@ -260,30 +249,29 @@ class _BaseRCWA:
             o_E_conv = o_E_conv_all[layer_index]
             d = self.thickness[layer_index]
 
-            E_conv_i = torch.linalg.inv(E_conv)
-            o_E_conv_i = torch.linalg.inv(o_E_conv)
+            E_conv_i = np.linalg.inv(E_conv)
+            o_E_conv_i = np.linalg.inv(o_E_conv)
 
             if self.algo == 'TMM':
-                W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv,
-                                         device=self.device, type_complex=self.type_complex)
+                W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=self.type_complex)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                 W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22 \
-                    = transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T, device=self.device,
+                    = transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T,
                                     type_complex=self.type_complex)
 
                 layer_info = [E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d]
                 self.layer_info_list.append(layer_info)
 
             elif self.algo == 'SMM':
-                W, V, LAMBDA = scattering_2d_wv(self.ff, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
-                A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
+                W, V, q = scattering_2d_wv(self.ff, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
+                A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, q)
             else:
                 raise ValueError
 
         if self.algo == 'TMM':
             de_ri, de_ti, big_T1 = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, self.ff,
-                                                 delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z, device=self.device,
+                                                 delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z,
                                                  type_complex=self.type_complex)
             self.T1 = big_T1
 
@@ -292,8 +280,8 @@ class _BaseRCWA:
                                            self.pol, self.theta, self.phi, self.fourier_order, self.ff)
         else:
             raise ValueError
-
         de_ri = de_ri.reshape((self.ff, self.ff)).real
         de_ti = de_ti.reshape((self.ff, self.ff)).real
 
         return de_ri, de_ti, self.layer_info_list, self.T1
+

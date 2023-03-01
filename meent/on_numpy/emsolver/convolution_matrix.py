@@ -166,7 +166,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
     mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
     mask[c] = False
-    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes[mask])  # TODO: sign difference from formulation
+    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes[mask])
 
     # Y axis
     f_coeffs_x_next_y = np.roll(f_coeffs_x, -1, axis=0)
@@ -184,7 +184,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     if c:
         mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
         mask[c] = False
-        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])  # TODO: sign difference from formulation
+        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])
 
     return f_coeffs_xy.T
 
@@ -284,7 +284,7 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.comple
         else:
             minimum_pattern_size_1 = 2 * ff
             minimum_pattern_size_2 = 2 * ff
-        # 9 * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
+        # e.g., 9 bytes * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
 
         for i, layer in enumerate(pmt):
             if layer.shape[0] < minimum_pattern_size_1:

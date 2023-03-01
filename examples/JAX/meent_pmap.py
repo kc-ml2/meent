@@ -20,7 +20,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '0,1,2,3'
 
 import numpy as np
 
-from meent.rcwa import call_solver
+from meent.entrance import call_solver
 from meent.on_jax.transfer_method import *
 
 
@@ -105,15 +105,15 @@ for i, ucell in enumerate(ucell_list[:2]):
 
 # for i, ucell in enumerate(ucell_list[:2]):
 #     t0 = time.time()
-#     de_ri, de_ti = solver.conv_solve(ucell)
+#     de_ri, de_ti = emsolver.conv_solve(ucell)
 #     print(time.time() - t0)
 
 # t0 = time.time()
-# de_ri, de_ti = solver.run_ucell_vmap(ucell_list)
+# de_ri, de_ti = emsolver.run_ucell_vmap(ucell_list)
 # print(f'vmap: ', time.time() - t0)
 #
 # t0 = time.time()
-# de_ri, de_ti = solver.run_ucell_vmap(ucell_list)
+# de_ri, de_ti = emsolver.run_ucell_vmap(ucell_list)
 # print(f'vmap: ', time.time() - t0)
 
 t0 = time.time()

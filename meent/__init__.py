@@ -1,1 +1,1 @@
-from .rcwa import call_solver
+from .entrance import call_solver

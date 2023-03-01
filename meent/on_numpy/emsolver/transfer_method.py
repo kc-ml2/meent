@@ -123,8 +123,8 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
     A_i = np.linalg.inv(A)
     B_i = np.linalg.inv(B)
 
-    to_decompose_W_1 = ky ** 2 * I + A
-    to_decompose_W_2 = ky ** 2 * I + B @ o_E_conv_i
+    to_decompose_W_1 = (ky/k0) ** 2 * I + A
+    to_decompose_W_2 = (ky/k0) ** 2 * I + B @ o_E_conv_i
 
     eigenvalues_1, W_1 = np.linalg.eig(to_decompose_W_1)
     eigenvalues_2, W_2 = np.linalg.eig(to_decompose_W_2)
@@ -261,7 +261,7 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
     big_F = np.block([[I, O], [O, 1j * Z_II]])
     big_G = np.block([[1j * Y_II, O], [O, I]])
 
-    big_T = np.eye(ff ** 2 * 2, dtype=type_complex)
+    big_T = np.eye(2 * ff ** 2, dtype=type_complex)
 
     return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
@@ -282,12 +282,13 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=np.com
     eigenvalues, W = np.linalg.eig(S2_from_S)
 
     q = eigenvalues ** 0.5
+    # q = q.conjugate()
 
     Q = np.diag(q)
     Q_i = np.linalg.inv(Q)
     U1_from_S = np.block(
         [
-            [-Kx @ Ky, Kx ** 2 - o_E_conv_i],
+            [-Kx @ Ky, Kx ** 2 - E_conv],
             [o_E_conv_i - Ky ** 2, Ky @ Kx]
         ]
     )

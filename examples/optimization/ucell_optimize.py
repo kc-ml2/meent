@@ -10,7 +10,7 @@ import jax
 import jax.numpy as jnp
 import time
 
-from meent.rcwa import call_solver
+from meent.entrance import call_solver
 import torch
 
 
@@ -217,7 +217,7 @@ def optimize_jax_ucell(mode_key, dtype, device):
     # ucell = ucell.at[0,0,0].set(val[0])
     # E_conv_all = to_conv_mat(ucell, fourier_order, type_complex=type_complex)
     # o_E_conv_all = to_conv_mat(1 / ucell, fourier_order, type_complex=type_complex)
-    # de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+    # de_ri, de_ti = emsolver.solve(wavelength, E_conv_all, o_E_conv_all)
     # print(de_ti)
 
 
@@ -226,17 +226,17 @@ def optimize_torch(mode_key, dtype, device):
     out of date.
     Will be updated.
     """
-    from meent.on_torch.convolution_matrix import to_conv_mat_discrete
+    from meent.on_torch.emsolver.convolution_matrix import to_conv_mat_discrete
 
     grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
     type_complex, device, ucell = load_setting(mode_key, dtype, device)
 
-    ucell.requires_grad = True
 
     solver = call_solver(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                          psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                          ucell_materials=ucell_materials, thickness=thickness, device=device,
                          type_complex=type_complex, )
+    ucell.requires_grad = True
 
     opt = torch.optim.Adam([ucell], lr = 0.001)
     for i in range(1000):
@@ -254,7 +254,7 @@ def optimize_torch(mode_key, dtype, device):
 
 if __name__ == '__main__':
 
-    optimize_jax_thickness(1, 0, 0)
+    # optimize_jax_thickness(1, 0, 0)
     optimize_jax_ucell(1, 0, 0)
     optimize_torch(2, 0, 0)
 
