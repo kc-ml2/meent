@@ -60,6 +60,9 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
+        if self.theta == 0:
+            self.theta = torch.tensor(self.perturbation)
+
         self.kx_vector = None
 
     def get_kx_vector(self, wavelength):
@@ -73,7 +76,7 @@ class _BaseRCWA:
             kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) - fourier_indices * (
                     wavelength / self.period[0])).type(self.type_complex)
 
-        kx_vector = torch.where(kx_vector == 0, self.perturbation, kx_vector)
+        # kx_vector = torch.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector
 

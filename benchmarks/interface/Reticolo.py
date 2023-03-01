@@ -69,7 +69,7 @@ class Reticolo:
 
             ucell_new = []
             for z in range(ucell.shape[0]):
-                ucell_layer = [1]
+                ucell_layer = [10]
                 for y, yval in enumerate(grid_y):
                     for x, xval in enumerate(grid_x):
                         obj = [xval, yval, unit_x, unit_y, ucell[z, y, x], 1]
@@ -130,27 +130,33 @@ if __name__ == '__main__':
     mode = 0
     dtype = 0
     device = 0
-    grating_type = 1
+    grating_type = 2
 
     pre = load_setting(mode, dtype, device, grating_type)
-
+    # pre['theta'] *= (180 / np.pi)
+    pre['phi'] *= (180 / np.pi)
+    # print(pre['phi'])
     reti = Reticolo()
 
     a,b,c,d=reti.run(**pre)
 
-    print(a.flatten()[::-1])
-    print(b.flatten()[::-1])
+    print(np.array(a).flatten()[::-1])
+    print(np.array(b).flatten()[::-1])
+    # print(np.array(a))
+    # print(np.array(b))
     # print(c)
     # print(d)
 
-    from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
 
     import meent
-    pre = load_setting(mode, dtype, device, grating_type)
 
-    solver = meent.call_solver(mode=0, **pre)
+    # Numpy
+    mode = 0
+    pre = load_setting(mode, dtype, device, grating_type)
+    solver = meent.call_solver(mode=mode, perturbation=1E-30, **pre)
     solver.ucell = solver.ucell ** 2
 
+    from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
     E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
     o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
     # E_conv_all = to_conv_mat_discrete(solver.ucell, solver.fourier_order)
@@ -167,4 +173,60 @@ if __name__ == '__main__':
         print(de_ri)
         print(de_ti)
 
+    print(a.sum(),de_ri.sum())
+    print(b.sum(),de_ti.sum())
+    print(a.sum()+b.sum(),de_ri.sum()+de_ti.sum())
+
+    # JAX
+    mode = 1
+    pre = load_setting(mode, dtype, device, grating_type)
+    solver = meent.call_solver(mode=mode, perturbation=1E-30, **pre)
+    solver.ucell = solver.ucell ** 2
+
+    from meent.on_jax.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
+    E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
+    o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
+    # E_conv_all = to_conv_mat_discrete(solver.ucell, solver.fourier_order)
+    # o_E_conv_all = to_conv_mat_discrete(1 / solver.ucell, solver.fourier_order)
+
+    de_ri, de_ti, _, _, _ = solver.solve(solver.wavelength, E_conv_all, o_E_conv_all)
+    c = de_ri.shape[0]//2
+    try:
+        print(de_ri[c-1:c+2,c-1:c+2])
+        print(de_ti[c-1:c+2,c-1:c+2])
+    except:
+        # print(de_ri[c-1:c+2])
+        # print(de_ti[c-1:c+2])
+        print(de_ri)
+        print(de_ti)
+
+    print(a.sum(),de_ri.sum())
+    print(b.sum(),de_ti.sum())
+    print(a.sum()+b.sum(),de_ri.sum()+de_ti.sum())
+
+    #Torch
+    mode = 2
+    pre = load_setting(mode, dtype, device, grating_type)
+    solver = meent.call_solver(mode=mode, perturbation=1E-30, **pre)
+    solver.ucell = solver.ucell ** 2
+
+    from meent.on_torch.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
+    E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
+    o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
+    # E_conv_all = to_conv_mat_discrete(solver.ucell, solver.fourier_order)
+    # o_E_conv_all = to_conv_mat_discrete(1 / solver.ucell, solver.fourier_order)
+
+    de_ri, de_ti, _, _, _ = solver.solve(solver.wavelength, E_conv_all, o_E_conv_all)
+    c = de_ri.shape[0]//2
+    try:
+        print(de_ri[c-1:c+2,c-1:c+2])
+        print(de_ti[c-1:c+2,c-1:c+2])
+    except:
+        # print(de_ri[c-1:c+2])
+        # print(de_ti[c-1:c+2])
+        print(de_ri)
+        print(de_ti)
+
+    print(a.sum(),de_ri.sum())
+    print(b.sum(),de_ti.sum())
     print(a.sum()+b.sum(),de_ri.sum()+de_ti.sum())

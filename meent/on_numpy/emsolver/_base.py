@@ -22,9 +22,9 @@ class _BaseRCWA:
         self.n_II = n_II
 
         # degree to radian due to JAX JIT
-        self.theta = theta
-        self.phi = phi
-        self.psi = psi  # TODO: integrate psi and pol
+        self.theta = np.array(theta)
+        self.phi = np.array(phi)
+        self.psi = np.array(psi)  # TODO: integrate psi and pol
 
         self.pol = pol  # TE 0, TM 1
         if self.pol == 0:  # TE
@@ -52,6 +52,9 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
+        if self.theta == 0:
+            self.theta = self.perturbation
+
         self.kx_vector = None
 
     def get_kx_vector(self, wavelength):
@@ -65,7 +68,7 @@ class _BaseRCWA:
             kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
                     wavelength / self.period[0])).astype(self.type_complex)
 
-        kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
+        # kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector
 

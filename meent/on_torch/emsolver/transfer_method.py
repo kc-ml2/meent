@@ -136,8 +136,8 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, o_E_conv_i, ff, d, varphi, bi
     A_i = torch.linalg.inv(A)
     B_i = torch.linalg.inv(B)
 
-    to_decompose_W_1 = ky ** 2 * I + A
-    to_decompose_W_2 = ky ** 2 * I + B @ o_E_conv_i
+    to_decompose_W_1 = (ky/k0) ** 2 * I + A
+    to_decompose_W_2 = (ky/k0) ** 2 * I + B @ o_E_conv_i
 
     # eigenvalues_1, W_1 = torch.linalg.eig(to_decompose_W_1)
     # eigenvalues_2, W_2 = torch.linalg.eig(to_decompose_W_2)
@@ -325,7 +325,7 @@ def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', type_
     Q_i = torch.linalg.inv(Q)
     U1_from_S = torch.cat(
         [
-            torch.cat([-Kx @ Ky, Kx ** 2 - o_E_conv_i], dim=1),
+            torch.cat([-Kx @ Ky, Kx ** 2 - E_conv], dim=1),
             torch.cat([o_E_conv_i - Ky ** 2, Ky @ Kx], dim=1)
         ]
     )
