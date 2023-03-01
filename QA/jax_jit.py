@@ -30,8 +30,8 @@ print(theta, ': theta original')
 solver = A(theta=theta)
 print(solver.theta, ': theta after __init__')
 
-# a = solver.solve_no_jit()
-# b = jax.jit(solver.solve_no_jit)()
+# a = emsolver.solve_no_jit()
+# b = jax.jit(emsolver.solve_no_jit)()
 c = solver.solve_jit()
 solver.theta = 8
 d = solver.solve_jit()

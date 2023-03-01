@@ -60,6 +60,30 @@ class RCWATorch(_BaseRCWA):
 
         return de_ri.real, de_ti.real, layer_info_list, T1, self.kx_vector
 
+    def conv_solve(self):
+
+        # E_conv_all = to_conv_mat_discrete(self.solver.ucell, self.solver.fourier_order, type_complex=self.solver.type_complex)
+        # o_E_conv_all = to_conv_mat_discrete(1 / self.solver.ucell, self.solver.fourier_order, type_complex=self.solver.type_complex)
+
+        if self.fft_type == 0:
+            E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+            o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+        elif self.fft_type == 1:
+            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order, type_complex=self.type_complex)
+            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order, type_complex=self.type_complex)
+        else:
+            raise ValueError
+
+        # de_ri, de_ti, _, _, _ = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
+
+        de_ri, de_ti, layer_info_list, T1, kx_vector = self.solve(self.wavelength, E_conv_all, o_E_conv_all)
+
+        self.layer_info_list = layer_info_list
+        self.T1 = T1
+        self.kx_vector = kx_vector
+
+        return de_ri, de_ti
+
     def run_ucell(self):
         ucell = put_permittivity_in_ucell(self.ucell, self.ucell_materials, self.mat_table, self.wavelength,
                                           self.device, type_complex=self.type_complex)

@@ -6,7 +6,7 @@ import time
 
 from interface.GRCWA import GRCWA
 from interface.Reticolo import Reticolo
-from meent.rcwa import call_solver
+from meent.entrance import call_solver
 
 
 n_I = 1

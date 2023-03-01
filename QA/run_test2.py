@@ -1,6 +1,6 @@
 import numpy as np
 
-from meent.rcwa import call_solver, sweep_wavelength
+from meent.entrance import call_solver, sweep_wavelength
 
 
 pol = 1  # 0: TE, 1: TM

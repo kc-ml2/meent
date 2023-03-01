@@ -1,7 +1,9 @@
-import numpy as np
+import jax
+import jax.numpy as jnp
 
 from copy import deepcopy
 
+from .primitives import eig
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
 from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, \
@@ -9,26 +11,33 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 
 
 class _BaseRCWA:
+
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=10,
                  period=(100, 100), wavelength=900,
                  ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
-                 device='cpu', type_complex=np.complex128):
+                 device='cpu', type_complex=jnp.complex128):
 
         self.device = device
         self.type_complex = type_complex
+        if self.type_complex == jnp.complex128:
+            jax.config.update('jax_enable_x64', True)
+
+        self.type_int = jnp.int64 if self.type_complex == jnp.complex128 else jnp.int32
+        self.type_float = jnp.float64 if self.type_complex == jnp.complex128 else jnp.float32
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
+
         self.n_I = n_I
         self.n_II = n_II
 
         # degree to radian due to JAX JIT
-        self.theta = theta
-        self.phi = phi
-        self.psi = psi  # TODO: integrate psi and pol
+        self.theta = jnp.array(theta)
+        self.phi = jnp.array(phi)
+        self.psi = jnp.array(psi)  # TODO: integrate psi and pol
 
         self.pol = pol  # TE 0, TM 1
         if self.pol == 0:  # TE
-            self.psi = np.pi / 2
+            self.psi = jnp.pi / 2
         elif self.pol == 1:  # TM
             self.psi = 0
         else:
@@ -38,7 +47,7 @@ class _BaseRCWA:
         self.fourier_order = int(fourier_order)
         self.ff = 2 * self.fourier_order + 1
 
-        self.period = deepcopy(period)
+        self.period = deepcopy(period)  # TODO: worth? apply to other backends
 
         self.wavelength = wavelength
 
@@ -52,20 +61,24 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
+        # if self.theta == 0:
+        #     self.theta = self.perturbation
+        self.theta = jnp.where(self.theta == 0, self.perturbation, self.theta)
+
         self.kx_vector = None
 
     def get_kx_vector(self, wavelength):
 
-        k0 = 2 * np.pi / wavelength
-        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
+        k0 = 2 * jnp.pi / wavelength
+        fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
+            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
                               ).astype(self.type_complex)
         else:
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
+            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) - fourier_indices * (
                     wavelength / self.period[0])).astype(self.type_complex)
 
-        kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
+        # kx_vector = jnp.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector
 
@@ -74,15 +87,15 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
+        fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = np.zeros(self.ff, dtype=self.type_complex)
-        delta_i0[self.fourier_order] = 1
+        delta_i0 = jnp.zeros(self.ff, dtype=self.type_complex)
+        delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
-        k0 = 2 * np.pi / wavelength
+        k0 = 2 * jnp.pi / wavelength
 
         if self.algo == 'TMM':
-            kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \
+            kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T \
                 = transfer_1d_1(self.ff, self.pol, k0, self.n_I, self.n_II, self.kx_vector,
                                 self.theta, delta_i0, self.fourier_order, type_complex=self.type_complex)
         elif self.algo == 'SMM':
@@ -92,33 +105,27 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
-
         # From the last layer
-        for layer_index in range(count)[::-1]:
-
-            E_conv = E_conv_all[layer_index]
-            o_E_conv = o_E_conv_all[layer_index]
-            d = self.thickness[layer_index]
+        for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
 
             if self.pol == 0:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
-                eigenvalues, W = np.linalg.eig(A)
+                eigenvalues, W = eig(A, type_complex=self.type_complex, perturbation=self.perturbation, device=self.device)
                 q = eigenvalues ** 0.5
 
-                Q = np.diag(q)
+                Q = jnp.diag(q)
                 V = W @ Q
 
             elif self.pol == 1:
-                E_conv_i = np.linalg.inv(E_conv)
-                B = Kx @ E_conv_i @ Kx - np.eye(E_conv.shape[0], dtype=self.type_complex)
-                o_E_conv_i = np.linalg.inv(o_E_conv)
-
-                eigenvalues, W = np.linalg.eig(o_E_conv_i @ B)
+                E_conv_i = jnp.linalg.inv(E_conv)
+                B = Kx @ E_conv_i @ Kx - jnp.eye(E_conv.shape[0]).astype(self.type_complex)
+                o_E_conv_i = jnp.linalg.inv(o_E_conv)
+                eigenvalues, W = eig(o_E_conv_i @ B, type_complex=self.type_complex, perturbation=self.perturbation,
+                                     device=self.device)
                 q = eigenvalues ** 0.5
 
-                Q = np.diag(q)
+                Q = jnp.diag(q)
                 V = o_E_conv @ W @ Q
 
             else:
@@ -154,12 +161,12 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        # fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
+        # fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = np.zeros(self.ff, dtype=self.type_complex)
-        delta_i0[self.fourier_order] = 1
+        delta_i0 = jnp.zeros(self.ff, dtype=self.type_complex)
+        delta_i0 = delta_i0.at[self.fourier_order].set(1)
 
-        k0 = 2 * np.pi / wavelength
+        k0 = 2 * jnp.pi / wavelength
 
         if self.algo == 'TMM':
             Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
@@ -167,27 +174,20 @@ class _BaseRCWA:
                                         type_complex=self.type_complex)
         elif self.algo == 'SMM':
             print('SMM for 1D conical is not implemented')
-            return np.nan, np.nan
+            return jnp.nan, jnp.nan
         else:
             raise ValueError
 
-        count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
-
-        # From the last layer
-        for layer_index in range(count)[::-1]:
-
-            E_conv = E_conv_all[layer_index]
-            o_E_conv = o_E_conv_all[layer_index]
-            d = self.thickness[layer_index]
-
-            E_conv_i = np.linalg.inv(E_conv)
-            o_E_conv_i = np.linalg.inv(o_E_conv)
+        for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+            E_conv_i = jnp.linalg.inv(E_conv)
+            o_E_conv_i = jnp.linalg.inv(o_E_conv)
 
             if self.algo == 'TMM':
                 big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2 \
                     = transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, self.ff, d,
                                             varphi, big_F, big_G, big_T,
-                                            type_complex=self.type_complex)
+                                            type_complex=self.type_complex, device=self.device)
+
                 layer_info = [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d]
                 self.layer_info_list.append(layer_info)
 
@@ -214,43 +214,36 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        fourier_indices = np.arange(-self.fourier_order, self.fourier_order + 1)
+        fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
 
-        delta_i0 = np.zeros((self.ff ** 2, 1), dtype=self.type_complex)
-        delta_i0[self.ff ** 2 // 2, 0] = 1
+        delta_i0 = jnp.zeros((self.ff ** 2, 1), dtype=self.type_complex)
+        delta_i0 = delta_i0.at[self.ff ** 2 // 2, 0].set(1)
 
-        I = np.eye(self.ff ** 2, dtype=self.type_complex)
-        O = np.zeros((self.ff ** 2, self.ff ** 2), dtype=self.type_complex)
+        I = jnp.eye(self.ff ** 2).astype(self.type_complex)
+        O = jnp.zeros((self.ff ** 2, self.ff ** 2), dtype=self.type_complex)
 
         center = self.ff ** 2
 
-        k0 = 2 * np.pi / wavelength
+        k0 = 2 * jnp.pi / wavelength
 
         if self.algo == 'TMM':
             kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
                 = transfer_2d_1(self.ff, k0, self.n_I, self.n_II, self.kx_vector, self.period, fourier_indices,
                                 self.theta, self.phi, wavelength, type_complex=self.type_complex)
-
         elif self.algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_2d_1(self.n_I, self.n_II, self.theta, self.phi, k0, self.period, self.fourier_order)
         else:
             raise ValueError
 
-        count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
-
         # From the last layer
-        for layer_index in range(count)[::-1]:
-
-            E_conv = E_conv_all[layer_index]
-            o_E_conv = o_E_conv_all[layer_index]
-            d = self.thickness[layer_index]
-
-            E_conv_i = np.linalg.inv(E_conv)
-            o_E_conv_i = np.linalg.inv(o_E_conv)
+        for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+            E_conv_i = jnp.linalg.inv(E_conv)
+            o_E_conv_i = jnp.linalg.inv(o_E_conv)
 
             if self.algo == 'TMM':
-                W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=self.type_complex)
+                W, V, q = transfer_2d_wv(self.ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=self.type_complex,
+                                         device=self.device)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                 W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22 \
@@ -261,8 +254,8 @@ class _BaseRCWA:
                 self.layer_info_list.append(layer_info)
 
             elif self.algo == 'SMM':
-                W, V, q = scattering_2d_wv(self.ff, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
-                A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, q)
+                W, V, LAMBDA = scattering_2d_wv(self.ff, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
+                A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
             else:
                 raise ValueError
 
@@ -277,8 +270,8 @@ class _BaseRCWA:
                                            self.pol, self.theta, self.phi, self.fourier_order, self.ff)
         else:
             raise ValueError
+
         de_ri = de_ri.reshape((self.ff, self.ff)).real
         de_ti = de_ti.reshape((self.ff, self.ff)).real
 
         return de_ri, de_ti, self.layer_info_list, self.T1
-
