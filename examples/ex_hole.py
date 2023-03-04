@@ -3,7 +3,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from meent.entrance import call_solver
+from meent.main import call_solver
 
 grating_type = 2  # 0: 1D, 1: 1D conical, 2:2D.
 pol = 1  # 0: TE, 1: TM

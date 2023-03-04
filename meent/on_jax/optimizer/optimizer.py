@@ -1,6 +1,10 @@
 import time
+from functools import partial
+
 import numpy as np
 import optax
+import jax
+import jax.numpy as jnp
 
 
 import meent
@@ -12,14 +16,17 @@ class Grad:
     def __init__(self):
         pass
 
-    def grad(self, pois, forward, loss_fn):
-        [setattr(getattr(self, poi), 'requires_grad', True) for poi in pois]
-        result = forward()  # Forward Prop.
-        loss = loss_fn(result)  # Loss
-        loss.backward()  # Back Prop.
-        grad = {poi: getattr(self, poi).grad for poi in pois}  # gradient
+    @staticmethod
+    def forward(params, forward, loss):
+        result = forward(**params)
+        loss_value = loss(result)
+        return loss_value
 
-        return grad
+    def grad(self, params, forward, loss_fn):
+
+        loss_value, grads = jax.value_and_grad(self.forward)(params, forward, loss_fn)
+
+        return loss_value, grads
 
 
 class SGD(Grad):
@@ -27,7 +34,7 @@ class SGD(Grad):
     def __init__(self, parameters_to_fit, *args, **kwargs):
         super().__init__()
         self.parameters_to_fit = parameters_to_fit
-        self.opt = torch.optim.SGD(parameters_to_fit, *args, **kwargs)
+        self.opt = optax.sgd(parameters_to_fit, *args, **kwargs)
 
     def step(self):
         self.opt.step()
@@ -42,89 +49,45 @@ class OptimizerJax(RCWAJax, Grad):
 
         super().__init__(*args, **kwargs)
 
+    def _tree_flatten(self):  # TODO: check args and kwargs
+        children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
+                    self.period, self.wavelength, self.ucell, self.thickness)
+        aux_data = {
+            'mode': self.mode,
+            'grating_type': self.grating_type,
+            'pol': self.pol,
+            'fourier_order': self.fourier_order,
+            'ucell_materials': self.ucell_materials,
+            'algo': self.algo,
+            'perturbation': self.perturbation,
+            'device': self.device,
+            'type_complex': self.type_complex,
+            'fft_type': self.fft_type,
+        }
+
+        return children, aux_data
+
+    @classmethod
+    def _tree_unflatten(cls, aux_data, children):
+        return cls(*children, **aux_data)
+
     def gradient_numerical(self):
         pass
 
-    def fit(self, pois, forward, loss_fn, optimizer):
-        [setattr(getattr(self, poi), 'requires_grad', True) for poi in pois]
+    @partial(jax.jit, static_argnums=(3, 4, 5))
+    def step(self, params, opt_state, optimizer,  forward, loss_fn):
 
-        for i in range(1):
-            optimizer.zero_grad()
-            result = forward()  # Forward Prop.
-            loss = loss_fn(result)  # Loss
+        loss_value, grads = self.grad(params, forward, loss_fn)
 
-            loss.backward()  # Back Prop.
-            optimizer.step()
-            print(2, self.ucell.grad)
-        pass
+        updates, opt_state = optimizer.update(grads, opt_state, params)
+        params = optax.apply_updates(params, updates)
+        return params, opt_state, loss_value
 
-    def fit_general(self, pois, forward, loss_fn, optimizer_algo, optimizer_kwargs):
-        [setattr(getattr(self, poi), 'requires_grad', True) for poi in pois]
+    def fit(self, params, forward, loss_fn, optimizer):
 
-        obj_to_fit = [(getattr(self, poi)) for poi in pois]
+        opt_state = optimizer.init(params)
 
-        def call_optimizer(algorithm, obj_to_fit, *args, **kwargs):
-            if algorithm.upper() == 'SGD':
-                optimizer = SGD(obj_to_fit, *args, **kwargs)
-
-            return optimizer
-
-        optimizer = call_optimizer(optimizer_algo, obj_to_fit, **optimizer_kwargs)
-
-        for i in range(1):
-            optimizer.zero_grad()
-            result = forward()  # Forward Prop.
-            loss = loss_fn(result)  # Loss
-
-            loss.backward()  # Back Prop.
-            optimizer.step()
-            print(2, self.ucell.grad)
-
-
-if __name__ == '__main__':
-    mode = 2
-    dtype = 0
-    device = 0
-
-    conditions = meent.testcase.load_setting(mode, dtype, device)
-
-    aa = OptimizerJax(**conditions)
-    import meent.on_torch.optimizer.loss
-
-    pois = ['ucell', 'thickness']
-    parameters_to_fit = [(getattr(aa, poi)) for poi in pois]
-    forward = aa.conv_solve
-    loss_fn = meent.on_torch.optimizer.loss.LossDeflector(x_order=0, y_order=1)
-
-    grad = aa.grad(pois, forward, loss_fn)
-    print(1, grad)
-
-    # case 1
-    # opt = torch.optim.SGD(parameters_to_fit, lr=1E-2)
-    opt = optax.sgd(learning_rate=1E-2)
-    params = {'ucell': parameters_to_fit[0], 'thickness': parameters_to_fit[1]}
-    opt_state = opt.init(params)
-
-    compute_loss = lambda params, x, y: optax.l2_loss()
-
-
-    def loss(params, batch, labels):
-
-        forward()
-
-        c_x = de_ti.shape[0] // 2
-        c_y = de_ti.shape[1] // 2
-
-        res = de_ti[c_x + self.x_order, c_y + self.y_order]
-
-        loss_value = params['ucell']
-
-
-    aa.fit(pois, forward, loss_fn, opt)
-    print(3, grad)
-
-    # case 2
-    opt_algo = 'sgd'
-    opt_kwargs = {'lr': 1E-2}
-    aa.fit_general(pois, forward, loss_fn, opt_algo, opt_kwargs)
-    print(3, grad)
+        for i in range(10):
+            params, opt_state, loss_value = self.step(params, opt_state, optimizer, forward, loss_fn)
+            if i % 1 == 0:
+                print(f'step {i}, loss: {loss_value}')

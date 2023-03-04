@@ -9,7 +9,6 @@ class LossDeflector:
 
     def __call__(self, value, target=1, *args, **kwargs):
         de_ri, de_ti = value
-
         c_x = de_ti.shape[0] // 2
         c_y = de_ti.shape[1] // 2
 

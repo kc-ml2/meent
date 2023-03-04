@@ -32,7 +32,7 @@ thickness = [500]
 ucell_materials = [1, 3.48]
 period = [1000, 1000]
 # period = [1000, 1000]
-fourier_order = 10
+fourier_order = 2
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 n_iter = 2
 
@@ -90,9 +90,10 @@ def run_test(grating_type, mode_key, dtype, device):
         print(f'cal_field: {i}', time.time() - t0)
 
     try:
-        print(de_ri[9:12, 9:12])
+        center = de_ri.shape[0] // 2
+        print(de_ri[center-1:center+2, center-1:center+2])
     except:
-        print(de_ri[9:12])
+        print(de_ri[center-1:center+2])
 
     return de_ri, de_ti
 

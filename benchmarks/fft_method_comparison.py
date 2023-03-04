@@ -10,7 +10,7 @@ import jax
 import jax.numpy as jnp
 import time
 
-from meent.entrance import call_solver
+from meent.main import call_solver
 import torch
 
 

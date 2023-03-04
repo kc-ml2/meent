@@ -27,7 +27,7 @@ os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=40'
 import numpy as np
 import jax.numpy as jnp
 
-from meent.entrance import call_solver
+from meent.main import call_solver
 from meent.on_jax.emsolver.transfer_method import *
 
 

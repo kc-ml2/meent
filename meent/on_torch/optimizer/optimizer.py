@@ -85,8 +85,9 @@ if __name__ == '__main__':
     mode = 2
     dtype = 0
     device = 0
+    grating_type = 2
 
-    conditions = meent.testcase.load_setting(mode, dtype, device)
+    conditions = meent.testcase.load_setting(mode, dtype, device, grating_type)
 
     aa = OptimizerTorch(**conditions)
     import meent.on_torch.optimizer.loss

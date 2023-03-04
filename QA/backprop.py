@@ -11,7 +11,7 @@ import jax.numpy as jnp
 import time
 from copy import deepcopy
 
-from meent.entrance import call_solver
+from meent.main import call_solver
 import torch
 
 
