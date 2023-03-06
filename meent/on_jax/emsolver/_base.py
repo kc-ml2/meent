@@ -47,7 +47,7 @@ class _BaseRCWA:
         self.fourier_order = int(fourier_order)
         self.ff = 2 * self.fourier_order + 1
 
-        self.period = deepcopy(period)  # TODO: worth? apply to other backends
+        self.period = period
 
         self.wavelength = wavelength
 
