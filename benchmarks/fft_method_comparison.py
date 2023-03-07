@@ -10,7 +10,7 @@ import jax
 import jax.numpy as jnp
 import time
 
-from meent.entrance import call_solver
+from meent.main import call_solver
 import torch
 
 
@@ -116,8 +116,8 @@ def compare_conv_mat_method(mode_key, dtype, device):
         from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_continuous as conv2
 
     elif mode_key == 1:
-        from meent.on_jax.convolution_matrix import to_conv_mat_discrete as conv1
-        from meent.on_jax.convolution_matrix import to_conv_mat_continuous as conv2
+        from meent.on_jax.emsolver.convolution_matrix import to_conv_mat_discrete as conv1
+        from meent.on_jax.emsolver.convolution_matrix import to_conv_mat_continuous as conv2
     else:
         from meent.on_torch.emsolver.convolution_matrix import to_conv_mat_discrete as conv1
         from meent.on_torch.emsolver.convolution_matrix import to_conv_mat_continuous as conv2

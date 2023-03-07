@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from meent.entrance import call_solver
+from meent.main import call_solver
 
 # common
 grating_type = 2  # 0: 1D, 1: 1D conical, 2:2D.

@@ -16,10 +16,10 @@ device = 0
 
 '''
 class Optimizer:
-    def __init__(self, optimizer, solver, target_name, lr = 0.001):
-        self.solver = solver
+    def __init__(self, optimizer, mee, target_name, lr = 0.001):
+        self.mee = mee
         self.target_name = target_name
-        self.target = getattr(self.solver, target_name)
+        self.target = getattr(self.mee, target_name)
         
         if not isinstance(target, torch.Tensor):
             self.target = torch.Tensor(self.target)
@@ -31,17 +31,17 @@ class Optimizer:
         
     def optimize(self, iterations = 1000):
         for iteration in range(iterations):
-            E_conv_all = to_conv_mat(self.solver.ucell, fourier_order)
-            o_E_conv_all = to_conv_mat(1 / self.solver.ucell, fourier_order)
+            E_conv_all = to_conv_mat(self.mee.ucell, fourier_order)
+            o_E_conv_all = to_conv_mat(1 / self.mee.ucell, fourier_order)
 
-            de_ri, de_ti, _, _, _ = self.solver.solve(self.solver.wavelength, E_conv_all, o_E_conv_all)
+            de_ri, de_ti, _, _, _ = self.mee.solve(self.mee.wavelength, E_conv_all, o_E_conv_all)
 
             self.optimizer.zero_grad()
             loss = self.loss(de_ti)
             loss.backward()
             self.optimizer.step()
             
-            setattr(self.solver, self.target_name, self.target)
+            setattr(self.mee, self.target_name, self.target)
             
             print(loss)
             

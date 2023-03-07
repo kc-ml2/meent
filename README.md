@@ -5,18 +5,11 @@
 Meent is a RCWA solver and its applications on optimization problem. We are expecting that this tool can accelerate ML research in photonics.
 
 ## How to install
-
-You can install from PyPI
-
 ```shell
 pip install meent
 ```
 
-or download this repo and run
-
-```shell
-pip install .
-```
+JAX and PyTorch is needed for advanced utilization.
 
 ## How to use
 
@@ -24,7 +17,7 @@ Meent provides Numpy, JAX and PyTorch as a backend.
 
 ```python
 import meent
-from meent.entrance import call_solver
+from meent.main import call_solver
 
 # mode 0 = Numpy
 # mode 1 = JAX
@@ -33,6 +26,7 @@ from meent.entrance import call_solver
 mode_key = 1
 solver = meent.rcwa.call_solver(mode=mode_key, ...)
 ```
+
 
 ## When to use
 

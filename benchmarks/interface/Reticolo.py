@@ -2,6 +2,9 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+
+import meent
+
 from meent.on_numpy.emsolver.convolution_matrix import find_nk_index
 
 os.environ['OCTAVE_EXECUTABLE'] = '/opt/homebrew/bin/octave-cli'
@@ -32,6 +35,8 @@ class Reticolo:
         self.eng.addpath(self.eng.genpath(m_path))
 
     def run(self, period, fourier_order, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II, *args, **kwargs):
+        phi *= (180 / np.pi)
+
         if grating_type in (0, 1):
             period = period[0]
 
@@ -79,9 +84,6 @@ class Reticolo:
 
         profile = np.array([[0, *thickness, 0], range(1, len(thickness) + 3)])
 
-        # theta = theta * 180 / np.pi
-        # phi = phi * 180 / np.pi
-
         top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info =\
             self._run(pol, theta, phi, period, n_I, fourier_order, textures, profile, wavelength, grating_type,)
 
@@ -106,24 +108,6 @@ class Reticolo:
 
         return abseff, effi_r, effi_t
 
-    # def run_acs_loop_wavelength(self, pattern, deflected_angle, wls=None, n_si='SILICON'):
-    #     if wls is None:
-    #         wls = self.wavelength
-    #     else:
-    #         self.wavelength = wls
-    #
-    #     if type(n_si) == str and n_si.upper() == 'SILICON':
-    #         n_si = find_nk_index(n_si, self.mat_table, self.wavelength)
-    #
-    #     self.init_spectrum_array()
-    #
-    #     for i, wl in enumerate(wls):
-    #         _, de_ri, de_ti = self.eng.Eval_Eff_1D(pattern, wl, deflected_angle, self.fourier_order,
-    #                                                self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
-    #         self.save_spectrum_array(de_ri.flatten(), de_ti.flatten(), i)
-    #
-    #     return self.spectrum_r, self.spectrum_t
-
 
 if __name__ == '__main__':
     from meent.testcase import load_setting
@@ -131,14 +115,10 @@ if __name__ == '__main__':
     dtype = 0
     device = 0
     grating_type = 2
-
     pre = load_setting(mode, dtype, device, grating_type)
-    # pre['theta'] *= (180 / np.pi)
-    pre['phi'] *= (180 / np.pi)
-    # print(pre['phi'])
-    reti = Reticolo()
 
-    a,b,c,d=reti.run(**pre)
+    reti = Reticolo()
+    a,b,c,d = reti.run(**pre)
 
     print(np.array(a).flatten()[::-1])
     print(np.array(b).flatten()[::-1])
@@ -146,9 +126,6 @@ if __name__ == '__main__':
     # print(np.array(b))
     # print(c)
     # print(d)
-
-
-    import meent
 
     # Numpy
     mode = 0
@@ -159,14 +136,14 @@ if __name__ == '__main__':
     from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
     E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
     o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
-    # E_conv_all = to_conv_mat_discrete(solver.ucell, solver.fourier_order)
-    # o_E_conv_all = to_conv_mat_discrete(1 / solver.ucell, solver.fourier_order)
+    # E_conv_all = to_conv_mat_discrete(mee.ucell, mee.fourier_order)
+    # o_E_conv_all = to_conv_mat_discrete(1 / mee.ucell, mee.fourier_order)
 
     de_ri, de_ti, _, _, _ = solver.solve(solver.wavelength, E_conv_all, o_E_conv_all)
     c = de_ri.shape[0]//2
     try:
-        print(de_ri[c-1:c+2,c-1:c+2])
-        print(de_ti[c-1:c+2,c-1:c+2])
+        print(de_ri[c-1:c+2, c-1:c+2])
+        print(de_ti[c-1:c+2, c-1:c+2])
     except:
         # print(de_ri[c-1:c+2])
         # print(de_ti[c-1:c+2])
@@ -186,8 +163,8 @@ if __name__ == '__main__':
     from meent.on_jax.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
     E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
     o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
-    # E_conv_all = to_conv_mat_discrete(solver.ucell, solver.fourier_order)
-    # o_E_conv_all = to_conv_mat_discrete(1 / solver.ucell, solver.fourier_order)
+    # E_conv_all = to_conv_mat_discrete(mee.ucell, mee.fourier_order)
+    # o_E_conv_all = to_conv_mat_discrete(1 / mee.ucell, mee.fourier_order)
 
     de_ri, de_ti, _, _, _ = solver.solve(solver.wavelength, E_conv_all, o_E_conv_all)
     c = de_ri.shape[0]//2
@@ -204,7 +181,7 @@ if __name__ == '__main__':
     print(b.sum(),de_ti.sum())
     print(a.sum()+b.sum(),de_ri.sum()+de_ti.sum())
 
-    #Torch
+    # Torch
     mode = 2
     pre = load_setting(mode, dtype, device, grating_type)
     solver = meent.call_solver(mode=mode, perturbation=1E-30, **pre)
@@ -213,8 +190,8 @@ if __name__ == '__main__':
     from meent.on_torch.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
     E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
     o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
-    # E_conv_all = to_conv_mat_discrete(solver.ucell, solver.fourier_order)
-    # o_E_conv_all = to_conv_mat_discrete(1 / solver.ucell, solver.fourier_order)
+    # E_conv_all = to_conv_mat_discrete(mee.ucell, mee.fourier_order)
+    # o_E_conv_all = to_conv_mat_discrete(1 / mee.ucell, mee.fourier_order)
 
     de_ri, de_ti, _, _, _ = solver.solve(solver.wavelength, E_conv_all, o_E_conv_all)
     c = de_ri.shape[0]//2

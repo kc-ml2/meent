@@ -62,8 +62,8 @@ class RCWATorch(_BaseRCWA):
 
     def conv_solve(self):
 
-        # E_conv_all = to_conv_mat_discrete(self.solver.ucell, self.solver.fourier_order, type_complex=self.solver.type_complex)
-        # o_E_conv_all = to_conv_mat_discrete(1 / self.solver.ucell, self.solver.fourier_order, type_complex=self.solver.type_complex)
+        # E_conv_all = to_conv_mat_discrete(self.mee.ucell, self.mee.fourier_order, type_complex=self.mee.type_complex)
+        # o_E_conv_all = to_conv_mat_discrete(1 / self.mee.ucell, self.mee.fourier_order, type_complex=self.mee.type_complex)
 
         if self.fft_type == 0:
             E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)

@@ -1,6 +1,6 @@
 def call_solver(mode=0, *args, **kwargs):
     """
-    decide backend and return RCWA solver instance
+    decide backend and return RCWA mee instance
 
     Args:
         mode: decide backend. 0 is numpy and 1 is JAX.
@@ -8,7 +8,7 @@ def call_solver(mode=0, *args, **kwargs):
         **kwargs: passed to RCWA instance
 
     Returns:
-        RCWA: RCWA solver instance
+        RCWA: RCWA mee instance
 
     """
     if mode == 0:

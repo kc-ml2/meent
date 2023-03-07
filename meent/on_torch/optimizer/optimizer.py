@@ -1,11 +1,4 @@
-import time
-import numpy as np
-import torch
-
-
-import meent
-import meent.testcase
-from meent.on_torch.emsolver.rcwa import RCWATorch
+from ..emsolver.rcwa import RCWATorch
 
 
 class Grad:
@@ -22,20 +15,6 @@ class Grad:
         return grad
 
 
-class SGD(Grad):
-
-    def __init__(self, parameters_to_fit, *args, **kwargs):
-        super().__init__()
-        self.parameters_to_fit = parameters_to_fit
-        self.opt = torch.optim.SGD(parameters_to_fit, *args, **kwargs)
-
-    def step(self):
-        self.opt.step()
-
-    def zero_grad(self):
-        self.opt.zero_grad()
-
-
 class OptimizerTorch(RCWATorch, Grad):
 
     def __init__(self, *args, **kwargs):
@@ -45,67 +24,20 @@ class OptimizerTorch(RCWATorch, Grad):
     def gradient_numerical(self):
         pass
 
-    def fit(self, pois, forward, loss_fn, optimizer):
+    def meent_optimizer(self, _pois, _opt, *args, **kwargs):
+        _parameters_to_fit = [(getattr(self, poi)) for poi in _pois]
+        res = _opt(_parameters_to_fit, *args, **kwargs)
+        return res
+
+    def fit(self, pois, forward, loss_fn, optimizer, opt_options, iteration=100):
+        optimizer = self.meent_optimizer(pois, optimizer, **opt_options)
         [setattr(getattr(self, poi), 'requires_grad', True) for poi in pois]
 
-        for i in range(1):
+        for i in range(iteration):
             optimizer.zero_grad()
             result = forward()  # Forward Prop.
-            loss = loss_fn(result)  # Loss
+            loss_value = loss_fn(result)  # Loss
 
-            loss.backward()  # Back Prop.
+            loss_value.backward()  # Back Prop.
             optimizer.step()
-            print(2, self.ucell.grad)
-        pass
-
-    def fit_general(self, pois, forward, loss_fn, optimizer_algo, optimizer_kwargs):
-        [setattr(getattr(self, poi), 'requires_grad', True) for poi in pois]
-
-        obj_to_fit = [(getattr(self, poi)) for poi in pois]
-
-        def call_optimizer(algorithm, obj_to_fit, *args, **kwargs):
-            if algorithm.upper() == 'SGD':
-                optimizer = SGD(obj_to_fit, *args, **kwargs)
-
-            return optimizer
-
-        optimizer = call_optimizer(optimizer_algo, obj_to_fit, **optimizer_kwargs)
-
-        for i in range(1):
-            optimizer.zero_grad()
-            result = forward()  # Forward Prop.
-            loss = loss_fn(result)  # Loss
-
-            loss.backward()  # Back Prop.
-            optimizer.step()
-            print(2, self.ucell.grad)
-
-
-if __name__ == '__main__':
-    mode = 2
-    dtype = 0
-    device = 0
-
-    conditions = meent.testcase.load_setting(mode, dtype, device)
-
-    aa = OptimizerTorch(**conditions)
-    import meent.on_torch.optimizer.loss
-
-    pois = ['ucell', 'thickness']
-    parameters_to_fit = [(getattr(aa, poi)) for poi in pois]
-    forward = aa.conv_solve
-    loss_fn = meent.on_torch.optimizer.loss.LossDeflector(x_order=0, y_order=1)
-
-    grad = aa.grad(pois, forward, loss_fn)
-    print(1, grad)
-
-    # case 1
-    opt = torch.optim.SGD(parameters_to_fit, lr=1E-2)
-    aa.fit(pois, forward, loss_fn, opt)
-    print(3, grad)
-
-    # case 2
-    opt_algo = 'sgd'
-    opt_kwargs = {'lr': 1E-2}
-    aa.fit_general(pois, forward, loss_fn, opt_algo, opt_kwargs)
-    print(3, grad)
+            print(f'step {i}, loss: {loss_value}')

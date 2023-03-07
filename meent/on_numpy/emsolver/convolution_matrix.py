@@ -86,7 +86,7 @@ def read_material_table(nk_path=None, type_complex=np.complex128):
     mat_table = {}
 
     if nk_path is None:
-        nk_path = str(Path(__file__).resolve().parent.parent) + '/nk_data'
+        nk_path = str(Path(__file__).resolve().parent.parent.parent) + '/nk_data'
 
     full_path_list, name_list, _ = [], [], []
     for (dirpath, dirnames, filenames) in walk(nk_path):

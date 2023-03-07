@@ -1,6 +1,6 @@
 import numpy as np
 
-from meent.entrance import call_solver
+from meent.main import call_solver
 
 
 def test():

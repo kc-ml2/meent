@@ -1,1 +1,1 @@
-from .entrance import call_solver
+from .main import call_solver
