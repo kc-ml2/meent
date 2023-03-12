@@ -13,7 +13,7 @@ def load_setting(mode, dtype, device, grating_type):
     n_I = 1  # n_incidence
     n_II = 1  # n_transmission
 
-    theta = 40 * np.pi / 180
+    theta = 0 * np.pi / 180
     phi = 0 * np.pi / 180
     psi = 0 * np.pi / 180 if pol else 90 * np.pi / 180
 

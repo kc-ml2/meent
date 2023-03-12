@@ -65,6 +65,7 @@ class _BaseRCWA:
             kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) - fourier_indices * (
                     wavelength / self.period[0])).astype(self.type_complex)
 
+        # kx_vector = kx_vector.conjugate()
         # kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector

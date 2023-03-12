@@ -140,6 +140,7 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=torch.d
     # 2D  # tODO: 1D
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
+        ucell_layer = ucell_layer ** 2
         # ucell_layer = torch.tensor(ucell_layer, dtype=type_complex) if type(ucell_layer) != torch.Tensor else ucell_layer
         # x_list = torch.tensor(x_list, dtype=type_complex) if type(x_list) != torch.Tensor else x_list
         # y_list = torch.tensor(y_list, dtype=type_complex) if type(y_list) != torch.Tensor else y_list
@@ -167,6 +168,7 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=torch.d
 
 
 def to_conv_mat_continuous(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
+    pmt = pmt ** 2
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -206,6 +208,7 @@ def to_conv_mat_continuous(pmt, fourier_order, device=torch.device('cpu'), type_
 
 
 def to_conv_mat_discrete(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128, improve_dft=True):
+    pmt = pmt ** 2  # TODO: other bds
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -270,7 +273,7 @@ def circulant(c, device=torch.device('cpu')):
     for r in range(center+1):
         idx = torch.arange(r, r - center - 1, -1, device=device)
 
-        assign_value = c[center + idx]
+        assign_value = c[center - idx]
         circ[r] = assign_value
 
     return circ

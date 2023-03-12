@@ -163,6 +163,8 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, t
     # 2D
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
+        ucell_layer = ucell_layer ** 2
+
         f_coeffs = fft_piecewise_constant_vector(ucell_layer, x_list, y_list,
                                                  fourier_order, type_complex=type_complex)
         o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
@@ -185,6 +187,7 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, t
 
 
 def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=jnp.complex128):
+    pmt = pmt ** 2
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -223,6 +226,7 @@ def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=jnp.com
 
 @partial(jax.jit, static_argnums=(1, 2, 3, 4))
 def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=jnp.complex128, improve_dft=True):
+    pmt = pmt ** 2
 
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -291,6 +295,6 @@ def circulant(c):
 
     for r in range(center+1):
         idx = jnp.arange(r, r - center - 1, -1)
-        circ = circ.at[r].set(c[center + idx])
+        circ = circ.at[r].set(c[center - idx])
 
     return circ

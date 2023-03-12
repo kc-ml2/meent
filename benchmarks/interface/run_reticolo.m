@@ -21,13 +21,12 @@ else
 end
 parm.not_io = 1;  % no write data on hard disk
 parm.res1.champ = 1; % the electromagnetic field is calculated accurately
-parm.res1.trace = 1; % show the texture
+%parm.res1.trace = 1; % show the texture
 
 textures = cell(1, size(_textures, 2));
 for i = 1:length(_textures)
     textures(i) = _textures(i);
 end
-textures
 
 profile = cell(1, size(_profile, 1));
 profile(1) = _profile(1, :);

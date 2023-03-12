@@ -44,7 +44,7 @@ ucell = np.array([
         [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
         [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
     ],
-])*8 + 1.
+])*2 + 1.
 
 period = [1000, 1000]
 thickness = torch.tensor([1120., 400, 300])
@@ -67,7 +67,7 @@ thickness = torch.tensor([1120., 400, 300])
 
 ucell = torch.tensor(ucell)
 mee = meent.call_mee(mode=mode, period=period,
-                     pol=1, fourier_order=2, grating_type=2, fft_type=1, ucell=ucell, ucell_info_list=ucell_info_list, thickness=thickness)
+                     pol=1, fourier_order=2, grating_type=2, fft_type=0, ucell=ucell, ucell_info_list=ucell_info_list, thickness=thickness)
 
 de_ri, de_ti = mee.conv_solve()
 

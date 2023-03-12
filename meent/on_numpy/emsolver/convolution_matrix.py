@@ -145,6 +145,7 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, t
     # 2D  # tODO: 1D
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
+        ucell_layer = ucell_layer ** 2
         f_coeffs = fft_piecewise_constant_vector(ucell_layer, x_list, y_list,
                                                  fourier_order, type_complex=type_complex)
         o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
@@ -157,8 +158,8 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, t
         conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
         conv_j = np.tile(conv_idx, (ff, ff))
 
-        e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-        o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
+        e_conv = f_coeffs[center[0] - conv_i, center[1] - conv_j]
+        o_e_conv = o_f_coeffs[center[0] - conv_i, center[1] - conv_j]
 
         e_conv_all[i] = e_conv
         o_e_conv_all[i] = o_e_conv
@@ -167,6 +168,8 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, t
 
 
 def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.complex128):
+    pmt = pmt ** 2
+
     # TODO: do conv and 1/conv in simultaneously?
     if len(pmt.shape) == 2:
         print('shape is 2')
@@ -182,7 +185,7 @@ def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.comp
             center = f_coeffs.shape[1] // 2
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
-            e_conv = f_coeffs[0, center + conv_idx]
+            e_conv = f_coeffs[0, center - conv_idx]  # TODO: sign changed. other func and bds.
             res[i] = e_conv
 
     else:  # 2D
@@ -199,14 +202,14 @@ def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.comp
             conv_i = np.repeat(conv_idx, ff, axis=1)
             conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
             conv_j = np.tile(conv_idx, (ff, ff))
-            e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            e_conv = f_coeffs[center[0] - conv_i, center[1] - conv_j]
             res[i] = e_conv
 
     return res
 
 
 def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.complex128, improve_dft=True):
-
+    pmt = pmt ** 2
     if len(pmt.shape) == 2:
         print('shape is 2')
         raise ValueError
@@ -231,7 +234,7 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.comple
 
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
-            e_conv = f_coeffs[0, center + conv_idx]
+            e_conv = f_coeffs[0, center - conv_idx]
             res[i] = e_conv
 
     else:  # 2D
@@ -263,7 +266,7 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.comple
             conv_i = np.repeat(conv_idx, ff, axis=1)
             conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
             conv_j = np.tile(conv_idx, (ff, ff))
-            e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            e_conv = f_coeffs[center[0] - conv_i, center[1] - conv_j]
             res[i] = e_conv
 
     return res
@@ -277,7 +280,7 @@ def circulant(c):
     for r in range(center+1):
         idx = np.arange(r, r - center - 1, -1, dtype=int)
 
-        assign_value = c[center + idx]
+        assign_value = c[center - idx]  # tODO other bakcsk
         circ[r] = assign_value
 
     return circ

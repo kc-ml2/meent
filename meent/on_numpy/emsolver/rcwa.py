@@ -81,8 +81,8 @@ class RCWANumpy(_BaseRCWA):
             E_conv_all1 = to_conv_mat_continuous(self.ucell, self.fourier_order, type_complex=self.type_complex)
             o_E_conv_all1 = to_conv_mat_continuous(1 / self.ucell, self.fourier_order, type_complex=self.type_complex)
 
-            print(1, np.linalg.norm(E_conv_all - E_conv_all1))
-            print(2, np.linalg.norm(o_E_conv_all1 - o_E_conv_all))
+            # print(1, np.linalg.norm(E_conv_all - E_conv_all1))
+            # print(2, np.linalg.norm(o_E_conv_all1 - o_E_conv_all))
 
             # import matplotlib.pyplot as plt
             # plt.imshow(abs(E_conv_all[0]))

@@ -131,7 +131,6 @@ if __name__ == '__main__':
     mode = 0
     pre = load_setting(mode, dtype, device, grating_type)
     mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
-    mee.ucell = mee.ucell ** 2
     mee.fft_type = 1
 
     de_ri, de_ti = mee.conv_solve()
@@ -153,7 +152,6 @@ if __name__ == '__main__':
     mode = 1
     pre = load_setting(mode, dtype, device, grating_type)
     mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
-    mee.ucell = mee.ucell ** 2
     mee.fft_type = 1
 
     de_ri, de_ti = mee.conv_solve()
@@ -175,7 +173,6 @@ if __name__ == '__main__':
     mode = 2
     pre = load_setting(mode, dtype, device, grating_type)
     mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
-    mee.ucell = mee.ucell ** 2
     mee.fft_type = 0
 
     de_ri, de_ti = mee.conv_solve()
