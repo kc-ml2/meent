@@ -70,7 +70,6 @@ class RCWANumpy(_BaseRCWA):
         return de_ri, de_ti
 
     def conv_solve(self, *args, **kwargs):
-        # TODO
         [setattr(self, k, v) for k, v in kwargs.items()]
 
         if self.fft_type == 0:

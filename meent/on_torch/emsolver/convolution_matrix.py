@@ -208,7 +208,7 @@ def to_conv_mat_continuous(pmt, fourier_order, device=torch.device('cpu'), type_
 
 
 def to_conv_mat_discrete(pmt, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128, improve_dft=True):
-    pmt = pmt ** 2  # TODO: other bds
+    pmt = pmt ** 2
 
     if len(pmt.shape) == 2:
         print('shape is 2')

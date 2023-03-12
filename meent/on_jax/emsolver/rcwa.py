@@ -77,7 +77,7 @@ class RCWAJax(_BaseRCWA):
     def _tree_unflatten(cls, aux_data, children):
         return cls(*children, **aux_data)
 
-    @jax.jit  # tODO: on
+    @jax.jit
     def _solve(self, wavelength, e_conv_all, o_e_conv_all):
         self.kx_vector = self.get_kx_vector(wavelength)
 

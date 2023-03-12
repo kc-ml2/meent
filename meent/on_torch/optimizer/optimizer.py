@@ -15,7 +15,7 @@ class Grad:
         return grad
 
 
-class OptimizerTorch(Grad):  # todo: remove RCWATorch?
+class OptimizerTorch(Grad):
 
     def __init__(self, *args, **kwargs):
 

@@ -185,7 +185,7 @@ def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.comp
             center = f_coeffs.shape[1] // 2
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
-            e_conv = f_coeffs[0, center + conv_idx]  # TODO: sign changed. other func and bds.
+            e_conv = f_coeffs[0, center + conv_idx]
             res[i] = e_conv
 
     else:  # 2D
@@ -280,7 +280,7 @@ def circulant(c):
     for r in range(center+1):
         idx = np.arange(r, r - center - 1, -1, dtype=int)
 
-        assign_value = c[center - idx]  # tODO other bakcsk
+        assign_value = c[center - idx]
         circ[r] = assign_value
 
     return circ

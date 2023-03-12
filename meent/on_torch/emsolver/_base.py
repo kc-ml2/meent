@@ -27,7 +27,7 @@ class _BaseRCWA:
 
         # self.theta = torch.tensor(theta * np.pi / 180)
         # self.phi = torch.tensor(phi * np.pi / 180)
-        # self.psi = torch.tensor(psi * np.pi / 180)  # TODO: integrate psi and pol
+        # self.psi = torch.tensor(psi * np.pi / 180)
 
         # degree to radian due to JAX JIT
         self.theta = torch.tensor(theta)
