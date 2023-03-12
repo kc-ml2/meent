@@ -1,6 +1,6 @@
 import torch
 
-import meent
+import meent.testcase
 from meent.on_torch.optimizer.loss import LossDeflector
 from meent.on_torch.optimizer.optimizer import OptimizerTorch
 

@@ -29,7 +29,7 @@ psi = 0 if pol else 90 * np.pi / 180
 wavelength = 900
 
 thickness = [500]
-ucell_materials = [1, 3.48]
+ucell_materials = [1, 'p_si']
 period = [1000, 1000]
 # period = [1000, 1000]
 fourier_order = 2
@@ -48,6 +48,9 @@ def run_test(grating_type, mode_key, dtype, device):
         else:
             type_complex = np.complex64
 
+        from meent.on_numpy.modeler.modeling import ModelingNumpy
+        ucell = ModelingNumpy().put_permittivity_in_ucell(ucell, ucell_materials, wavelength, type_complex)
+
     elif mode_key == 1:
         # JAX
         if device == 0:
@@ -62,6 +65,9 @@ def run_test(grating_type, mode_key, dtype, device):
         else:
             type_complex = jnp.complex64
 
+        from meent.on_jax.modeler.modeling import ModelingJax
+        ucell = ModelingJax().put_permittivity_in_ucell(ucell, ucell_materials, wavelength, type_complex)
+
     else:
         # Torch
         if device == 0:
@@ -74,14 +80,19 @@ def run_test(grating_type, mode_key, dtype, device):
         else:
             type_complex = torch.complex64
 
-    AA = meent.call_solver(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                           psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                           ucell_materials=ucell_materials,
-                           thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
+        from meent.on_torch.modeler.modeling import ModelingTorch
+        ucell = ModelingTorch().put_permittivity_in_ucell(ucell, ucell_materials, wavelength, device, type_complex)
+
+        # ucell = torch.tensor(ucell)
+
+    AA = meent.call_mee(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                        psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                        ucell_materials=ucell_materials,
+                        thickness=thickness, device=device, type_complex=type_complex, fft_type=1, improve_dft=True)
 
     for i in range(n_iter):
         t0 = time.time()
-        de_ri, de_ti = AA.run_ucell()
+        de_ri, de_ti = AA.conv_solve()
         print(f'run_cell: {i}: ', time.time() - t0)
     resolution = (20, 20, 20)
     for i in range(0):
@@ -105,12 +116,6 @@ def run_loop(a, b, c, d):
                 for device in d:
                     print(f'grating:{grating_type}, backend:{bd}, dtype:{dtype}, dev:{device}')
                     run_test(grating_type, bd, dtype, device)
-                    # try:
-                    #     print(f'grating:{grating_type}, backend:{bd}, dtype:{dtype}, dev:{device}')
-                    #     run_test(grating_type, bd, dtype, device)
-                    #
-                    # except Exception as e:
-                    #     print(e)
 
 def load_ucell(grating_type):
     if grating_type in [0, 1]:
@@ -119,7 +124,7 @@ def load_ucell(grating_type):
 
             [
                 [
-                    0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+                    0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
                 ],
             ],
         ])
@@ -140,6 +145,21 @@ def load_ucell(grating_type):
             ],
         ])
 
+        ucell = np.array([
+            [
+                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, ],
+                [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
+                [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
+                [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
+                [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
+                [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
+            ],
+        ])
+    # ucell = ucell * 4 + 1
     return ucell
 
 

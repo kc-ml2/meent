@@ -3,7 +3,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 
-from meent.main import call_solver
+from meent.main import call_mee
 
 grating_type = 2  # 0: 1D, 1: 1D conical, 2:2D.
 pol = 1  # 0: TE, 1: TM
@@ -54,9 +54,9 @@ plt.show()
 
 ucell_materials = ['p_si__real', 1]
 
-solver = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                     fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                     ucell_materials=ucell_materials, thickness=thickness)
+solver = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                  ucell_materials=ucell_materials, thickness=thickness)
 
 wavelength_array = np.linspace(500, 1000, 10)
 
@@ -65,7 +65,7 @@ spectrum_t = np.zeros([len(wavelength_array)] + [2 * fourier_order + 1] * (grati
 
 for i, wavelength in enumerate(wavelength_array):
     solver.wavelength = wavelength
-    de_ri, de_ti = solver.run_ucell()
+    de_ri, de_ti = solver.conv_solve()
 
     spectrum_r[i] = de_ri
     spectrum_t[i] = de_ti

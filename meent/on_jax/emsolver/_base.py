@@ -14,7 +14,7 @@ class _BaseRCWA:
 
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=10,
                  period=(100, 100), wavelength=900,
-                 ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
+                 thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=jnp.complex128):
 
         self.device = device
@@ -50,9 +50,6 @@ class _BaseRCWA:
         self.period = period
 
         self.wavelength = wavelength
-
-        self.ucell = deepcopy(ucell)
-        self.ucell_materials = ucell_materials
         self.thickness = deepcopy(thickness)
 
         self.algo = algo
@@ -72,10 +69,10 @@ class _BaseRCWA:
         k0 = 2 * jnp.pi / wavelength
         fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
+            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) + fourier_indices * (wavelength / self.period[0])
                               ).astype(self.type_complex)
         else:
-            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) - fourier_indices * (
+            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) + fourier_indices * (
                     wavelength / self.period[0])).astype(self.type_complex)
 
         # kx_vector = jnp.where(kx_vector == 0, self.perturbation, kx_vector)

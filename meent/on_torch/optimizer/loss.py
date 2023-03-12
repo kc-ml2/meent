@@ -14,7 +14,7 @@ class LossDeflector:
 
         res = de_ti[c_x + self.x_order, c_y + self.y_order]
 
-        return target - res
+        return res
 
 
 class LossSpectrumL2:

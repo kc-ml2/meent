@@ -14,8 +14,8 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=10,
                  period=(100, 100), wavelength=900,
-                 ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
-                 device='cpu', type_complex=torch.complex128):
+                 thickness=None, algo='TMM', perturbation=1E-10,
+                 device='cpu', type_complex=torch.complex128, **kwargs):
 
         self.device = device
         self.type_complex = type_complex
@@ -27,7 +27,7 @@ class _BaseRCWA:
 
         # self.theta = torch.tensor(theta * np.pi / 180)
         # self.phi = torch.tensor(phi * np.pi / 180)
-        # self.psi = torch.tensor(psi * np.pi / 180)  # TODO: integrate psi and pol
+        # self.psi = torch.tensor(psi * np.pi / 180)
 
         # degree to radian due to JAX JIT
         self.theta = torch.tensor(theta)
@@ -49,9 +49,6 @@ class _BaseRCWA:
         self.period = deepcopy(period)
 
         self.wavelength = wavelength
-
-        self.ucell = deepcopy(ucell)
-        self.ucell_materials = ucell_materials
         self.thickness = deepcopy(thickness)
 
         self.algo = algo
@@ -70,10 +67,10 @@ class _BaseRCWA:
         k0 = 2 * np.pi / wavelength
         fourier_indices = torch.arange(-self.fourier_order, self.fourier_order + 1, device=self.device)
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * torch.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
+            kx_vector = k0 * (self.n_I * torch.sin(self.theta) + fourier_indices * (wavelength / self.period[0])
                               ).type(self.type_complex)
         else:
-            kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) - fourier_indices * (
+            kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) + fourier_indices * (
                     wavelength / self.period[0])).type(self.type_complex)
 
         # kx_vector = torch.where(kx_vector == 0, self.perturbation, kx_vector)

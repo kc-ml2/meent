@@ -1,3 +1,5 @@
+from meent.on_torch.optimizer.loss import LossDeflector
+
 try:
     import os
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -11,7 +13,7 @@ import jax.numpy as jnp
 import time
 from copy import deepcopy
 
-from meent.main import call_solver
+from meent.main import call_mee
 import torch
 
 
@@ -34,6 +36,7 @@ def load_setting(mode_key, dtype, device):
 
     period = [1000, 1000]
     thickness = [1120., 400, 300]
+
     ucell = np.array(
         [
             [
@@ -50,6 +53,21 @@ def load_setting(mode_key, dtype, device):
             ],
         ]
     )
+
+    ucell = np.array([
+        [
+            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+        ],
+    ]) * 8 + 1.
 
     # thickness, period = [1120.], [1000, 1000]
     #
@@ -107,19 +125,19 @@ def optimize_jax_ucell_metasurface(mode_key, dtype, device):
     type_complex, device, ucell = load_setting(mode_key, dtype, device)
 
 
-    solver = call_solver(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                         ucell_materials=ucell_materials, thickness=thickness, device=device,
-                         type_complex=type_complex, )
+    solver = call_mee(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                      psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                      ucell_materials=ucell_materials, thickness=thickness, device=device,
+                      type_complex=type_complex, )
 
     @jax.grad
     def grad_loss(ucell):
 
         E_conv_all = to_conv_mat_discrete(ucell, fourier_order, type_complex=type_complex)
         o_E_conv_all = to_conv_mat_discrete(1 / ucell, fourier_order, type_complex=type_complex)
-        de_ri, de_ti, _, _, _ = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+        de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
         c = de_ti.shape[0] // 2
-        loss = de_ti[c, c+1]
+        loss = de_ti[c, c]
         print(loss.primal)
         return loss
 
@@ -133,16 +151,16 @@ def optimize_jax_ucell_metasurface(mode_key, dtype, device):
 
                     E_conv_all_m = to_conv_mat_discrete(ucell_delta_m, fourier_order, type_complex=type_complex)
                     o_E_conv_all_m = to_conv_mat_discrete(1 / ucell_delta_m, fourier_order, type_complex=type_complex)
-                    de_ri_delta_m, de_ti_delta_m, _, _, _ = solver.solve(wavelength, E_conv_all_m, o_E_conv_all_m)
+                    de_ri_delta_m, de_ti_delta_m = solver.solve(wavelength, E_conv_all_m, o_E_conv_all_m)
 
                     ucell_delta_p = ucell.at[layer, r, c].set(ucell[layer, r, c] + delta)
 
                     E_conv_all_p = to_conv_mat_discrete(ucell_delta_p, fourier_order, type_complex=type_complex)
                     o_E_conv_all_p = to_conv_mat_discrete(1 / ucell_delta_p, fourier_order, type_complex=type_complex)
-                    de_ri_delta_p, de_ti_delta_p, _, _, _ = solver.solve(wavelength, E_conv_all_p, o_E_conv_all_p)
+                    de_ri_delta_p, de_ti_delta_p = solver.solve(wavelength, E_conv_all_p, o_E_conv_all_p)
 
                     center = de_ti_delta_m.shape[0] // 2
-                    grad_numeric = (de_ti_delta_p[center, center+1] - de_ti_delta_m[center, center+1]) / (2*delta)
+                    grad_numeric = (de_ti_delta_p[center, center] - de_ti_delta_m[center, center]) / (2*delta)
                     grad_arr[layer, r, c] = grad_numeric
 
         return grad_arr
@@ -163,17 +181,19 @@ def optimize_torch_metasurface(mode_key, dtype, device):
 
     ucell.requires_grad = True
 
-    solver = call_solver(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                         ucell_materials=ucell_materials, thickness=thickness, device=device,
-                         type_complex=type_complex, )
+    solver = call_mee(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                      psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                      ucell_materials=ucell_materials, thickness=thickness, device=device,
+                      type_complex=type_complex, )
 
     E_conv_all = to_conv_mat_discrete(ucell, fourier_order)
     o_E_conv_all = to_conv_mat_discrete(1 / ucell, fourier_order)
-    de_ri, de_ti, _, _, _ = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+    de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
     c = de_ti.shape[0] // 2
-    loss = de_ti[c, c + 1]
+    loss = de_ti[c, c + 0]
+    # loss = LossDeflector(x_order=0, y_order=0)
+
     loss.backward()
     print('Torch grad_ad:\n', ucell.grad)
 
@@ -189,17 +209,17 @@ def optimize_torch_metasurface(mode_key, dtype, device):
 
                     E_conv_all = to_conv_mat_discrete(ucell_delta_m, fourier_order, type_complex=type_complex)
                     o_E_conv_all = to_conv_mat_discrete(1 / ucell_delta_m, fourier_order, type_complex=type_complex)
-                    de_ri_delta_m, de_ti_delta_m, _, _, _ = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+                    de_ri_delta_m, de_ti_delta_m = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
                     ucell_delta_p = deepcopy(ucell)
                     ucell_delta_p[layer, r, c] += delta
 
                     E_conv_all = to_conv_mat_discrete(ucell_delta_p, fourier_order, type_complex=type_complex)
                     o_E_conv_all = to_conv_mat_discrete(1 / ucell_delta_p, fourier_order, type_complex=type_complex)
-                    de_ri_delta_p, de_ti_delta_p, _, _, _ = solver.solve(wavelength, E_conv_all, o_E_conv_all)
+                    de_ri_delta_p, de_ti_delta_p = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
                     center = de_ti_delta_m.shape[0] // 2
-                    grad_numeric = (de_ti_delta_p[center, center+1] - de_ti_delta_m[center, center+1]) / (2*delta)
+                    grad_numeric = (de_ti_delta_p[center, center] - de_ti_delta_m[center, center]) / (2*delta)
                     grad_arr[layer, r, c] = grad_numeric
 
         return grad_arr
@@ -211,4 +231,3 @@ if __name__ == '__main__':
 
     optimize_jax_ucell_metasurface(1, 0, 0)
     optimize_torch_metasurface(2, 0, 0)
-

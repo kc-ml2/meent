@@ -1,4 +1,4 @@
-def call_solver(mode=0, *args, **kwargs):
+def call_mee(mode=0, *args, **kwargs):
     """
     decide backend and return RCWA mee instance
 
@@ -12,35 +12,65 @@ def call_solver(mode=0, *args, **kwargs):
 
     """
     if mode == 0:
-        from .on_numpy.emsolver.rcwa import RCWANumpy
-        RCWA = RCWANumpy(mode=mode, *args, **kwargs)
+        from .on_numpy.mee import MeeNumpy
+        mee = MeeNumpy(mode=mode, *args, **kwargs)
     elif mode == 1:
-        from .on_jax.emsolver.rcwa import RCWAJax
-        RCWA = RCWAJax(mode=mode, *args, **kwargs)
+        from .on_jax.mee import MeeJax
+        mee = MeeJax(mode=mode, *args, **kwargs)
 
     elif mode == 2:
-        from .on_torch.emsolver.rcwa import RCWATorch
-        RCWA = RCWATorch(mode=mode, *args, **kwargs)
+        from .on_torch.mee import MeeTorch
+        mee = MeeTorch(mode=mode, *args, **kwargs)
     else:
         raise ValueError
+    return mee
 
-    return RCWA
+# def call_solver(mode=0, *args, **kwargs):
+#     """
+#     decide backend and return RCWA mee instance
+#
+#     Args:
+#         mode: decide backend. 0 is numpy and 1 is JAX.
+#         *args: passed to RCWA instance
+#         **kwargs: passed to RCWA instance
+#
+#     Returns:
+#         RCWA: RCWA mee instance
+#
+#     """
+#     if mode == 0:
+#         from .on_numpy.emsolver.rcwa import RCWANumpy
+#         RCWA = RCWANumpy(mode=mode, *args, **kwargs)
+#     elif mode == 1:
+#         from .on_jax.emsolver.rcwa import RCWAJax
+#         RCWA = RCWAJax(mode=mode, *args, **kwargs)
+#
+#     elif mode == 2:
+#         from .on_torch.emsolver.rcwa import RCWATorch
+#         RCWA = RCWATorch(mode=mode, *args, **kwargs)
+#     else:
+#         raise ValueError
+#
+#     return RCWA
+#
+#
+# def call_optimizer(mode=1, *args, **kwargs):
+#
+#     if mode == 0:
+#         print('NumPy is not supported for optimization')
+#         raise ValueError
+#     elif mode == 1:
+#         pass
+#     elif mode == 2:
+#         from .on_torch.optimizer.optimizer import OptimizerTorch
+#         yongha = OptimizerTorch(mode=mode, *args, **kwargs)
+#     else:
+#         raise ValueError
+#
+#     return yongha
+#
 
 
-def call_optimizer(mode=1, *args, **kwargs):
-
-    if mode == 0:
-        print('NumPy is not supported for optimization')
-        raise ValueError
-    elif mode == 1:
-        pass
-    elif mode == 2:
-        from .on_torch.optimizer.optimizer import OptimizerTorch
-        yongha = OptimizerTorch(mode=mode, *args, **kwargs)
-    else:
-        raise ValueError
-
-    return yongha
 
 # def sweep_wavelength(wavelength_array, mode=0, *args, **kwargs):
 #     # wavelength = np.linspace(500, 1000, 10)

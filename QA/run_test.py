@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from meent.main import call_solver
+from meent.main import call_mee
 
 
 def run_test(n_I, n_II, theta, phi, grating_type, pol):
@@ -33,8 +33,8 @@ def run_test(n_I, n_II, theta, phi, grating_type, pol):
     thickness = [460, 660]
 
     t0 = time.time()
-    res = call_solver(0, grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
-                        pol, patterns, thickness, algo='TMM')
+    res = call_mee(0, grating_type, n_I, n_II, theta, phi, psi, fourier_order, period, wls,
+                   pol, patterns, thickness, algo='TMM')
     res.loop_wavelength_fill_factor()
     print(time.time() - t0)
     res.plot(title='TMM')
