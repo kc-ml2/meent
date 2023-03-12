@@ -7,6 +7,8 @@ from ..emsolver.rcwa import RCWAJax
 
 
 class Grad:
+    def __init__(self):
+        pass
 
     @staticmethod
     def forward(params, forward, loss):
@@ -24,33 +26,10 @@ class Grad:
         return loss_value, grads
 
 
-class OptimizerJax(RCWAJax, Grad):
+class OptimizerJax(Grad):
 
     def __init__(self, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-    def _tree_flatten(self):  # TODO: check args and kwargs
-        children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
-                    self.period, self.wavelength, self.ucell, self.thickness)
-        aux_data = {
-            'mode': self.mode,
-            'grating_type': self.grating_type,
-            'pol': self.pol,
-            'fourier_order': self.fourier_order,
-            'ucell_materials': self.ucell_materials,
-            'algo': self.algo,
-            'perturbation': self.perturbation,
-            'device': self.device,
-            'type_complex': self.type_complex,
-            'fft_type': self.fft_type,
-        }
-
-        return children, aux_data
-
-    @classmethod
-    def _tree_unflatten(cls, aux_data, children):
-        return cls(*children, **aux_data)
+        super().__init__()
 
     def gradient_numerical(self):
         pass

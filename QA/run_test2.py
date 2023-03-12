@@ -1,6 +1,6 @@
 import numpy as np
 
-from meent.main import call_solver, sweep_wavelength
+from meent.main import call_mee, sweep_wavelength
 
 
 pol = 1  # 0: TE, 1: TM
@@ -32,10 +32,10 @@ ucell = np.array([
 
 ucell_materials = ['p_si', 1]
 
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
-                 thickness=thickness)
-de_ri, de_ti = AA.run_ucell()
+AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+              fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+              thickness=thickness)
+de_ri, de_ti = AA.conv_solve()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
@@ -66,10 +66,10 @@ thickness = [200, 460, 660, 200]
 
 wls = np.linspace(900, 900, 1)  # wavelength
 
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
-                 thickness=thickness)
-de_ri, de_ti = AA.run_ucell()
+AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+              fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+              thickness=thickness)
+de_ri, de_ti = AA.conv_solve()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
@@ -95,10 +95,10 @@ ucell = np.array([
 ucell_materials = ['p_si', 1]
 
 wls = np.linspace(900, 900, 1)  # wavelength
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
-                 thickness=thickness)
-de_ri, de_ti = AA.run_ucell()
+AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+              fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+              thickness=thickness)
+de_ri, de_ti = AA.conv_solve()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
@@ -127,10 +127,10 @@ thickness = [200, 460, 660, 200]
 
 wls = np.linspace(900, 900, 1)  # wavelength
 
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
-                 thickness=thickness)
-de_ri, de_ti = AA.run_ucell()
+AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+              fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+              thickness=thickness)
+de_ri, de_ti = AA.conv_solve()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
@@ -159,10 +159,10 @@ ucell = np.array([
 ucell_materials = ['p_si', 1]
 
 wls = np.linspace(900, 900, 1)  # wavelength
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
-                 thickness=thickness)
-de_ri, de_ti = AA.run_ucell()
+AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+              fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+              thickness=thickness)
+de_ri, de_ti = AA.conv_solve()
 print(de_ri, de_ti)
 
 wls = np.linspace(500, 1000, 100)
@@ -200,10 +200,10 @@ thickness = [200, 460, 660, 200]
 
 wls = np.linspace(900, 900, 1)  # wavelength
 
-AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                 fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
-                 thickness=thickness)
-de_ri, de_ti = AA.run_ucell()
+AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+              fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, ucell_materials=ucell_materials,
+              thickness=thickness)
+de_ri, de_ti = AA.conv_solve()
 print(de_ri, de_ti)
 
 AA = sweep_wavelength(wls, mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,

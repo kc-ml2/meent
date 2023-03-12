@@ -15,11 +15,11 @@ class Grad:
         return grad
 
 
-class OptimizerTorch(RCWATorch, Grad):
+class OptimizerTorch(Grad):  # todo: remove RCWATorch?
 
     def __init__(self, *args, **kwargs):
 
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
     def gradient_numerical(self):
         pass

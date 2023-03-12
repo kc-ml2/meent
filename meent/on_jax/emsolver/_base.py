@@ -14,7 +14,7 @@ class _BaseRCWA:
 
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=10,
                  period=(100, 100), wavelength=900,
-                 ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
+                 thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=jnp.complex128):
 
         self.device = device
@@ -50,9 +50,6 @@ class _BaseRCWA:
         self.period = period
 
         self.wavelength = wavelength
-
-        self.ucell = deepcopy(ucell)
-        self.ucell_materials = ucell_materials
         self.thickness = deepcopy(thickness)
 
         self.algo = algo

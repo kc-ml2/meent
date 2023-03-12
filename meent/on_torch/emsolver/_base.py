@@ -14,8 +14,8 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=10,
                  period=(100, 100), wavelength=900,
-                 ucell=None, ucell_materials=None, thickness=None, algo='TMM', perturbation=1E-10,
-                 device='cpu', type_complex=torch.complex128):
+                 thickness=None, algo='TMM', perturbation=1E-10,
+                 device='cpu', type_complex=torch.complex128, **kwargs):
 
         self.device = device
         self.type_complex = type_complex
@@ -49,9 +49,6 @@ class _BaseRCWA:
         self.period = deepcopy(period)
 
         self.wavelength = wavelength
-
-        self.ucell = deepcopy(ucell)
-        self.ucell_materials = ucell_materials
         self.thickness = deepcopy(thickness)
 
         self.algo = algo

@@ -1,6 +1,6 @@
 import numpy as np
 
-from meent.main import call_solver
+from meent.main import call_mee
 
 
 def test():
@@ -31,9 +31,9 @@ def test():
         ],
     ])
 
-    AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                     fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-    de_ri, de_ti = AA.run_ucell()
+    AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    de_ri, de_ti = AA.conv_solve()
     print(de_ri, de_ti)
 
     # wavelength = np.linspace(500, 1000, 100)
@@ -62,9 +62,9 @@ def test():
 
     wls = np.linspace(900, 900, 1)  # wavelength
 
-    AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                     fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-    de_ri, de_ti = AA.run_ucell()
+    AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    de_ri, de_ti = AA.conv_solve()
     print(de_ri, de_ti)
 
     # wavelength = np.linspace(500, 1000, 100)
@@ -88,9 +88,9 @@ def test():
     ])
 
     wls = np.linspace(900, 900, 1)  # wavelength
-    AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                     fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-    de_ri, de_ti = AA.run_ucell()
+    AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    de_ri, de_ti = AA.conv_solve()
     print(de_ri, de_ti)
 
     # wavelength = np.linspace(500, 1000, 100)
@@ -119,9 +119,9 @@ def test():
 
     wls = np.linspace(900, 900, 1)  # wavelength
 
-    AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                     fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-    de_ri, de_ti = AA.run_ucell()
+    AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    de_ri, de_ti = AA.conv_solve()
     print(de_ri, de_ti)
 
     # wavelength = np.linspace(500, 1000, 100)
@@ -150,9 +150,9 @@ def test():
     ])
 
     wls = np.linspace(900, 900, 1)  # wavelength
-    AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                     fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-    de_ri, de_ti = AA.run_ucell()
+    AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    de_ri, de_ti = AA.conv_solve()
     print(de_ri, de_ti)
 
     # wavelength = np.linspace(500, 1000, 100)
@@ -190,9 +190,9 @@ def test():
 
     wls = np.linspace(900, 900, 1)  # wavelength
 
-    AA = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                     fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
-    de_ri, de_ti = AA.run_ucell()
+    AA = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                  fourier_order=fourier_order, wls=wls, period=period, ucell=ucell, thickness=thickness)
+    de_ri, de_ti = AA.conv_solve()
     print(de_ri, de_ti)
 
     # wavelength = np.linspace(500, 1000, 100)

@@ -11,7 +11,7 @@ Backend
 1. JAX
 2. PyTorch
 
-Device
+ModelingNumpy
 0. CPU
 1. GPU
 2. TPU

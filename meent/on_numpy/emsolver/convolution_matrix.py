@@ -1,107 +1,4 @@
-import copy
-import time
-
 import numpy as np
-
-from os import walk
-from scipy.io import loadmat
-from pathlib import Path
-
-
-def put_permittivity_in_ucell(ucell, mat_list, mat_table, wl, type_complex=np.complex128):
-    res = np.zeros(ucell.shape, dtype=type_complex)
-    ucell_mask = np.array(ucell, dtype=type_complex)
-    for i_mat, material in enumerate(mat_list):
-        mask = np.nonzero(ucell_mask == i_mat)
-
-        if type(material) == str:
-            assign_value = find_nk_index(material, mat_table, wl) ** 2
-        else:
-            assign_value = material ** 2
-        res[mask] = assign_value
-
-    return res
-
-
-def put_permittivity_in_ucell_old(ucell, mat_list, mat_table, wl, type_complex=np.complex128):
-
-    res = np.zeros(ucell.shape, dtype=type_complex)
-
-    for z in range(ucell.shape[0]):
-        for y in range(ucell.shape[1]):
-            for x in range(ucell.shape[2]):
-                material = mat_list[ucell[z, y, x]]
-                if type(material) == str:
-                    res[z, y, x] = find_nk_index(material, mat_table, wl) ** 2
-                else:
-                    res[z, y, x] = material ** 2
-
-    return res
-
-
-def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl,
-                                     type_complex=np.complex128):
-    """
-    Under development
-    """
-    res = np.zeros(ucell_size, dtype=type_complex)
-
-    for material, obj_index in zip(mat_list, obj_list):
-        if type(material) == str:
-            res[obj_index] = find_nk_index(material, mat_table, wl) ** 2
-        else:
-            res[obj_index] = material ** 2
-
-    return res
-
-
-def find_nk_index(material, mat_table, wl):
-    if material[-6:] == '__real':
-        material = material[:-6]
-        n_only = True
-    else:
-        n_only = False
-
-    mat_data = mat_table[material.upper()]
-
-    n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
-
-    if n_only:
-        return n_index
-
-    k_index = np.interp(wl, mat_data[:, 0], mat_data[:, 2])
-    nk = n_index + 1j * k_index
-
-    return nk
-
-
-def read_material_table(nk_path=None, type_complex=np.complex128):
-    if type_complex == np.complex128:
-        type_complex = np.float64
-    elif type_complex == np.complex64:
-        type_complex = np.float32
-    else:
-        raise ValueError
-
-    mat_table = {}
-
-    if nk_path is None:
-        nk_path = str(Path(__file__).resolve().parent.parent.parent) + '/nk_data'
-
-    full_path_list, name_list, _ = [], [], []
-    for (dirpath, dirnames, filenames) in walk(nk_path):
-        full_path_list.extend([f'{dirpath}/{filename}' for filename in filenames])
-        name_list.extend(filenames)
-    for path, name in zip(full_path_list, name_list):
-        if name[-3:] == 'txt':
-            data = np.loadtxt(path, skiprows=1)
-            mat_table[name[:-4].upper()] = data.astype(type_complex)
-
-        elif name[-3:] == 'mat':
-            data = loadmat(path)
-            data = np.array([data['WL'], data['n'], data['k']], dtype=type_complex)[:, :, 0].T
-            mat_table[name[:-4].upper()] = data
-    return mat_table
 
 
 def cell_compression(cell, type_complex=np.complex128):
@@ -189,6 +86,86 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     return f_coeffs_xy.T
 
 
+def fft_piecewise_constant_vector(cell, x, y, fourier_order, type_complex=np.complex128):
+    """
+    reference: reticolo
+    """
+
+    if cell.shape[0] == 1:
+        fourier_order = [0, fourier_order]
+    else:
+        fourier_order = [fourier_order, fourier_order]
+    # cell, x, y = cell_compression(cell, type_complex=type_complex)
+
+    # X axis
+    cell_next_x = np.roll(cell, -1, axis=1)
+    cell_diff_x = cell_next_x - cell
+
+    modes = np.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1)
+
+    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes[None, :], dtype=type_complex)
+    c = f_coeffs_x.shape[1] // 2
+
+    # x_next = np.vstack(np.roll(x, -1, axis=0)[:-1]) - x
+    x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], 1)) - x
+
+    f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
+    mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
+    mask[c] = False
+    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes[mask])
+
+    # Y axis
+    f_coeffs_x_next_y = np.roll(f_coeffs_x, -1, axis=0)
+    f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
+
+    modes = np.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1)
+
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes[None, :], dtype=type_complex)
+    c = f_coeffs_xy.shape[1] // 2
+
+    y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], 1)) - y
+
+    f_coeffs_xy[:, c] = f_coeffs_x.T @ np.vstack((y[0], y_next[:-1])).flatten()
+
+    if c:
+        mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
+        mask[c] = False
+        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])
+
+    return f_coeffs_xy.T
+
+
+def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, type_complex=np.complex128):
+    # TODO: do conv and 1/conv in simultaneously?
+    ff = 2 * fourier_order + 1
+
+    e_conv_all = np.zeros((len(ucell_info_list), ff ** 2, ff ** 2)).astype(type_complex)
+    o_e_conv_all = np.zeros((len(ucell_info_list), ff ** 2, ff ** 2)).astype(type_complex)
+
+    # 2D  # tODO: 1D
+    for i, ucell_info in enumerate(ucell_info_list):
+        ucell_layer, x_list, y_list = ucell_info
+        f_coeffs = fft_piecewise_constant_vector(ucell_layer, x_list, y_list,
+                                                 fourier_order, type_complex=type_complex)
+        o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
+                                                 fourier_order, type_complex=type_complex)
+        center = np.array(f_coeffs.shape) // 2
+
+        conv_idx = np.arange(-ff + 1, ff, 1)
+        conv_idx = circulant(conv_idx)
+        conv_i = np.repeat(conv_idx, ff, axis=1)
+        conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
+        conv_j = np.tile(conv_idx, (ff, ff))
+
+        e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+        o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
+
+        e_conv_all[i] = e_conv
+        o_e_conv_all[i] = o_e_conv
+
+    return e_conv_all, o_e_conv_all
+
+
 def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.complex128):
     # TODO: do conv and 1/conv in simultaneously?
     if len(pmt.shape) == 2:
@@ -201,6 +178,7 @@ def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.comp
 
         for i, layer in enumerate(pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
+
             center = f_coeffs.shape[1] // 2
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
@@ -213,6 +191,7 @@ def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.comp
 
         for i, layer in enumerate(pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
+
             center = np.array(f_coeffs.shape) // 2
 
             conv_idx = np.arange(-ff + 1, ff, 1)
@@ -222,25 +201,6 @@ def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.comp
             conv_j = np.tile(conv_idx, (ff, ff))
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
-
-    # import matplotlib.pyplot as plt
-    #
-    # plt.figure()
-    # plt.imshow(abs(res[0]), cmap='jet')
-    # plt.colorbar()
-    # plt.show()
-
-    # import matplotlib.pyplot as plt
-    #
-    # plt.figure()
-    # plt.imshow(abs(pmtvy_fft), cmap='jet')
-    # plt.colorbar()
-    # plt.show()
-    #
-    # plt.figure()
-    # plt.imshow(abs(res[0]), cmap='jet')
-    # plt.colorbar()
-    # plt.show()
 
     return res
 
@@ -306,19 +266,6 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.comple
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
 
-    # import matplotlib.pyplot as plt
-    #
-    # plt.figure()
-    # plt.imshow(abs(pmtvy_fft), cmap='jet')
-    # plt.colorbar()
-    # plt.show()
-    #
-    # plt.figure()
-    # plt.imshow(abs(res[0]), cmap='jet')
-    # plt.colorbar()
-    # plt.show()
-
-    #
     return res
 
 

@@ -74,12 +74,12 @@ n_iter = 2
 
 ucell = load_ucell(grating_type=grating_type)
 
-AA = meent.call_solver(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                       psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                       ucell_materials=ucell_materials,
-                       thickness=thickness, device=device, type_complex=type_complex, fft_type='piecewise')
+AA = meent.call_mee(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                    psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                    ucell_materials=ucell_materials,
+                    thickness=thickness, device=device, type_complex=type_complex, fft_type='piecewise')
 
 for i in range(n_iter):
     t0 = time.time()
-    de_ri, de_ti = AA.run_ucell()
+    de_ri, de_ti = AA.conv_solve()
     print(f'run_cell: {i}: ', time.time() - t0)

@@ -27,7 +27,7 @@ os.environ['XLA_FLAGS'] = '--xla_force_host_platform_device_count=24'
 import numpy as np
 import jax.numpy as jnp
 
-from meent.main import call_solver
+from meent.main import call_mee
 from meent.on_jax.emsolver.transfer_method import *
 
 
@@ -88,10 +88,10 @@ ucell = np.array([
     ],
 ], dtype=np.float64)
 
-solver = call_solver(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                     psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                     ucell_materials=ucell_materials,
-                     thickness=thickness, device=device, type_complex=type_complex, )
+solver = call_mee(mode=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                  psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                  ucell_materials=ucell_materials,
+                  thickness=thickness, device=device, type_complex=type_complex, )
 
 mat_table = read_material_table()
 
@@ -196,10 +196,10 @@ plt.show()
 # print('difference de_ri:', np.linalg.norm(spectrum_ri_pmap - spectrum_ri_single))
 # print('difference de_ti:', np.linalg.norm(spectrum_ti_pmap - spectrum_ti_single))
 
-solver1 = call_solver(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                     psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                     ucell_materials=ucell_materials,
-                     thickness=thickness, device=device, type_complex=type_complex, )
+solver1 = call_mee(mode=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                   psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                   ucell_materials=ucell_materials,
+                   thickness=thickness, device=device, type_complex=type_complex, )
 
 
 from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_continuous, to_conv_mat_discrete

@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from meent.main import call_solver
+from meent.main import call_mee
 
 # common
 grating_type = 2  # 0: 1D, 1: 1D conical, 2:2D.
@@ -17,7 +17,7 @@ psi = 0 * np.pi / 180 if pol else 90 * np.pi / 180
 wavelength = 900
 
 thickness = [500]
-ucell_materials = [1, 3.48]
+ucell_materials = ['p_si__real', 3.48]
 
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 
@@ -52,14 +52,19 @@ else:
         ]
     )
 
+from meent.on_numpy.modeler.modeling import ModelingNumpy
+
+modeler = ModelingNumpy()
+ucell = modeler.put_permittivity_in_ucell(ucell, ucell_materials, wavelength)
+
 for i in range(3):
-    AA = call_solver(mode=i, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
-                     fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                     ucell_materials=ucell_materials,
-                     thickness=thickness, )
+    AA = call_mee(mode=i, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                  ucell_materials=ucell_materials,
+                  thickness=thickness, )
 
     t0 = time.time()
-    de_ri, de_ti = AA.run_ucell()
+    de_ri, de_ti = AA.conv_solve()
     print(f'run_cell: ', time.time() - t0)
 
 

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 import meent
 
-from meent.on_numpy.emsolver.convolution_matrix import find_nk_index
+from meent.on_numpy.modeler.modeling import find_nk_index
 
 os.environ['OCTAVE_EXECUTABLE'] = '/opt/homebrew/bin/octave-cli'
 
@@ -34,7 +34,7 @@ class Reticolo:
         m_path = os.path.dirname(__file__)
         self.eng.addpath(self.eng.genpath(m_path))
 
-    def run(self, period, fourier_order, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II, *args, **kwargs):
+    def run(self, grating_type, period, fourier_order, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II, *args, **kwargs):
         phi *= (180 / np.pi)
 
         if grating_type in (0, 1):
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     mode = 0
     dtype = 0
     device = 0
-    grating_type = 2
+    grating_type = 0
     pre = load_setting(mode, dtype, device, grating_type)
 
     reti = Reticolo()
@@ -130,16 +130,11 @@ if __name__ == '__main__':
     # Numpy
     mode = 0
     pre = load_setting(mode, dtype, device, grating_type)
-    solver = meent.call_solver(mode=mode, perturbation=1E-30, **pre)
-    solver.ucell = solver.ucell ** 2
+    mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
+    mee.ucell = mee.ucell ** 2
+    mee.fft_type = 1
 
-    from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
-    E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
-    o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
-    # E_conv_all = to_conv_mat_discrete(mee.ucell, mee.fourier_order)
-    # o_E_conv_all = to_conv_mat_discrete(1 / mee.ucell, mee.fourier_order)
-
-    de_ri, de_ti, _, _, _ = solver.solve(solver.wavelength, E_conv_all, o_E_conv_all)
+    de_ri, de_ti = mee.conv_solve()
     c = de_ri.shape[0]//2
     try:
         print(de_ri[c-1:c+2, c-1:c+2])
@@ -157,16 +152,11 @@ if __name__ == '__main__':
     # JAX
     mode = 1
     pre = load_setting(mode, dtype, device, grating_type)
-    solver = meent.call_solver(mode=mode, perturbation=1E-30, **pre)
-    solver.ucell = solver.ucell ** 2
+    mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
+    mee.ucell = mee.ucell ** 2
+    mee.fft_type = 1
 
-    from meent.on_jax.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
-    E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
-    o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
-    # E_conv_all = to_conv_mat_discrete(mee.ucell, mee.fourier_order)
-    # o_E_conv_all = to_conv_mat_discrete(1 / mee.ucell, mee.fourier_order)
-
-    de_ri, de_ti, _, _, _ = solver.solve(solver.wavelength, E_conv_all, o_E_conv_all)
+    de_ri, de_ti = mee.conv_solve()
     c = de_ri.shape[0]//2
     try:
         print(de_ri[c-1:c+2,c-1:c+2])
@@ -184,16 +174,11 @@ if __name__ == '__main__':
     # Torch
     mode = 2
     pre = load_setting(mode, dtype, device, grating_type)
-    solver = meent.call_solver(mode=mode, perturbation=1E-30, **pre)
-    solver.ucell = solver.ucell ** 2
+    mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
+    mee.ucell = mee.ucell ** 2
+    mee.fft_type = 0
 
-    from meent.on_torch.emsolver.convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous
-    E_conv_all = to_conv_mat_continuous(solver.ucell, solver.fourier_order)
-    o_E_conv_all = to_conv_mat_continuous(1 / solver.ucell, solver.fourier_order)
-    # E_conv_all = to_conv_mat_discrete(mee.ucell, mee.fourier_order)
-    # o_E_conv_all = to_conv_mat_discrete(1 / mee.ucell, mee.fourier_order)
-
-    de_ri, de_ti, _, _, _ = solver.solve(solver.wavelength, E_conv_all, o_E_conv_all)
+    de_ri, de_ti = mee.conv_solve()
     c = de_ri.shape[0]//2
     try:
         print(de_ri[c-1:c+2,c-1:c+2])
