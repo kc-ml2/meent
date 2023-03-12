@@ -235,10 +235,10 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
     I = jnp.eye(ff ** 2).astype(type_complex)
     O = jnp.zeros((ff ** 2, ff ** 2), dtype=type_complex)
 
-    # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) - fourier_indices * (
+    # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) + fourier_indices * (
     #         wavelength / period[0])).astype(type_complex)
 
-    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) - fourier_indices * (
+    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices * (
             wavelength / period[1])).astype(type_complex)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5

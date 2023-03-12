@@ -69,10 +69,10 @@ class _BaseRCWA:
         k0 = 2 * jnp.pi / wavelength
         fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
+            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) + fourier_indices * (wavelength / self.period[0])
                               ).astype(self.type_complex)
         else:
-            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) - fourier_indices * (
+            kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) + fourier_indices * (
                     wavelength / self.period[0])).astype(self.type_complex)
 
         # kx_vector = jnp.where(kx_vector == 0, self.perturbation, kx_vector)

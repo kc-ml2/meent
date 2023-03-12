@@ -6,7 +6,7 @@ from .primitives import Eig
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
                   device='cpu', type_complex=torch.complex128):
 
-    # kx_vector = k0 * (n_I * torch.sin(theta) - fourier_indices * (wavelength / period[0])).type(type_complex)
+    # kx_vector = k0 * (n_I * torch.sin(theta) + fourier_indices * (wavelength / period[0])).type(type_complex)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2) ** 0.5
@@ -85,7 +85,7 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, device='cpu'
     I = torch.eye(ff, device=device, dtype=type_complex)
     O = torch.zeros((ff, ff), device=device, dtype=type_complex)
 
-    # kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) - fourier_indices * (
+    # kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) + fourier_indices * (
     #         wavelength / period[0])).type(type_complex)
 
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
@@ -262,9 +262,9 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
     I = torch.eye(ff ** 2, device=device, dtype=type_complex)
     O = torch.zeros((ff ** 2, ff ** 2), device=device, dtype=type_complex)
 
-    # kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) - fourier_indices * (
+    # kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) + fourier_indices * (
     #         wavelength / period[0])).type(type_complex)
-    ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) - fourier_indices * (
+    ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) + fourier_indices * (
             wavelength / period[1])).type(type_complex)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5

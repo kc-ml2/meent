@@ -67,10 +67,10 @@ class _BaseRCWA:
         k0 = 2 * np.pi / wavelength
         fourier_indices = torch.arange(-self.fourier_order, self.fourier_order + 1, device=self.device)
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * torch.sin(self.theta) - fourier_indices * (wavelength / self.period[0])
+            kx_vector = k0 * (self.n_I * torch.sin(self.theta) + fourier_indices * (wavelength / self.period[0])
                               ).type(self.type_complex)
         else:
-            kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) - fourier_indices * (
+            kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) + fourier_indices * (
                     wavelength / self.period[0])).type(self.type_complex)
 
         # kx_vector = torch.where(kx_vector == 0, self.perturbation, kx_vector)
