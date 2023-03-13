@@ -161,9 +161,9 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
     fourier_indices = torch.arange(-fourier_order, fourier_order + 1, device=device)
     ff = 2 * fourier_order + 1
 
-    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
+    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) + fourier_indices * (
     #         wavelength / period[0])).type(type_complex)
-    ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) - fourier_indices * (
+    ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) + fourier_indices * (
             wavelength / period[1])).type(type_complex)
 
     Kx = torch.diag(kx_vector.tile(ff).flatten() / k0)

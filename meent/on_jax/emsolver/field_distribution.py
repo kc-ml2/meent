@@ -108,9 +108,9 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
     fourier_indices = jnp.arange(-fourier_order, fourier_order + 1)
     ff = 2 * fourier_order + 1
 
-    # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) - fourier_indices * (
+    # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) + fourier_indices * (
     #         wavelength / period[0])).astype(type_complex)
-    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) - fourier_indices * (
+    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices * (
             wavelength / period[1])).astype(type_complex)
 
     Kx = jnp.diag(jnp.tile(kx_vector, ff).flatten()) / k0

@@ -17,14 +17,13 @@ Meent provides Numpy, JAX and PyTorch as a backend.
 
 ```python
 import meent
-from meent.main import call_mee
 
 # mode 0 = Numpy
 # mode 1 = JAX
 # mode 2 = PyTorch
 
-mode_key = 1
-solver = meent.rcwa.call_mee(mode=mode_key, ...)
+mode = 1
+mee = meent.call_mee(mode=mode, ...)
 ```
 
 
