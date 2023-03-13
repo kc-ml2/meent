@@ -15,7 +15,7 @@ import torch
 
 
 def load_setting(mode_key, dtype, device):
-    grating_type = 0
+    grating_type = 2
 
     pol = 0  # 0: TE, 1: TM
 
@@ -27,67 +27,27 @@ def load_setting(mode_key, dtype, device):
     psi = 0 if pol else 90
 
     wavelength = 900
-    wavelength = 651
 
     ucell_materials = [1, 3.48]
-    # thickness = [1120]
-    # period = [1000, 1000]
+    thickness = [1120]
+    period = [1000, 1000]
     fourier_order = 5
 
-    thickness, period = [1120], [100, 100]
-    thickness, period = [500], [100, 100]
-    thickness, period = [500], [1000, 1000]
-    thickness, period = np.array([1120.]), [1000, 1000]
+    ucell = np.array([
 
-    ucell = np.array(
-        [[
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-            [3., 1., 1., 1., 3.] * 2,
-        ]]
-    )
-    ucell = np.array(
-        [[
-            [3., 1., 1., 1., 3.],
-            [3., 1., 1., 1., 3.],
-            [3., 1., 1., 1., 3.],
-            [3., 1., 1., 1., 3.],
-            [3., 1., 1., 1., 3.],
-        ]]
-    )
-
-    ucell = np.array(
         [
-            0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-            1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-            1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0,
-            1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-            0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-        ]
-        , dtype=np.float64).reshape((6, -1, 10)) * 1.75 + 2.25
-    # ucell = np.array([
-    #
-    #     [
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #         [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
-    #         [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
-    #     ],
-    # ])
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, ],
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
+        ],
+    ]) * 4 + 1
 
     if mode_key == 0:
         device = 0
@@ -112,7 +72,6 @@ def load_setting(mode_key, dtype, device):
         device = torch.device('cpu') if device == 0 else torch.device('cuda')
         type_complex = torch.complex128 if dtype == 0 else torch.complex64
         ucell = torch.tensor(ucell, dtype=type_complex, device=device)
-        # ucell = torch.tensor(ucell, dtype=torch.float64)
 
     return grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order,\
            type_complex, device, ucell
@@ -123,52 +82,17 @@ def compare_conv_mat_method(mode_key, dtype, device):
     type_complex, device, ucell \
         = load_setting(mode_key, dtype, device)
 
-    if mode_key == 0:
-        from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_discrete as conv1
-        from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_continuous as conv2
-
-    elif mode_key == 1:
-        from meent.on_jax.emsolver.convolution_matrix import to_conv_mat_discrete as conv1
-        from meent.on_jax.emsolver.convolution_matrix import to_conv_mat_continuous as conv2
-    else:
-        from meent.on_torch.emsolver.convolution_matrix import to_conv_mat_discrete as conv1
-        from meent.on_torch.emsolver.convolution_matrix import to_conv_mat_continuous as conv2
-
-    thickness = [200.,200.,200.,200.,200.,500]
-    period = [1000]
-    solver = call_mee(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                      psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                      ucell_materials=ucell_materials, thickness=thickness, device=device,
-                      type_complex=type_complex, )
-    E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex, device=device, improve_dft=True)
-    o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex, device=device, improve_dft=True)
-    de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
-
-    E_conv_all1 = conv2(ucell, fourier_order, type_complex=type_complex, device=device)
-    o_E_conv_all1 = conv2(1 / ucell, fourier_order, type_complex=type_complex, device=device)
-    de_ri1, de_ti1 = solver.solve(wavelength, E_conv_all1, o_E_conv_all1)
-
-    print(de_ri.sum(), de_ti.sum())
-    try:
-        print('de_ri, de_ti norm: ', np.linalg.norm(de_ri - de_ri1), np.linalg.norm(de_ti - de_ti1))
-    except:
-        print('de_ri, de_ti norm: ', torch.linalg.norm(de_ri - de_ri1),  torch.linalg.norm(de_ti - de_ti1))
-
-    return
-
     for thickness, period in zip([[1120], [500], [500], [1120]], [[100, 100], [100, 100], [1000, 1000], [1000, 1000]]):
 
-        solver = call_mee(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+        mee = call_mee(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                           psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                           ucell_materials=ucell_materials, thickness=thickness, device=device,
                           type_complex=type_complex, )
-        E_conv_all = conv1(ucell, fourier_order, type_complex=type_complex, device=device, improve_dft=True)
-        o_E_conv_all = conv1(1 / ucell, fourier_order, type_complex=type_complex, device=device, improve_dft=True)
-        de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
 
-        E_conv_all1 = conv2(ucell, fourier_order, type_complex=type_complex, device=device)
-        o_E_conv_all1 = conv2(1 / ucell, fourier_order, type_complex=type_complex, device=device)
-        de_ri1, de_ti1 = solver.solve(wavelength, E_conv_all1, o_E_conv_all1)
+        mee.fft_type = 0
+        de_ri, de_ti = mee.conv_solve()
+        mee.fft_type = 1
+        de_ri1, de_ti1 = mee.conv_solve()
 
         try:
             print('de_ri, de_ti norm: ', np.linalg.norm(de_ri - de_ri1), np.linalg.norm(de_ti - de_ti1))
