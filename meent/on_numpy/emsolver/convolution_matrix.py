@@ -42,19 +42,20 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     reference: reticolo
     """
 
-    if cell.shape[0] == 1:
-        fourier_order = [0, fourier_order]
-    else:
-        fourier_order = [fourier_order, fourier_order]
+    if cell.shape[0] == 1:  # tODO
+        fourier_order = fourier_order + [0]
+    # else:
+    #     fourier_order = [fourier_order, fourier_order]
+
     cell, x, y = cell_compression(cell, type_complex=type_complex)
 
     # X axis
     cell_next_x = np.roll(cell, -1, axis=1)
     cell_diff_x = cell_next_x - cell
 
-    modes = np.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1)
+    modes_x = np.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1)
 
-    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes[None, :], dtype=type_complex)
+    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes_x[None, :], dtype=type_complex)
     c = f_coeffs_x.shape[1] // 2
 
     # x_next = np.vstack(np.roll(x, -1, axis=0)[:-1]) - x
@@ -63,15 +64,15 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
     mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
     mask[c] = False
-    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes[mask])
+    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes_x[mask])
 
     # Y axis
     f_coeffs_x_next_y = np.roll(f_coeffs_x, -1, axis=0)
     f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
 
-    modes = np.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1)
+    modes_y = np.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1)
 
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes[None, :], dtype=type_complex)
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes_y[None, :], dtype=type_complex)
     c = f_coeffs_xy.shape[1] // 2
 
     y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], 1)) - y
@@ -81,7 +82,7 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     if c:
         mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
         mask[c] = False
-        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])
+        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes_y[mask])
 
     return f_coeffs_xy.T
 
@@ -91,19 +92,19 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order, type_complex=np.com
     reference: reticolo
     """
 
-    if cell.shape[0] == 1:
-        fourier_order = [0, fourier_order]
-    else:
-        fourier_order = [fourier_order, fourier_order]
+    # if cell.shape[0] == 1:
+    #     fourier_order = [0, fourier_order]
+    # else:
+    #     fourier_order = [fourier_order, fourier_order]
     # cell, x, y = cell_compression(cell, type_complex=type_complex)
 
     # X axis
     cell_next_x = np.roll(cell, -1, axis=1)
     cell_diff_x = cell_next_x - cell
 
-    modes = np.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1)
+    modes_x = np.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1)
 
-    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes[None, :], dtype=type_complex)
+    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes_x[None, :], dtype=type_complex)
     c = f_coeffs_x.shape[1] // 2
 
     # x_next = np.vstack(np.roll(x, -1, axis=0)[:-1]) - x
@@ -112,15 +113,15 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order, type_complex=np.com
     f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
     mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
     mask[c] = False
-    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes[mask])
+    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes_x[mask])
 
     # Y axis
     f_coeffs_x_next_y = np.roll(f_coeffs_x, -1, axis=0)
     f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
 
-    modes = np.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1)
+    modes_y = np.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1)
 
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes[None, :], dtype=type_complex)
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes_y[None, :], dtype=type_complex)
     c = f_coeffs_xy.shape[1] // 2
 
     y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], 1)) - y
@@ -130,17 +131,22 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order, type_complex=np.com
     if c:
         mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
         mask[c] = False
-        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes[mask])
+        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes_y[mask])
 
     return f_coeffs_xy.T
 
 
 def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, type_complex=np.complex128):
     # TODO: do conv and 1/conv in simultaneously?
-    ff = 2 * fourier_order + 1
+    # ff = 2 * fourier_order + 1
 
-    e_conv_all = np.zeros((len(ucell_info_list), ff ** 2, ff ** 2)).astype(type_complex)
-    o_e_conv_all = np.zeros((len(ucell_info_list), ff ** 2, ff ** 2)).astype(type_complex)
+    ff_x = 2 * fourier_order[0] + 1
+    ff_y = 2 * fourier_order[1] + 1
+
+    ff = fourier_order[0] + fourier_order[1] + 1  # tODO
+
+    e_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
+    o_e_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
 
     # 2D  # tODO: 1D
     for i, ucell_info in enumerate(ucell_info_list):
@@ -167,19 +173,21 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, t
     return e_conv_all, o_e_conv_all
 
 
-def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.complex128):
-    pmt = pmt ** 2
+def to_conv_mat_continuous(ucell, fourier_order, device=None, type_complex=np.complex128):
+    ucell_pmt = ucell ** 2
 
     # TODO: do conv and 1/conv in simultaneously?
-    if len(pmt.shape) == 2:
+    if len(ucell_pmt.shape) == 2:
         print('shape is 2')
         raise ValueError
-    ff = 2 * fourier_order + 1
 
-    if pmt.shape[1] == 1:  # 1D
-        res = np.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
+    if ucell_pmt.shape[1] == 1:  # 1D
 
-        for i, layer in enumerate(pmt):
+        ff = 2 * fourier_order[0] + 1
+
+        res = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
+
+        for i, layer in enumerate(ucell_pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
 
             center = f_coeffs.shape[1] // 2
@@ -189,21 +197,45 @@ def to_conv_mat_continuous(pmt, fourier_order, device=None, type_complex=np.comp
             res[i] = e_conv
 
     else:  # 2D
-        # attention on the order of axis (Z Y X)
-        res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
 
-        for i, layer in enumerate(pmt):
+        # ff = 2 * fourier_order + 1
+
+        # TODO: cleaning
+        ff = 2 * fourier_order[0] + 1
+
+        ff_x = 2 * fourier_order[0] + 1
+        ff_y = 2 * fourier_order[1] + 1
+
+        # ff = fourier_order[0] + fourier_order[1] + 1  # tODO
+
+        # attention on the order of axis (Z Y X)
+        res = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
+
+        for i, layer in enumerate(ucell_pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
 
             center = np.array(f_coeffs.shape) // 2
 
-            conv_idx = np.arange(-ff + 1, ff, 1)
-            conv_idx = circulant(conv_idx)
-            conv_i = np.repeat(conv_idx, ff, axis=1)
-            conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
-            conv_j = np.tile(conv_idx, (ff, ff))
+            # conv_idx = np.arange(-ff + 1, ff, 1)
+            # conv_idx = circulant(conv_idx)
+            # conv_i = np.repeat(conv_idx, ff, axis=1)
+            # conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
+            # conv_j = np.tile(conv_idx, (ff, ff))
+            # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            # res[i] = e_conv
+
+            conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
+            conv_idx_y = circulant(conv_idx_y)
+            conv_i = np.repeat(conv_idx_y, ff_x, axis=1)
+            conv_i = np.repeat(conv_i, [ff_x] * ff_y, axis=0)
+
+            conv_idx_x = np.arange(-ff_x + 1, ff_x, 1)
+            conv_idx_x = circulant(conv_idx_x)
+            conv_j = np.tile(conv_idx_x, (ff_y, ff_y))
+
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
+
 
     return res
 
@@ -213,9 +245,11 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.comple
     if len(pmt.shape) == 2:
         print('shape is 2')
         raise ValueError
-    ff = 2 * fourier_order + 1
 
     if pmt.shape[1] == 1:  # 1D
+
+        ff = 2 * fourier_order + 1
+
         res = np.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
         if improve_dft:
             minimum_pattern_size = 2 * ff * pmt.shape[2]
@@ -238,9 +272,16 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.comple
             res[i] = e_conv
 
     else:  # 2D
+        # ff = 2 * fourier_order + 1
+
+        ff_x = 2 * fourier_order[0] + 1
+        ff_y = 2 * fourier_order[1] + 1
+
+        ff = fourier_order[0] + fourier_order[1] + 1  # tODO
+
         # attention on the order of axis (Z Y X)
         # TODO: separate fourier order
-        res = np.zeros((pmt.shape[0], ff ** 2, ff ** 2)).astype(type_complex)
+        res = np.zeros((pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
         if improve_dft:
             minimum_pattern_size_1 = 2 * ff * pmt.shape[1]
             minimum_pattern_size_2 = 2 * ff * pmt.shape[2]

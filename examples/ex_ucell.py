@@ -29,10 +29,10 @@ psi = 0 if pol else 90 * np.pi / 180
 wavelength = 900
 
 thickness = [500]
-ucell_materials = [1, 'p_si']
+ucell_materials = [1, 'p_si__real']
 period = [1000, 1000]
-# period = [1000, 1000]
-fourier_order = 2
+
+fourier_order = [2]
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 n_iter = 2
 
@@ -100,11 +100,13 @@ def run_test(grating_type, mode_key, dtype, device):
         AA.calculate_field(resolution=resolution, plot=False)
         print(f'cal_field: {i}', time.time() - t0)
 
+    center = np.array(de_ri.shape) // 2
+    print(de_ri.sum(), de_ti.sum())
+    print(de_ti)
     try:
-        center = de_ri.shape[0] // 2
-        print(de_ri[center-1:center+2, center-1:center+2])
+        print(de_ri[center[0]-1:center[0]+2, center[1]-1:center[1]+2])
     except:
-        print(de_ri[center-1:center+2])
+        print(de_ri[center[0]-1:center[0]+2])
 
     return de_ri, de_ti
 
@@ -159,9 +161,27 @@ def load_ucell(grating_type):
                 [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
             ],
         ])
+
+        ucell = np.array([
+
+            [
+                [
+                    0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+                ],
+                [
+                    0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+                ],
+                [
+                    0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+                ],
+                [
+                    0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+                ],
+            ],
+        ])
     # ucell = ucell * 4 + 1
     return ucell
 
 
 if __name__ == '__main__':
-    run_loop([0, 1, 2], [0, 1, 2], [0], [0])
+    run_loop([0], [0], [0], [0])

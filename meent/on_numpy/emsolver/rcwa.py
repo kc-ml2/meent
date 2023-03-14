@@ -52,7 +52,7 @@ class RCWANumpy(_BaseRCWA):
         self.layer_info_list = []
 
     def _solve(self, wavelength, e_conv_all, o_e_conv_all):
-        self.kx_vector = self.get_kx_vector(wavelength)
+        self.kx_vector = self.get_kx_vector(wavelength)  # TODO: add ky_vector?
 
         if self.grating_type == 0:
             de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, e_conv_all, o_e_conv_all)
@@ -77,38 +77,6 @@ class RCWANumpy(_BaseRCWA):
                                               improve_dft=self.improve_dft)
             o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order, type_complex=self.type_complex,
                                                 improve_dft=self.improve_dft)
-            E_conv_all1 = to_conv_mat_continuous(self.ucell, self.fourier_order, type_complex=self.type_complex)
-            o_E_conv_all1 = to_conv_mat_continuous(1 / self.ucell, self.fourier_order, type_complex=self.type_complex)
-
-            # print(1, np.linalg.norm(E_conv_all - E_conv_all1))
-            # print(2, np.linalg.norm(o_E_conv_all1 - o_E_conv_all))
-
-            # import matplotlib.pyplot as plt
-            # plt.imshow(abs(E_conv_all[0]))
-            # plt.colorbar()
-            # plt.show()
-            # import matplotlib.pyplot as plt
-            # plt.imshow(abs(E_conv_all1[0]))
-            # plt.colorbar()
-            # plt.show()
-            #
-            # import matplotlib.pyplot as plt
-            # plt.imshow(abs(o_E_conv_all[0]))
-            # plt.colorbar()
-            # plt.show()
-            # import matplotlib.pyplot as plt
-            # plt.imshow(abs(o_E_conv_all[0]))
-            # plt.colorbar()
-            # plt.show()
-            #
-            # plt.imshow(abs(E_conv_all[0] - E_conv_all1[0]))
-            # plt.colorbar()
-            # plt.show()
-            #
-            # plt.imshow(abs(o_E_conv_all[0] - o_E_conv_all1[0]))
-            # plt.colorbar()
-            # plt.show()
-
         elif self.fft_type == 1:
             E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order, type_complex=self.type_complex)
             o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order, type_complex=self.type_complex)
