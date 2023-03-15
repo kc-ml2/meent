@@ -34,7 +34,7 @@ class RCWAJax(_BaseRCWA):
                  type_complex=jnp.complex128,
                  fft_type=0,
                  improve_dft=True,
-                 **kwargs,
+                 **kwargs,  # TODO: need htis?
                  ):
 
         super().__init__(grating_type=grating_type, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi, pol=pol,
@@ -77,7 +77,7 @@ class RCWAJax(_BaseRCWA):
     def _tree_unflatten(cls, aux_data, children):
         return cls(*children, **aux_data)
 
-    @jax.jit
+    # @jax.jit
     def _solve(self, wavelength, e_conv_all, o_e_conv_all):
         self.kx_vector = self.get_kx_vector(wavelength)
 
@@ -93,19 +93,28 @@ class RCWAJax(_BaseRCWA):
         return de_ri.real, de_ti.real, layer_info_list, T1, self.kx_vector
 
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
-        de_ri, de_ti, layer_info_list, T1, self.kx_vector = self._solve(wavelength, e_conv_all, o_e_conv_all)
+        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(wavelength, e_conv_all, o_e_conv_all)
+
+        self.layer_info_list = layer_info_list
+        self.T1 = T1
+        self.kx_vector = kx_vector
+
         return de_ri, de_ti
 
     # @jax.jit  # TODO: can draw field? with jit?
     def conv_solve(self, **kwargs):
-        [setattr(self, k, v) for k, v in kwargs.items()] # TODO: need this? for optimization?
+        [setattr(self, k, v) for k, v in kwargs.items()]  # TODO: need this? for optimization?
 
         if self.fft_type == 0:
-            E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
-            o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+            E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                              type_complex=self.type_complex, improve_dft=self.improve_dft)
+            o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                type_complex=self.type_complex, improve_dft=self.improve_dft)
         elif self.fft_type == 1:
-            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order, type_complex=self.type_complex)
-            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order, type_complex=self.type_complex)
+            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                type_complex=self.type_complex)
+            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                  type_complex=self.type_complex)
         elif self.fft_type == 2:
             E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order,
                                                                      type_complex=self.type_complex)
@@ -122,8 +131,8 @@ class RCWAJax(_BaseRCWA):
 
     @jax.jit
     def conv_solve_spectrum(self, ucell):  # TODO: other backends
-        E_conv_all = to_conv_mat_discrete(ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
-        o_E_conv_all = to_conv_mat_discrete(1 / ucell, self.fourier_order, type_complex=self.type_complex, improve_dft=self.improve_dft)
+        E_conv_all = to_conv_mat_discrete(ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex, improve_dft=self.improve_dft)
+        o_E_conv_all = to_conv_mat_discrete(1 / ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex, improve_dft=self.improve_dft)
         de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
         return de_ri, de_ti
 
@@ -149,6 +158,7 @@ class RCWAJax(_BaseRCWA):
         de_ti = np.array(de_ti)
         return de_ri, de_ti
 
+    # TODO: jit? fourier order split in args?
     def calculate_field(self, resolution=None, plot=True):
 
         if self.grating_type == 0:
@@ -158,15 +168,15 @@ class RCWAJax(_BaseRCWA):
                                        type_complex=self.type_complex)
         elif self.grating_type == 1:
             resolution = [100, 1, 100] if not resolution else resolution
-            field_cell = field_dist_1d_conical(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi, self.fourier_order, self.T1,
-                                               self.layer_info_list, self.period, resolution=resolution,
-                                               type_complex=self.type_complex)
+            field_cell = field_dist_1d_conical(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+                                               self.fourier_order, self.T1, self.layer_info_list, self.period,
+                                               resolution=resolution, type_complex=self.type_complex)
 
         else:
             resolution = [10, 10, 10] if not resolution else resolution
-            field_cell = field_dist_2d(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi, self.fourier_order, self.T1,
-                                       self.layer_info_list, self.period, resolution=resolution,
-                                       type_complex=self.type_complex)
+            field_cell = field_dist_2d(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+                                       self.fourier_order, self.T1, self.layer_info_list, self.period,
+                                       resolution=resolution, type_complex=self.type_complex)
         if plot:
             field_plot(field_cell, self.pol)
         return field_cell

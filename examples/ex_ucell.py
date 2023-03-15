@@ -17,13 +17,13 @@ import torch
 import meent
 
 # common
-pol = 1  # 0: TE, 1: TM
+pol = 0  # 0: TE, 1: TM
 
 n_I = 1  # n_incidence
 n_II = 1  # n_transmission
 
-theta = 10 * np.pi / 180
-phi = 0 * np.pi / 180
+theta = 20 * np.pi / 180
+phi = 50 * np.pi / 180
 psi = 0 if pol else 90 * np.pi / 180
 
 wavelength = 900
@@ -32,7 +32,7 @@ thickness = [500]
 ucell_materials = [1, 'p_si__real']
 period = [1000, 1000]
 
-fourier_order = [2]
+fourier_order = [3, 2]
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 n_iter = 2
 
@@ -102,7 +102,6 @@ def run_test(grating_type, mode_key, dtype, device):
 
     center = np.array(de_ri.shape) // 2
     print(de_ri.sum(), de_ti.sum())
-    print(de_ti)
     try:
         print(de_ri[center[0]-1:center[0]+2, center[1]-1:center[1]+2])
     except:
@@ -118,6 +117,7 @@ def run_loop(a, b, c, d):
                 for device in d:
                     print(f'grating:{grating_type}, backend:{bd}, dtype:{dtype}, dev:{device}')
                     run_test(grating_type, bd, dtype, device)
+
 
 def load_ucell(grating_type):
     if grating_type in [0, 1]:
@@ -162,26 +162,26 @@ def load_ucell(grating_type):
             ],
         ])
 
-        ucell = np.array([
-
-            [
-                [
-                    0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
-                ],
-                [
-                    0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
-                ],
-                [
-                    0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
-                ],
-                [
-                    0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
-                ],
-            ],
-        ])
+        # ucell = np.array([
+        #
+        #     [
+        #         [
+        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+        #         ],
+        #         [
+        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+        #         ],
+        #         [
+        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+        #         ],
+        #         [
+        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+        #         ],
+        #     ],
+        # ])
     # ucell = ucell * 4 + 1
     return ucell
 
 
 if __name__ == '__main__':
-    run_loop([0], [0], [0], [0])
+    run_loop([2], [0,1,2], [0], [0])

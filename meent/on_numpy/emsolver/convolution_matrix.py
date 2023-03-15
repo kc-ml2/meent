@@ -42,10 +42,8 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
     reference: reticolo
     """
 
-    if cell.shape[0] == 1:  # tODO
+    if len(fourier_order) == 1:
         fourier_order = fourier_order + [0]
-    # else:
-    #     fourier_order = [fourier_order, fourier_order]
 
     cell, x, y = cell_compression(cell, type_complex=type_complex)
 
@@ -88,15 +86,8 @@ def fft_piecewise_constant(cell, fourier_order, type_complex=np.complex128):
 
 
 def fft_piecewise_constant_vector(cell, x, y, fourier_order, type_complex=np.complex128):
-    """
-    reference: reticolo
-    """
-
-    # if cell.shape[0] == 1:
-    #     fourier_order = [0, fourier_order]
-    # else:
-    #     fourier_order = [fourier_order, fourier_order]
-    # cell, x, y = cell_compression(cell, type_complex=type_complex)
+    if len(fourier_order) == 1:
+        fourier_order = fourier_order + [0]
 
     # X axis
     cell_next_x = np.roll(cell, -1, axis=1)
@@ -107,7 +98,6 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order, type_complex=np.com
     f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes_x[None, :], dtype=type_complex)
     c = f_coeffs_x.shape[1] // 2
 
-    # x_next = np.vstack(np.roll(x, -1, axis=0)[:-1]) - x
     x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], 1)) - x
 
     f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
@@ -138,12 +128,9 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order, type_complex=np.com
 
 def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, type_complex=np.complex128):
     # TODO: do conv and 1/conv in simultaneously?
-    # ff = 2 * fourier_order + 1
 
     ff_x = 2 * fourier_order[0] + 1
     ff_y = 2 * fourier_order[1] + 1
-
-    ff = fourier_order[0] + fourier_order[1] + 1  # tODO
 
     e_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
     o_e_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
@@ -152,17 +139,34 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, t
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
         ucell_layer = ucell_layer ** 2
+
         f_coeffs = fft_piecewise_constant_vector(ucell_layer, x_list, y_list,
                                                  fourier_order, type_complex=type_complex)
         o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
                                                  fourier_order, type_complex=type_complex)
         center = np.array(f_coeffs.shape) // 2
 
-        conv_idx = np.arange(-ff + 1, ff, 1)
-        conv_idx = circulant(conv_idx)
-        conv_i = np.repeat(conv_idx, ff, axis=1)
-        conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
-        conv_j = np.tile(conv_idx, (ff, ff))
+        # conv_idx = np.arange(-ff + 1, ff, 1)
+        # conv_idx = circulant(conv_idx)
+        # conv_i = np.repeat(conv_idx, ff, axis=1)
+        # conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
+        # conv_j = np.tile(conv_idx, (ff, ff))
+        #
+        # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+        # o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
+        #
+        # e_conv_all[i] = e_conv
+        # o_e_conv_all[i] = o_e_conv
+
+        # TODO: check correct
+        conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
+        conv_idx_y = circulant(conv_idx_y)
+        conv_i = np.repeat(conv_idx_y, ff_x, axis=1)
+        conv_i = np.repeat(conv_i, [ff_x] * ff_y, axis=0)
+
+        conv_idx_x = np.arange(-ff_x + 1, ff_x, 1)
+        conv_idx_x = circulant(conv_idx_x)
+        conv_j = np.tile(conv_idx_x, (ff_y, ff_y))
 
         e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
         o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
@@ -177,19 +181,14 @@ def to_conv_mat_continuous(ucell, fourier_order, device=None, type_complex=np.co
     ucell_pmt = ucell ** 2
 
     # TODO: do conv and 1/conv in simultaneously?
-    if len(ucell_pmt.shape) == 2:
-        print('shape is 2')
-        raise ValueError
 
     if ucell_pmt.shape[1] == 1:  # 1D
-
         ff = 2 * fourier_order[0] + 1
 
         res = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
-
             center = f_coeffs.shape[1] // 2
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
@@ -198,17 +197,11 @@ def to_conv_mat_continuous(ucell, fourier_order, device=None, type_complex=np.co
 
     else:  # 2D
 
-        # ff = 2 * fourier_order + 1
-
         # TODO: cleaning
-        ff = 2 * fourier_order[0] + 1
 
         ff_x = 2 * fourier_order[0] + 1
         ff_y = 2 * fourier_order[1] + 1
 
-        # ff = fourier_order[0] + fourier_order[1] + 1  # tODO
-
-        # attention on the order of axis (Z Y X)
         res = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
@@ -236,27 +229,21 @@ def to_conv_mat_continuous(ucell, fourier_order, device=None, type_complex=np.co
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
 
-
     return res
 
 
-def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.complex128, improve_dft=True):
-    pmt = pmt ** 2
-    if len(pmt.shape) == 2:
-        print('shape is 2')
-        raise ValueError
+def to_conv_mat_discrete(ucell, fourier_order, device=None, type_complex=np.complex128, improve_dft=True):
+    ucell_pmt = ucell ** 2
 
-    if pmt.shape[1] == 1:  # 1D
-
-        ff = 2 * fourier_order + 1
-
-        res = np.zeros((pmt.shape[0], ff, ff)).astype(type_complex)
+    if ucell_pmt.shape[1] == 1:  # 1D
+        ff = 2 * fourier_order[0] + 1
+        res = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
         if improve_dft:
-            minimum_pattern_size = 2 * ff * pmt.shape[2]
+            minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]
         else:
             minimum_pattern_size = 2 * ff
 
-        for i, layer in enumerate(pmt):
+        for i, layer in enumerate(ucell_pmt):
             n = minimum_pattern_size // layer.shape[1]
             layer = np.repeat(layer, n + 1, axis=1)
 
@@ -265,48 +252,60 @@ def to_conv_mat_discrete(pmt, fourier_order, device=None, type_complex=np.comple
             # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
 
             center = f_coeffs.shape[1] // 2
-
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
             e_conv = f_coeffs[0, center + conv_idx]
             res[i] = e_conv
 
     else:  # 2D
-        # ff = 2 * fourier_order + 1
-
         ff_x = 2 * fourier_order[0] + 1
         ff_y = 2 * fourier_order[1] + 1
 
-        ff = fourier_order[0] + fourier_order[1] + 1  # tODO
+        res = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
 
-        # attention on the order of axis (Z Y X)
-        # TODO: separate fourier order
-        res = np.zeros((pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
         if improve_dft:
-            minimum_pattern_size_1 = 2 * ff * pmt.shape[1]
-            minimum_pattern_size_2 = 2 * ff * pmt.shape[2]
+            minimum_pattern_size_y = 2 * ff_y * ucell_pmt.shape[1]
+            minimum_pattern_size_x = 2 * ff_x * ucell_pmt.shape[2]
         else:
-            minimum_pattern_size_1 = 2 * ff
-            minimum_pattern_size_2 = 2 * ff
+            minimum_pattern_size_y = 2 * ff_y
+            minimum_pattern_size_x = 2 * ff_x
+
         # e.g., 9 bytes * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
 
-        for i, layer in enumerate(pmt):
-            if layer.shape[0] < minimum_pattern_size_1:
-                n = minimum_pattern_size_1 // layer.shape[0]
+        for i, layer in enumerate(ucell_pmt):
+
+            if layer.shape[0] < minimum_pattern_size_y:
+                n = minimum_pattern_size_y // layer.shape[0]
                 layer = np.repeat(layer, n + 1, axis=0)
-            if layer.shape[1] < minimum_pattern_size_2:
-                n = minimum_pattern_size_2 // layer.shape[1]
+
+            if layer.shape[1] < minimum_pattern_size_x:
+                n = minimum_pattern_size_x // layer.shape[1]
                 layer = np.repeat(layer, n + 1, axis=1)
 
             f_coeffs = np.fft.fftshift(np.fft.fft2(layer / layer.size))
             center = np.array(f_coeffs.shape) // 2
 
-            conv_idx = np.arange(-ff + 1, ff, 1)
-            conv_idx = circulant(conv_idx)
 
-            conv_i = np.repeat(conv_idx, ff, axis=1)
-            conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
-            conv_j = np.tile(conv_idx, (ff, ff))
+            # conv_idx = np.arange(-ff + 1, ff, 1)
+            # conv_idx = circulant(conv_idx)
+            #
+            # conv_i = np.repeat(conv_idx, ff, axis=1)
+            # conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
+            # conv_j = np.tile(conv_idx, (ff, ff))
+            # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            # res[i] = e_conv
+            #
+
+            # TODO: check correct
+            conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
+            conv_idx_y = circulant(conv_idx_y)
+            conv_i = np.repeat(conv_idx_y, ff_x, axis=1)
+            conv_i = np.repeat(conv_i, [ff_x] * ff_y, axis=0)
+
+            conv_idx_x = np.arange(-ff_x + 1, ff_x, 1)
+            conv_idx_x = circulant(conv_idx_x)
+            conv_j = np.tile(conv_idx_x, (ff_y, ff_y))
+
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
 
