@@ -35,7 +35,12 @@ class _BaseRCWA:
             print('not implemented yet')
             raise ValueError
 
-        self.fourier_order = [int(v) for v in fourier_order]  # TODO: other bds
+        if type(fourier_order) == int:
+            self.fourier_order = [fourier_order, 0]
+        elif len(fourier_order) == 1:
+            self.fourier_order = list(fourier_order) + [0]
+        else:
+            self.fourier_order = [int(v) for v in fourier_order]
 
         self.period = deepcopy(period)
 
@@ -48,9 +53,7 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        if self.theta == 0:
-            self.theta = self.perturbation
-        self.theta = np.where(self.theta == 0, self.perturbation, self.theta)  # TODO: check whether correct
+        self.theta = np.where(self.theta == 0, self.perturbation, self.theta)
 
         self.kx_vector = None  # tODO: need this? why only kx, not ky?
 
@@ -66,19 +69,15 @@ class _BaseRCWA:
             kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) + fourier_indices_x * (
                     wavelength / self.period[0])).astype(self.type_complex)
 
-        # kx_vector = kx_vector.conjugate()
         # kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector
 
     def solve_1d(self, wavelength, E_conv_all, o_E_conv_all):
-
         self.layer_info_list = []
         self.T1 = None
 
         ff = self.fourier_order[0] * 2 + 1
-
-        fourier_indices_x = np.arange(-self.fourier_order[0], self.fourier_order[0] + 1)
 
         delta_i0 = np.zeros(ff, dtype=self.type_complex)
         delta_i0[self.fourier_order[0]] = 1
@@ -91,20 +90,12 @@ class _BaseRCWA:
                                 self.theta, delta_i0, self.fourier_order, type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
-                = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices_x, self.period,
+                = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, self.period,
                                   self.pol, wl=wavelength)
         else:
             raise ValueError
 
-        # count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
-
         # From the last layer
-        # for layer_index in range(count)[::-1]:
-        #
-        #     E_conv = E_conv_all[layer_index]
-        #     o_E_conv = o_E_conv_all[layer_index]
-        #     d = self.thickness[layer_index]
-
         for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
 
             if self.pol == 0:

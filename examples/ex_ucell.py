@@ -32,9 +32,9 @@ thickness = [500]
 ucell_materials = [1, 'p_si__real']
 period = [1000, 1000]
 
-fourier_order = [3, 2]
+fourier_order = 3
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
-n_iter = 2
+n_iter = 3
 
 
 def run_test(grating_type, mode_key, dtype, device):
@@ -88,14 +88,18 @@ def run_test(grating_type, mode_key, dtype, device):
     AA = meent.call_mee(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                         ucell_materials=ucell_materials,
-                        thickness=thickness, device=device, type_complex=type_complex, fft_type=1, improve_dft=True)
+                        thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
 
+    # for i in range(n_iter):
+    #     t0 = time.time()
+    #     AA.conv_solve_calculate_field()
+    #     print(f'run_cell: {i}: ', time.time() - t0)
     for i in range(n_iter):
         t0 = time.time()
         de_ri, de_ti = AA.conv_solve()
         print(f'run_cell: {i}: ', time.time() - t0)
     resolution = (20, 20, 20)
-    for i in range(0):
+    for i in range(2):
         t0 = time.time()
         AA.calculate_field(resolution=resolution, plot=False)
         print(f'cal_field: {i}', time.time() - t0)
@@ -184,4 +188,4 @@ def load_ucell(grating_type):
 
 
 if __name__ == '__main__':
-    run_loop([2], [0,1,2], [0], [0])
+    run_loop([0], [2], [0], [0])

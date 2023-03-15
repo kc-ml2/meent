@@ -102,19 +102,13 @@ class RCWAJax(_BaseRCWA):
         return de_ri, de_ti
 
     # @jax.jit  # TODO: can draw field? with jit?
-    def conv_solve(self, **kwargs):
-        [setattr(self, k, v) for k, v in kwargs.items()]  # TODO: need this? for optimization?
+    def _conv_solve(self):
 
         if self.fft_type == 0:
             E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
                                               type_complex=self.type_complex, improve_dft=self.improve_dft)
             o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
                                                 type_complex=self.type_complex, improve_dft=self.improve_dft)
-        elif self.fft_type == 1:
-            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                type_complex=self.type_complex)
-            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                  type_complex=self.type_complex)
         elif self.fft_type == 2:
             E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order,
                                                                      type_complex=self.type_complex)
@@ -122,6 +116,29 @@ class RCWAJax(_BaseRCWA):
             raise ValueError
 
         de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
+        # self.layer_info_list = layer_info_list
+        # self.T1 = T1
+        # self.kx_vector = kx_vector
+        return de_ri, de_ti, layer_info_list, T1, kx_vector
+
+    def _conv_solve_no_jit(self):
+
+        E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                            type_complex=self.type_complex)
+        o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                              type_complex=self.type_complex)
+
+        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
+
+        return de_ri, de_ti, layer_info_list, T1, kx_vector
+
+    def conv_solve(self, **kwargs):
+        [setattr(self, k, v) for k, v in kwargs.items()]  # TODO: need this? for optimization?
+
+        if self.fft_type == 1:
+            de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve_no_jit()
+        else:
+            de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
 
         self.layer_info_list = layer_info_list
         self.T1 = T1
@@ -159,9 +176,35 @@ class RCWAJax(_BaseRCWA):
         return de_ri, de_ti
 
     # TODO: jit? fourier order split in args?
+    # @jax.jit
     def calculate_field(self, resolution=None, plot=True):
 
         if self.grating_type == 0:
+            resolution = [100, 1, 100] if not resolution else resolution
+            field_cell = field_dist_1d(self.wavelength, self.kx_vector, self.n_I, self.theta, *self.fourier_order, self.T1,
+                                       self.layer_info_list, self.period, self.pol, resolution=resolution,
+                                       type_complex=self.type_complex)
+        elif self.grating_type == 1:
+            resolution = [100, 1, 100] if not resolution else resolution
+            field_cell = field_dist_1d_conical(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+                                               self.fourier_order, self.T1, self.layer_info_list, self.period,
+                                               resolution=resolution, type_complex=self.type_complex)
+
+        else:
+            resolution = [10, 10, 10] if not resolution else resolution
+            field_cell = field_dist_2d(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+                                       self.fourier_order, self.T1, self.layer_info_list, self.period,
+                                       resolution=resolution, type_complex=self.type_complex)
+        if plot:
+            field_plot(field_cell, self.pol)
+        return field_cell
+
+    @jax.jit
+    def conv_solve_calculate_field(self, resolution=None, plot=False):
+        self._conv_solve()
+        if self.grating_type == 0:
+            resolution = (20, 20, 20)
+
             resolution = [100, 1, 100] if not resolution else resolution
             field_cell = field_dist_1d(self.wavelength, self.kx_vector, self.n_I, self.theta, self.fourier_order, self.T1,
                                        self.layer_info_list, self.period, self.pol, resolution=resolution,

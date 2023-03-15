@@ -45,8 +45,9 @@ class _BaseRCWA:
             print('not implemented yet')
             raise ValueError
 
-        # TODO: jit-stuff. apply other backends?
-        if len(fourier_order) == 1:
+        if type(fourier_order) == int:
+            self.fourier_order = [fourier_order, 0]
+        elif len(fourier_order) == 1:
             self.fourier_order = list(fourier_order) + [0]
         else:
             self.fourier_order = [int(v) for v in fourier_order]
@@ -62,8 +63,6 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        # if self.theta == 0:
-        #     self.theta = self.perturbation
         self.theta = jnp.where(self.theta == 0, self.perturbation, self.theta)
 
         self.kx_vector = None
@@ -84,13 +83,10 @@ class _BaseRCWA:
         return kx_vector
 
     def solve_1d(self, wavelength, E_conv_all, o_E_conv_all):
-
         self.layer_info_list = []
         self.T1 = None
 
-        ff = self.fourier_order[0] * 2 + 1  # TODO: list?
-
-        # fourier_indices = jnp.arange(-self.fourier_order[0], self.fourier_order[0] + 1)
+        ff = self.fourier_order[0] * 2 + 1
 
         delta_i0 = jnp.zeros(ff, dtype=self.type_complex)
         delta_i0 = delta_i0.at[self.fourier_order[0]].set(1)
@@ -103,7 +99,7 @@ class _BaseRCWA:
                                 self.theta, delta_i0, self.fourier_order, type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
-                = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, fourier_indices, self.period,
+                = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, self.period,
                                   self.pol, wl=wavelength)
         else:
             raise ValueError
@@ -134,7 +130,7 @@ class _BaseRCWA:
             else:
                 raise ValueError
 
-            if self.algo == 'TMM':
+            if self.algo == 'TMM':  # TODO: fourier order?
                 X, f, g, T, a_i, b = transfer_1d_2(k0, q, d, W, V, f, g, self.fourier_order, T,
                                                    type_complex=self.type_complex)
 

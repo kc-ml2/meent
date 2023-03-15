@@ -56,7 +56,6 @@ class Reticolo:
             textures = [n_I, *ucell_new, n_II]
 
         else:
-            fourier_order = [fourier_order, fourier_order]
 
             Nx = ucell.shape[2]
             Ny = ucell.shape[1]
@@ -114,14 +113,14 @@ if __name__ == '__main__':
     mode = 0
     dtype = 0
     device = 0
-    grating_type = 0
+    grating_type = 2
     pre = load_setting(mode, dtype, device, grating_type)
 
     reti = Reticolo()
     a,b,c,d = reti.run(**pre)
 
-    print(np.array(a).flatten()[::-1])
-    print(np.array(b).flatten()[::-1])
+    print(np.array(a).flatten())
+    print(np.array(b).flatten())
     # print(np.array(a))
     # print(np.array(b))
     # print(c)
@@ -131,18 +130,21 @@ if __name__ == '__main__':
     mode = 0
     pre = load_setting(mode, dtype, device, grating_type)
     mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
-    mee.fft_type = 1
+    mee.fft_type = 0
 
     de_ri, de_ti = mee.conv_solve()
-    c = de_ri.shape[0]//2
+    center = np.array(de_ri.shape) // 2
     try:
-        print(de_ri[c-1:c+2, c-1:c+2])
-        print(de_ti[c-1:c+2, c-1:c+2])
+        print(de_ri[center[0]-1:center[0]+2, center[1]-1:center[1]+2])
+        print(de_ti[center[0]-1:center[0]+2, center[1]-1:center[1]+2])
     except:
         # print(de_ri[c-1:c+2])
         # print(de_ti[c-1:c+2])
-        print(de_ri)
-        print(de_ti)
+        print(de_ri[center[0]-1:center[0]+2])
+        print(de_ti[center[0]-1:center[0]+2])
+
+        # print(de_ri)
+        # print(de_ti)
 
     print(a.sum(),de_ri.sum())
     print(b.sum(),de_ti.sum())

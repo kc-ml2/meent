@@ -161,15 +161,6 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
         center = np.array(f_coeffs.shape) // 2
 
-
-
-        # conv_idx = jnp.arange(-ff + 1, ff, 1)
-        # conv_idx = circulant(conv_idx)
-        # conv_i = jnp.repeat(conv_idx, ff, 1)
-        # conv_i = jnp.repeat(conv_i, ff, axis=0)
-        # conv_j = jnp.tile(conv_idx, (ff, ff))
-
-
         conv_idx_y = jnp.arange(-ff_y + 1, ff_y, 1)
         conv_idx_y = circulant(conv_idx_y)
         conv_i = jnp.repeat(conv_idx_y, ff_x, axis=1)
@@ -178,8 +169,6 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
         conv_idx_x = jnp.arange(-ff_x + 1, ff_x, 1)
         conv_idx_x = circulant(conv_idx_x)
         conv_j = np.tile(conv_idx_x, (ff_y, ff_y))
-
-
 
         e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
         o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
@@ -218,14 +207,6 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
             f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
             center = jnp.array(f_coeffs.shape) // 2
 
-            # conv_idx = jnp.arange(-ff + 1, ff, 1)
-            # conv_idx = circulant(conv_idx)
-            # conv_i = jnp.repeat(conv_idx, ff, 1)
-            # conv_i = jnp.repeat(conv_i, ff, axis=0)
-            # conv_j = jnp.tile(conv_idx, (ff, ff))
-            # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            # res = res.at[i].set(e_conv)
-
             conv_idx_y = jnp.arange(-ff_y + 1, ff_y, 1)
             conv_idx_y = circulant(conv_idx_y)
             conv_i = jnp.repeat(conv_idx_y, ff_x, axis=1)
@@ -241,7 +222,7 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
     return res
 
 
-@partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))  # TODO
+# @partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))
 def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128, improve_dft=True):
     ucell_pmt = ucell ** 2
 
@@ -274,14 +255,7 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
         ff_x = 2 * fourier_order_x + 1
         ff_y = 2 * fourier_order_y + 1
 
-        res = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
-
-        # if improve_dft:
-        #     minimum_pattern_size_1 = 2 * ff * pmt.shape[1]
-        #     minimum_pattern_size_2 = 2 * ff * pmt.shape[2]
-        # else:
-        #     minimum_pattern_size_1 = 2 * ff
-        #     minimum_pattern_size_2 = 2 * ff
+        res = jnp.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
 
         if improve_dft:
             minimum_pattern_size_y = 2 * ff_y * ucell_pmt.shape[1]
@@ -303,19 +277,9 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
             f_coeffs = jnp.fft.fftshift(jnp.fft.fft2(layer / layer.size))
             center = jnp.array(f_coeffs.shape) // 2
 
-            # conv_idx = jnp.arange(-ff + 1, ff, 1)
-            # conv_idx = circulant(conv_idx)
-            #
-            # conv_i = jnp.repeat(conv_idx, ff, 1)
-            # conv_i = jnp.repeat(conv_i, ff, axis=0)
-            # conv_j = jnp.tile(conv_idx, (ff, ff))
-            # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            # res = res.at[i].set(e_conv)
-
             conv_idx_y = jnp.arange(-ff_y + 1, ff_y, 1)
             conv_idx_y = circulant(conv_idx_y)
             conv_i = jnp.repeat(conv_idx_y, ff_x, axis=1)
-            # conv_i = jnp.repeat(conv_i, [ff_x] * ff_y, axis=0)
             conv_i = jnp.repeat(conv_i, jnp.array([ff_x] * ff_y), axis=0)
 
             conv_idx_x = jnp.arange(-ff_x + 1, ff_x, 1)
