@@ -16,7 +16,7 @@ def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_in
                   device='cpu', type_complex=torch.complex128):
 
     k0 = 2 * np.pi / wavelength
-    fourier_indices = torch.arange(-fourier_order, fourier_order + 1, device=device)
+    fourier_indices = torch.arange(-fourier_order[0], fourier_order[0] + 1, device=device)
 
     # kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).type(type_complex)
     Kx = torch.diag(kx_vector / k0)

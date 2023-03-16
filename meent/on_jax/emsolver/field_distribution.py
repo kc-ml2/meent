@@ -16,11 +16,11 @@ def field_distribution(grating_type, *args, **kwargs):
     return res
 
 
-def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
+def field_dist_1d_original(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
                   type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
-    fourier_indices = jnp.arange(-fourier_order, fourier_order + 1)
+    fourier_indices = jnp.arange(-fourier_order[0], fourier_order[0] + 1)
     # kx_vector = k0 * (n_I * jnp.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
 
     Kx = jnp.diag(kx_vector / k0)
@@ -28,7 +28,8 @@ def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_in
     resolution_z, resolution_y, resolution_x = resolution
 
     # Here use numpy array due to slow assignment speed in JAX
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
+    # field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
 
     T_layer = T1
 
@@ -55,7 +56,93 @@ def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_in
             for j in range(resolution_y):
                 for i in range(resolution_x):
                     res = x_loop_1d(pol, resolution_x, period, i, A, B, C, kx_vector)
-                    field_cell[resolution_z * idx_layer + k, j, i] = res
+                    # field_cell[resolution_z * idx_layer + k, j, i] = res
+                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(res)
+
+        T_layer = a_i @ X @ T_layer
+
+    return field_cell
+
+
+@partial(jax.jit, static_argnums=(4, 5, 9, 10, 11, ))
+def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order_x, fourier_order_y, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
+                  type_complex=jnp.complex128):
+
+    k0 = 2 * jnp.pi / wavelength
+    fourier_indices = jnp.arange(-fourier_order_x, fourier_order_x + 1)
+    # kx_vector = k0 * (n_I * jnp.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
+
+    Kx = jnp.diag(kx_vector / k0)
+
+    resolution_z, resolution_y, resolution_x = resolution
+
+    # Here use numpy array due to slow assignment speed in JAX
+    # field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
+
+    T_layer = T1
+
+    # From the first layer
+    for idx_layer, (E_conv_i, q, W, X, a_i, b, d) in enumerate(layer_info_list[::-1]):
+
+        c1 = T_layer[:, None]
+        c2 = b @ a_i @ X @ T_layer[:, None]
+
+        Q = jnp.diag(q)
+
+        if pol == 0:
+            V = W @ Q
+            EKx = None
+
+        else:
+            V = E_conv_i @ W @ Q
+            EKx = E_conv_i @ Kx
+
+        for k in range(resolution_z):
+            z = k / resolution_z * d
+
+            if pol == 0:
+                Sy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                Ux = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                C = (-1j) * Kx @ Sy
+
+                for j in range(resolution_y):
+                    for i in range(resolution_x):
+                        x = i * period[0] / resolution_x
+
+                        Ey = Sy.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Hx = -1j * Ux.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Hz = C.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+
+                        field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set([Ey[0, 0], Hx[0, 0], Hz[0, 0]])
+                        # field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set([Ey, Hx, Hz])
+                        # field_cell = field_cell.at[resolution_z * idx_layer + k, j, i, 0].set(Ey[0, 0])
+                        # field_cell = field_cell.at[resolution_z * idx_layer + k, j, i, 1].set(Hx[0, 0])
+                        # field_cell = field_cell.at[resolution_z * idx_layer + k, j, i, 2].set(Hz[0, 0])
+                        # res = [Ey[0, 0], Hx[0, 0], Hz[0, 0]]
+
+            else:
+                Uy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                Sx = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+
+                C = (-1j) * EKx @ Uy  # there is a better option for convergence
+                for j in range(resolution_y):
+                    for i in range(resolution_x):
+                        x = i * period[0] / resolution_x
+
+                        Hy = Uy.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Ex = 1j * Sx.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Ez = C.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+
+                        field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set([Hy[0, 0], Ex[0, 0], Ez[0, 0]])
+                        # res = [Hy[0, 0], Ex[0, 0], Ez[0, 0]]
+
+            # A, B, C = z_loop_1d(pol, k0, Kx, W, V, Q, c1, c2, d, z, EKx)
+            # for j in range(resolution_y):
+            #     for i in range(resolution_x):
+            #         res = x_loop_1d(pol, resolution_x, period, i, A, B, C, kx_vector)
+            #         # field_cell[resolution_z * idx_layer + k, j, i] = res
+            #         field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(res)
 
         T_layer = a_i @ X @ T_layer
 
@@ -143,7 +230,7 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
     return field_cell
 
 
-@partial(jax.jit, static_argnums=(0,))
+# @partial(jax.jit, static_argnums=(0,))
 def z_loop_1d(pol, k0, Kx, W, V, Q, c1, c2, d, z, EKx):
 
     if pol == 0:  # TE
@@ -162,7 +249,7 @@ def z_loop_1d(pol, k0, Kx, W, V, Q, c1, c2, d, z, EKx):
         return Uy, Sx, C
 
 
-@partial(jax.jit, static_argnums=(0,))
+# @partial(jax.jit, static_argnums=(0,))
 def x_loop_1d(pol, resolution_x, period, i, A, B, C, kx_vector):
 
     if pol == 0:  # TE

@@ -20,7 +20,7 @@ def load_setting(mode, dtype, device, grating_type):
     wavelength = 900
 
     ucell_materials = [1, 3.48]
-    fourier_order = 5
+    fourier_order = [9, 2]
     # thickness = [1120., 400, 300]
     thickness = [1000., ]
 

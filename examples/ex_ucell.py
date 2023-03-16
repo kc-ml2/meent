@@ -17,24 +17,24 @@ import torch
 import meent
 
 # common
-pol = 1  # 0: TE, 1: TM
+pol = 0  # 0: TE, 1: TM
 
 n_I = 1  # n_incidence
 n_II = 1  # n_transmission
 
-theta = 10 * np.pi / 180
-phi = 0 * np.pi / 180
+theta = 20 * np.pi / 180
+phi = 50 * np.pi / 180
 psi = 0 if pol else 90 * np.pi / 180
 
 wavelength = 900
 
 thickness = [500]
-ucell_materials = [1, 'p_si']
+ucell_materials = [1, 'p_si__real']
 period = [1000, 1000]
-# period = [1000, 1000]
-fourier_order = 2
+
+fourier_order = 3
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
-n_iter = 2
+n_iter = 3
 
 
 def run_test(grating_type, mode_key, dtype, device):
@@ -88,23 +88,28 @@ def run_test(grating_type, mode_key, dtype, device):
     AA = meent.call_mee(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                         ucell_materials=ucell_materials,
-                        thickness=thickness, device=device, type_complex=type_complex, fft_type=1, improve_dft=True)
+                        thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
 
+    # for i in range(n_iter):
+    #     t0 = time.time()
+    #     AA.conv_solve_calculate_field()
+    #     print(f'run_cell: {i}: ', time.time() - t0)
     for i in range(n_iter):
         t0 = time.time()
         de_ri, de_ti = AA.conv_solve()
         print(f'run_cell: {i}: ', time.time() - t0)
     resolution = (20, 20, 20)
-    for i in range(0):
+    for i in range(2):
         t0 = time.time()
         AA.calculate_field(resolution=resolution, plot=False)
         print(f'cal_field: {i}', time.time() - t0)
 
+    center = np.array(de_ri.shape) // 2
+    print(de_ri.sum(), de_ti.sum())
     try:
-        center = de_ri.shape[0] // 2
-        print(de_ri[center-1:center+2, center-1:center+2])
+        print(de_ri[center[0]-1:center[0]+2, center[1]-1:center[1]+2])
     except:
-        print(de_ri[center-1:center+2])
+        print(de_ri[center[0]-1:center[0]+2])
 
     return de_ri, de_ti
 
@@ -116,6 +121,7 @@ def run_loop(a, b, c, d):
                 for device in d:
                     print(f'grating:{grating_type}, backend:{bd}, dtype:{dtype}, dev:{device}')
                     run_test(grating_type, bd, dtype, device)
+
 
 def load_ucell(grating_type):
     if grating_type in [0, 1]:
@@ -159,9 +165,27 @@ def load_ucell(grating_type):
                 [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
             ],
         ])
+
+        # ucell = np.array([
+        #
+        #     [
+        #         [
+        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+        #         ],
+        #         [
+        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+        #         ],
+        #         [
+        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+        #         ],
+        #         [
+        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
+        #         ],
+        #     ],
+        # ])
     # ucell = ucell * 4 + 1
     return ucell
 
 
 if __name__ == '__main__':
-    run_loop([0, 1, 2], [0, 1, 2], [0], [0])
+    run_loop([0], [2], [0], [0])

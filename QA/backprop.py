@@ -32,7 +32,7 @@ def load_setting(mode_key, dtype, device):
     wavelength = 900
 
     ucell_materials = [1, 3.48]
-    fourier_order = 2
+    fourier_order = [2, 2]
 
     period = [1000, 1000]
     thickness = [1120., 400, 300]
@@ -133,12 +133,12 @@ def optimize_jax_ucell_metasurface(mode_key, dtype, device):
     @jax.grad
     def grad_loss(ucell):
 
-        E_conv_all = to_conv_mat_discrete(ucell, fourier_order, type_complex=type_complex)
-        o_E_conv_all = to_conv_mat_discrete(1 / ucell, fourier_order, type_complex=type_complex)
+        E_conv_all = to_conv_mat_discrete(ucell, *fourier_order, type_complex=type_complex)
+        o_E_conv_all = to_conv_mat_discrete(1 / ucell, *fourier_order, type_complex=type_complex)
         de_ri, de_ti = solver.solve(wavelength, E_conv_all, o_E_conv_all)
         c = de_ti.shape[0] // 2
         loss = de_ti[c, c]
-        print(loss.primal)
+        # print(loss.primal)
         return loss
 
     def grad_numerical(ucell, delta):
@@ -149,14 +149,14 @@ def optimize_jax_ucell_metasurface(mode_key, dtype, device):
                 for c in range(ucell.shape[2]):
                     ucell_delta_m = ucell.at[layer, r, c].set(ucell[layer, r, c] - delta)
 
-                    E_conv_all_m = to_conv_mat_discrete(ucell_delta_m, fourier_order, type_complex=type_complex)
-                    o_E_conv_all_m = to_conv_mat_discrete(1 / ucell_delta_m, fourier_order, type_complex=type_complex)
+                    E_conv_all_m = to_conv_mat_discrete(ucell_delta_m, *fourier_order, type_complex=type_complex)
+                    o_E_conv_all_m = to_conv_mat_discrete(1 / ucell_delta_m, *fourier_order, type_complex=type_complex)
                     de_ri_delta_m, de_ti_delta_m = solver.solve(wavelength, E_conv_all_m, o_E_conv_all_m)
 
                     ucell_delta_p = ucell.at[layer, r, c].set(ucell[layer, r, c] + delta)
 
-                    E_conv_all_p = to_conv_mat_discrete(ucell_delta_p, fourier_order, type_complex=type_complex)
-                    o_E_conv_all_p = to_conv_mat_discrete(1 / ucell_delta_p, fourier_order, type_complex=type_complex)
+                    E_conv_all_p = to_conv_mat_discrete(ucell_delta_p, *fourier_order, type_complex=type_complex)
+                    o_E_conv_all_p = to_conv_mat_discrete(1 / ucell_delta_p, *fourier_order, type_complex=type_complex)
                     de_ri_delta_p, de_ti_delta_p = solver.solve(wavelength, E_conv_all_p, o_E_conv_all_p)
 
                     center = de_ti_delta_m.shape[0] // 2

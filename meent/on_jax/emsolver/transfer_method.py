@@ -4,8 +4,6 @@ from functools import partial
 import jax
 import jax.numpy as jnp
 
-# import meent.on_jax.jitted as ee
-# from . import jitted as ee
 from .primitives import eig
 
 
@@ -41,7 +39,7 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, f
     else:
         raise ValueError
 
-    T = jnp.eye(2 * fourier_order + 1).astype(type_complex)
+    T = jnp.eye(2 * fourier_order[0] + 1).astype(type_complex)
 
     return kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T
 
@@ -57,8 +55,8 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=jnp.compl
 
     a_i = jnp.linalg.inv(a)
 
-    f = W @ (jnp.eye(2 * fourier_order + 1).astype(type_complex) + X @ b @ a_i @ X)
-    g = V @ (jnp.eye(2 * fourier_order + 1).astype(type_complex) - X @ b @ a_i @ X)
+    f = W @ (jnp.eye(2 * fourier_order[0] + 1).astype(type_complex) + X @ b @ a_i @ X)
+    g = V @ (jnp.eye(2 * fourier_order[0] + 1).astype(type_complex) - X @ b @ a_i @ X)
     T = T @ a_i @ X
 
     return X, f, g, T, a_i, b
@@ -230,15 +228,15 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     return de_ri.real, de_ti.real, big_T1
 
 
-def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, phi, wavelength,
+def transfer_2d_1(ff_x, ff_y, ff_xy, k0, n_I, n_II, kx_vector, period, fourier_indices_y, theta, phi, wavelength,
                   type_complex=jnp.complex128):
-    I = jnp.eye(ff ** 2).astype(type_complex)
-    O = jnp.zeros((ff ** 2, ff ** 2), dtype=type_complex)
+    I = jnp.eye(ff_xy).astype(type_complex)
+    O = jnp.zeros((ff_xy, ff_xy), dtype=type_complex)
 
     # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) + fourier_indices * (
     #         wavelength / period[0])).astype(type_complex)
 
-    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices * (
+    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
             wavelength / period[1])).astype(type_complex)
 
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5
@@ -247,8 +245,8 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
     k_I_z = k_I_z.flatten().conjugate()
     k_II_z = k_II_z.flatten().conjugate()
 
-    Kx = jnp.diag(jnp.tile(kx_vector, ff).flatten()) / k0
-    Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff).flatten()) / k0
+    Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+    Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 
     varphi = jnp.arctan(ky_vector.reshape((-1, 1)) / kx_vector).flatten()
 
@@ -261,13 +259,13 @@ def transfer_2d_1(ff, k0, n_I, n_II, kx_vector, period, fourier_indices, theta, 
     big_F = jnp.block([[I, O], [O, 1j * Z_II]])
     big_G = jnp.block([[1j * Y_II, O], [O, I]])
 
-    big_T = jnp.eye(ff ** 2 * 2).astype(type_complex)
+    big_T = jnp.eye(2 * ff_xy).astype(type_complex)
 
     return kx_vector, ky_vector, Kx, Ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
 
-def transfer_2d_wv(ff, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex128, perturbation=1E-10, device='cpu'):
-    I = jnp.eye(ff ** 2).astype(type_complex)
+def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=jnp.complex128, perturbation=1E-10, device='cpu'):
+    I = jnp.eye(ff_xy).astype(type_complex)
 
     B = Kx @ E_conv_i @ Kx - I
     D = Ky @ E_conv_i @ Ky - I
@@ -347,10 +345,10 @@ def transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T, typ
     return big_X, big_F, big_G, big_T, big_A_i, big_B, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22
 
 
-def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z,
+def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff_xy, delta_i0, k_I_z, k0, n_I, n_II, k_II_z,
                   type_complex=jnp.complex128):
-    I = jnp.eye(ff ** 2).astype(type_complex)
-    O = jnp.zeros((ff ** 2, ff ** 2), dtype=type_complex)
+    I = jnp.eye(ff_xy).astype(type_complex)
+    O = jnp.zeros((ff_xy, ff_xy), dtype=type_complex)
 
     big_F_11 = big_F[:center, :center]
     big_F_12 = big_F[:center, center:]
@@ -383,14 +381,14 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
 
     final_RT = jnp.linalg.inv(final_A) @ final_B
 
-    R_s = final_RT[:ff ** 2, :].flatten()
-    R_p = final_RT[ff ** 2:2 * ff ** 2, :].flatten()
+    R_s = final_RT[:ff_xy, :].flatten()
+    R_p = final_RT[ff_xy:2 * ff_xy, :].flatten()
 
-    big_T1 = final_RT[2 * ff ** 2:, :]
+    big_T1 = final_RT[2 * ff_xy:, :]
     big_T = big_T @ big_T1
 
-    T_s = big_T[:ff ** 2, :].flatten()
-    T_p = big_T[ff ** 2:, :].flatten()
+    T_s = big_T[:ff_xy, :].flatten()
+    T_p = big_T[ff_xy:, :].flatten()
 
     de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
             + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
