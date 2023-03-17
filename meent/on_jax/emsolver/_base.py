@@ -130,7 +130,7 @@ class _BaseRCWA:
             else:
                 raise ValueError
 
-            if self.algo == 'TMM':  # TODO: fourier order?
+            if self.algo == 'TMM':
                 X, f, g, T, a_i, b = transfer_1d_2(k0, q, d, W, V, f, g, self.fourier_order, T,
                                                    type_complex=self.type_complex)
 
@@ -248,12 +248,12 @@ class _BaseRCWA:
 
             if self.algo == 'TMM':
                 W, V, q = transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv,
-                                         device=self.device, type_complex=self.type_complex)  # TODO: device?
+                                         device=self.device, type_complex=self.type_complex)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                 W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22 \
                     = transfer_2d_2(k0, d, W, V, center, q, varphi, I, O, big_F, big_G, big_T,
-                                    type_complex=self.type_complex)  # tODO: device?
+                                    type_complex=self.type_complex)
 
                 layer_info = [E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d]
                 self.layer_info_list.append(layer_info)
@@ -267,7 +267,7 @@ class _BaseRCWA:
         if self.algo == 'TMM':
             de_ri, de_ti, big_T1 = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, ff_xy,
                                                  delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z,
-                                                 type_complex=self.type_complex)  # TODO: device?
+                                                 type_complex=self.type_complex)
             self.T1 = big_T1
 
         elif self.algo == 'SMM':
@@ -276,7 +276,7 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        de_ri = de_ri.reshape((ff_y, ff_x)).real
-        de_ti = de_ti.reshape((ff_y, ff_x)).real
+        de_ri = de_ri.reshape((ff_y, ff_x))
+        de_ti = de_ti.reshape((ff_y, ff_x))
 
         return de_ri, de_ti, self.layer_info_list, self.T1

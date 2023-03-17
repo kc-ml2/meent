@@ -38,7 +38,7 @@ class RCWATorch(_BaseRCWA):
                          thickness=thickness, algo=algo, perturbation=perturbation,
                          device=device, type_complex=type_complex)
 
-        self.ucell = deepcopy(ucell)  # TODO: deepcopy?
+        self.ucell = deepcopy(ucell)
         self.ucell_materials = ucell_materials
         self.ucell_info_list = ucell_info_list
 
@@ -48,7 +48,6 @@ class RCWATorch(_BaseRCWA):
         self.fft_type = fft_type
         self.improve_dft = improve_dft
 
-        # self.mat_table = read_material_table(type_complex=self.type_complex)
         self.layer_info_list = []
 
     def _solve(self, wavelength, e_conv_all, o_e_conv_all):
@@ -74,7 +73,7 @@ class RCWATorch(_BaseRCWA):
 
         return de_ri, de_ti
 
-    def conv_solve(self, *args, **kwargs):  # TODO: delete args?
+    def conv_solve(self, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # TODO: need this? for optimization?
 
         if self.fft_type == 0:

@@ -66,15 +66,15 @@ def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, the
 
     de_ri = np.real(R * np.conj(R) * k_I_z / (k0 * n_I * np.cos(theta)))
     if polarization == 0:
-        # de_ti = T * np.conj(T) * np.real(k_II_z / (k0 * n_I * np.cos(theta)))  #TODO: use this
-        de_ti = np.real(T * np.conj(T) * k_II_z / (k0 * n_I * np.cos(theta)))
+        de_ti = T * np.conj(T) * np.real(k_II_z / (k0 * n_I * np.cos(theta)))
+        # de_ti = np.real(T * np.conj(T) * k_II_z / (k0 * n_I * np.cos(theta)))
     elif polarization == 1:
-        # de_ti = T * np.conj(T) * np.real(k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
-        de_ti = np.real(T * np.conj(T) * k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
+        de_ti = T * np.conj(T) * np.real(k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
+        # de_ti = np.real(T * np.conj(T) * k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
     else:
         raise ValueError
 
-    return de_ri, de_ti, T1
+    return de_ri.real, de_ti.real, T1
 
 
 def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex=np.complex128):
