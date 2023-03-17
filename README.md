@@ -1,7 +1,9 @@
 [![GitHub license](https://badgen.net/github/license/Naereen/Strapdown.js)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE)
 
 # Meent
-![alt text](images/picture2.png "Meent")
+<p align="center">
+  <img src="images/picture2.png" />
+</p>
 
 Meent is a Electromagnetic(EM) simulation package with Python, composed of three main parts:
 * Modeling
