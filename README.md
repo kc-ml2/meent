@@ -11,8 +11,9 @@ Meent is a Electromagnetic(EM) simulation package with Python, composed of three
 Meent provides three libraries as a backend:  
 ![alt text](images/picture1.png "Title")
 
-* NumPy:
+* NumPy
   * The fundamental package for scientific computing with Python
+  * Easy and lean to use
 * JAX
 * PyTorch
 
