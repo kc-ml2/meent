@@ -8,7 +8,6 @@ Meent is a Electromagnetic(EM) simulation package with Python, composed of three
 * Optimization
 
 ## Backends
----
 Meent provides three libraries as a backend:  
 ![alt text](images/picture1.png "Title")
 
