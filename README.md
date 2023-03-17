@@ -18,8 +18,23 @@ Meent provides three libraries as a backend:
   * Autograd and XLA, brought together for high-performance machine learning research.
 * PyTorch
   * A Python package that provides two high-level features: Tensor computation with strong GPU acceleration and Deep neural networks built on a tape-based autograd system
-  * 
 
+
+|                 | Numpy | JAX | PyTorch |
+| --------------- | :---: | :-: | :-----: |
+| 64bit support   |   O   |  O  |    O    |
+| 32bit support   |   O   |  O  |    O    |
+| GPU support     |   X   |  O  |    O    |
+| TPU support*    |   X   |  X  |    X    |
+| AD support      |   X   |  O  |    O    |
+| Parallelization |   X   |  O  |    X    |
+
+* Currently there is no workaround to do 32 bit eigendecomposition on TPU.
+
+Numpy is simple and light to use. Suggested as a baseline with small ~ medium scale optics problem.  
+JAX and PyTorch is recommended for cases having large scale or optimization part.  
+If you want parallelized computing with multiple devices(e.g., GPUs), JAX is ready for that.  
+But since JAX does jit compilation, it takes much time at the first run.
 
 
 RCWA solver and its applications on optimization problem. 
@@ -49,22 +64,6 @@ mee = meent.call_mee(mode=mode, ...)
 
 
 ## When to use
-
-|                 | Numpy | JAX | PyTorch |
-| --------------- | :---: | :-: | :-----: |
-| 64bit support   |   O   |  O  |    O    |
-| 32bit support   |   O   |  O  |    O    |
-| GPU support     |   X   |  O  |    O    |
-| TPU support*    |   X   |  X  |    X    |
-| AD support      |   X   |  O  |    O    |
-| Parallelization |   X   |  O  |    X    |
-
-* Currently there is no workaround to do 32 bit eigendecomposition on TPU.
-
-Numpy is simple and light to use. Suggested as a baseline with small ~ medium scale optics problem.  
-JAX and PyTorch is recommended for cases having large scale or optimization part.  
-If you want parallelized computing with multiple devices(e.g., GPUs), JAX is ready for that.  
-But since JAX does jit compilation, it takes much time at the first run.
 
 # Reference
 
