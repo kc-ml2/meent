@@ -12,12 +12,12 @@ Meent is a Electromagnetic(EM) simulation package with Python, composed of three
 Meent provides three libraries as a backend:  
 ![alt text](images/picture1.png "Backends")
 
-* NumPy
+* [NumPy](https://github.com/numpy/numpy)
   * The fundamental package for scientific computing with Python
   * Easy and lean to use
-* JAX
+* [JAX](https://github.com/google/jax)
   * Autograd and XLA, brought together for high-performance machine learning research.
-* PyTorch
+* [PyTorch](https://github.com/pytorch/pytorch)
   * A Python package that provides two high-level features: Tensor computation with strong GPU acceleration and Deep neural networks built on a tape-based autograd system
 
 ### When to use
