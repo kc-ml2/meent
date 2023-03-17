@@ -29,16 +29,12 @@ Meent provides three libraries as a backend:
 | AD support      |   X   |  O  |    O    | Automatic Differentiation (Back Propagation) |
 | Parallelization |   X   |  O  |    X    | JAX pmap function |
 
-* 
 
 Numpy is simple and light to use. Suggested as a baseline with small ~ medium scale optics problem.  
 JAX and PyTorch is recommended for cases having large scale or optimization part.  
 If you want parallelized computing with multiple devices(e.g., GPUs), JAX is ready for that.  
 But since JAX does jit compilation, it takes much time at the first run.
 
-
-RCWA solver and its applications on optimization problem. 
-We are expecting that this tool can accelerate ML research in photonics.
 
 ## How to install
 ```shell
@@ -48,9 +44,6 @@ pip install meent
 JAX and PyTorch is needed for advanced utilization.
 
 ## How to use
-
-Meent provides Numpy, JAX and PyTorch as a backend.
-
 ```python
 import meent
 
@@ -63,9 +56,7 @@ mee = meent.call_mee(mode=mode, ...)
 ```
 
 
-## When to use
-
-# Reference
+## Reference
 
 Many literatures and codes are referred for development and quality assurance
 
