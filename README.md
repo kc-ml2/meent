@@ -19,7 +19,7 @@ Meent provides three libraries as a backend:
 * PyTorch
   * A Python package that provides two high-level features: Tensor computation with strong GPU acceleration and Deep neural networks built on a tape-based autograd system
 
-
+### When to use
 |                 | Numpy | JAX | PyTorch |
 | --------------- | :---: | :-: | :-----: |
 | 64bit support   |   O   |  O  |    O    |
