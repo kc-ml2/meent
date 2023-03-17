@@ -1,6 +1,7 @@
 [![GitHub license](https://badgen.net/github/license/Naereen/Strapdown.js)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE)
 
 # Meent
+![alt text](images/picture2.png "Meent")
 
 Meent is a Electromagnetic(EM) simulation package with Python, composed of three main parts:
 * Modeling
@@ -9,7 +10,7 @@ Meent is a Electromagnetic(EM) simulation package with Python, composed of three
 
 ## Backends
 Meent provides three libraries as a backend:  
-![alt text](images/picture1.png "Title")
+![alt text](images/picture1.png "Backends")
 
 * NumPy
   * The fundamental package for scientific computing with Python
