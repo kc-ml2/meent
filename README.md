@@ -15,6 +15,7 @@ Meent provides three libraries as a backend:
   * The fundamental package for scientific computing with Python
   * Easy and lean to use
 * JAX
+  * Autograd and XLA, brought together for high-performance machine learning research.
 * PyTorch
 
 
