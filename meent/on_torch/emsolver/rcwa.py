@@ -38,7 +38,7 @@ class RCWATorch(_BaseRCWA):
                          thickness=thickness, algo=algo, perturbation=perturbation,
                          device=device, type_complex=type_complex)
 
-        self.ucell = deepcopy(ucell)
+        self.ucell = ucell.clone()
         self.ucell_materials = ucell_materials
         self.ucell_info_list = ucell_info_list
 
