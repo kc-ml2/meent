@@ -2,7 +2,23 @@
 
 # Meent
 
-Meent is a RCWA solver and its applications on optimization problem. We are expecting that this tool can accelerate ML research in photonics.
+Meent is a Electromagnetic(EM) simulation package with Python, composed of three main parts:
+* Modeling
+* EM simulation
+* Optimization
+
+
+Meent provides three library as a backend:  
+![alt text](/images/picture1.png "Title")
+
+* NumPy
+* JAX
+* PyTorch
+
+
+
+RCWA solver and its applications on optimization problem. 
+We are expecting that this tool can accelerate ML research in photonics.
 
 ## How to install
 ```shell
@@ -34,9 +50,11 @@ mee = meent.call_mee(mode=mode, ...)
 | 64bit support   |   O   |  O  |    O    |
 | 32bit support   |   O   |  O  |    O    |
 | GPU support     |   X   |  O  |    O    |
-| TPU support     |   X   |  X  |    X    |
+| TPU support*    |   X   |  X  |    X    |
 | AD support      |   X   |  O  |    O    |
 | Parallelization |   X   |  O  |    X    |
+
+* Currently there is no workaround to do 32 bit eigendecomposition on TPU.
 
 Numpy is simple and light to use. Suggested as a baseline with small ~ medium scale optics problem.  
 JAX and PyTorch is recommended for cases having large scale or optimization part.  
