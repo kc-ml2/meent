@@ -197,8 +197,6 @@ def to_conv_mat_continuous(ucell, fourier_order, device=None, type_complex=np.co
 
     else:  # 2D
 
-        # TODO: cleaning
-
         ff_x = 2 * fourier_order[0] + 1
         ff_y = 2 * fourier_order[1] + 1
 
@@ -206,16 +204,7 @@ def to_conv_mat_continuous(ucell, fourier_order, device=None, type_complex=np.co
 
         for i, layer in enumerate(ucell_pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order, type_complex=type_complex)
-
             center = np.array(f_coeffs.shape) // 2
-
-            # conv_idx = np.arange(-ff + 1, ff, 1)
-            # conv_idx = circulant(conv_idx)
-            # conv_i = np.repeat(conv_idx, ff, axis=1)
-            # conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
-            # conv_j = np.tile(conv_idx, (ff, ff))
-            # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            # res[i] = e_conv
 
             conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
             conv_idx_y = circulant(conv_idx_y)
@@ -269,7 +258,6 @@ def to_conv_mat_discrete(ucell, fourier_order, device=None, type_complex=np.comp
         else:
             minimum_pattern_size_y = 2 * ff_y
             minimum_pattern_size_x = 2 * ff_x
-
         # e.g., 9 bytes * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
 
         for i, layer in enumerate(ucell_pmt):
@@ -285,18 +273,6 @@ def to_conv_mat_discrete(ucell, fourier_order, device=None, type_complex=np.comp
             f_coeffs = np.fft.fftshift(np.fft.fft2(layer / layer.size))
             center = np.array(f_coeffs.shape) // 2
 
-
-            # conv_idx = np.arange(-ff + 1, ff, 1)
-            # conv_idx = circulant(conv_idx)
-            #
-            # conv_i = np.repeat(conv_idx, ff, axis=1)
-            # conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
-            # conv_j = np.tile(conv_idx, (ff, ff))
-            # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            # res[i] = e_conv
-            #
-
-            # TODO: check correct
             conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
             conv_idx_y = circulant(conv_idx_y)
             conv_i = np.repeat(conv_idx_y, ff_x, axis=1)

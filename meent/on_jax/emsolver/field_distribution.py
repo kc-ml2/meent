@@ -15,12 +15,12 @@ def field_distribution(grating_type, *args, **kwargs):
         res = field_dist_2d(*args, **kwargs)
     return res
 
-
+# TODO: cleaning args
 def field_dist_1d_original(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
                   type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
-    fourier_indices = jnp.arange(-fourier_order[0], fourier_order[0] + 1)
+    # fourier_indices = jnp.arange(-fourier_order[0], fourier_order[0] + 1)
     # kx_vector = k0 * (n_I * jnp.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
 
     Kx = jnp.diag(kx_vector / k0)

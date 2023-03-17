@@ -168,15 +168,6 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        # count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
-        #
-        # # From the last layer
-        # for layer_index in range(count)[::-1]:
-        #
-        #     E_conv = E_conv_all[layer_index]
-        #     o_E_conv = o_E_conv_all[layer_index]
-        #     d = self.thickness[layer_index]
-
         for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
             E_conv_i = np.linalg.inv(E_conv)
             o_E_conv_i = np.linalg.inv(o_E_conv)
@@ -239,14 +230,6 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        # count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
-        #
-        # # From the last layer
-        # for layer_index in range(count)[::-1]:
-        #
-        #     E_conv = E_conv_all[layer_index]
-        #     o_E_conv = o_E_conv_all[layer_index]
-        #     d = self.thickness[layer_index]
         for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
             E_conv_i = np.linalg.inv(E_conv)
             o_E_conv_i = np.linalg.inv(o_E_conv)
@@ -279,8 +262,8 @@ class _BaseRCWA:
                                            self.pol, self.theta, self.phi, self.fourier_order)
         else:
             raise ValueError
-        de_ri = de_ri.reshape((ff_y, ff_x)).real
-        de_ti = de_ti.reshape((ff_y, ff_x)).real
+        de_ri = de_ri.reshape((ff_y, ff_x))
+        de_ti = de_ti.reshape((ff_y, ff_x))
 
         return de_ri, de_ti, self.layer_info_list, self.T1
 

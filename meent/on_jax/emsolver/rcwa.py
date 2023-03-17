@@ -34,7 +34,7 @@ class RCWAJax(_BaseRCWA):
                  type_complex=jnp.complex128,
                  fft_type=0,
                  improve_dft=True,
-                 **kwargs,  # TODO: need htis?
+                 **kwargs,
                  ):
 
         super().__init__(grating_type=grating_type, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi, pol=pol,
@@ -52,7 +52,6 @@ class RCWAJax(_BaseRCWA):
         self.fft_type = fft_type
         self.improve_dft = improve_dft
 
-        # self.mat_table = read_material_table(type_complex=self.type_complex)
         self.layer_info_list = []
 
     def _tree_flatten(self):
@@ -93,7 +92,7 @@ class RCWAJax(_BaseRCWA):
         return de_ri.real, de_ti.real, layer_info_list, T1, self.kx_vector
 
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(wavelength, e_conv_all, o_e_conv_all)
+        de_ri, de_ti, layer_info_list, T1, kx_vector = jax.jit(self._solve)(wavelength, e_conv_all, o_e_conv_all)
 
         self.layer_info_list = layer_info_list
         self.T1 = T1
