@@ -17,6 +17,8 @@ Meent provides three libraries as a backend:
 * JAX
   * Autograd and XLA, brought together for high-performance machine learning research.
 * PyTorch
+  * A Python package that provides two high-level features: Tensor computation with strong GPU acceleration and Deep neural networks built on a tape-based autograd system
+  * 
 
 
 
