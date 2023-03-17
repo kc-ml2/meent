@@ -24,12 +24,12 @@ Meent provides three libraries as a backend:
 | --------------- | :---: | :-: | :-----: | :---------: |
 | 64bit support   |   O   |  O  |    O    | Default for scientific computing |
 | 32bit support   |   O   |  O  |    O    | Use only when you do understand what you are doing |
-| GPU support     |   X   |  O  |    O    |
-| TPU support*    |   X   |  X  |    X    |
-| AD support      |   X   |  O  |    O    |
-| Parallelization |   X   |  O  |    X    |
+| GPU support     |   X   |  O  |    O    | Eigendecomposition is only on CPUs |
+| TPU support*    |   X   |  X  |    X    | Currently there is no workaround to do 32 bit eigendecomposition on TPU |
+| AD support      |   X   |  O  |    O    | Automatic Differentiation (Back Propagation) |
+| Parallelization |   X   |  O  |    X    | JAX pmap function |
 
-* Currently there is no workaround to do 32 bit eigendecomposition on TPU.
+* 
 
 Numpy is simple and light to use. Suggested as a baseline with small ~ medium scale optics problem.  
 JAX and PyTorch is recommended for cases having large scale or optimization part.  
