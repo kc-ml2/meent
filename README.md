@@ -32,7 +32,7 @@ Meent provides three libraries as a backend:
 | Parallelization |   X   |  O  |    X    | JAX pmap function |
 
 *In 32bit operation, operations on numbers of 8>= digit difference fail without warning or error. 
-Use only when you do understand what you are doing.
+Use only when you do understand what you are doing.  
 **As of now(2023.03.19), GPU-native Eigendecomposition is not implemented in JAX and PyTorch. 
 It's enforced to run on CPUs and send back to GPUs.
 
