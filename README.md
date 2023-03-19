@@ -2,10 +2,11 @@
 
 [//]: # (<p align="center"><img src="images/meent_logo_6.svg" /></p>)
 [//]: # (<p align="center"><img src="images/meent_logo_7.svg" width=80% /></p>)
-<p align="center"><img src="images/meent_logo_8.svg" width=80% /></p>
+<p align="center"><img src="images/meent_logo.svg" width=80% /></p>
 
 # Meent
-[![GitHub license](https://badgen.net/github/license/Naereen/Strapdown.js)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE)
+
+[//]: # ([![GitHub license]&#40;https://badgen.net/github/license/Naereen/Strapdown.js&#41;]&#40;https://github.com/Naereen/StrapDown.js/blob/master/LICENSE&#41;)
 
 Meent is an Electromagnetic(EM) simulation package with Python, composed of three main parts:
 * Modeling
@@ -14,7 +15,7 @@ Meent is an Electromagnetic(EM) simulation package with Python, composed of thre
 
 ## Backends
 Meent provides three libraries as a backend:  
-![alt text](images/picture1.png "Backends")
+![alt text](images/backends.png "Backends")
 
 * [NumPy](https://github.com/numpy/numpy)
   * The fundamental package for scientific computing with Python
@@ -75,6 +76,7 @@ Many literatures and codes are referred for development and quality assurance
 [8] https://github.com/zhaonat/Rigorous-Coupled-Wave-Analysis (see also our fork: https://github.com/yonghakim/zhaonat-rcwa) \
 [9] https://arxiv.org/abs/2101.00901
 
-### Contact
+[//]: # (### Contact)
 
-[📩 KC-ML2](mailto:contact@kc-ml2.com)
+[//]: # ()
+[//]: # ([📩 KC-ML2]&#40;mailto:contact@kc-ml2.com&#41;)
