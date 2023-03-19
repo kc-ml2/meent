@@ -1,8 +1,7 @@
 <p align="center"><img src="images/picture2.png" /></p>
-<p align="center"><img src="images/meent_logo_1.svg" /></p>
-<p align="center"><img src="images/meent_logo_5.svg" /></p>
 <p align="center"><img src="images/meent_logo_6.svg" /></p>
 <p align="center"><img src="images/meent_logo_7.svg" width=80% /></p>
+<p align="center"><img src="images/meent_logo_8.svg" width=80% /></p>
 
 # Meent
 [![GitHub license](https://badgen.net/github/license/Naereen/Strapdown.js)](https://github.com/Naereen/StrapDown.js/blob/master/LICENSE)
