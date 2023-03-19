@@ -1,7 +1,3 @@
-[//]: # (<p align="center"><img src="images/picture2.png" /></p>)
-
-[//]: # (<p align="center"><img src="images/meent_logo_6.svg" /></p>)
-[//]: # (<p align="center"><img src="images/meent_logo_7.svg" width=80% /></p>)
 <p align="center"><img src="images/meent_logo.svg" width=80% /></p>
 
 # Meent
@@ -29,7 +25,7 @@ Meent provides three libraries as a backend:
 |                 | Numpy | JAX | PyTorch | Description |
 | --------------- | :---: | :-: | :-----: | :---------: |
 | 64bit support   |   O   |  O  |    O    | Default for scientific computing |
-| 32bit support   |   O   |  O  |    O    | 32bit(float32 and complex64) data type operation* |
+| 32bit support   |   O   |  O  |    O    | 32bit (float32 and complex64) data type operation* |
 | GPU support     |   X   |  O  |    O    | except Eigendecomposition** |
 | TPU support*    |   X   |  X  |    X    | Currently there is no workaround to do 32 bit eigendecomposition on TPU |
 | AD support      |   X   |  O  |    O    | Automatic Differentiation (Back Propagation) |
@@ -82,6 +78,4 @@ Many literatures and codes are referred for development and quality assurance
 [9] https://arxiv.org/abs/2101.00901
 
 [//]: # (### Contact)
-
-[//]: # ()
 [//]: # ([📩 KC-ML2]&#40;mailto:contact@kc-ml2.com&#41;)
