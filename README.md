@@ -1,4 +1,4 @@
-<p align="center"><img src="images/picture2.png" /></p>
+[//]: # (<p align="center"><img src="images/picture2.png" /></p>)
 
 [//]: # (<p align="center"><img src="images/meent_logo_6.svg" /></p>)
 [//]: # (<p align="center"><img src="images/meent_logo_7.svg" width=80% /></p>)
