@@ -22,35 +22,31 @@ def eig(x, type_complex=jnp.complex128, perturbation=1E-10, device='cpu'):
 
 
 def eig_fwd(x, type_complex, perturbation, device):
-    return eig(x, type_complex, perturbation), eig(x, type_complex, perturbation)
+    return eig(x, type_complex, perturbation), (eig(x, type_complex, perturbation), x)
 
 
 def eig_bwd(type_complex, perturbation, device, res, g):
     """
     Gradient of a general square (complex valued) matrix
-    Reference: https://github.com/kch3782/torcwa and https://github.com/weiliangjinca/grcwa
+    Eq. 30~32 in https://www.sciencedirect.com/science/article/abs/pii/S0010465522002715
+    Eq 4.77 in https://arxiv.org/pdf/1701.00392.pdf
+    https://github.com/kch3782/torcwa
+    https://github.com/weiliangjinca/grcwa
     """
-    eigval, eigvec = res
 
+    (eig_val, eig_vector), x = res
     grad_eigval, grad_eigvec = g
-
     grad_eigval = jnp.diag(grad_eigval)
 
-    s = eigval.reshape((1, -1)) - eigval.reshape((-1, 1))
+    X_h = eig_vector.T.conj()
 
-    F = s / (jnp.abs(s) ** 2 + perturbation)
-    F = F.at[jnp.diag_indices_from(s)].set(0)
-
-    XH = eigvec.T
-    tmp = F * (XH @ grad_eigvec)
-
-    XH_i = jnp.linalg.inv(XH)
-
-    grad = (XH_i @ (grad_eigval + tmp)) @ XH
-
-    if not jnp.iscomplexobj(eigval):
+    Fij = eig_val.conj().reshape((1, -1)) - eig_val.conj().reshape((-1, 1))
+    Fij = Fij / (jnp.abs(Fij) ** 2 + perturbation)
+    Fij = Fij.at[jnp.diag_indices_from(Fij)].set(0)
+    grad = jnp.linalg.inv(X_h) @ (grad_eigval.conj() + Fij.conj() * (X_h @ grad_eigvec.conj())) @ X_h
+    grad = grad.conj()
+    if not jnp.iscomplexobj(x):
         grad = grad.real
-
     return grad,
 
 

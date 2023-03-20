@@ -54,21 +54,21 @@ def load_setting(mode_key, dtype, device):
         ]
     )
 
-    ucell = np.array([
-        [
-            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
-            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
-            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
-            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
-            [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
-            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
-            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
-            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
-            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
-            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
-        ],
-    ]) * 8 + 1.
-
+    # ucell = np.array([
+    #     [
+    #         [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+    #         [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+    #         [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+    #         [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+    #         [0, 0, 0, 1, 0, 1, 1, 1, 1, 1, ],
+    #         [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+    #         [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+    #         [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+    #         [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+    #         [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, ],
+    #     ],
+    # ]) * 8 + 1.
+    #
     # thickness, period = [1120.], [1000, 1000]
     #
     # ucell = np.array(
@@ -124,7 +124,6 @@ def optimize_jax_ucell_metasurface(mode_key, dtype, device):
     grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
     type_complex, device, ucell = load_setting(mode_key, dtype, device)
 
-
     solver = call_mee(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                       psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                       ucell_materials=ucell_materials, thickness=thickness, device=device,
@@ -165,8 +164,11 @@ def optimize_jax_ucell_metasurface(mode_key, dtype, device):
 
         return grad_arr
 
-    print('JAX grad_ad:\n', grad_loss(ucell))
-    print('JAX grad_numeric:\n', grad_numerical(ucell, 1E-6))
+    grad_ad = grad_loss(ucell)
+    print('JAX grad_ad:\n', grad_ad)
+    grad_nume = grad_numerical(ucell, 1E-6)
+    print('JAX grad_numeric:\n', grad_nume)
+    print('JAX norm: ', jnp.linalg.norm(grad_nume-grad_ad))
 
 
 def optimize_torch_metasurface(mode_key, dtype, device):
@@ -178,7 +180,7 @@ def optimize_torch_metasurface(mode_key, dtype, device):
 
     grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
     type_complex, device, ucell = load_setting(mode_key, dtype, device)
-
+    ucell = ucell.type(torch.float64)
     ucell.requires_grad = True
 
     solver = call_mee(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
@@ -192,10 +194,11 @@ def optimize_torch_metasurface(mode_key, dtype, device):
 
     c = de_ti.shape[0] // 2
     loss = de_ti[c, c + 0]
+    # print(loss)
     # loss = LossDeflector(x_order=0, y_order=0)
 
     loss.backward()
-    print('Torch grad_ad:\n', ucell.grad)
+    grad_ad = ucell.grad
 
     def grad_numerical(ucell, delta):
         ucell.requires_grad = False
@@ -223,8 +226,10 @@ def optimize_torch_metasurface(mode_key, dtype, device):
                     grad_arr[layer, r, c] = grad_numeric
 
         return grad_arr
-
-    print('Torch grad_numeric:\n', grad_numerical(ucell, 1E-6))
+    grad_nume = grad_numerical(ucell, 1E-6)
+    print('Torch grad_ad:\n', grad_ad)
+    print('Torch grad_numeric:\n', grad_nume)
+    print('torch.norm: ', torch.linalg.norm(grad_nume-grad_ad))
 
 
 if __name__ == '__main__':

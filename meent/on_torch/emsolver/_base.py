@@ -118,7 +118,8 @@ class _BaseRCWA:
             if self.pol == 0:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
-                eigenvalues, W = torch.linalg.eig(A)
+                Eig.perturbation = self.perturbation
+                eigenvalues, W = Eig.apply(A)
                 q = eigenvalues ** 0.5
 
                 Q = torch.diag(q)
@@ -129,7 +130,8 @@ class _BaseRCWA:
                 B = Kx @ E_conv_i @ Kx - torch.eye(E_conv.shape[0], device=self.device, dtype=self.type_complex)
                 o_E_conv_i = torch.linalg.inv(o_E_conv)
 
-                eigenvalues, W = torch.linalg.eig(o_E_conv_i @ B)
+                Eig.perturbation = self.perturbation
+                eigenvalues, W = Eig.apply(o_E_conv_i @ B)
                 q = eigenvalues ** 0.5
 
                 Q = torch.diag(q)

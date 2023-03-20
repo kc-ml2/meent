@@ -138,8 +138,9 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, o_E_conv_i, ff, d, varphi, bi
     to_decompose_W_1 = (ky/k0) ** 2 * I + A
     to_decompose_W_2 = (ky/k0) ** 2 * I + B @ o_E_conv_i
 
-    eigenvalues_1, W_1 = torch.linalg.eig(to_decompose_W_1)
-    eigenvalues_2, W_2 = torch.linalg.eig(to_decompose_W_2)
+    Eig.perturbation = perturbation
+    eigenvalues_1, W_1 = Eig.apply(to_decompose_W_1)
+    eigenvalues_2, W_2 = Eig.apply(to_decompose_W_2)
 
     q_1 = eigenvalues_1 ** 0.5
     q_2 = eigenvalues_2 ** 0.5
@@ -309,7 +310,8 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', ty
             torch.cat([Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv], dim=1)
         ])
 
-    eigenvalues, W = torch.linalg.eig(S2_from_S)
+    Eig.perturbation = perturbation
+    eigenvalues, W = Eig.apply(S2_from_S)
 
     q = eigenvalues ** 0.5
 
