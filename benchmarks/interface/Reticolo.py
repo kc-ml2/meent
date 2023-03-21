@@ -34,7 +34,8 @@ class Reticolo:
         m_path = os.path.dirname(__file__)
         self.eng.addpath(self.eng.genpath(m_path))
 
-    def run(self, grating_type, period, fourier_order, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II, *args, **kwargs):
+    def run_res2(self, grating_type, period, fourier_order, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II,
+                 *args, **kwargs):
         phi *= (180 / np.pi)
 
         if grating_type in (0, 1):
@@ -83,19 +84,83 @@ class Reticolo:
 
         profile = np.array([[0, *thickness, 0], range(1, len(thickness) + 3)])
 
-        top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info =\
-            self._run(pol, theta, phi, period, n_I, fourier_order, textures, profile, wavelength, grating_type,)
+        top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info = \
+            self._run(pol, theta, phi, period, n_I, fourier_order, textures, profile, wavelength, grating_type,
+                      field_plot=False)
 
         return top_refl_info.efficiency, top_tran_info.efficiency, bottom_refl_info.efficiency, bottom_tran_info.efficiency
 
+    def run_res3(self, grating_type, period, fourier_order, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II,
+                 *args, **kwargs):
+        phi *= (180 / np.pi)
+
+        if grating_type in (0, 1):
+            period = period[0]
+
+            fourier_order = fourier_order
+            Nx = ucell.shape[2]
+            period_x = period
+            grid_x = np.linspace(0, period, Nx + 1)[1:]
+            grid_x -= period_x / 2
+
+            # grid = np.linspace(0, period, Nx)
+
+            ucell_new = []
+            for z in range(ucell.shape[0]):
+                ucell_layer = [grid_x, ucell[z, 0]]
+                ucell_new.append(ucell_layer)
+
+            textures = [n_I, *ucell_new, n_II]
+
+        else:
+
+            Nx = ucell.shape[2]
+            Ny = ucell.shape[1]
+            period_x = period[0]
+            period_y = period[1]
+
+            unit_x = period_x / Nx
+            unit_y = period_y / Ny
+
+            grid_x = np.linspace(0, period[0], Nx + 1)[1:]
+            grid_y = np.linspace(0, period[1], Ny + 1)[1:]
+
+            grid_x -= period_x / 2
+            grid_y -= period_y / 2
+
+            ucell_new = []
+            for z in range(ucell.shape[0]):
+                ucell_layer = [10]
+                for y, yval in enumerate(grid_y):
+                    for x, xval in enumerate(grid_x):
+                        obj = [xval, yval, unit_x, unit_y, ucell[z, y, x], 1]
+                        ucell_layer.append(obj)
+                ucell_new.append(ucell_layer)
+            textures = [n_I, *ucell_new, n_II]
+
+        profile = np.array([[0, *thickness, 0], range(1, len(thickness) + 3)])
+
+        top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell =\
+            self._run(pol, theta, phi, period, n_I, fourier_order, textures, profile, wavelength, grating_type,
+                      field_plot=True)
+
+        return top_refl_info.efficiency, top_tran_info.efficiency, bottom_refl_info.efficiency,\
+               bottom_tran_info.efficiency, field_cell
+
     def _run(self, pol, theta, phi, period, n_I, fourier_order,
-                                  textures, profile, wavelength, grating_type):
+                                  textures, profile, wavelength, grating_type, field_plot=False):
 
-        top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info =\
-            self.eng.run_reticolo(pol, theta, phi, period, n_I, fourier_order,
-                                  textures, profile, wavelength, grating_type, nout=4)
-
-        return top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info
+        if field_plot:
+            top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell =\
+                self.eng.reticolo_res3(pol, theta, phi, period, n_I, fourier_order,
+                                      textures, profile, wavelength, grating_type, nout=5)
+            res = (top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell)
+        else:
+            top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info = \
+                self.eng.reticolo_res2(pol, theta, phi, period, n_I, fourier_order,
+                                       textures, profile, wavelength, grating_type, nout=4)
+            res = (top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info)
+        return res
 
     def run_acs(self, pattern, n_si='SILICON'):
         if type(n_si) == str and n_si.upper() == 'SILICON':
@@ -117,7 +182,7 @@ if __name__ == '__main__':
     pre = load_setting(mode, dtype, device, grating_type)
 
     reti = Reticolo()
-    a,b,c,d = reti.run(**pre)
+    a,b,c,d = reti.run_res3(**pre)
 
     print(np.array(a).flatten())
     print(np.array(b).flatten())

@@ -32,14 +32,14 @@ class Eig(torch.autograd.Function):
         matrix, eig_val, eig_vector = ctx.saved_tensors
 
         grad_eigval = torch.diag(grad_eigval)
-        X_h = eig_vector.T.conj()
+        X_H = eig_vector.T.conj()
 
         Fij = eig_val.conj().reshape((1, -1)) - eig_val.conj().reshape((-1, 1))
         Fij = Fij / (torch.abs(Fij) ** 2 + Eig.perturbation)
         diag_indices = torch.arange(len(Fij))
         Fij[diag_indices, diag_indices] = 0
 
-        grad = torch.linalg.inv(X_h) @ (grad_eigval.conj() + Fij.conj() * (X_h @ grad_eigvec.conj())) @ X_h
+        grad = torch.linalg.inv(X_H) @ (grad_eigval.conj() + Fij.conj() * (X_H @ grad_eigvec.conj())) @ X_H
         if not torch.is_complex(matrix):
             grad = grad.real
 
