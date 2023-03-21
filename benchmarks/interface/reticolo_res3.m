@@ -1,4 +1,4 @@
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info] = run_reticolo(_pol, theta, phi, period, n_inc, nn, _textures, _profile, wavelength, grating_type)
+function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = run_reticolo(_pol, theta, phi, period, n_inc, nn, _textures, _profile, wavelength, grating_type)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -41,12 +41,12 @@ else
 end
 
 %res3(aa)
-%x = textures(2){1}{1}
+x = textures(2){1}{1}
 %parm.res3.sens=1;
-%parm.res3.trace=1 ;%trace automatique % automatic trace
-%parm.res3.npts = 100;
 %##parm.res3.gauss_x = 100
-%[e,z,o]=res3(x,aa,profile,1,parm);
+parm.res3.trace=1 ;%trace automatique % automatic trace
+parm.res3.npts = 100;
+[e,z,o]=res3(x,aa,profile,1,parm);
 
 
 if grating_type == 0

@@ -38,12 +38,12 @@ def eig_bwd(type_complex, perturbation, device, res, g):
     grad_eigval, grad_eigvec = g
     grad_eigval = jnp.diag(grad_eigval)
 
-    X_h = eig_vector.T.conj()
+    X_H = eig_vector.T.conj()
 
     Fij = eig_val.conj().reshape((1, -1)) - eig_val.conj().reshape((-1, 1))
     Fij = Fij / (jnp.abs(Fij) ** 2 + perturbation)
     Fij = Fij.at[jnp.diag_indices_from(Fij)].set(0)
-    grad = jnp.linalg.inv(X_h) @ (grad_eigval.conj() + Fij.conj() * (X_h @ grad_eigvec.conj())) @ X_h
+    grad = jnp.linalg.inv(X_H) @ (grad_eigval.conj() + Fij.conj() * (X_H @ grad_eigvec.conj())) @ X_H
     grad = grad.conj()
     if not jnp.iscomplexobj(x):
         grad = grad.real
