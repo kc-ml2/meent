@@ -73,7 +73,7 @@ class ModelingNumpy:
 
         return ucell_info_list
 
-    def put_permittivity_in_ucell(self, ucell, mat_list, wl, type_complex=np.complex128):
+    def put_refractive_index_in_ucell(self, ucell, mat_list, wl, type_complex=np.complex128):
         res = np.zeros(ucell.shape, dtype=type_complex)
         ucell_mask = np.array(ucell, dtype=type_complex)
         for i_mat, material in enumerate(mat_list):
@@ -82,9 +82,9 @@ class ModelingNumpy:
             if type(material) == str:
                 if not self.mat_table:
                     self.mat_table = read_material_table()
-                assign_value = find_nk_index(material, self.mat_table, wl) ** 2
+                assign_value = find_nk_index(material, self.mat_table, wl)
             else:
-                assign_value = material ** 2
+                assign_value = material
             res[mask] = assign_value
 
         return res

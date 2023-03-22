@@ -36,6 +36,7 @@ def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_in
 
         if pol == 0:
             V = W @ Q
+            EKx = None
 
         else:
             V = E_conv_i @ W @ Q
@@ -157,16 +158,16 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
                   type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
-    fourier_indices = np.arange(-fourier_order, fourier_order + 1)
-    ff = 2 * fourier_order + 1
 
-    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) + fourier_indices * (
-    #         wavelength / period[0])).astype(type_complex)
-    ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) + fourier_indices * (
+    fourier_indices_y = np.arange(-fourier_order[1], fourier_order[1] + 1)
+    ff_x = fourier_order[0] * 2 + 1
+    ff_y = fourier_order[1] * 2 + 1
+
+    ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) + fourier_indices_y * (
             wavelength / period[1])).astype(type_complex)
 
-    Kx = np.diag(np.tile(kx_vector, ff).flatten()) / k0
-    Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), ff).flatten()) / k0
+    Kx = np.diag(np.tile(kx_vector, ff_y).flatten()) / k0
+    Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 
     resolution_z, resolution_y, resolution_x = resolution
     field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)

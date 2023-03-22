@@ -16,13 +16,9 @@ def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_in
                   device='cpu', type_complex=torch.complex128):
 
     k0 = 2 * np.pi / wavelength
-    fourier_indices = torch.arange(-fourier_order[0], fourier_order[0] + 1, device=device)
-
-    # kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).type(type_complex)
     Kx = torch.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
-
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3)).type(type_complex)
 
     T_layer = T1
@@ -85,12 +81,7 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order,
                           device='cpu', type_complex=torch.complex128):
 
     k0 = 2 * np.pi / wavelength
-    fourier_indices = torch.arange(-fourier_order, fourier_order + 1, device=device)
-
-    # kx_vector = k0 * (n_I * torch.sin(theta) * torch.cos(phi) - fourier_indices * (
-    #         wavelength / period[0])).type(type_complex)
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
-
     Kx = torch.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
@@ -158,16 +149,15 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
                   device='cpu', type_complex=torch.complex128):
 
     k0 = 2 * np.pi / wavelength
-    fourier_indices = torch.arange(-fourier_order, fourier_order + 1, device=device)
-    ff = 2 * fourier_order + 1
 
-    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) + fourier_indices * (
-    #         wavelength / period[0])).type(type_complex)
-    ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) + fourier_indices * (
+    fourier_indices_y = torch.arange(-fourier_order[1], fourier_order[1] + 1)
+    ff_x = fourier_order[0] * 2 + 1
+    ff_y = fourier_order[1] * 2 + 1
+    ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) + fourier_indices_y * (
             wavelength / period[1])).type(type_complex)
 
-    Kx = torch.diag(kx_vector.tile(ff).flatten() / k0)
-    Ky = torch.diag(ky_vector.reshape((-1, 1)).tile(ff).flatten() / k0)
+    Kx = torch.diag(kx_vector.tile(ff_y).flatten()) / k0
+    Ky = torch.diag(ky_vector.reshape((-1, 1)).tile(ff_x).flatten() / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6)).type(type_complex)
@@ -232,7 +222,6 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
                     Hz = -1j * Uz.T @ exp_K
 
                     field_cell[resolution_z * idx_layer + k, j, i] = torch.tensor([Ex, Ey, Ez, Hx, Hy, Hz])
-
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell
@@ -266,7 +255,7 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
         for idx in range(len(title)):
             if plot_indices[idx]:
                 plt.imshow((abs(field_cell[z_slice, :, :, idx]) ** 2), cmap='jet', aspect='auto')
-                plt.clim(0, 3.5)  # identical to caxis([-4,4]) in MATLAB
+                # plt.clim(0, 3.5)  # identical to caxis([-4,4]) in MATLAB
                 plt.colorbar()
                 plt.title(title[idx])
                 plt.show()

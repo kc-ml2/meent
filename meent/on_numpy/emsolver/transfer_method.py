@@ -50,6 +50,7 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=np.comple
     a = 0.5 * (W_i @ f + V_i @ g)
     b = 0.5 * (W_i @ f - V_i @ g)
 
+    # TODO: with CFT, this a is singular while JAX and PyTorch are not. Run verfi.py to reproduce.
     a_i = np.linalg.inv(a)
 
     f = W @ (np.eye(2 * fourier_order[0] + 1, dtype=type_complex) + X @ b @ a_i @ X)
@@ -67,10 +68,8 @@ def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, the
     de_ri = np.real(R * np.conj(R) * k_I_z / (k0 * n_I * np.cos(theta)))
     if polarization == 0:
         de_ti = T * np.conj(T) * np.real(k_II_z / (k0 * n_I * np.cos(theta)))
-        # de_ti = np.real(T * np.conj(T) * k_II_z / (k0 * n_I * np.cos(theta)))
     elif polarization == 1:
         de_ti = T * np.conj(T) * np.real(k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
-        # de_ti = np.real(T * np.conj(T) * k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
     else:
         raise ValueError
 

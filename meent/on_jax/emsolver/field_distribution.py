@@ -69,15 +69,9 @@ def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order_x, fourier_or
                   type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
-    fourier_indices = jnp.arange(-fourier_order_x, fourier_order_x + 1)
-    # kx_vector = k0 * (n_I * jnp.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
-
     Kx = jnp.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
-
-    # Here use numpy array due to slow assignment speed in JAX
-    # field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
 
     T_layer = T1
@@ -153,18 +147,11 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order,
                           resolution=(100, 100, 100), type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
-    fourier_indices = jnp.arange(-fourier_order, fourier_order + 1)
-
-    # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) - fourier_indices * (
-    #         wavelength / period[0])).astype(type_complex)
     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
-
     Kx = jnp.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
-
-    # Here use numpy array due to slow assignment speed in JAX
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
 
@@ -182,7 +169,8 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order,
             for j in range(resolution_y):
                 for i in range(resolution_x):
                     val = x_loop_1d_conical(period, resolution_x, kx_vector, Sx, Sy, Sz, Ux, Uy, Uz, i)
-                    field_cell[resolution_z * idx_layer + k, j, i] = val
+                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell
@@ -192,21 +180,18 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
                   type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
-    fourier_indices = jnp.arange(-fourier_order, fourier_order + 1)
-    ff = 2 * fourier_order + 1
 
-    # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) + fourier_indices * (
-    #         wavelength / period[0])).astype(type_complex)
-    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices * (
+    fourier_indices_y = jnp.arange(-fourier_order[1], fourier_order[1] + 1)
+    ff_x = fourier_order[0] * 2 + 1
+    ff_y = fourier_order[1] * 2 + 1
+    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
             wavelength / period[1])).astype(type_complex)
 
-    Kx = jnp.diag(jnp.tile(kx_vector, ff).flatten()) / k0
-    Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff).flatten()) / k0
+    Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+    Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 
     resolution_z, resolution_y, resolution_x = resolution
-
-    # Here use numpy array due to slow assignment speed in JAX
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
 
@@ -224,7 +209,7 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
                 y = j * period[1] / resolution_y
                 for i in range(resolution_x):
                     val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
-                    field_cell[resolution_z * idx_layer + k, j, i] = val
+                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell
