@@ -1,6 +1,5 @@
 import jax
 
-import numpy as np
 import jax.numpy as jnp
 
 from functools import partial
@@ -26,9 +25,6 @@ def field_dist_1d_original(wavelength, kx_vector, n_I, theta, fourier_order, T1,
     Kx = jnp.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
-
-    # Here use numpy array due to slow assignment speed in JAX
-    # field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
 
     T_layer = T1
@@ -65,7 +61,8 @@ def field_dist_1d_original(wavelength, kx_vector, n_I, theta, fourier_order, T1,
 
 
 @partial(jax.jit, static_argnums=(4, 5, 9, 10, 11, ))
-def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order_x, fourier_order_y, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
+def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+                  pol, resolution=(100, 1, 100),
                   type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
@@ -175,15 +172,19 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order,
 
     return field_cell
 
-
-def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, layer_info_list, period, resolution=(10, 10, 10),
-                  type_complex=jnp.complex128):
+# @partial(jax.jit, static_argnums=(3,4,5, 6, 11,12,13,14 ))
+def field_dist_2d_original(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+                  resolution,
+                           # resolution_z, resolution_y, resolution_x,
+                  type_complex=jnp.complex128,
+                           # ky_vector=None
+                           ):
 
     k0 = 2 * jnp.pi / wavelength
 
-    fourier_indices_y = jnp.arange(-fourier_order[1], fourier_order[1] + 1)
-    ff_x = fourier_order[0] * 2 + 1
-    ff_y = fourier_order[1] * 2 + 1
+    fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
+    ff_x = fourier_order_x * 2 + 1
+    ff_y = fourier_order_y * 2 + 1
     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
             wavelength / period[1])).astype(type_complex)
 
@@ -214,6 +215,104 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
 
     return field_cell
 
+@partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
+def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+                  resolution=(10, 10, 10),
+                  type_complex=jnp.complex128):
+
+    k0 = 2 * jnp.pi / wavelength
+
+    fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
+    ff_x = fourier_order_x * 2 + 1
+    ff_y = fourier_order_y * 2 + 1
+    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
+            wavelength / period[1])).astype(type_complex)
+
+    Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+    Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
+
+    resolution_z, resolution_y, resolution_x = resolution
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+
+    T_layer = T1
+
+    big_I = jnp.eye((len(T1))).astype(type_complex)
+
+    # From the first layer
+    for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
+            in enumerate(layer_info_list[::-1]):
+
+        c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
+
+        for k in range(resolution_z):
+            Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d)
+            for j in range(resolution_y):
+                y = j * period[1] / resolution_y
+                for i in range(resolution_x):
+                    val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
+
+                    # from jax import lax
+                    #
+                    # lax.fori_loop(0, len(resolution_z), x_loop_2d, )
+
+
+                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+        T_layer = big_A_i @ big_X @ T_layer
+
+    return field_cell
+
+
+# @partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
+def field_dist_2d_single(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+                  resolution=(10, 10, 10),
+                  type_complex=jnp.complex128):
+
+    k0 = 2 * jnp.pi / wavelength
+
+    fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
+    ff_x = fourier_order_x * 2 + 1
+    ff_y = fourier_order_y * 2 + 1
+    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
+            wavelength / period[1])).astype(type_complex)
+
+    Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+    Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
+
+    resolution_z, resolution_y, resolution_x = resolution
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+
+    T_layer = T1
+
+    big_I = jnp.eye((len(T1))).astype(type_complex)
+
+
+
+    # From the first layer
+    for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
+            in enumerate(layer_info_list[::-1]):
+
+        c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
+
+        for k in range(resolution_z):
+            for j in range(resolution_y):
+                for i in range(resolution_x):
+                    val = func(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
+                               period, resolution_y, resolution_x, kx_vector, ky_vector, j, i)
+                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+
+        T_layer = big_A_i @ big_X @ T_layer
+
+    return field_cell
+@partial(jax.jit, static_argnums=())
+def func(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
+         period, resolution_y, resolution_x, kx_vector, ky_vector, j, i):
+    y = j * period[1] / resolution_y
+
+    Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11,
+                                       V_12, V_21, V_22, d)
+    val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
+
+    return val
 
 # @partial(jax.jit, static_argnums=(0,))
 def z_loop_1d(pol, k0, Kx, W, V, Q, c1, c2, d, z, EKx):

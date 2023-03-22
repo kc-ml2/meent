@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 
 def field_distribution(grating_type, *args, **kwargs):
@@ -15,7 +14,7 @@ def field_distribution(grating_type, *args, **kwargs):
 def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
                   device='cpu', type_complex=torch.complex128):
 
-    k0 = 2 * np.pi / wavelength
+    k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
@@ -80,7 +79,7 @@ def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_in
 def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, layer_info_list, period, resolution=(100, 1, 100),
                           device='cpu', type_complex=torch.complex128):
 
-    k0 = 2 * np.pi / wavelength
+    k0 = 2 * torch.pi / wavelength
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
     Kx = torch.diag(kx_vector / k0)
 
@@ -148,7 +147,7 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order,
 def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, layer_info_list, period, resolution=(100, 100, 100),
                   device='cpu', type_complex=torch.complex128):
 
-    k0 = 2 * np.pi / wavelength
+    k0 = 2 * torch.pi / wavelength
 
     fourier_indices_y = torch.arange(-fourier_order[1], fourier_order[1] + 1)
     ff_x = fourier_order[0] * 2 + 1

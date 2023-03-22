@@ -15,13 +15,9 @@ def field_dist_1d(wavelength, kx_vector, n_I, theta, fourier_order, T1, layer_in
                   type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
-    # fourier_indices = np.arange(-fourier_order[0], fourier_order[0] + 1)
-
-    # kx_vector = k0 * (n_I * np.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
     Kx = np.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
-
     field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
 
     T_layer = T1
@@ -84,19 +80,13 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, fourier_order,
                           resolution=(100, 100, 100), type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
-    # fourier_indices = np.arange(-fourier_order, fourier_order + 1)
-
-    # kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) - fourier_indices * (
-    #         wavelength / period[0])).astype(type_complex)
     ky = k0 * n_I * np.sin(theta) * np.sin(phi)
-
     Kx = np.diag(kx_vector / k0)
 
     resolution_z, resolution_y, resolution_x = resolution
     field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
-
     big_I = np.eye((len(T1)), dtype=type_complex)
 
     # From the first layer
@@ -173,7 +163,6 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, lay
     field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
-
     big_I = np.eye((len(T1)), dtype=type_complex)
 
     # From the first layer

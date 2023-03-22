@@ -5,7 +5,7 @@ extras = {
             'jaxlib>=0.4.1',
             ],
     'pytorch': ['torch>=1.12.1',
-              ]
+                ],
 }
 setup(
     name='meent',
