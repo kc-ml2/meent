@@ -262,6 +262,83 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fouri
     return field_cell
 
 
+def field_dist_2d_lax(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+                  resolution=(10, 10, 10),
+                  type_complex=jnp.complex128):
+
+    k0 = 2 * jnp.pi / wavelength
+
+    fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
+    ff_x = fourier_order_x * 2 + 1
+    ff_y = fourier_order_y * 2 + 1
+    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
+            wavelength / period[1])).astype(type_complex)
+
+    Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+    Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
+
+    resolution_z, resolution_y, resolution_x = resolution
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+
+    T_layer = T1
+
+    big_I = jnp.eye((len(T1))).astype(type_complex)
+
+    # From the first layer
+    for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
+            in enumerate(layer_info_list[::-1]):
+
+        c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
+        i=j=k=0
+
+        point_list = [jnp.array([idx_layer]), jnp.array([k]), jnp.array([c]), jnp.array([k0]), jnp.array([Kx]), jnp.array([Ky]), jnp.array([resolution_z]), jnp.array([E_conv_i]), jnp.array([q]), jnp.array([W_11]), jnp.array([W_12]), jnp.array([W_21]), jnp.array([W_22]), jnp.array([V_11]), jnp.array([V_12]), jnp.array([V_21]), jnp.array([V_22]), jnp.array([d]), jnp.array([period]), jnp.array([resolution_y]), jnp.array([resolution_x]), jnp.array([kx_vector]), jnp.array([ky_vector]), jnp.array([j]), jnp.array([i])]
+        point_list = [(point_list,),  (point_list,)]
+
+        # TODO: make this an array.
+        # arr[0,0] = idx_layer
+        # arr[0,1] = k
+        # arr[0,2:2+len(c)+1] = c.flatten()
+
+        jax.lax.scan(calc, field_cell, point_list)
+        for k in range(resolution_z):
+            for j in range(resolution_y):
+                for i in range(resolution_x):
+                    val = func(idx_layer, k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
+                               period, resolution_y, resolution_x, kx_vector, ky_vector, j, i)
+                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+
+        T_layer = big_A_i @ big_X @ T_layer
+
+    return field_cell
+
+
+import numpy as np
+def scan(f, init, xs, length=None):
+    if xs is None:
+         xs = [None] * length
+    carry = init
+    ys = []
+    for x in xs:
+        carry, y = f(carry, x)  # carry is the carryover
+        ys.append(y)            # the `y`s get accumulated into a stacked array
+    return carry, np.stack(ys)
+
+def example(res, el):
+    res = res + el
+    return res, res
+
+
+def calc(field_cell, args):
+
+    idx_layer, k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d, period, resolution_y, resolution_x, kx_vector, ky_vector, j, i = args
+    y = j * period[1] / resolution_y
+    Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11,
+                                       V_12, V_21, V_22, d)
+    val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
+    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+
+    return field_cell, val
+
 # @partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
 def field_dist_2d_single(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
                   resolution=(10, 10, 10),

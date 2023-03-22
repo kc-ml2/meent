@@ -32,7 +32,7 @@ thickness = [500]
 ucell_materials = [1, 'p_si__real']
 period = [1000, 1000]
 
-fourier_order = [15,15]
+fourier_order = [2,2]
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 n_iter = 2
 
