@@ -55,7 +55,7 @@ else:
 from meent.on_numpy.modeler.modeling import ModelingNumpy
 
 modeler = ModelingNumpy()
-ucell = modeler.put_permittivity_in_ucell(ucell, ucell_materials, wavelength)
+ucell = modeler.put_refractive_index_in_ucell(ucell, ucell_materials, wavelength)
 
 for i in range(3):
     AA = call_mee(mode=i, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,

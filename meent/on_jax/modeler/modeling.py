@@ -73,7 +73,7 @@ class ModelingJax:
 
         return ucell_info_list
 
-    def put_permittivity_in_ucell(self, ucell, mat_list, wl, type_complex=jnp.complex128):
+    def put_refractive_index_in_ucell(self, ucell, mat_list, wl, type_complex=jnp.complex128):
         res = jnp.zeros(ucell.shape, dtype=type_complex)
         ucell_mask = jnp.array(ucell, dtype=type_complex)
         for i_mat, material in enumerate(mat_list):
@@ -82,9 +82,9 @@ class ModelingJax:
             if type(material) == str:
                 if not self.mat_table:
                     self.mat_table = read_material_table()
-                assign_value = find_nk_index(material, self.mat_table, wl) ** 2
+                assign_value = find_nk_index(material, self.mat_table, wl)
             else:
-                assign_value = type_complex(material ** 2)
+                assign_value = type_complex(material)  # TODO: to complex?
             res = res.at[mask].set(assign_value)
 
         return res

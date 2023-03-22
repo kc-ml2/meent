@@ -46,11 +46,11 @@ class _BaseRCWA:
             raise ValueError
 
         if type(fourier_order) == int:
-            self.fourier_order = [fourier_order, 0]
+            self._fourier_order = [fourier_order, 0]
         elif len(fourier_order) == 1:
-            self.fourier_order = list(fourier_order) + [0]
+            self._fourier_order = list(fourier_order) + [0]
         else:
-            self.fourier_order = [int(v) for v in fourier_order]
+            self._fourier_order = [int(v) for v in fourier_order]
 
         self.period = deepcopy(period)
 
@@ -66,6 +66,19 @@ class _BaseRCWA:
         self.theta = jnp.where(self.theta == 0, self.perturbation, self.theta)
 
         self.kx_vector = None
+
+    @property
+    def fourier_order(self):
+        return self._fourier_order
+
+    @fourier_order.setter
+    def fourier_order(self, fourier_order):
+        if type(fourier_order) == int:
+            self._fourier_order = [fourier_order, 0]
+        elif len(fourier_order) == 1:
+            self._fourier_order = list(fourier_order) + [0]
+        else:
+            self._fourier_order = [int(v) for v in fourier_order]
 
     def get_kx_vector(self, wavelength):
 
