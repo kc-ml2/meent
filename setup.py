@@ -9,7 +9,7 @@ extras = {
 }
 setup(
     name='meent',
-    version='0.8.7',
+    version='0.8.8',
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
