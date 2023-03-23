@@ -9,7 +9,7 @@ import numpy as np
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous, to_conv_mat_continuous_vector
 from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot, field_dist_2d_single, \
-    field_dist_2d_lax
+    field_dist_2d_lax, field_dist_2d_vectorize
 
 
 class RCWAJax(_BaseRCWA):
@@ -194,20 +194,38 @@ class RCWAJax(_BaseRCWA):
             resolution = [10, 10, 10] if not resolution else resolution
             from .field_distribution import field_dist_2d_original
 
-            # fourier_indices_y = jnp.arange(-self.fourier_order[1], self.fourier_order[1] + 1)
             # field_cell = field_dist_2d_original(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
             #                            *self.fourier_order, self.T1, self.layer_info_list, self.period,
-                                       # resolution=resolution, type_complex=self.type_complex, fourier_indices_y=fourier_indices_y)
+            #                            resolution=resolution, type_complex=self.type_complex)
 
-            # a=jax.make_jaxpr(field_dist_2d_original, static_argnums=(5, 6, 10, 11 ))(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-            #                                        self.fourier_order[0], self.fourier_order[1], self.T1,
-            #                                        self.layer_info_list, self.period,
-            #                                        resolution, self.type_complex,)
+            # t0 = time.time()
+            # field_cell = field_dist_2d_single(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+            #                                     *self.fourier_order, self.T1, self.layer_info_list, self.period,
+            #                                     resolution=resolution, type_complex=self.type_complex,
+            #                                     )
+            # print('single: ', time.time() - t0)
 
 
-            field_cell = field_dist_2d_lax(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+            # t0 = time.time()
+            # field_cell = field_dist_2d_lax(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+            #                            *self.fourier_order, self.T1, self.layer_info_list, self.period,
+            #                            resolution=resolution, type_complex=self.type_complex)
+            # print('lax: ', time.time() - t0)
+
+            t0 = time.time()
+            field_cell = field_dist_2d_vectorize(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
                                        *self.fourier_order, self.T1, self.layer_info_list, self.period,
                                        resolution=resolution, type_complex=self.type_complex)
+            print('vector: ', time.time() - t0)
+            # field_plot(field_cell, self.pol)
+
+            # t0 = time.time()
+            # field_cell = field_dist_2d_original(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+            #                                     *self.fourier_order, self.T1, self.layer_info_list, self.period,
+            #                                     resolution=resolution, type_complex=self.type_complex)
+            # print('original: ', time.time() - t0)
+            #
+            # field_plot(field_cell, self.pol)
         if plot:
             field_plot(field_cell, self.pol)
         return field_cell

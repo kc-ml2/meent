@@ -215,8 +215,9 @@ def field_dist_2d_original(wavelength, kx_vector, n_I, theta, phi, fourier_order
 
     return field_cell
 
-@partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
-def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+
+# @partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
+def field_dist_2d_vectorize(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
                   resolution=(10, 10, 10),
                   type_complex=jnp.complex128):
 
@@ -244,22 +245,84 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fouri
 
         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
 
+        # TODO: vectorize? later?
         for k in range(resolution_z):
             Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d)
-            for j in range(resolution_y):
-                y = j * period[1] / resolution_y
-                for i in range(resolution_x):
-                    val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
 
-                    # from jax import lax
-                    #
-                    # lax.fori_loop(0, len(resolution_z), x_loop_2d, )
+            x_all = jnp.arange(resolution_x).reshape((1, -1, 1))
+            y_all = jnp.arange(resolution_y).reshape((-1, 1, 1))
 
+            x_all = -1j * x_all * period[0] / resolution_x
+            y_all = -1j * y_all * period[1] / resolution_y
 
-                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+            x_plane = jnp.tile(x_all, (resolution_y, 1, 1))
+            y_plane = jnp.tile(y_all, (1, resolution_x, 1))
+
+            a = x_plane * kx_vector
+            b = y_plane * ky_vector
+
+            aa = a.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
+            bb = b.reshape((resolution_y, resolution_x, len(ky_vector), 1))
+
+            exp_K1 = jnp.exp(aa) * jnp.exp(bb)
+            exp_K1 = exp_K1.reshape((resolution_y, resolution_x, -1))
+
+            Ex1 = exp_K1 @ Sx
+            Ey1 = exp_K1 @ Sy
+            Ez1 = exp_K1 @ Sz
+
+            Hx1 = -1j * exp_K1 @ Ux
+            Hy1 = -1j * exp_K1 @ Uy
+            Hz1 = -1j * exp_K1 @ Uz
+
+            val = jnp.concatenate((Ex1, Ey1, Ez1, Hx1, Hy1, Hz1), axis=-1)
+
+            field_cell = field_cell.at[resolution_z * idx_layer + k].set(val)
+
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell
+
+
+# @partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
+# def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+#                   resolution=(10, 10, 10),
+#                   type_complex=jnp.complex128):
+#
+#     k0 = 2 * jnp.pi / wavelength
+#
+#     fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
+#     ff_x = fourier_order_x * 2 + 1
+#     ff_y = fourier_order_y * 2 + 1
+#     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
+#             wavelength / period[1])).astype(type_complex)
+#
+#     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+#     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
+#
+#     resolution_z, resolution_y, resolution_x = resolution
+#     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+#
+#     T_layer = T1
+#
+#     big_I = jnp.eye((len(T1))).astype(type_complex)
+#
+#     # From the first layer
+#     for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
+#             in enumerate(layer_info_list[::-1]):
+#
+#         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
+#
+#         for k in range(resolution_z):
+#             Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d)
+#             for j in range(resolution_y):
+#                 y = j * period[1] / resolution_y
+#                 for i in range(resolution_x):
+#                     val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
+#                     field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+#         T_layer = big_A_i @ big_X @ T_layer
+#
+#     return field_cell
 
 
 def field_dist_2d_lax(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
@@ -267,10 +330,10 @@ def field_dist_2d_lax(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, f
                   type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
-
     fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
+    ff_xy = ff_x * ff_y
     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
             wavelength / period[1])).astype(type_complex)
 
@@ -289,66 +352,108 @@ def field_dist_2d_lax(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, f
             in enumerate(layer_info_list[::-1]):
 
         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-        i=j=k=0
+        i=j=k=0  # TODO: delete
 
-        point_list = [jnp.array([idx_layer]), jnp.array([k]), jnp.array([c]), jnp.array([k0]), jnp.array([Kx]), jnp.array([Ky]), jnp.array([resolution_z]), jnp.array([E_conv_i]), jnp.array([q]), jnp.array([W_11]), jnp.array([W_12]), jnp.array([W_21]), jnp.array([W_22]), jnp.array([V_11]), jnp.array([V_12]), jnp.array([V_21]), jnp.array([V_22]), jnp.array([d]), jnp.array([period]), jnp.array([resolution_y]), jnp.array([resolution_x]), jnp.array([kx_vector]), jnp.array([ky_vector]), jnp.array([j]), jnp.array([i])]
-        point_list = [(point_list,),  (point_list,)]
+        args = [k, j, i, k0, resolution_z, resolution_y, resolution_x, idx_layer, d, kx_vector, ky_vector, q, period, c, Kx, Ky, E_conv_i, W_11, W_12, W_21, W_22, V_11, V_12, V_21]
 
-        # TODO: make this an array.
-        # arr[0,0] = idx_layer
-        # arr[0,1] = k
-        # arr[0,2:2+len(c)+1] = c.flatten()
+        res_size = 1 * 9 + ff_x + ff_y + 2*ff_xy + 2 + 2*2*ff_xy + 11 * ff_xy**2
+        res = jnp.zeros(res_size, dtype=type_complex)
 
-        jax.lax.scan(calc, field_cell, point_list)
-        for k in range(resolution_z):
-            for j in range(resolution_y):
-                for i in range(resolution_x):
-                    val = func(idx_layer, k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
-                               period, resolution_y, resolution_x, kx_vector, ky_vector, j, i)
-                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+        b = 0
+        for ix, item in enumerate(args):
+            if type(item) in (float, int):
+                length = 1
+                val = item
+            elif isinstance(item, jax.numpy.ndarray):
+                length = item.size
+                val = item.flatten()
+            elif type(item) is list:
+                length = len(item)
+                val = jnp.array(item)
+            else:
+                raise
 
-        T_layer = big_A_i @ big_X @ T_layer
+            res[b:b+length] = val
+            b += length
 
+        ress = jnp.tile(res, (resolution_z * resolution_y * resolution_x, 1))
+
+        base = jnp.arange(resolution_x)
+        i_list = jnp.tile(base, resolution_z * resolution_y)[:,None]
+        j_list = jnp.tile(jnp.repeat(base, resolution_x), resolution_z)[:,None]
+        k_list = jnp.repeat(base, resolution_x * resolution_y)[:,None]
+        kji = jnp.hstack((k_list, j_list, i_list))
+
+        resss = ress.at[:, :3].set(kji)
+
+        def calc(field_cell, args):
+            k = args[0]
+            j = args[1]
+            i = args[2]
+            k0 = args[3]
+            resolution_z = args[4]
+            resolution_y = args[5]
+            resolution_x = args[6]
+            idx_layer = args[7]
+            d = args[8]
+
+            b, e = 9, 9 + ff_x
+            kx_vector = args[b:e]
+            b, e = e, e + ff_y
+            ky_vector = args[b:e]
+            b, e = e, e + 2 * ff_xy
+            q = args[b:e]
+            b, e = e, e + 2
+            period = args[b:e]
+
+            b, e = e, e + 2 * 2 * ff_xy
+            c = args[b:e].reshape((-1, 1))
+
+            b, e = e, e + ff_xy * ff_xy
+            Kx = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            Ky = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            E_conv_i = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            W_11 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            W_12 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            W_21 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            W_22 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            V_11 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            V_12 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            V_21 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            V_22 = args[b:e].reshape((ff_xy, ff_xy))
+
+            y = j * period[1] / resolution_y
+            Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22,
+                                               V_11, V_12, V_21, V_22, d)
+            val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
+            field_cell = field_cell.at[(resolution_z * idx_layer + k).real.astype(int), j.real.astype(int), i.real.astype(int)].set(val)
+
+            return field_cell, val
+
+        field_cell, _ = jax.lax.scan(calc, field_cell, resss)
     return field_cell
 
 
-import numpy as np
-def scan(f, init, xs, length=None):
-    if xs is None:
-         xs = [None] * length
-    carry = init
-    ys = []
-    for x in xs:
-        carry, y = f(carry, x)  # carry is the carryover
-        ys.append(y)            # the `y`s get accumulated into a stacked array
-    return carry, np.stack(ys)
 
-def example(res, el):
-    res = res + el
-    return res, res
-
-
-def calc(field_cell, args):
-
-    idx_layer, k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d, period, resolution_y, resolution_x, kx_vector, ky_vector, j, i = args
-    y = j * period[1] / resolution_y
-    Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11,
-                                       V_12, V_21, V_22, d)
-    val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
-    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
-
-    return field_cell, val
-
-# @partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
-def field_dist_2d_single(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+def field_dist_2d_lax_heavy(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
                   resolution=(10, 10, 10),
                   type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
-
     fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
+    ff_xy = ff_x * ff_y
     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
             wavelength / period[1])).astype(type_complex)
 
@@ -362,34 +467,154 @@ def field_dist_2d_single(wavelength, kx_vector, n_I, theta, phi, fourier_order_x
 
     big_I = jnp.eye((len(T1))).astype(type_complex)
 
-
-
     # From the first layer
     for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
             in enumerate(layer_info_list[::-1]):
 
         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
+        i=j=k=0  # TODO: delete
 
-        for k in range(resolution_z):
-            for j in range(resolution_y):
-                for i in range(resolution_x):
-                    val = func(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
-                               period, resolution_y, resolution_x, kx_vector, ky_vector, j, i)
-                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+        args = [k, j, i, k0, resolution_z, resolution_y, resolution_x, idx_layer, d, kx_vector, ky_vector, q, period, c, Kx, Ky, E_conv_i, W_11, W_12, W_21, W_22, V_11, V_12, V_21]
 
-        T_layer = big_A_i @ big_X @ T_layer
+        res_size = 1 * 9 + ff_x + ff_y + 2*ff_xy + 2 + 2*2*ff_xy + 11 * ff_xy**2
+        res = jnp.zeros(res_size, dtype=type_complex)
 
+        b = 0
+        for ix, item in enumerate(args):
+            if type(item) in (float, int):
+                length = 1
+                val = item
+            elif isinstance(item, jax.numpy.ndarray):
+                length = item.size
+                val = item.flatten()
+            elif type(item) is list:
+                length = len(item)
+                val = jnp.array(item)
+            else:
+                raise
+
+            res[b:b+length] = val
+            b += length
+
+        ress = jnp.tile(res, (resolution_z * resolution_y * resolution_x, 1))
+
+        base = jnp.arange(resolution_x)
+        i_list = jnp.tile(base, resolution_z * resolution_y)[:,None]
+        j_list = jnp.tile(jnp.repeat(base, resolution_x), resolution_z)[:,None]
+        k_list = jnp.repeat(base, resolution_x * resolution_y)[:,None]
+        kji = jnp.hstack((k_list, j_list, i_list))
+
+        resss = ress.at[:, :3].set(kji)
+
+        def calc(field_cell, args):
+            k = args[0]
+            j = args[1]
+            i = args[2]
+            k0 = args[3]
+            resolution_z = args[4]
+            resolution_y = args[5]
+            resolution_x = args[6]
+            idx_layer = args[7]
+            d = args[8]
+
+            b, e = 9, 9 + ff_x
+            kx_vector = args[b:e]
+            b, e = e, e + ff_y
+            ky_vector = args[b:e]
+            b, e = e, e + 2 * ff_xy
+            q = args[b:e]
+            b, e = e, e + 2
+            period = args[b:e]
+
+            b, e = e, e + 2 * 2 * ff_xy
+            c = args[b:e].reshape((-1, 1))
+
+            b, e = e, e + ff_xy * ff_xy
+            Kx = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            Ky = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            E_conv_i = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            W_11 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            W_12 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            W_21 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            W_22 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            V_11 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            V_12 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            V_21 = args[b:e].reshape((ff_xy, ff_xy))
+            b, e = e, e + ff_xy * ff_xy
+            V_22 = args[b:e].reshape((ff_xy, ff_xy))
+
+            y = j * period[1] / resolution_y
+            Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22,
+                                               V_11, V_12, V_21, V_22, d)
+            val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
+            field_cell = field_cell.at[(resolution_z * idx_layer + k).real.astype(int), j.real.astype(int), i.real.astype(int)].set(val)
+
+            return field_cell, val
+
+        field_cell, _ = jax.lax.scan(calc, field_cell, resss)
     return field_cell
-@partial(jax.jit, static_argnums=())
-def func(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
-         period, resolution_y, resolution_x, kx_vector, ky_vector, j, i):
-    y = j * period[1] / resolution_y
 
-    Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11,
-                                       V_12, V_21, V_22, d)
-    val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
 
-    return val
+# @partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
+# def field_dist_2d_single(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+#                   resolution=(10, 10, 10),
+#                   type_complex=jnp.complex128):
+#
+#     k0 = 2 * jnp.pi / wavelength
+#
+#     fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
+#     ff_x = fourier_order_x * 2 + 1
+#     ff_y = fourier_order_y * 2 + 1
+#     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
+#             wavelength / period[1])).astype(type_complex)
+#
+#     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+#     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
+#
+#     resolution_z, resolution_y, resolution_x = resolution
+#     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+#
+#     T_layer = T1
+#
+#     big_I = jnp.eye((len(T1))).astype(type_complex)
+#
+#     # From the first layer
+#     for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
+#             in enumerate(layer_info_list[::-1]):
+#
+#         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
+#
+#         for k in range(resolution_z):
+#             for j in range(resolution_y):
+#                 for i in range(resolution_x):
+#                     val = func(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
+#                                period, resolution_y, resolution_x, kx_vector, ky_vector, j, i)
+#                     field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+#
+#         T_layer = big_A_i @ big_X @ T_layer
+#
+#     return field_cell
+#
+#
+# @partial(jax.jit, static_argnums=())
+# def func(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
+#          period, resolution_y, resolution_x, kx_vector, ky_vector, j, i):
+#     y = j * period[1] / resolution_y
+#
+#     Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11,
+#                                        V_12, V_21, V_22, d)
+#     val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
+#
+#     return val
 
 # @partial(jax.jit, static_argnums=(0,))
 def z_loop_1d(pol, k0, Kx, W, V, Q, c1, c2, d, z, EKx):
@@ -489,7 +714,7 @@ def x_loop_1d_conical(period, resolution_x, kx_vector, Sx, Sy, Sz, Ux, Uy, Uz, i
     return res
 
 
-@jax.jit
+# @jax.jit
 def z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d):
 
     z = k / resolution_z * d
@@ -525,7 +750,7 @@ def z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_2
     return Sx, Sy, Ux, Uy, Sz, Uz
 
 
-@jax.jit
+# @jax.jit
 def x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i):
 
     x = i * period[0] / resolution_x
@@ -546,7 +771,7 @@ def x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz
     return res
 
 
-def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_slice=-1, zx=True, yx=True):
+def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_slice=-1, zx=True, yx=False):
     try:
         import matplotlib.pyplot as plt
     except (ImportError, ModuleNotFoundError) as e:

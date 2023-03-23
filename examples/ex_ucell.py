@@ -32,7 +32,7 @@ thickness = [500]
 ucell_materials = [1, 'p_si__real']
 period = [1000, 1000]
 
-fourier_order = [2,2]
+fourier_order = [5,3]
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 n_iter = 2
 
@@ -93,7 +93,7 @@ def run_test(grating_type, mode_key, dtype, device):
         de_ri, de_ti = mee.conv_solve()
         # print(de_ri)
         print(f'run_cell: {i}: ', time.time() - t0)
-    resolution = (20, 20, 20)
+    resolution = (20, 20, 20)  # TODO: make sure about order. change to XYZ?
     for i in range(2):
         t0 = time.time()
         mee.calculate_field(resolution=resolution, plot=True)
