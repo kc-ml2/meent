@@ -93,7 +93,7 @@ def run_test(grating_type, mode_key, dtype, device):
         de_ri, de_ti = mee.conv_solve()
         # print(de_ri)
         print(f'run_cell: {i}: ', time.time() - t0)
-    resolution = (20, 20, 100)  # TODO: make sure about order. change to XYZ?
+    resolution = (10, 20, 30)  # TODO: make sure about order. change to XYZ?
     for i in range(1):
         t0 = time.time()
         mee.calculate_field(resolution=resolution, plot=True)
