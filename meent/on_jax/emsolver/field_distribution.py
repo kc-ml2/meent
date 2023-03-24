@@ -219,14 +219,14 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fouri
             Sx1 = W_11 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
                  + W_12 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-            Sy1 = W_21 @ (expm_new(-k0 * big_Q1 * z) @ c1_plus + expm_new(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + W_22 @ (expm_new(-k0 * big_Q2 * z) @ c2_plus + expm_new(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sy1 = W_21 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+                 + W_22 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-            Ux1 = V_11 @ (-expm_new(-k0 * big_Q1 * z) @ c1_plus + expm_new(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_12 @ (-expm_new(-k0 * big_Q2 * z) @ c2_plus + expm_new(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Ux1 = V_11 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+                 + V_12 @ (-expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-            Uy1 = V_21 @ (-expm_new(-k0 * big_Q1 * z) @ c1_plus + expm_new(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_22 @ (-expm_new(-k0 * big_Q2 * z) @ c2_plus + expm_new(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Uy1 = V_21 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+                 + V_22 @ (-expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
             Sz1 = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
 
