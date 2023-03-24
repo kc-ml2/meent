@@ -147,7 +147,7 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, T1, layer_info
     return field_cell
 
 
-# @partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
+@partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
 def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
                   resolution=(10, 10, 10), type_complex=jnp.complex128):
 
@@ -164,7 +164,6 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fouri
 
     resolution_z, resolution_y, resolution_x = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
-    field_cell1 = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
 
@@ -175,9 +174,7 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fouri
             in enumerate(layer_info_list[::-1]):
 
         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-
         z_1d = jnp.arange(resolution_z).reshape((-1, 1, 1)) / resolution_z * d
-        # z_1d = z_1d / resolution_z * d
 
         ff = len(c) // 4
 
@@ -191,25 +188,20 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fouri
         big_Q1 = jnp.diag(q1)
         big_Q2 = jnp.diag(q2)
 
-        Sx1 = W_11 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+        Sx = W_11 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
               + W_12 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-        Sy1 = W_21 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+        Sy = W_21 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
               + W_22 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-        Ux1 = V_11 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+        Ux = V_11 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
               + V_12 @ (-expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-        Uy1 = V_21 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+        Uy = V_21 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
               + V_22 @ (-expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-        # TODO: tile
-        Sz1 = -1j * E_conv_i @ (Kx @ Uy1 - Ky @ Ux1)
-        # Sz1 = jnp.tile(Sz1, (resolution_z, 1, 1))
-        Uz1 = -1j * (Kx @ Sy1 - Ky @ Sx1)
-        # Uz1 = jnp.tile(Uz1, (resolution_z, 1, 1))
-
-        ##################
+        Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
+        Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
         x_1d = jnp.arange(resolution_x).reshape((1, -1, 1))
         y_1d = jnp.arange(resolution_y).reshape((-1, 1, 1))
@@ -226,158 +218,29 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fouri
         x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
         y_2d = y_2d.reshape((resolution_y, resolution_x, len(ky_vector), 1))
 
-        exp_K1 = jnp.exp(x_2d) * jnp.exp(y_2d)
-        exp_K1 = exp_K1.reshape((resolution_y, resolution_x, -1))
+        exp_K = jnp.exp(x_2d) * jnp.exp(y_2d)
+        exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
 
-        Ex1 = exp_K1[:, :, None, :] @ Sx1[:, None, None, :, :]
-        Ey1 = exp_K1[:, :, None, :] @ Sy1[:, None, None, :, :]
-        Ez1 = exp_K1[:, :, None, :] @ Sz1[:, None, None, :, :]
+        Ex = exp_K[:, :, None, :] @ Sx[:, None, None, :, :]
+        Ey = exp_K[:, :, None, :] @ Sy[:, None, None, :, :]
+        Ez = exp_K[:, :, None, :] @ Sz[:, None, None, :, :]
 
-        Hx1 = -1j * exp_K1[:, :, None, :] @ Ux1[:, None, None, :, :]
-        Hy1 = -1j * exp_K1[:, :, None, :] @ Uy1[:, None, None, :, :]
-        Hz1 = -1j * exp_K1[:, :, None, :] @ Uz1[:, None, None, :, :]
+        Hx = -1j * exp_K[:, :, None, :] @ Ux[:, None, None, :, :]
+        Hy = -1j * exp_K[:, :, None, :] @ Uy[:, None, None, :, :]
+        Hz = -1j * exp_K[:, :, None, :] @ Uz[:, None, None, :, :]
 
-        # val = jnp.concatenate((Ex, Ey, Ez, Hx, Hy, Hz), axis=-1)
-        # val = jnp.concatenate((Ex1, Ey1, Ez1, Hx1, Hy1, Hz1), axis=-1)
-        val1 = jnp.concatenate(
-            (Ex1.squeeze(-1), Ey1.squeeze(-1), Ez1.squeeze(-1), Hx1.squeeze(-1), Hy1.squeeze(-1), Hz1.squeeze(-1)),
+        val = jnp.concatenate(
+            (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)),
             axis=-1)
 
-        field_cell1 = field_cell1.at[resolution_z * idx_layer:resolution_z * (idx_layer + 1)].set(val1)
-
-        # TODO: vectorize? later?
-        for k in range(resolution_z):
-            # Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d)
-
-            ##################
-
-            z = k / resolution_z * d
-
-            ff = len(c) // 4
-
-            c1_plus = c[0 * ff:1 * ff]
-            c2_plus = c[1 * ff:2 * ff]
-            c1_minus = c[2 * ff:3 * ff]
-            c2_minus = c[3 * ff:4 * ff]
-
-            q1 = q[:len(q) // 2]
-            q2 = q[len(q) // 2:]
-            big_Q1 = jnp.diag(q1)
-            big_Q2 = jnp.diag(q2)
-
-            Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-            Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-            Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-            Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
-
-            Uz = -1j * (Kx @ Sy - Ky @ Sx)
-
-
-
-            x_1d = jnp.arange(resolution_x).reshape((1, -1, 1))
-            y_1d = jnp.arange(resolution_y).reshape((-1, 1, 1))
-
-            x_1d = -1j * x_1d * period[0] / resolution_x
-            y_1d = -1j * y_1d * period[1] / resolution_y
-
-            x_2d = jnp.tile(x_1d, (resolution_y, 1, 1))
-            y_2d = jnp.tile(y_1d, (1, resolution_x, 1))
-
-            x_2d = x_2d * kx_vector
-            y_2d = y_2d * ky_vector
-
-            x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
-            y_2d = y_2d.reshape((resolution_y, resolution_x, len(ky_vector), 1))
-
-            exp_K1 = jnp.exp(x_2d) * jnp.exp(y_2d)
-            exp_K1 = exp_K1.reshape((resolution_y, resolution_x, -1))
-
-            exp_K = jnp.exp(x_2d) * jnp.exp(y_2d)
-            exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
-            #
-            Ex = exp_K @ Sx
-            Ey = exp_K @ Sy
-            Ez = exp_K @ Sz
-
-            Hx = -1j * exp_K @ Ux
-            Hy = -1j * exp_K @ Uy
-            Hz = -1j * exp_K @ Uz
-
-            val = jnp.concatenate((Ex, Ey, Ez, Hx, Hy, Hz), axis=-1)
-
-            field_cell = field_cell.at[resolution_z * idx_layer + k].set(val)
-
-            #
-            #
-            # z_1d = jnp.arange(resolution_z).reshape((-1, 1, 1))
-            #
-            # Sx1 = W_11 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-            #      + W_12 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-            #
-            # Sy1 = W_21 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-            #      + W_22 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-            #
-            # Ux1 = V_11 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-            #      + V_12 @ (-expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-            #
-            # Uy1 = V_21 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-            #      + V_22 @ (-expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-            #
-            # # TODO: tile
-            # Sz1 = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
-            # Sz1 = jnp.tile(Sz1, (resolution_z, 1, 1))
-            # Uz1 = -1j * (Kx @ Sy - Ky @ Sx)
-            # Uz1 = jnp.tile(Uz1, (resolution_z, 1, 1))
-            #
-            #
-            # ##################
-            #
-            #
-            #
-            # # x_1d = jnp.arange(resolution_x).reshape((1, -1, 1))
-            # # y_1d = jnp.arange(resolution_y).reshape((-1, 1, 1))
-            # #
-            # # x_1d = -1j * x_1d * period[0] / resolution_x
-            # # y_1d = -1j * y_1d * period[1] / resolution_y
-            # #
-            # # x_2d = jnp.tile(x_1d, (resolution_y, 1, 1))
-            # # y_2d = jnp.tile(y_1d, (1, resolution_x, 1))
-            # #
-            # # x_2d = x_2d * kx_vector
-            # # y_2d = y_2d * ky_vector
-            # #
-            # # x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
-            # # y_2d = y_2d.reshape((resolution_y, resolution_x, len(ky_vector), 1))
-            # #
-            # # exp_K1 = jnp.exp(x_2d) * jnp.exp(y_2d)
-            # # exp_K1 = exp_K1.reshape((resolution_y, resolution_x, -1))
-            #
-            # Ex1 = exp_K1[:,:,None,:] @ Sx1[:,None,None,:,:]
-            # Ey1 = exp_K1[:,:,None,:] @ Sy1[:,None,None,:,:]
-            # Ez1 = exp_K1[:,:,None,:] @ Sz1[:,None,None,:,:]
-            #
-            # Hx1 = -1j * exp_K1[:,:,None,:] @ Ux1[:,None,None,:,:]
-            # Hy1 = -1j * exp_K1[:,:,None,:] @ Uy1[:,None,None,:,:]
-            # Hz1 = -1j * exp_K1[:,:,None,:] @ Uz1[:,None,None,:,:]
-            #
-            # # val = jnp.concatenate((Ex, Ey, Ez, Hx, Hy, Hz), axis=-1)
-            # # val = jnp.concatenate((Ex1, Ey1, Ez1, Hx1, Hy1, Hz1), axis=-1)
-            # val1 = jnp.concatenate((Ex1.squeeze(-1), Ey1.squeeze(-1), Ez1.squeeze(-1), Hx1.squeeze(-1), Hy1.squeeze(-1), Hz1.squeeze(-1)), axis=-1)
-            #
-            # field_cell1 = field_cell1.at[resolution_z * idx_layer:resolution_z * (idx_layer+1)].set(val1)
+        field_cell = field_cell.at[resolution_z * idx_layer:resolution_z * (idx_layer + 1)].set(val)
 
         T_layer = big_A_i @ big_X @ T_layer
 
-    return field_cell1
+    return field_cell
+
+
+@partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
 
 def field_dist_2d_single_loop(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
                   resolution=(10, 10, 10), type_complex=jnp.complex128):

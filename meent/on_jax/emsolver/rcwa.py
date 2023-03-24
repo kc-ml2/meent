@@ -8,7 +8,8 @@ import numpy as np
 
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous, to_conv_mat_continuous_vector
-from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot
+from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot, \
+    field_dist_2d_single_loop
 
 
 class RCWAJax(_BaseRCWA):
@@ -198,6 +199,12 @@ class RCWAJax(_BaseRCWA):
             t0 = time.time()
             resolution = [10, 10, 10] if not resolution else resolution
             field_cell = field_dist_2d(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+                                       *self.fourier_order, self.T1, self.layer_info_list, self.period,
+                                       resolution=resolution, type_complex=self.type_complex)
+            print('vector: ', time.time() - t0)
+            t0 = time.time()
+            resolution = [10, 10, 10] if not resolution else resolution
+            field_cell = field_dist_2d_single_loop(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
                                        *self.fourier_order, self.T1, self.layer_info_list, self.period,
                                        resolution=resolution, type_complex=self.type_complex)
             print('vector: ', time.time() - t0)
