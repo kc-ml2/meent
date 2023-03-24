@@ -9,7 +9,7 @@ import numpy as np
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous, to_conv_mat_continuous_vector
 from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d, field_plot, \
-    field_dist_2d_single_loop
+    field_dist_1d_kji_vectorized, field_dist_1d_conical_kji_vectorized
 
 
 class RCWAJax(_BaseRCWA):
@@ -187,10 +187,23 @@ class RCWAJax(_BaseRCWA):
                                        type_complex=self.type_complex)
             print('vector: ', time.time() - t0)
 
+            t0 = time.time()
+            resolution = [100, 1, 100] if not resolution else resolution
+            field_cell = field_dist_1d_kji_vectorized(self.wavelength, self.kx_vector, self.T1,
+                                       self.layer_info_list, self.period, self.pol, resolution=resolution,
+                                       type_complex=self.type_complex)
+            print('vector: ', time.time() - t0)
+
         elif self.grating_type == 1:
             t0 = time.time()
             resolution = [100, 1, 100] if not resolution else resolution
             field_cell = field_dist_1d_conical(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+                                               self.T1, self.layer_info_list, self.period,
+                                               resolution=resolution, type_complex=self.type_complex)
+            print('vector: ', time.time() - t0)
+            t0 = time.time()
+            resolution = [100, 1, 100] if not resolution else resolution
+            field_cell = field_dist_1d_conical_kji_vectorized(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
                                                self.T1, self.layer_info_list, self.period,
                                                resolution=resolution, type_complex=self.type_complex)
             print('vector: ', time.time() - t0)
@@ -199,12 +212,6 @@ class RCWAJax(_BaseRCWA):
             t0 = time.time()
             resolution = [10, 10, 10] if not resolution else resolution
             field_cell = field_dist_2d(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-                                       *self.fourier_order, self.T1, self.layer_info_list, self.period,
-                                       resolution=resolution, type_complex=self.type_complex)
-            print('vector: ', time.time() - t0)
-            t0 = time.time()
-            resolution = [10, 10, 10] if not resolution else resolution
-            field_cell = field_dist_2d_single_loop(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
                                        *self.fourier_order, self.T1, self.layer_info_list, self.period,
                                        resolution=resolution, type_complex=self.type_complex)
             print('vector: ', time.time() - t0)

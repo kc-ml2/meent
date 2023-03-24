@@ -3,8 +3,9 @@ from setuptools import setup, find_packages
 extras = {
     'jax': ['jax>=0.4.1',
             'jaxlib>=0.4.1',
+            'optax>=0.1.4',
             ],
-    'pytorch': ['torch>=1.12.1',
+    'pytorch': ['torch>=2.0.0',
                 ],
 }
 setup(
