@@ -1,5 +1,4 @@
 import jax
-
 import jax.numpy as jnp
 
 from functools import partial
@@ -7,17 +6,17 @@ from functools import partial
 
 def field_distribution(grating_type, *args, **kwargs):
     if grating_type == 0:
-        res = field_dist_1d(*args, **kwargs)
+        res = field_dist_1d_vectorized_ji(*args, **kwargs)
     elif grating_type == 1:
-        res = field_dist_1d_conical(*args, **kwargs)
+        res = field_dist_1d_conical_vectorized_ji(*args, **kwargs)
     else:
-        res = field_dist_2d(*args, **kwargs)
+        res = field_dist_2d_vectorized_ji(*args, **kwargs)
     return res
 
 
 @partial(jax.jit, static_argnums=(5, 6, 7))
-def field_dist_1d(wavelength, kx_vector, T1, layer_info_list, period,
-                  pol, resolution=(100, 1, 100), type_complex=jnp.complex128):
+def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, period,
+                                pol, resolution=(100, 1, 100), type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
     Kx = jnp.diag(kx_vector / k0)
@@ -66,8 +65,6 @@ def field_dist_1d(wavelength, kx_vector, T1, layer_info_list, period,
 
                 val = jnp.concatenate((Ey, Hx, Hz), axis=-1)
 
-                field_cell = field_cell.at[resolution_z * idx_layer + k].set(val)
-
             else:
                 Uy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
                 Sx = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
@@ -89,7 +86,7 @@ def field_dist_1d(wavelength, kx_vector, T1, layer_info_list, period,
 
                 val = jnp.concatenate((Hy, Ex, Ez), axis=-1)
 
-                field_cell = field_cell.at[resolution_z * idx_layer + k].set(val)
+            field_cell = field_cell.at[resolution_z * idx_layer + k].set(val)
 
         T_layer = a_i @ X @ T_layer
 
@@ -97,8 +94,8 @@ def field_dist_1d(wavelength, kx_vector, T1, layer_info_list, period,
 
 
 @partial(jax.jit, static_argnums=(8, 9))
-def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                          resolution=(100, 100, 100), type_complex=jnp.complex128):
+def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
+                                        resolution=(100, 100, 100), type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
@@ -146,9 +143,9 @@ def field_dist_1d_conical(wavelength, kx_vector, n_I, theta, phi, T1, layer_info
     return field_cell
 
 
-@partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
-def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                  resolution=(10, 10, 10), type_complex=jnp.complex128):
+@partial(jax.jit, static_argnums=(5, 6, 10, 11))
+def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+                                resolution=(10, 10, 10), type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
 
@@ -213,8 +210,8 @@ def field_dist_2d(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fouri
 
 
 @partial(jax.jit, static_argnums=(5, 6, 7))
-def field_dist_1d_kji_vectorized(wavelength, kx_vector, T1, layer_info_list, period,
-                  pol, resolution=(100, 1, 100), type_complex=jnp.complex128):
+def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, period,
+                                 pol, resolution=(100, 1, 100), type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
     Kx = jnp.diag(kx_vector / k0)
@@ -291,8 +288,8 @@ def field_dist_1d_kji_vectorized(wavelength, kx_vector, T1, layer_info_list, per
 
 
 @partial(jax.jit, static_argnums=(8, 9))
-def field_dist_1d_conical_kji_vectorized(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                          resolution=(100, 100, 100), type_complex=jnp.complex128):
+def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
+                                         resolution=(100, 100, 100), type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
@@ -362,9 +359,9 @@ def field_dist_1d_conical_kji_vectorized(wavelength, kx_vector, n_I, theta, phi,
     return field_cell
 
 
-@partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
-def field_dist_2d_kji_vectorized(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                  resolution=(10, 10, 10), type_complex=jnp.complex128):
+@partial(jax.jit, static_argnums=(5, 6, 10, 11))
+def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+                                 resolution=(10, 10, 10), type_complex=jnp.complex128):
 
     k0 = 2 * jnp.pi / wavelength
 

@@ -34,7 +34,8 @@ period = [1000, 1000]
 
 fourier_order = [3, 2]
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
-n_iter = 2
+n_iter_de = 1
+n_iter_field = 1
 
 
 def run_test(grating_type, mode_key, dtype, device):
@@ -88,15 +89,15 @@ def run_test(grating_type, mode_key, dtype, device):
                         ucell_materials=ucell_materials,
                         thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
 
-    for i in range(n_iter):
+    for i in range(n_iter_de):
         t0 = time.time()
         de_ri, de_ti = mee.conv_solve()
         # print(de_ri)
         print(f'run_cell: {i}: ', time.time() - t0)
     resolution = (10, 20, 30)  # TODO: make sure about order. change to XYZ?
-    for i in range(2):
+    for i in range(n_iter_field):
         t0 = time.time()
-        mee.calculate_field(resolution=resolution, plot=True)
+        mee.calculate_field(resolution=resolution, plot=False)
         print(f'cal_field: {i}', time.time() - t0)
 
     # center = np.array(de_ri.shape) // 2
@@ -183,4 +184,4 @@ def load_ucell(grating_type):
 
 
 if __name__ == '__main__':
-    run_loop([1], [1], [0], [0])
+    run_loop([0,1,2], [1], [0], [0])

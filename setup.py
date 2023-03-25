@@ -17,6 +17,7 @@ setup(
     packages=['meent'] + find_packages(include=['meent.*']),
     install_requires=[
         'numpy>=1.23.3',
+        'scipy>=1.9.1',
     ],
     extras_require=extras,
     python_requires='>=3.8',

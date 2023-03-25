@@ -41,7 +41,7 @@ else
 end
 
 %res3(aa)
-x = textures(2){1}{1}
+x = textures(2){1}{1};
 %parm.res3.sens=1;
 %##parm.res3.gauss_x = 100
 parm.res3.trace=1 ;%trace automatique % automatic trace

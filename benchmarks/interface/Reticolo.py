@@ -1,7 +1,5 @@
 import os
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 
 import meent
 
@@ -166,7 +164,7 @@ class Reticolo:
         if type(n_si) == str and n_si.upper() == 'SILICON':
             n_si = find_nk_index(n_si, self.mat_table, self.wavelength)
 
-        abseff, effi_r, effi_t = self.eng.Eval_Eff_1D(pattern, self.wavelength, self.deflected_angle, self.fourier_order,
+        abseff, effi_r, effi_t = self.eng.reticolo_res2(pattern, self.wavelength, self.deflected_angle, self.fourier_order,
                                                       self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
         effi_r, effi_t = np.array(effi_r).flatten(), np.array(effi_t).flatten()
 
@@ -182,7 +180,7 @@ if __name__ == '__main__':
     pre = load_setting(mode, dtype, device, grating_type)
 
     reti = Reticolo()
-    a,b,c,d = reti.run_res3(**pre)
+    a,b,c,d, field_cell = reti.run_res3(**pre)
 
     print(np.array(a).flatten())
     print(np.array(b).flatten())
@@ -253,6 +251,6 @@ if __name__ == '__main__':
         print(de_ri)
         print(de_ti)
 
-    print(a.sum(),de_ri.sum())
-    print(b.sum(),de_ti.sum())
-    print(a.sum()+b.sum(),de_ri.sum()+de_ti.sum())
+    print(a.sum(), de_ri.sum())
+    print(b.sum(), de_ti.sum())
+    print(a.sum()+b.sum(), de_ri.sum()+de_ti.sum())

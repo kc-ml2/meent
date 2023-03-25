@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 from JLAB.solver import JLABCode
-from benchmark.interface.Reticolo import Reticolo
+from benchmarks.interface.Reticolo import Reticolo
 
 
 class RetiMeent:
