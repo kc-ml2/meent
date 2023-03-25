@@ -114,8 +114,33 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
 
         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
 
+        ff = len(c) // 4
+
+        c1_plus = c[0 * ff:1 * ff]
+        c2_plus = c[1 * ff:2 * ff]
+        c1_minus = c[2 * ff:3 * ff]
+        c2_minus = c[3 * ff:4 * ff]
+
+        big_Q1 = jnp.diag(q_1)
+        big_Q2 = jnp.diag(q_2)
         for k in range(resolution_z):
-            Sx, Sy, Ux, Uy, Sz, Uz = z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, d)
+            # Sx, Sy, Ux, Uy, Sz, Uz = z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, d)
+
+            z = k / resolution_z * d
+
+            Sx = W_2 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+
+            Sy = V_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+
+            Ux = W_1 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus)
+
+            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+
+            Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
+
+            Uz = -1j * (Kx @ Sy - ky * Sx)
 
             x_1d = jnp.arange(resolution_x).reshape((1, -1, 1))
             x_1d = -1j * x_1d * period[0] / resolution_x
@@ -171,8 +196,34 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
 
         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
 
+        ff = len(c) // 4
+
+        c1_plus = c[0 * ff:1 * ff]
+        c2_plus = c[1 * ff:2 * ff]
+        c1_minus = c[2 * ff:3 * ff]
+        c2_minus = c[3 * ff:4 * ff]
+
+        q1 = q[:len(q) // 2]
+        q2 = q[len(q) // 2:]
+        big_Q1 = jnp.diag(q1)
+        big_Q2 = jnp.diag(q2)
         for k in range(resolution_z):
-            Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d)
+            z = k / resolution_z * d
+            Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+
+            Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+
+            Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+
+            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+
+            Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
+
+            Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
             x_1d = jnp.arange(resolution_x).reshape((1, -1, 1))
             y_1d = jnp.arange(resolution_y).reshape((-1, 1, 1))
@@ -358,7 +409,6 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
 
     return field_cell
 
-
 @partial(jax.jit, static_argnums=(5, 6, 10, 11))
 def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
                                  resolution=(10, 10, 10), type_complex=jnp.complex128):
@@ -452,235 +502,213 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
     return field_cell
 
 
+def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period,
+                          pol, resolution=(100, 1, 100), type_complex=jnp.complex128):
 
-# def field_dist_1d_original(wavelength, kx_vector, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
-#                   type_complex=jnp.complex128):
-#
-#     k0 = 2 * jnp.pi / wavelength
-#     # fourier_indices = jnp.arange(-fourier_order[0], fourier_order[0] + 1)
-#     # kx_vector = k0 * (n_I * jnp.sin(theta) - fourier_indices * (wavelength / period[0])).astype(type_complex)
-#
-#     Kx = jnp.diag(kx_vector / k0)
-#
-#     resolution_z, resolution_y, resolution_x = resolution
-#     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
-#
-#     T_layer = T1
-#
-#     # From the first layer
-#     for idx_layer, (E_conv_i, q, W, X, a_i, b, d) in enumerate(layer_info_list[::-1]):
-#
-#         c1 = T_layer[:, None]
-#         c2 = b @ a_i @ X @ T_layer[:, None]
-#
-#         Q = jnp.diag(q)
-#
-#         if pol == 0:
-#             V = W @ Q
-#             EKx = None
-#
-#         else:
-#             V = E_conv_i @ W @ Q
-#             EKx = E_conv_i @ Kx
-#
-#         for k in range(resolution_z):
-#             z = k / resolution_z * d
-#
-#             A, B, C = z_loop_1d(pol, k0, Kx, W, V, Q, c1, c2, d, z, EKx)
-#             for j in range(resolution_y):
-#                 for i in range(resolution_x):
-#                     res = x_loop_1d(pol, resolution_x, period, i, A, B, C, kx_vector)
-#                     # field_cell[resolution_z * idx_layer + k, j, i] = res
-#                     field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(res)
-#
-#         T_layer = a_i @ X @ T_layer
-#
-#     return field_cell
-#
-# def field_dist_1d_old(wavelength, kx_vector, n_I, theta, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-#                   pol, resolution=(100, 1, 100), type_complex=jnp.complex128):
-#
-#     k0 = 2 * jnp.pi / wavelength
-#     Kx = jnp.diag(kx_vector / k0)
-#
-#     resolution_z, resolution_y, resolution_x = resolution
-#     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
-#
-#     T_layer = T1
-#
-#     # From the first layer
-#     for idx_layer, (E_conv_i, q, W, X, a_i, b, d) in enumerate(layer_info_list[::-1]):
-#
-#         c1 = T_layer[:, None]
-#         c2 = b @ a_i @ X @ T_layer[:, None]
-#
-#         Q = jnp.diag(q)
-#
-#         if pol == 0:
-#             V = W @ Q
-#             EKx = None
-#
-#         else:
-#             V = E_conv_i @ W @ Q
-#             EKx = E_conv_i @ Kx
-#
-#         for k in range(resolution_z):
-#             z = k / resolution_z * d
-#
-#             if pol == 0:
-#                 Sy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-#                 Ux = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-#                 C = Kx @ Sy
-#
-#                 for j in range(resolution_y):
-#                     for i in range(resolution_x):
-#                         x = i * period[0] / resolution_x
-#
-#                         Ey = Sy.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#                         Hx = -1j * Ux.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#                         Hz = -1j * C.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#
-#                         field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set([Ey[0, 0], Hx[0, 0], Hz[0, 0]])
-#
-#             else:
-#                 Uy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-#                 Sx = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-#
-#                 C = EKx @ Uy  # there is a better option for convergence
-#                 for j in range(resolution_y):
-#                     for i in range(resolution_x):
-#                         x = i * period[0] / resolution_x
-#
-#                         Hy = Uy.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#                         Ex = 1j * Sx.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#                         Ez = (-1j) * C.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#
-#                         field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set([Hy[0, 0], Ex[0, 0], Ez[0, 0]])
-#                         # res = [Hy[0, 0], Ex[0, 0], Ez[0, 0]]
-#
-#             # A, B, C = z_loop_1d(pol, k0, Kx, W, V, Q, c1, c2, d, z, EKx)
-#             # for j in range(resolution_y):
-#             #     for i in range(resolution_x):
-#             #         res = x_loop_1d(pol, resolution_x, period, i, A, B, C, kx_vector)
-#             #         # field_cell[resolution_z * idx_layer + k, j, i] = res
-#             #         field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(res)
-#
-#         T_layer = a_i @ X @ T_layer
-#
-#     return field_cell
-#
-#
-# def field_dist_1d_conical_old(wavelength, kx_vector, n_I, theta, phi, fourier_order, T1, layer_info_list, period,
-#                           resolution=(100, 100, 100), type_complex=jnp.complex128):
-#
-#     k0 = 2 * jnp.pi / wavelength
-#     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
-#     Kx = jnp.diag(kx_vector / k0)
-#
-#     resolution_z, resolution_y, resolution_x = resolution
-#     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
-#
-#     T_layer = T1
-#
-#     big_I = jnp.eye((len(T1))).astype(type_complex)
-#
-#     # From the first layer
-#     for idx_layer, [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d] \
-#             in enumerate(layer_info_list[::-1]):
-#
-#         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-#
-#         for k in range(resolution_z):
-#             Sx, Sy, Ux, Uy, Sz, Uz = z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, d)
-#
-#             for j in range(resolution_y):
-#                 for i in range(resolution_x):
-#                     val = x_loop_1d_conical(period, resolution_x, kx_vector, Sx, Sy, Sz, Ux, Uy, Uz, i)
-#                     field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
-#
-#         T_layer = big_A_i @ big_X @ T_layer
-#
-#     return field_cell
-#
-#
-# def field_dist_2d_old(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-#                       resolution=(10, 10, 10), type_complex=jnp.complex128):
-#
-#     k0 = 2 * jnp.pi / wavelength
-#
-#     fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
-#     ff_x = fourier_order_x * 2 + 1
-#     ff_y = fourier_order_y * 2 + 1
-#     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
-#             wavelength / period[1])).astype(type_complex)
-#
-#     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
-#     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
-#
-#     resolution_z, resolution_y, resolution_x = resolution
-#     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
-#
-#     T_layer = T1
-#
-#     big_I = jnp.eye((len(T1))).astype(type_complex)
-#
-#     # From the first layer
-#     for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
-#             in enumerate(layer_info_list[::-1]):
-#
-#         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-#
-#         for k in range(resolution_z):
-#             Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d)
-#             for j in range(resolution_y):
-#                 y = j * period[1] / resolution_y
-#                 for i in range(resolution_x):
-#                     val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
-#                     field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
-#         T_layer = big_A_i @ big_X @ T_layer
-#
-#     return field_cell
-#
-# def field_dist_2d_original_old(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-#                   resolution, type_complex=jnp.complex128):
-#
-#     k0 = 2 * jnp.pi / wavelength
-#
-#     fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
-#     ff_x = fourier_order_x * 2 + 1
-#     ff_y = fourier_order_y * 2 + 1
-#     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
-#             wavelength / period[1])).astype(type_complex)
-#
-#     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
-#     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
-#
-#     resolution_z, resolution_y, resolution_x = resolution
-#     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
-#
-#     T_layer = T1
-#
-#     big_I = jnp.eye((len(T1))).astype(type_complex)
-#
-#     # From the first layer
-#     for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
-#             in enumerate(layer_info_list[::-1]):
-#
-#         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-#
-#         for k in range(resolution_z):
-#             Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d)
-#             for j in range(resolution_y):
-#                 y = j * period[1] / resolution_y
-#                 for i in range(resolution_x):
-#                     val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
-#                     field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
-#         T_layer = big_A_i @ big_X @ T_layer
-#
-#     return field_cell
-#
-#
-#
+    k0 = 2 * jnp.pi / wavelength
+    Kx = jnp.diag(kx_vector / k0)
+
+    resolution_z, resolution_y, resolution_x = resolution
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
+
+    T_layer = T1
+
+    # From the first layer
+    for idx_layer, (E_conv_i, q, W, X, a_i, b, d) in enumerate(layer_info_list[::-1]):
+
+        c1 = T_layer[:, None]
+        c2 = b @ a_i @ X @ T_layer[:, None]
+
+        Q = jnp.diag(q)
+
+        if pol == 0:
+            V = W @ Q
+            EKx = None
+
+        else:
+            V = E_conv_i @ W @ Q
+            EKx = E_conv_i @ Kx
+
+        for k in range(resolution_z):
+            z = k / resolution_z * d
+
+            if pol == 0:
+                Sy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                Ux = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                C = Kx @ Sy
+
+                for j in range(resolution_y):
+                    for i in range(resolution_x):
+                        x = i * period[0] / resolution_x
+
+                        Ey = Sy.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Hx = -1j * Ux.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Hz = -1j * C.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+
+                        field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set([Ey[0, 0], Hx[0, 0], Hz[0, 0]])
+
+            else:
+                Uy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                Sx = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+
+                C = EKx @ Uy  # there is a better option for convergence
+                for j in range(resolution_y):
+                    for i in range(resolution_x):
+                        x = i * period[0] / resolution_x
+
+                        Hy = Uy.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Ex = 1j * Sx.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                        Ez = (-1j) * C.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+
+                        field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set([Hy[0, 0], Ex[0, 0], Ez[0, 0]])
+
+        T_layer = a_i @ X @ T_layer
+
+    return field_cell
+
+
+def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
+                                  resolution=(100, 100, 100), type_complex=jnp.complex128):
+
+    k0 = 2 * jnp.pi / wavelength
+    ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
+    Kx = jnp.diag(kx_vector / k0)
+
+    resolution_z, resolution_y, resolution_x = resolution
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+
+    T_layer = T1
+
+    big_I = jnp.eye((len(T1))).astype(type_complex)
+
+    # From the first layer
+    for idx_layer, [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d] \
+            in enumerate(layer_info_list[::-1]):
+
+        c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
+
+        ff = len(c) // 4
+
+        c1_plus = c[0 * ff:1 * ff]
+        c2_plus = c[1 * ff:2 * ff]
+        c1_minus = c[2 * ff:3 * ff]
+        c2_minus = c[3 * ff:4 * ff]
+
+        big_Q1 = jnp.diag(q_1)
+        big_Q2 = jnp.diag(q_2)
+
+        for k in range(resolution_z):
+            z = k / resolution_z * d
+
+            Sx = W_2 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sy = V_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Ux = W_1 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus)
+            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
+            Uz = -1j * (Kx @ Sy - ky * Sx)
+
+            for j in range(resolution_y):
+                for i in range(resolution_x):
+                    # val = x_loop_1d_conical(period, resolution_x, kx_vector, Sx, Sy, Sz, Ux, Uy, Uz, i)
+                    x = i * period[0] / resolution_x
+
+                    exp_K = jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
+                    # exp_K = exp_K.flatten()
+
+                    Ex = Sx.T @ exp_K
+                    Ey = Sy.T @ exp_K
+                    Ez = Sz.T @ exp_K
+
+                    Hx = -1j * Ux.T @ exp_K
+                    Hy = -1j * Uy.T @ exp_K
+                    Hz = -1j * Uz.T @ exp_K
+
+                    val = [Ex[0, 0], Ey[0, 0], Ez[0, 0], Hx[0, 0], Hy[0, 0], Hz[0, 0]]
+                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+
+        T_layer = big_A_i @ big_X @ T_layer
+
+    return field_cell
+
+
+def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+                          resolution, type_complex=jnp.complex128):
+
+    k0 = 2 * jnp.pi / wavelength
+
+    fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
+    ff_x = fourier_order_x * 2 + 1
+    ff_y = fourier_order_y * 2 + 1
+    ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
+            wavelength / period[1])).astype(type_complex)
+
+    Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+    Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
+
+    resolution_z, resolution_y, resolution_x = resolution
+    field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+
+    T_layer = T1
+
+    big_I = jnp.eye((len(T1))).astype(type_complex)
+
+    # From the first layer
+    for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
+            in enumerate(layer_info_list[::-1]):
+        c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
+
+        ff = len(c) // 4
+
+        c1_plus = c[0 * ff:1 * ff]
+        c2_plus = c[1 * ff:2 * ff]
+        c1_minus = c[2 * ff:3 * ff]
+        c2_minus = c[3 * ff:4 * ff]
+
+        q1 = q[:len(q) // 2]
+        q2 = q[len(q) // 2:]
+        big_Q1 = jnp.diag(q1)
+        big_Q2 = jnp.diag(q2)
+
+        for k in range(resolution_z):
+            z = k / resolution_z * d
+
+            Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
+            Uz = -1j * (Kx @ Sy - Ky @ Sx)
+
+            for j in range(resolution_y):
+                y = j * period[1] / resolution_y
+                for i in range(resolution_x):
+                    x = i * period[0] / resolution_x
+
+                    exp_K = jnp.exp(-1j * kx_vector.reshape((1, -1)) * x) * jnp.exp(
+                        -1j * ky_vector.reshape((-1, 1)) * y)
+                    exp_K = exp_K.flatten()
+
+                    Ex = Sx.T @ exp_K
+                    Ey = Sy.T @ exp_K
+                    Ez = Sz.T @ exp_K
+                    Hx = -1j * Ux.T @ exp_K
+                    Hy = -1j * Uy.T @ exp_K
+                    Hz = -1j * Uz.T @ exp_K
+
+                    val = [Ex[0], Ey[0], Ez[0], Hx[0], Hy[0], Hz[0]]
+
+                    field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
+        T_layer = big_A_i @ big_X @ T_layer
+
+    return field_cell
+
+
 # def field_dist_2d_lax(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
 #                   resolution=(10, 10, 10),
 #                   type_complex=jnp.complex128):
@@ -708,7 +736,7 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
 #             in enumerate(layer_info_list[::-1]):
 #
 #         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-#         i=j=k=0  # TODO: delete
+#         i=j=k=0  # delete
 #
 #         args = [k, j, i, k0, resolution_z, resolution_y, resolution_x, idx_layer, d, kx_vector, ky_vector, q, period, c, Kx, Ky, E_conv_i, W_11, W_12, W_21, W_22, V_11, V_12, V_21]
 #
@@ -828,7 +856,7 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
 #             in enumerate(layer_info_list[::-1]):
 #
 #         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-#         i=j=k=0  # TODO: delete
+#         i=j=k=0  # delete
 #
 #         args = [k, j, i, k0, resolution_z, resolution_y, resolution_x, idx_layer, d, kx_vector, ky_vector, q, period, c, Kx, Ky, E_conv_i, W_11, W_12, W_21, W_22, V_11, V_12, V_21]
 #
@@ -918,171 +946,6 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
 #
 #         field_cell, _ = jax.lax.scan(calc, field_cell, resss)
 #     return field_cell
-#
-#
-# # @partial(jax.jit, static_argnums=(5, 6, 10, 11, ))
-# # def field_dist_2d_single(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-# #                   resolution=(10, 10, 10),
-# #                   type_complex=jnp.complex128):
-# #
-# #     k0 = 2 * jnp.pi / wavelength
-# #
-# #     fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
-# #     ff_x = fourier_order_x * 2 + 1
-# #     ff_y = fourier_order_y * 2 + 1
-# #     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
-# #             wavelength / period[1])).astype(type_complex)
-# #
-# #     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
-# #     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
-# #
-# #     resolution_z, resolution_y, resolution_x = resolution
-# #     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
-# #
-# #     T_layer = T1
-# #
-# #     big_I = jnp.eye((len(T1))).astype(type_complex)
-# #
-# #     # From the first layer
-# #     for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
-# #             in enumerate(layer_info_list[::-1]):
-# #
-# #         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-# #
-# #         for k in range(resolution_z):
-# #             for j in range(resolution_y):
-# #                 for i in range(resolution_x):
-# #                     val = func(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
-# #                                period, resolution_y, resolution_x, kx_vector, ky_vector, j, i)
-# #                     field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set(val)
-# #
-# #         T_layer = big_A_i @ big_X @ T_layer
-# #
-# #     return field_cell
-# #
-# #
-# # @partial(jax.jit, static_argnums=())
-# # def func(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d,
-# #          period, resolution_y, resolution_x, kx_vector, ky_vector, j, i):
-# #     y = j * period[1] / resolution_y
-# #
-# #     Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11,
-# #                                        V_12, V_21, V_22, d)
-# #     val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
-# #
-# #     return val
-#
-# # @partial(jax.jit, static_argnums=(0,))
-# def z_loop_1d(pol, k0, Kx, W, V, Q, c1, c2, d, z, EKx):
-#
-#     if pol == 0:  # TE
-#         Sy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-#         Ux = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-#         C = (-1j) * Kx @ Sy
-#
-#         return Sy, Ux, C
-#
-#     else:  # TM
-#         Uy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-#         Sx = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-#
-#         C = (-1j) * EKx @ Uy  # there is a better option for convergence
-#
-#         return Uy, Sx, C
-#
-#
-# # @partial(jax.jit, static_argnums=(0,))
-# def x_loop_1d(pol, resolution_x, period, i, A, B, C, kx_vector):
-#
-#     if pol == 0:  # TE
-#         Sy, Ux = A, B
-#         x = i * period[0] / resolution_x
-#
-#         Ey = Sy.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#         Hx = -1j * Ux.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#         Hz = C.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#
-#         # field_cell = field_cell.at[resolution_z * idx_layer + k, j, i].set([Ey[0, 0], Hx[0, 0], Hz[0, 0]])
-#         res = [Ey[0, 0], Hx[0, 0], Hz[0, 0]]
-#
-#     else:  # TM
-#         Uy, Sx = A, B
-#         x = i * period[0] / resolution_x
-#
-#         Hy = Uy.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#         Ex = 1j * Sx.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#         Ez = C.T @ jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
-#
-#         res = [Hy[0, 0], Ex[0, 0], Ez[0, 0]]
-#
-#     return res
-#
-#
-# @jax.jit
-def z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, d):
-
-    z = k / resolution_z * d
-
-    ff = len(c) // 4
-
-    c1_plus = c[0 * ff:1 * ff]
-    c2_plus = c[1 * ff:2 * ff]
-    c1_minus = c[2 * ff:3 * ff]
-    c2_minus = c[3 * ff:4 * ff]
-
-    big_Q1 = jnp.diag(q_1)
-    big_Q2 = jnp.diag(q_2)
-
-    Sx = W_2 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Sy = V_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Ux = W_1 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus)
-
-    Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
-
-    Uz = -1j * (Kx @ Sy - ky * Sx)
-
-    return Sx, Sy, Ux, Uy, Sz, Uz
-
-
-def z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d):
-
-    z = k / resolution_z * d
-
-    ff = len(c) // 4
-
-    c1_plus = c[0 * ff:1 * ff]
-    c2_plus = c[1 * ff:2 * ff]
-    c1_minus = c[2 * ff:3 * ff]
-    c2_minus = c[3 * ff:4 * ff]
-
-    q1 = q[:len(q) // 2]
-    q2 = q[len(q) // 2:]
-    big_Q1 = jnp.diag(q1)
-    big_Q2 = jnp.diag(q2)
-
-    Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
-
-    Uz = -1j * (Kx @ Sy - Ky @ Sx)
-
-    return Sx, Sy, Ux, Uy, Sz, Uz
 
 
 def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_slice=-1, zx=True, yx=True):
@@ -1120,12 +983,25 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
 
 
 def expm(x):
-    return jnp.diag(jnp.exp(jnp.diag(x)))
+    # option 1
+    res = jnp.diag(jnp.exp(jnp.diag(x)))
+
+    # option 2
+    # res = jax.vmap(jax.scipy.linalg.expm)(x[None, :, :]) # vmap is very slow
+    # res = res[0]
+
+    # option 3
+    # res = jax.scipy.linalg.expm(x)
+
+    return res
+
 
 def expm_new(x):
-    # ix = jnp.diag_indices_from(x[0])
-    # jnp.exp(x[:,ix])
-    # TODO: remove vmap when the bug is fixed
-    res = jax.vmap(jax.scipy.linalg.expm)(x)
+    # option 1
+    res = jnp.zeros(x.shape, dtype=jnp.complex128)
+    ix = jnp.diag_indices_from(x[0])
+    res = res.at[:, ix[0], ix[1]].set(jnp.exp(x[:, ix[0], ix[1]]))
+    # option 2
+    # res = jax.vmap(jax.scipy.linalg.expm)(x)  # remove vmap when the bug is fixed. But vmap is very slow.
 
     return res

@@ -114,7 +114,7 @@ class RCWATorch(_BaseRCWA):
                                                 resolution=resolution,
                                                 type_complex=self.type_complex)
             print('no vector', time.time() - t0)
-            field_plot(field_cell1, self.pol)
+            # field_plot(field_cell1, self.pol)
 
             t0 = time.time()
             field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector,
@@ -122,14 +122,14 @@ class RCWATorch(_BaseRCWA):
                                                      resolution=resolution,
                                                      type_complex=self.type_complex)
             print('ji vector', time.time() - t0)
-            field_plot(field_cell, self.pol)
+            # field_plot(field_cell, self.pol)
 
             t0 = time.time()
             field_cell2 = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector,
                                                        self.T1, self.layer_info_list, self.period, self.pol,
                                                        resolution=resolution,
                                                        type_complex=self.type_complex)
-            field_plot(field_cell2, self.pol)
+            # field_plot(field_cell2, self.pol)
 
             print('kji vector', time.time() - t0)
             print('gap: ', torch.linalg.norm(field_cell - field_cell1))
@@ -167,35 +167,35 @@ class RCWATorch(_BaseRCWA):
             print('gap: ', torch.linalg.norm(field_cell2 - field_cell1))
 
         else:
-            resolution = [100, 100, 100] if not resolution else resolution
+            resolution = [10, 10, 10] if not resolution else resolution
             # field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
             #                                    *self.fourier_order, self.T1, self.layer_info_list, self.period,
             #                                    resolution=resolution, device=self.device, type_complex=self.type_complex)
 
-            t0 = time.time()
-            field_cell1 = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                self.phi, *self.fourier_order,
-                                                self.T1, self.layer_info_list, self.period,
-                                                resolution=resolution,
-                                                type_complex=self.type_complex)
-            print('no vector', time.time() - t0)
+            # t0 = time.time()
+            # field_cell1 = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
+            #                                     self.phi, *self.fourier_order,
+            #                                     self.T1, self.layer_info_list, self.period,
+            #                                     resolution=resolution,
+            #                                     type_complex=self.type_complex)
+            # print('no vector', time.time() - t0)
+
+            # t0 = time.time()
+            # field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+            #                                          *self.fourier_order,
+            #                                          self.T1, self.layer_info_list, self.period, resolution=resolution,
+            #                                          type_complex=self.type_complex)
+            # print('ji vector', time.time() - t0)
 
             t0 = time.time()
-            field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-                                                     *self.fourier_order,
-                                                     self.T1, self.layer_info_list, self.period, resolution=resolution,
-                                                     type_complex=self.type_complex)
-            print('ji vector', time.time() - t0)
-
-            t0 = time.time()
-            field_cell2 = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
+            field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                        self.phi, *self.fourier_order,
                                                        self.T1, self.layer_info_list, self.period,
                                                        resolution=resolution,
                                                        type_complex=self.type_complex)
             print('kji vector', time.time() - t0)
-            print('gap: ', torch.linalg.norm(field_cell - field_cell1))
-            print('gap: ', torch.linalg.norm(field_cell2 - field_cell1))
+            # print('gap: ', torch.linalg.norm(field_cell - field_cell1))
+            # print('gap: ', torch.linalg.norm(field_cell2 - field_cell1))
 
         if plot:
             field_plot(field_cell, self.pol)

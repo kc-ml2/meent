@@ -109,9 +109,27 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
             in enumerate(layer_info_list[::-1]):
 
         c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
+        cut = len(c) // 4
+
+        c1_plus = c[0*cut:1*cut]
+        c2_plus = c[1*cut:2*cut]
+        c1_minus = c[2*cut:3*cut]
+        c2_minus = c[3*cut:4*cut]
+
+        big_Q1 = np.diag(q_1)
+        big_Q2 = np.diag(q_2)
 
         for k in range(resolution_z):
-            Sx, Sy, Ux, Uy, Sz, Uz = z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, d)
+            z = k / resolution_z * d
+
+            Sx = W_2 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sy = V_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Ux = W_1 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus)
+            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
+            Uz = -1j * (Kx @ Sy - ky * Sx)
 
             x_1d = np.arange(resolution_x).reshape((1, -1, 1))
             x_1d = -1j * x_1d * period[0] / resolution_x
@@ -166,21 +184,40 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
 
         c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
 
+        ff = len(c) // 4
+
+        c1_plus = c[0*ff:1*ff]
+        c2_plus = c[1*ff:2*ff]
+        c1_minus = c[2*ff:3*ff]
+        c2_minus = c[3*ff:4*ff]
+
+        q1 = q[:len(q)//2]
+        q2 = q[len(q)//2:]
+        big_Q1 = np.diag(q1)
+        big_Q2 = np.diag(q2)
+
         for k in range(resolution_z):
-            Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d)
+            z = k / resolution_z * d
+
+            Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
+            Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
             x_1d = np.arange(resolution_x).reshape((1, -1, 1))
             y_1d = np.arange(resolution_y).reshape((-1, 1, 1))
-
             x_1d = -1j * x_1d * period[0] / resolution_x
             y_1d = -1j * y_1d * period[1] / resolution_y
-
             x_2d = np.tile(x_1d, (resolution_y, 1, 1))
             y_2d = np.tile(y_1d, (1, resolution_x, 1))
-
             x_2d = x_2d * kx_vector
             y_2d = y_2d * ky_vector
-
             x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
             y_2d = y_2d.reshape((resolution_y, resolution_x, len(ky_vector), 1))
 
@@ -190,13 +227,11 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
             Ex = exp_K @ Sx
             Ey = exp_K @ Sy
             Ez = exp_K @ Sz
-
             Hx = -1j * exp_K @ Ux
             Hy = -1j * exp_K @ Uy
             Hz = -1j * exp_K @ Uz
 
             val = np.concatenate((Ex, Ey, Ez, Hx, Hy, Hz), axis=-1)
-
             field_cell[resolution_z * idx_layer + k] = val
 
         T_layer = big_A_i @ big_X @ T_layer
@@ -217,16 +252,13 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
 
     # From the first layer
     for idx_layer, (E_conv_i, q, W, X, a_i, b, d) in enumerate(layer_info_list[::-1]):
-
         c1 = T_layer[:, None]
         c2 = b @ a_i @ X @ T_layer[:, None]
-
         Q = np.diag(q)
 
         if pol == 0:
             V = W @ Q
             EKx = None
-
         else:
             V = E_conv_i @ W @ Q
             EKx = E_conv_i @ Kx
@@ -234,8 +266,8 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
         z_1d = np.arange(resolution_z).reshape((-1, 1, 1)) / resolution_z * d
 
         if pol == 0:
-            Sy = W @ (expm_new(-k0 * Q * z_1d) @ c1 + expm_new(k0 * Q * (z_1d - d)) @ c2)
-            Ux = V @ (-expm_new(-k0 * Q * z_1d) @ c1 + expm_new(k0 * Q * (z_1d - d)) @ c2)
+            Sy = W @ (expm(-k0 * Q * z_1d) @ c1 + expm(k0 * Q * (z_1d - d)) @ c2)
+            Ux = V @ (-expm(-k0 * Q * z_1d) @ c1 + expm(k0 * Q * (z_1d - d)) @ c2)
             C = Kx @ Sy
 
             x_1d = np.arange(resolution_x).reshape((1, -1, 1))
@@ -254,8 +286,8 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
             val = np.concatenate((Ey.squeeze(-1), Hx.squeeze(-1), Hz.squeeze(-1)), axis=-1)
 
         else:
-            Uy = W @ (expm_new(-k0 * Q * z_1d) @ c1 + expm_new(k0 * Q * (z_1d - d)) @ c2)
-            Sx = V @ (-expm_new(-k0 * Q * z_1d) @ c1 + expm_new(k0 * Q * (z_1d - d)) @ c2)
+            Uy = W @ (expm(-k0 * Q * z_1d) @ c1 + expm(k0 * Q * (z_1d - d)) @ c2)
+            Sx = V @ (-expm(-k0 * Q * z_1d) @ c1 + expm(k0 * Q * (z_1d - d)) @ c2)
 
             C = EKx @ Uy  # there is a better option for convergence
 
@@ -300,7 +332,6 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
             in enumerate(layer_info_list[::-1]):
 
         c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-
         z_1d = np.arange(resolution_z).reshape((-1, 1, 1)) / resolution_z * d
 
         ff = len(c) // 4
@@ -313,16 +344,12 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
         big_Q1 = np.diag(q_1)
         big_Q2 = np.diag(q_2)
 
-        Sx = W_2 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-
-        Sy = V_11 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-             + V_12 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-
-        Ux = W_1 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus)
-
-        Uy = V_21 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-             + V_22 @ (-expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-
+        Sx = W_2 @ (expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Sy = V_11 @ (expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+             + V_12 @ (expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Ux = W_1 @ (-expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus)
+        Uy = V_21 @ (-expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+             + V_22 @ (-expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
         Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
         Uz = -1j * (Kx @ Sy - ky * Sx)
 
@@ -344,8 +371,7 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
         Hz = -1j * exp_K[:, :, None, :] @ Uz[:, None, None, :, :]
 
         val = np.concatenate(
-            (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)),
-            axis=-1)
+            (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)), -1)
         field_cell[resolution_z * idx_layer:resolution_z * (idx_layer + 1)] = val
         T_layer = big_A_i @ big_X @ T_layer
 
@@ -392,33 +418,25 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
         big_Q1 = np.diag(q1)
         big_Q2 = np.diag(q2)
 
-        Sx = W_11 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + W_12 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-
-        Sy = W_21 @ (expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + W_22 @ (expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-
-        Ux = V_11 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + V_12 @ (-expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-
-        Uy = V_21 @ (-expm_new(-k0 * big_Q1 * z_1d) @ c1_plus + expm_new(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + V_22 @ (-expm_new(-k0 * big_Q2 * z_1d) @ c2_plus + expm_new(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-
+        Sx = W_11 @ (expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              + W_12 @ (expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Sy = W_21 @ (expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              + W_22 @ (expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Ux = V_11 @ (-expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              + V_12 @ (-expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Uy = V_21 @ (-expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              + V_22 @ (-expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
         Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
         Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
         x_1d = np.arange(resolution_x).reshape((1, -1, 1))
         y_1d = np.arange(resolution_y).reshape((-1, 1, 1))
-
         x_1d = -1j * x_1d * period[0] / resolution_x
         y_1d = -1j * y_1d * period[1] / resolution_y
-
         x_2d = np.tile(x_1d, (resolution_y, 1, 1))
         y_2d = np.tile(y_1d, (1, resolution_x, 1))
-
         x_2d = x_2d * kx_vector
         y_2d = y_2d * ky_vector
-
         x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
         y_2d = y_2d.reshape((resolution_y, resolution_x, len(ky_vector), 1))
 
@@ -428,15 +446,12 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
         Ex = exp_K[:, :, None, :] @ Sx[:, None, None, :, :]
         Ey = exp_K[:, :, None, :] @ Sy[:, None, None, :, :]
         Ez = exp_K[:, :, None, :] @ Sz[:, None, None, :, :]
-
         Hx = -1j * exp_K[:, :, None, :] @ Ux[:, None, None, :, :]
         Hy = -1j * exp_K[:, :, None, :] @ Uy[:, None, None, :, :]
         Hz = -1j * exp_K[:, :, None, :] @ Uz[:, None, None, :, :]
 
         val = np.concatenate(
-            (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)),
-            axis=-1)
-
+            (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)), -1)
         field_cell[resolution_z * idx_layer:resolution_z * (idx_layer + 1)] = val
 
         T_layer = big_A_i @ big_X @ T_layer
@@ -457,16 +472,13 @@ def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, po
 
     # From the first layer
     for idx_layer, (E_conv_i, q, W, X, a_i, b, d) in enumerate(layer_info_list[::-1]):
-
         c1 = T_layer[:, None]
         c2 = b @ a_i @ X @ T_layer[:, None]
-
         Q = np.diag(q)
 
         if pol == 0:
             V = W @ Q
             EKx = None
-
         else:
             V = E_conv_i @ W @ Q
             EKx = E_conv_i @ Kx
@@ -541,31 +553,24 @@ def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, la
         for k in range(resolution_z):
             z = k / resolution_z * d
 
-            Sx = W_2 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
-
-            Sy = V_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + V_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
-
-            Ux = W_1 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus)
-
-            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
-
+            Sx = W_2 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sy = V_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Ux = W_1 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus)
+            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
             Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
-
             Uz = -1j * (Kx @ Sy - ky * Sx)
 
             for j in range(resolution_y):
                 for i in range(resolution_x):
                     x = i * period[0] / resolution_x
-
                     exp_K = np.exp(-1j*kx_vector.reshape((-1, 1)) * x)
                     # exp_K = exp_K.flatten()
 
                     Ex = Sx.T @ exp_K
                     Ey = Sy.T @ exp_K
                     Ez = Sz.T @ exp_K
-
                     Hx = -1j * Ux.T @ exp_K
                     Hy = -1j * Uy.T @ exp_K
                     Hz = -1j * Uz.T @ exp_K
@@ -619,20 +624,15 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
         for k in range(resolution_z):
             z = k / resolution_z * d
 
-            Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
-
-            Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
-
-            Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
-
-            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
-
+            Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
             Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
-
             Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
             for j in range(resolution_y):
@@ -647,7 +647,6 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
                     Ex = Sx.T @ exp_K
                     Ey = Sy.T @ exp_K
                     Ez = Sz.T @ exp_K
-
                     Hx = -1j * Ux.T @ exp_K
                     Hy = -1j * Uy.T @ exp_K
                     Hz = -1j * Uz.T @ exp_K
@@ -693,75 +692,4 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
 
 
 def expm(x):
-    return np.diag(np.exp(np.diag(x)))
-
-
-def expm_new(x):
     return scipy.linalg.expm(x)
-
-
-def z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, d):
-
-    z = k / resolution_z * d
-
-    ff = len(c) // 4
-
-    c1_plus = c[0 * ff:1 * ff]
-    c2_plus = c[1 * ff:2 * ff]
-    c1_minus = c[2 * ff:3 * ff]
-    c2_minus = c[3 * ff:4 * ff]
-
-    big_Q1 = np.diag(q_1)
-    big_Q2 = np.diag(q_2)
-
-    Sx = W_2 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Sy = V_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Ux = W_1 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus)
-
-    Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
-
-    Uz = -1j * (Kx @ Sy - ky * Sx)
-
-    return Sx, Sy, Ux, Uy, Sz, Uz
-
-
-def z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d):
-
-    z = k / resolution_z * d
-
-    ff = len(c) // 4
-
-    c1_plus = c[0 * ff:1 * ff]
-    c2_plus = c[1 * ff:2 * ff]
-    c1_minus = c[2 * ff:3 * ff]
-    c2_minus = c[3 * ff:4 * ff]
-
-    q1 = q[:len(q) // 2]
-    q2 = q[len(q) // 2:]
-    big_Q1 = np.diag(q1)
-    big_Q2 = np.diag(q2)
-
-    Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
-
-    Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
-
-    Uz = -1j * (Kx @ Sy - Ky @ Sx)
-
-    return Sx, Sy, Ux, Uy, Sz, Uz
-
