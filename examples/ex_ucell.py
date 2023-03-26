@@ -38,10 +38,10 @@ n_iter_de = 1
 n_iter_field = 2
 
 
-def run_test(grating_type, mode_key, dtype, device):
+def run_test(grating_type, backend, dtype, device):
     ucell = load_ucell(grating_type)
 
-    if mode_key == 0:
+    if backend == 0:
         device = None
 
         if dtype == 0:
@@ -52,7 +52,7 @@ def run_test(grating_type, mode_key, dtype, device):
         from meent.on_numpy.modeler.modeling import ModelingNumpy
         ucell = ModelingNumpy().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, type_complex)
 
-    elif mode_key == 1:
+    elif backend == 1:
         # JAX
         if device == 0:
             jax.config.update('jax_platform_name', 'cpu')
@@ -84,10 +84,10 @@ def run_test(grating_type, mode_key, dtype, device):
         from meent.on_torch.modeler.modeling import ModelingTorch
         ucell = ModelingTorch().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, device, type_complex)
 
-    mee = meent.call_mee(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                        psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                        ucell_materials=ucell_materials,
-                        thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
+    mee = meent.call_mee(backend=backend, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                         ucell_materials=ucell_materials,
+                         thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
 
     for i in range(n_iter_de):
         t0 = time.time()
@@ -97,7 +97,7 @@ def run_test(grating_type, mode_key, dtype, device):
     resolution = (20, 1, 20)
     for i in range(n_iter_field):
         t0 = time.time()
-        mee.calculate_field(resolution=resolution, plot=True)
+        mee.calculate_field(resolution=resolution, plot=False)
         print(f'cal_field: {i}', time.time() - t0)
 
     # center = np.array(de_ri.shape) // 2

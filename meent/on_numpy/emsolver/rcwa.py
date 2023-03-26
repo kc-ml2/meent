@@ -22,7 +22,7 @@ class RCWANumpy(_BaseRCWA):
                  ucell=None,
                  ucell_info_list=None,
                  thickness=None,
-                 mode=0,
+                 backend=0,
                  grating_type=0,
                  pol=0,
                  fourier_order=2,
@@ -45,7 +45,7 @@ class RCWANumpy(_BaseRCWA):
         self.ucell_materials = ucell_materials
         self.ucell_info_list = ucell_info_list
 
-        self.mode = mode
+        self.backend = backend
         self.device = 'cpu'
         self.type_complex = type_complex
         self.fft_type = fft_type

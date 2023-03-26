@@ -20,7 +20,7 @@ class RCWATorch(_BaseRCWA):
                  ucell=None,
                  ucell_info_list=None,
                  thickness=None,
-                 mode=2,
+                 backend=2,
                  grating_type=0,
                  pol=0,
                  fourier_order=2,
@@ -43,7 +43,7 @@ class RCWATorch(_BaseRCWA):
         self.ucell_materials = ucell_materials
         self.ucell_info_list = ucell_info_list
 
-        self.mode = mode
+        self.backend = backend
         self.device = device
         self.type_complex = type_complex
         self.fft_type = fft_type

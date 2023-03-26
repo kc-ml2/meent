@@ -23,7 +23,7 @@ print('reti de_ti:', de_ti_reti)
 # Numpy
 mode = 0
 pre = load_setting(mode, dtype, device, grating_type)
-mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
+mee = meent.call_mee(backend=mode, perturbation=1E-30, **pre)
 mee.fft_type = 0
 
 de_ri, de_ti = mee.conv_solve()
@@ -40,7 +40,7 @@ print('Norm(Reti, NPY): ', np.linalg.norm(de_ri_reti - de_ri_cut), np.linalg.nor
 # JAX
 mode = 1
 pre = load_setting(mode, dtype, device, grating_type)
-mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
+mee = meent.call_mee(backend=mode, perturbation=1E-30, **pre)
 mee.fft_type = 0
 
 de_ri, de_ti = mee.conv_solve()
@@ -60,7 +60,7 @@ print('Norm(Reti, JAX): ', np.linalg.norm(de_ri_reti - de_ri_cut), np.linalg.nor
 # Torch
 mode = 2
 pre = load_setting(mode, dtype, device, grating_type)
-mee = meent.call_mee(mode=mode, perturbation=1E-30, **pre)
+mee = meent.call_mee(backend=mode, perturbation=1E-30, **pre)
 mee.fft_type = 0
 
 de_ri, de_ti = mee.conv_solve()

@@ -26,7 +26,7 @@ obj_list = [obj1, obj2, ]
 layer_info_list = [[period, layer_base, obj_list]]
 ucell_info_list = Modeling().draw(layer_info_list)
 
-mee = meent.call_mee(mode=mode, grating_type=2, fft_type=2, ucell_info_list=ucell_info_list, thickness=thickness)
+mee = meent.call_mee(backend=mode, grating_type=2, fft_type=2, ucell_info_list=ucell_info_list, thickness=thickness)
 de_ri, de_ti = mee.conv_solve()
 
 print(de_ti)
@@ -66,7 +66,7 @@ thickness = torch.tensor([1120., 400, 300])
 # )
 
 ucell = torch.tensor(ucell)
-mee = meent.call_mee(mode=mode, period=period,
+mee = meent.call_mee(backend=mode, period=period,
                      pol=1, fourier_order=2, grating_type=2, fft_type=0, ucell=ucell, ucell_info_list=ucell_info_list, thickness=thickness)
 
 de_ri, de_ti = mee.conv_solve()

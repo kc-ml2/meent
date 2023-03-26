@@ -51,15 +51,16 @@ pip install meent
 JAX and PyTorch is needed for advanced utilization.
 
 ## How to use
+
 ```python
 import meent
 
-# mode 0 = Numpy
-# mode 1 = JAX
-# mode 2 = PyTorch
+# backend 0 = Numpy
+# backend 1 = JAX
+# backend 2 = PyTorch
 
 mode = 1
-mee = meent.call_mee(mode=mode, ...)
+mee = meent.call_mee(backend=mode, ...)
 ```
 
 

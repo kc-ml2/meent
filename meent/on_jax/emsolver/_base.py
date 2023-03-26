@@ -227,7 +227,6 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        # fourier_indices = jnp.arange(-self.fourier_order, self.fourier_order + 1)
         fourier_indices_y = jnp.arange(-self.fourier_order[1], self.fourier_order[1] + 1)
 
         ff_x = self.fourier_order[0] * 2 + 1

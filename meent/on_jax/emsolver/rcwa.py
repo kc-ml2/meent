@@ -25,7 +25,7 @@ class RCWAJax(_BaseRCWA):
                  ucell=None,
                  ucell_info_list=None,
                  thickness=None,
-                 mode=1,
+                 backend=1,
                  grating_type=0,
                  pol=0,
                  fourier_order=2,
@@ -48,7 +48,7 @@ class RCWAJax(_BaseRCWA):
         self.ucell_materials = ucell_materials
         self.ucell_info_list = ucell_info_list
 
-        self.mode = mode
+        self.backend = backend
         self.device = device
         self.type_complex = type_complex
         self.fft_type = fft_type
@@ -60,7 +60,7 @@ class RCWAJax(_BaseRCWA):
         children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
                     self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
         aux_data = {
-            'mode': self.mode,
+            'backend': self.backend,
             'grating_type': self.grating_type,
             'pol': self.pol,
             'fourier_order': self.fourier_order,
@@ -337,51 +337,6 @@ class RCWAJax(_BaseRCWA):
 
         return
 
-    # # @jax.jit
-    # def calculate_field(self, resolution=None, plot=True):
-    #
-    #     if self.grating_type == 0:
-    #         resolution = [100, 1, 100] if not resolution else resolution
-    #
-    #         t0 = time.time()
-    #         field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.T1,
-    #                                                  self.layer_info_list, self.period, self.pol, resolution=resolution,
-    #                                                  type_complex=self.type_complex)
-    #         print('vector: ', time.time() - t0)
-    #
-    #         t0 = time.time()
-    #         resolution = [100, 1, 100] if not resolution else resolution
-    #         field_cell = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector, self.T1,
-    #                                                   self.layer_info_list, self.period, self.pol, resolution=resolution,
-    #                                                   type_complex=self.type_complex)
-    #         print('vector: ', time.time() - t0)
-    #
-    #     elif self.grating_type == 1:
-    #         t0 = time.time()
-    #         resolution = [100, 1, 100] if not resolution else resolution
-    #         field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-    #                                                          self.T1, self.layer_info_list, self.period,
-    #                                                          resolution=resolution, type_complex=self.type_complex)
-    #         print('vector: ', time.time() - t0)
-    #         t0 = time.time()
-    #         resolution = [100, 1, 100] if not resolution else resolution
-    #         field_cell = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-    #                                                           self.T1, self.layer_info_list, self.period,
-    #                                                           resolution=resolution, type_complex=self.type_complex)
-    #         print('vector: ', time.time() - t0)
-    #
-    #     else:
-    #         t0 = time.time()
-    #         resolution = [10, 10, 10] if not resolution else resolution
-    #         field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-    #                                                  *self.fourier_order, self.T1, self.layer_info_list, self.period,
-    #                                                  resolution=resolution, type_complex=self.type_complex)
-    #         print('vector: ', time.time() - t0)
-    #
-    #     if plot:
-    #         field_plot(field_cell, self.pol)
-    #     return field_cell
-
     @jax.jit
     def conv_solve_calculate_field(self, resolution=None, plot=False):
         self._conv_solve()
@@ -422,7 +377,3 @@ class RCWAJax(_BaseRCWA):
     #         spectrum_ti_pmap[b:b + num_device] = de_ti_pmap.sum(axis=(1, 2))
     #
     #     return spectrum_ri_pmap, spectrum_ti_pmap
-
-
-if __name__ == '__main__':
-    pass
