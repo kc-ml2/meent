@@ -21,7 +21,7 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
     k0 = 2 * jnp.pi / wavelength
     Kx = jnp.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
 
     T_layer = T1
@@ -101,7 +101,7 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
     Kx = jnp.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
@@ -183,7 +183,7 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
@@ -267,7 +267,7 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
     k0 = 2 * jnp.pi / wavelength
     Kx = jnp.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
 
     T_layer = T1
@@ -346,7 +346,7 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
     Kx = jnp.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
@@ -424,7 +424,7 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
@@ -508,7 +508,7 @@ def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period,
     k0 = 2 * jnp.pi / wavelength
     Kx = jnp.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
 
     T_layer = T1
@@ -574,7 +574,7 @@ def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, la
     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
     Kx = jnp.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
@@ -647,7 +647,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
@@ -724,7 +724,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
 #     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 #
-#     resolution_z, resolution_y, resolution_x = resolution
+#     resolution_x, resolution_y, resolution_z = resolution
 #     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 #
 #     T_layer = T1
@@ -844,7 +844,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
 #     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 #
-#     resolution_z, resolution_y, resolution_x = resolution
+#     resolution_x, resolution_y, resolution_z = resolution
 #     field_cell = jnp.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 #
 #     T_layer = T1

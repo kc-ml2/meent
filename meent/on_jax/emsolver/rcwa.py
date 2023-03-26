@@ -4,7 +4,6 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous, to_conv_mat_continuous_vector
@@ -175,8 +174,8 @@ class RCWAJax(_BaseRCWA):
         # de_ri.block_until_ready()
         # de_ti.block_until_ready()
 
-        de_ri = np.array(de_ri)
-        de_ti = np.array(de_ti)
+        de_ri = jnp.array(de_ri)
+        de_ti = jnp.array(de_ti)
         return de_ri, de_ti
 
     def calculate_field(self, resolution=None, plot=True, field_algo=2):
@@ -270,8 +269,8 @@ class RCWAJax(_BaseRCWA):
                                                        type_complex=self.type_complex)
             print('kji vector', time.time() - t0)
 
-            print('gap: ', np.linalg.norm(field_cell1 - field_cell0))
-            print('gap: ', np.linalg.norm(field_cell2 - field_cell0))
+            print('gap: ', jnp.linalg.norm(field_cell1 - field_cell0))
+            print('gap: ', jnp.linalg.norm(field_cell2 - field_cell0))
 
         elif self.grating_type == 1:
             resolution = [100, 1, 100] if not resolution else resolution
@@ -299,8 +298,8 @@ class RCWAJax(_BaseRCWA):
                                                                type_complex=self.type_complex)
             print('kji vector', time.time() - t0)
 
-            print('gap: ', np.linalg.norm(field_cell1 - field_cell0))
-            print('gap: ', np.linalg.norm(field_cell2 - field_cell0))
+            print('gap: ', jnp.linalg.norm(field_cell1 - field_cell0))
+            print('gap: ', jnp.linalg.norm(field_cell2 - field_cell0))
 
         else:
             resolution = [10, 10, 10] if not resolution else resolution
@@ -328,8 +327,8 @@ class RCWAJax(_BaseRCWA):
                                                        type_complex=self.type_complex)
             print('kji vector', time.time() - t0)
 
-            print('gap: ', np.linalg.norm(field_cell1 - field_cell0))
-            print('gap: ', np.linalg.norm(field_cell2 - field_cell0))
+            print('gap: ', jnp.linalg.norm(field_cell1 - field_cell0))
+            print('gap: ', jnp.linalg.norm(field_cell2 - field_cell0))
 
         if plot:
             field_plot(field_cell0, self.pol)
@@ -338,7 +337,6 @@ class RCWAJax(_BaseRCWA):
 
         return
 
-    # # TODO: jit? fourier order split in args?
     # # @jax.jit
     # def calculate_field(self, resolution=None, plot=True):
     #
@@ -413,8 +411,8 @@ class RCWAJax(_BaseRCWA):
 
     # def generate_spectrum(self, wl_list):
     #     ucell = deepcopy(self.ucell)
-    #     spectrum_ri_pmap = np.zeros(wl_list.shape)
-    #     spectrum_ti_pmap = np.zeros(wl_list.shape)
+    #     spectrum_ri_pmap = jnp.zeros(wl_list.shape)
+    #     spectrum_ti_pmap = jnp.zeros(wl_list.shape)
     #     for i, wavelength in enumerate(range(counter)):
     #         b = i * num_device
     #         de_ri_pmap, de_ti_pmap = jax.pmap(loop_wavelength)(wavelength_list[b:b + num_device],

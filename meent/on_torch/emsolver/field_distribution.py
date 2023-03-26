@@ -20,7 +20,7 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
     k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
 
     T_layer = T1
@@ -93,19 +93,19 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
 
 
 def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                        resolution=(100, 100, 100), type_complex=torch.complex128):
+                                        resolution=(100, 100, 100), device='cpu', type_complex=torch.complex128):
     type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
 
     k0 = 2 * torch.pi / wavelength
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
     Kx = torch.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
 
-    big_I = torch.eye((len(T1))).type(type_complex)
+    big_I = torch.eye((len(T1)), device=device).type(type_complex)
 
     # From the first layer
     for idx_layer, [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d] \
@@ -143,7 +143,7 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
 
 
 def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                                resolution=(10, 10, 10), type_complex=torch.complex128):
+                                resolution=(10, 10, 10), device='cpu', type_complex=torch.complex128):
     type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
 
     k0 = 2 * torch.pi / wavelength
@@ -157,12 +157,12 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
     Kx = torch.diag(torch.tile(kx_vector, (ff_y, )).flatten()) / k0
     Ky = torch.diag(torch.tile(ky_vector.reshape((-1, 1)), (ff_x, )).flatten()) / k0
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
 
-    big_I = torch.eye((len(T1))).type(type_complex)
+    big_I = torch.eye((len(T1)), device=device).type(type_complex)
 
     # From the first layer
     for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
@@ -215,7 +215,7 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
     k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
 
     T_layer = T1
@@ -287,19 +287,19 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
 
 
 def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                         resolution=(100, 100, 100), type_complex=torch.complex128):
+                                         resolution=(100, 100, 100), device='cpu', type_complex=torch.complex128):
     type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
 
     k0 = 2 * torch.pi / wavelength
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
     Kx = torch.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1[:, None]
 
-    big_I = torch.eye((len(T1))).type(type_complex)
+    big_I = torch.eye((len(T1)), device=device).type(type_complex)
 
     # From the first layer
     for idx_layer, [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d] \
@@ -358,7 +358,7 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
 
 
 def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                                 resolution=(10, 10, 10), type_complex=torch.complex128):
+                                 resolution=(10, 10, 10), device='cpu', type_complex=torch.complex128):
     type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
 
     k0 = 2 * torch.pi / wavelength
@@ -372,12 +372,12 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
     Kx = torch.diag(torch.tile(kx_vector, (ff_y, )).flatten()) / k0
     Ky = torch.diag(torch.tile(ky_vector.reshape((-1, 1)), (ff_x, )).flatten()) / k0
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
 
     T_layer = T1
 
-    big_I = torch.eye((len(T1))).type(type_complex)
+    big_I = torch.eye((len(T1)), device=device).type(type_complex)
 
     # From the first layer
     for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
@@ -456,7 +456,7 @@ def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, po
     k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3)).type(type_complex)
 
     T_layer = T1
@@ -521,7 +521,7 @@ def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, la
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
     Kx = torch.diag(kx_vector / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6)).type(type_complex)
 
     T_layer = T1
@@ -597,7 +597,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
     Kx = torch.diag(kx_vector.tile(ff_y).flatten()) / k0
     Ky = torch.diag(ky_vector.reshape((-1, 1)).tile(ff_x).flatten() / k0)
 
-    resolution_z, resolution_y, resolution_x = resolution
+    resolution_x, resolution_y, resolution_z = resolution
     field_cell = torch.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6)).type(type_complex)
 
     T_layer = T1
