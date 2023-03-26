@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 
 
-def load_setting(mode, dtype, device, grating_type):
+def load_setting(backend, dtype, device, grating_type):
 
     pol = 1  # 0: TE, 1: TM
 
@@ -96,13 +96,13 @@ def load_setting(mode, dtype, device, grating_type):
         #     ]
         # )
 
-    if mode == 0:
+    if backend == 0:
         device = 0
         type_complex = np.complex128 if dtype == 0 else np.complex64
         ucell = ucell.astype(type_complex)
         thickness = np.array(thickness)
 
-    elif mode == 1:  # JAX
+    elif backend == 1:  # JAX
         jax.config.update('jax_platform_name', 'cpu') if device == 0 else jax.config.update('jax_platform_name', 'gpu')
 
         thickness = jnp.array(thickness)
