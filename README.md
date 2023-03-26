@@ -59,8 +59,8 @@ import meent
 # backend 1 = JAX
 # backend 2 = PyTorch
 
-mode = 1
-mee = meent.call_mee(backend=mode, ...)
+backend = 1
+mee = meent.call_mee(backend=backend, ...)
 ```
 
 
