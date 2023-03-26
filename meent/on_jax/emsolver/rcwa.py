@@ -310,6 +310,7 @@ class RCWAJax(_BaseRCWA):
                                                 self.T1, self.layer_info_list, self.period,
                                                 resolution=resolution,
                                                 type_complex=self.type_complex)
+            print(field_cell0[0,0,0])
             print('no vector', time.time() - t0)
 
             t0 = time.time()
@@ -317,6 +318,7 @@ class RCWAJax(_BaseRCWA):
                                                       *self.fourier_order,
                                                       self.T1, self.layer_info_list, self.period, resolution=resolution,
                                                       type_complex=self.type_complex)
+            print(field_cell1[0,0,0])
             print('ji vector', time.time() - t0)
 
             t0 = time.time()
@@ -325,6 +327,7 @@ class RCWAJax(_BaseRCWA):
                                                        self.T1, self.layer_info_list, self.period,
                                                        resolution=resolution,
                                                        type_complex=self.type_complex)
+            print(field_cell2[0,0,0])
             print('kji vector', time.time() - t0)
 
             print('gap: ', jnp.linalg.norm(field_cell1 - field_cell0))
