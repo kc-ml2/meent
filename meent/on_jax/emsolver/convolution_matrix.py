@@ -3,7 +3,7 @@ from functools import partial
 import jax
 
 import jax.numpy as jnp
-import numpy as np
+# import numpy as np
 
 
 def cell_compression(cell, type_complex=jnp.complex128):
@@ -159,16 +159,16 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
         o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
-        center = np.array(f_coeffs.shape) // 2
+        center = jnp.array(f_coeffs.shape) // 2
 
         conv_idx_y = jnp.arange(-ff_y + 1, ff_y, 1)
         conv_idx_y = circulant(conv_idx_y)
         conv_i = jnp.repeat(conv_idx_y, ff_x, axis=1)
-        conv_i = jnp.repeat(conv_i, [ff_x] * ff_y, axis=0)
+        conv_i = jnp.repeat(conv_i, [ff_x] * ff_y, axis=0, total_repeat_length=ff_x * ff_y)
 
         conv_idx_x = jnp.arange(-ff_x + 1, ff_x, 1)
         conv_idx_x = circulant(conv_idx_x)
-        conv_j = np.tile(conv_idx_x, (ff_y, ff_y))
+        conv_j = jnp.tile(conv_idx_x, (ff_y, ff_y))
 
         e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
         o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
@@ -210,11 +210,11 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
             conv_idx_y = jnp.arange(-ff_y + 1, ff_y, 1)
             conv_idx_y = circulant(conv_idx_y)
             conv_i = jnp.repeat(conv_idx_y, ff_x, axis=1)
-            conv_i = jnp.repeat(conv_i, jnp.array([ff_x] * ff_y), axis=0)
+            conv_i = jnp.repeat(conv_i, jnp.array([ff_x] * ff_y), axis=0, total_repeat_length=ff_x * ff_y)
 
             conv_idx_x = jnp.arange(-ff_x + 1, ff_x, 1)
             conv_idx_x = circulant(conv_idx_x)
-            conv_j = np.tile(conv_idx_x, (ff_y, ff_y))
+            conv_j = jnp.tile(conv_idx_x, (ff_y, ff_y))
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res = res.at[i].set(e_conv)
@@ -222,7 +222,7 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
     return res
 
 
-# @partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))
+@partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))
 def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128, improve_dft=True):
     ucell_pmt = ucell ** 2
 
@@ -238,7 +238,7 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
 
         for i, layer in enumerate(ucell_pmt):
             n = minimum_pattern_size // layer.shape[1]
-            layer = np.repeat(layer, n + 1, axis=1)
+            layer = jnp.repeat(layer, n + 1, axis=1, total_repeat_length=layer.shape[1] * (n + 1))
 
             f_coeffs = jnp.fft.fftshift(jnp.fft.fft(layer / layer.size))
             # FFT scaling:
@@ -269,10 +269,10 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
         for i, layer in enumerate(ucell_pmt):
             if layer.shape[0] < minimum_pattern_size_y:
                 n = minimum_pattern_size_y // layer.shape[0]
-                layer = jnp.repeat(layer, n + 1, axis=0)
+                layer = jnp.repeat(layer, n + 1, axis=0, total_repeat_length=layer.shape[0] * (n + 1))
             if layer.shape[1] < minimum_pattern_size_x:
                 n = minimum_pattern_size_x // layer.shape[1]
-                layer = jnp.repeat(layer, n + 1, axis=1)
+                layer = jnp.repeat(layer, n + 1, axis=1, total_repeat_length=layer.shape[1] * (n + 1))
 
             f_coeffs = jnp.fft.fftshift(jnp.fft.fft2(layer / layer.size))
             center = jnp.array(f_coeffs.shape) // 2
@@ -280,11 +280,11 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
             conv_idx_y = jnp.arange(-ff_y + 1, ff_y, 1)
             conv_idx_y = circulant(conv_idx_y)
             conv_i = jnp.repeat(conv_idx_y, ff_x, axis=1)
-            conv_i = jnp.repeat(conv_i, jnp.array([ff_x] * ff_y), axis=0)
+            conv_i = jnp.repeat(conv_i, jnp.array([ff_x] * ff_y), axis=0, total_repeat_length=ff_x * ff_y)
 
             conv_idx_x = jnp.arange(-ff_x + 1, ff_x, 1)
             conv_idx_x = circulant(conv_idx_x)
-            conv_j = np.tile(conv_idx_x, (ff_y, ff_y))
+            conv_j = jnp.tile(conv_idx_x, (ff_y, ff_y))
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res = res.at[i].set(e_conv)
