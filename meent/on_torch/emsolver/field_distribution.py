@@ -45,8 +45,8 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
             z = k / resolution_z * d
 
             if pol == 0:
-                Sy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-                Ux = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                Sy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
+                Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 C = Kx @ Sy
 
                 x_1d = torch.arange(resolution_x, dtype=type_float).reshape((1, -1, 1))
@@ -65,8 +65,8 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
                 val = torch.cat((Ey, Hx, Hz), -1)
 
             else:
-                Uy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-                Sx = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                Uy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
+                Sx = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
 
                 C = EKx @ Uy  # there is a better option for convergence
 
@@ -239,8 +239,8 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
         z_1d = torch.arange(resolution_z, dtype=type_float).reshape((-1, 1, 1)) / resolution_z * d
 
         if pol == 0:
-            Sy = W @ (expm(-k0 * Q * z_1d) @ c1 + expm(k0 * Q * (z_1d - d)) @ c2)
-            Ux = V @ (-expm(-k0 * Q * z_1d) @ c1 + expm(k0 * Q * (z_1d - d)) @ c2)
+            Sy = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
+            Ux = V @ (-diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
             C = Kx @ Sy
 
             x_1d = torch.arange(resolution_x, dtype=type_float).reshape((1, -1, 1))
@@ -259,8 +259,8 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
             val = torch.cat((Ey.squeeze(-1), Hx.squeeze(-1), Hz.squeeze(-1)), -1)
 
         else:
-            Uy = W @ (expm(-k0 * Q * z_1d) @ c1 + expm(k0 * Q * (z_1d - d)) @ c2)
-            Sx = V @ (-expm(-k0 * Q * z_1d) @ c1 + expm(k0 * Q * (z_1d - d)) @ c2)
+            Uy = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
+            Sx = V @ (-diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
 
             C = EKx @ Uy  # there is a better option for convergence
 
@@ -319,15 +319,15 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
         big_Q1 = torch.diag(q_1)
         big_Q2 = torch.diag(q_2)
 
-        Sx = W_2 @ (expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Sx = W_2 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-        Sy = V_11 @ (expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-             + V_12 @ (expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Sy = V_11 @ (diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+             + V_12 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-        Ux = W_1 @ (-expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus)
+        Ux = W_1 @ (-diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus)
 
-        Uy = V_21 @ (-expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-             + V_22 @ (-expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Uy = V_21 @ (-diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+             + V_22 @ (-diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
         Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
         Uz = -1j * (Kx @ Sy - ky * Sx)
@@ -398,17 +398,17 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
         big_Q1 = torch.diag(q1)
         big_Q2 = torch.diag(q2)
 
-        Sx = W_11 @ (expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + W_12 @ (expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Sx = W_11 @ (diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              + W_12 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-        Sy = W_21 @ (expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + W_22 @ (expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Sy = W_21 @ (diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              + W_22 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-        Ux = V_11 @ (-expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + V_12 @ (-expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Ux = V_11 @ (-diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              + V_12 @ (-diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
-        Uy = V_21 @ (-expm(-k0 * big_Q1 * z_1d) @ c1_plus + expm(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + V_22 @ (-expm(-k0 * big_Q2 * z_1d) @ c2_plus + expm(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Uy = V_21 @ (-diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              + V_22 @ (-diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
         Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
         Uz = -1j * (Kx @ Sy - Ky @ Sx)
@@ -481,8 +481,8 @@ def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, po
             z = k / resolution_z * d
 
             if pol == 0:  # TE
-                Sy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-                Ux = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                Sy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
+                Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 f_here = (-1j) * Kx @ Sy
 
                 for j in range(resolution_y):
@@ -495,8 +495,8 @@ def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, po
                         val = torch.tensor([Ey, Hx, Hz])
                         field_cell[resolution_z * idx_layer + k, j, i] = val
             else:  # TM
-                Uy = W @ (expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
-                Sx = V @ (-expm(-k0 * Q * z) @ c1 + expm(k0 * Q * (z - d)) @ c2)
+                Uy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
+                Sx = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 f_here = (-1j) * EKx @ Uy  # there is a better option for convergence
 
                 for j in range(resolution_y):
@@ -547,15 +547,15 @@ def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, la
         for k in range(resolution_z):
             z = k / resolution_z * d
 
-            Sx = W_2 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
+            Sx = W_2 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-            Sy = V_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + V_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
+            Sy = V_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-            Ux = W_1 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus)
+            Ux = W_1 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus)
 
-            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
+            Uy = V_21 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
             Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
 
@@ -625,17 +625,17 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
         for k in range(resolution_z):
             z = k / resolution_z * d
 
-            Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
+            Sx = W_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-            Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
+            Sy = W_21 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + W_22 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-            Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
+            Ux = V_11 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_12 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-            Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z-d)) @ c1_minus) \
-                 + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z-d)) @ c2_minus)
+            Uy = V_21 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+                 + V_22 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
             Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
 
@@ -699,9 +699,15 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
                 plt.show()
 
 
-def expm(x):
-    # return torch.diag(torch.exp(torch.diag(x)))
-    return torch.linalg.matrix_exp(x)
+def diag_exp(x):
+    return torch.diag(torch.exp(torch.diag(x)))
+
+
+def diag_exp_batch(x):
+    res = torch.zeros(x.shape, dtype=x.dtype)
+    ix = torch.arange(x.shape[-1])
+    res[:, ix, ix] = torch.exp(x[:, ix, ix])
+    return res
 
 
 def z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, d):
@@ -718,15 +724,15 @@ def z_loop_1d_conical(k, c, k0, Kx, ky, resolution_z, E_conv_i, q_1, q_2, W_1, W
     big_Q1 = torch.diag(q_1)
     big_Q2 = torch.diag(q_2)
 
-    Sx = W_2 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+    Sx = W_2 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-    Sy = V_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+    Sy = V_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+         + V_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-    Ux = W_1 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus)
+    Ux = W_1 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus)
 
-    Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+    Uy = V_21 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+         + V_22 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
     Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
 
@@ -751,17 +757,17 @@ def z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_2
     big_Q1 = torch.diag(q1)
     big_Q2 = torch.diag(q2)
 
-    Sx = W_11 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + W_12 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+    Sx = W_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+         + W_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-    Sy = W_21 @ (expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + W_22 @ (expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+    Sy = W_21 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+         + W_22 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-    Ux = V_11 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_12 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+    Ux = V_11 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+         + V_12 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
-    Uy = V_21 @ (-expm(-k0 * big_Q1 * z) @ c1_plus + expm(k0 * big_Q1 * (z - d)) @ c1_minus) \
-         + V_22 @ (-expm(-k0 * big_Q2 * z) @ c2_plus + expm(k0 * big_Q2 * (z - d)) @ c2_minus)
+    Uy = V_21 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
+         + V_22 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
 
     Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
 
