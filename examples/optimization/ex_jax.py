@@ -5,12 +5,12 @@ from meent.on_jax.optimizer.loss import LossDeflector
 from meent.on_jax.optimizer.optimizer import OptimizerJax
 
 
-mode = 1
+backend = 1
 dtype = 0
 device = 0
 grating_type = 2
 
-conditions = meent.testcase.load_setting(mode, dtype, device, grating_type)
+conditions = meent.testcase.load_setting(backend, dtype, device, grating_type)
 mee = OptimizerJax(**conditions)
 
 pois = ['ucell', 'thickness']
