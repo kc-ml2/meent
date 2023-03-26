@@ -3,19 +3,21 @@ from setuptools import setup, find_packages
 extras = {
     'jax': ['jax>=0.4.1',
             'jaxlib>=0.4.1',
+            'optax>=0.1.4',
             ],
-    'pytorch': ['torch>=1.12.1',
-              ]
+    'pytorch': ['torch>=2.0.0',
+                ],
 }
 setup(
     name='meent',
-    version='0.8.7',
+    version='0.8.8',
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
     packages=['meent'] + find_packages(include=['meent.*']),
     install_requires=[
         'numpy>=1.23.3',
+        'scipy>=1.9.1',
     ],
     extras_require=extras,
     python_requires='>=3.8',

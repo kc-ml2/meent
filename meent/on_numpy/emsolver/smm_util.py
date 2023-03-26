@@ -272,12 +272,12 @@ def initial_conditions(K_inc_vector, theta, normal_vector, pte, ptm, P, Q):
 
     polarization = pte * ate_vector + ptm * atm_vector  # total E_field incident which is a 3 component vector (ex, ey, ez)
     E_inc = polarization
-    # go from mode coefficients to FIELDS
+    # go from backend coefficients to FIELDS
     delta = delta_vector(2*P+1, 2*Q+1)
 
     # c_inc; #remember we ultimately solve for [Ex, Ey, Hx, Hy].
     e_src = np.hstack((polarization[0]*delta, polarization[1]*delta))
-    e_src = np.matrix(e_src).T  # mode amplitudes of Ex, and Ey
+    e_src = np.matrix(e_src).T  # backend amplitudes of Ex, and Ey
 
     return E_inc, e_src, polarization
 

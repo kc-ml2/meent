@@ -1,9 +1,9 @@
-def call_mee(mode=0, *args, **kwargs):
+def call_mee(backend=0, *args, **kwargs):
     """
     decide backend and return RCWA mee instance
 
     Args:
-        mode: decide backend. 0 is numpy and 1 is JAX.
+        backend: decide backend. 0 is numpy and 1 is JAX.
         *args: passed to RCWA instance
         **kwargs: passed to RCWA instance
 
@@ -11,26 +11,25 @@ def call_mee(mode=0, *args, **kwargs):
         RCWA: RCWA mee instance
 
     """
-    if mode == 0:
+    if backend == 0:
         from .on_numpy.mee import MeeNumpy
-        mee = MeeNumpy(mode=mode, *args, **kwargs)
-    elif mode == 1:
+        mee = MeeNumpy(backend=backend, *args, **kwargs)
+    elif backend == 1:
         from .on_jax.mee import MeeJax
-        mee = MeeJax(mode=mode, *args, **kwargs)
-
-    elif mode == 2:
+        mee = MeeJax(backend=backend, *args, **kwargs)
+    elif backend == 2:
         from .on_torch.mee import MeeTorch
-        mee = MeeTorch(mode=mode, *args, **kwargs)
+        mee = MeeTorch(backend=backend, *args, **kwargs)
     else:
         raise ValueError
     return mee
 
-# def call_solver(mode=0, *args, **kwargs):
+# def call_solver(backend=0, *args, **kwargs):
 #     """
 #     decide backend and return RCWA mee instance
 #
 #     Args:
-#         mode: decide backend. 0 is numpy and 1 is JAX.
+#         backend: decide backend. 0 is numpy and 1 is JAX.
 #         *args: passed to RCWA instance
 #         **kwargs: passed to RCWA instance
 #
@@ -38,32 +37,32 @@ def call_mee(mode=0, *args, **kwargs):
 #         RCWA: RCWA mee instance
 #
 #     """
-#     if mode == 0:
+#     if backend == 0:
 #         from .on_numpy.emsolver.rcwa import RCWANumpy
-#         RCWA = RCWANumpy(mode=mode, *args, **kwargs)
-#     elif mode == 1:
+#         RCWA = RCWANumpy(backend=backend, *args, **kwargs)
+#     elif backend == 1:
 #         from .on_jax.emsolver.rcwa import RCWAJax
-#         RCWA = RCWAJax(mode=mode, *args, **kwargs)
+#         RCWA = RCWAJax(backend=backend, *args, **kwargs)
 #
-#     elif mode == 2:
+#     elif backend == 2:
 #         from .on_torch.emsolver.rcwa import RCWATorch
-#         RCWA = RCWATorch(mode=mode, *args, **kwargs)
+#         RCWA = RCWATorch(backend=backend, *args, **kwargs)
 #     else:
 #         raise ValueError
 #
 #     return RCWA
 #
 #
-# def call_optimizer(mode=1, *args, **kwargs):
+# def call_optimizer(backend=1, *args, **kwargs):
 #
-#     if mode == 0:
+#     if backend == 0:
 #         print('NumPy is not supported for optimization')
 #         raise ValueError
-#     elif mode == 1:
+#     elif backend == 1:
 #         pass
-#     elif mode == 2:
+#     elif backend == 2:
 #         from .on_torch.optimizer.optimizer import OptimizerTorch
-#         yongha = OptimizerTorch(mode=mode, *args, **kwargs)
+#         yongha = OptimizerTorch(backend=backend, *args, **kwargs)
 #     else:
 #         raise ValueError
 #
@@ -72,13 +71,13 @@ def call_mee(mode=0, *args, **kwargs):
 
 
 
-# def sweep_wavelength(wavelength_array, mode=0, *args, **kwargs):
+# def sweep_wavelength(wavelength_array, backend=0, *args, **kwargs):
 #     # wavelength = np.linspace(500, 1000, 10)
 #     # spectrum_r = []
 #     # spectrum_t = []
 #     spectrum_r = np.zeros(wavelength_array.shape[0])
 #     spectrum_t = np.zeros(wavelength_array.shape[0])
-#     emsolver = call_solver(mode, *args, **kwargs)
+#     emsolver = call_solver(backend, *args, **kwargs)
 #     spectrum_r, spectrum_t = init_spectrum_array(emsolver.grating_type, wavelength_array, emsolver.fourier_order)
 #
 #     for i, wavelength in enumerate(wavelength_array):

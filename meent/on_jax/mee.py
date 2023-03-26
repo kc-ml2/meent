@@ -14,7 +14,7 @@ class MeeJax(ModelingJax, RCWAJax, OptimizerJax):
         children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
                     self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
         aux_data = {
-            'mode': self.mode,
+            'backend': self.backend,
             'grating_type': self.grating_type,
             'pol': self.pol,
             'fourier_order': self.fourier_order,

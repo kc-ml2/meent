@@ -258,7 +258,7 @@ def to_conv_mat_discrete(ucell, fourier_order, device=None, type_complex=np.comp
         else:
             minimum_pattern_size_y = 2 * ff_y
             minimum_pattern_size_x = 2 * ff_x
-        # e.g., 9 bytes * (40*500) * (40*500) / 1E6 = 3600 MB = 3.6 GB
+        # e.g., 8 bytes * (40*500) * (40*500) / 1E6 = 3200 MB = 3.2 GB
 
         for i, layer in enumerate(ucell_pmt):
 
