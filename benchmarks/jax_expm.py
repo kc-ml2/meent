@@ -1,7 +1,7 @@
-import os
+# import os
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = '2'
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 
 # os.environ["MKL_NUM_THREADS"] = "8"  # export MKL_NUM_THREADS=6
 # os.environ["OMP_NUM_THREADS"] = "4" # export OMP_NUM_THREADS=4
@@ -13,7 +13,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import time
-import torch
+
 import meent
 
 # common
@@ -32,7 +32,7 @@ thickness = [500]
 ucell_materials = [1, 'p_si__real']
 period = [1000, 1000]
 
-fourier_order = [5, 5]
+fourier_order = [3, 3]
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 n_iter_de = 1
 n_iter_field = 2
@@ -41,48 +41,21 @@ n_iter_field = 2
 def run_test(grating_type, mode_key, dtype, device):
     ucell = load_ucell(grating_type)
 
-    if mode_key == 0:
-        device = None
-
-        if dtype == 0:
-            type_complex = np.complex128
-        else:
-            type_complex = np.complex64
-
-        from meent.on_numpy.modeler.modeling import ModelingNumpy
-        ucell = ModelingNumpy().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, type_complex)
-
-    elif mode_key == 1:
-        # JAX
-        if device == 0:
-            jax.config.update('jax_platform_name', 'cpu')
-        else:
-            jax.config.update('jax_platform_name', 'gpu')
-
-        if dtype == 0:
-            from jax.config import config
-            config.update("jax_enable_x64", True)
-            type_complex = jnp.complex128
-        else:
-            type_complex = jnp.complex64
-
-        from meent.on_jax.modeler.modeling import ModelingJax
-        ucell = ModelingJax().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, type_complex)
-
+    # JAX
+    if device == 0:
+        jax.config.update('jax_platform_name', 'cpu')
     else:
-        # Torch
-        if device == 0:
-            device = torch.device('cpu')
-        else:
-            device = torch.device('cuda')
+        jax.config.update('jax_platform_name', 'gpu')
 
-        if dtype == 0:
-            type_complex = torch.complex128
-        else:
-            type_complex = torch.complex64
+    if dtype == 0:
+        from jax.config import config
+        config.update("jax_enable_x64", True)
+        type_complex = jnp.complex128
+    else:
+        type_complex = jnp.complex64
 
-        from meent.on_torch.modeler.modeling import ModelingTorch
-        ucell = ModelingTorch().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, device, type_complex)
+    from meent.on_jax.modeler.modeling import ModelingJax
+    ucell = ModelingJax().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, type_complex)
 
     mee = meent.call_mee(mode=mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
@@ -91,32 +64,15 @@ def run_test(grating_type, mode_key, dtype, device):
 
     for i in range(n_iter_de):
         t0 = time.time()
-        de_ri, de_ti = mee.conv_solve()
-        # print(de_ri)
+        mee.conv_solve()
         print(f'run_cell: {i}: ', time.time() - t0)
-    resolution = (20, 30, 40)  # TODO: make sure about order. change to XYZ?
+    resolution = (20, 30, 40)
+
     for i in range(n_iter_field):
+
         t0 = time.time()
-        mee.calculate_field(resolution=resolution, plot=True)
+        mee.calculate_field_all(resolution=resolution, plot=True)
         print(f'cal_field: {i}', time.time() - t0)
-        #
-        # try:
-        #     t0 = time.time()
-        #     mee.calculate_field_all(resolution=resolution, plot=False)
-        #     print(f'cal_field: {i}', time.time() - t0)
-        # except:
-        #     t0 = time.time()
-        #     mee.calculate_field(resolution=resolution, plot=False)
-        #     print(f'cal_field: {i}', time.time() - t0)
-
-    # center = np.array(de_ri.shape) // 2
-    # print(de_ri.sum(), de_ti.sum())
-    # try:
-    #     print(de_ri[center[0]-1:center[0]+2, center[1]-1:center[1]+2])
-    # except:
-    #     print(de_ri[center[0]-1:center[0]+2])
-
-    return de_ri, de_ti
 
 
 def run_loop(a, b, c, d):
@@ -172,24 +128,6 @@ def load_ucell(grating_type):
             ],
         ])
 
-        # ucell = np.array([
-        #
-        #     [
-        #         [
-        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
-        #         ],
-        #         [
-        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
-        #         ],
-        #         [
-        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
-        #         ],
-        #         [
-        #             0, 1, 0, 1, 1, 0, 1, 0, 1, 1,
-        #         ],
-        #     ],
-        # ])
-    # ucell = ucell * 4 + 1
     return ucell
 
 
