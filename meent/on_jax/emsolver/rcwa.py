@@ -208,7 +208,7 @@ class RCWAJax(_BaseRCWA):
         de_ti = jnp.array(de_ti)
         return de_ri, de_ti
 
-    def calculate_field(self, resolution=None, plot=True, field_algo=2):
+    def calculate_field(self, resolution=None, plot=False, field_algo=2):
 
         if self.grating_type == 0:
             resolution = [100, 1, 100] if not resolution else resolution
@@ -273,7 +273,7 @@ class RCWAJax(_BaseRCWA):
 
         return field_cell
 
-    def calculate_field_all(self, resolution=None, plot=True):
+    def calculate_field_all(self, resolution=None, plot=False):
 
         if self.grating_type == 0:
             resolution = [100, 1, 100] if not resolution else resolution

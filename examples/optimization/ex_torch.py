@@ -5,14 +5,13 @@ from meent.on_torch.optimizer.loss import LossDeflector
 from meent.on_torch.optimizer.optimizer import OptimizerTorch
 
 
-mode = 2
+backend = 2
 dtype = 0
 device = 0
 grating_type = 2
 
-conditions = meent.testcase.load_setting(mode, dtype, device, grating_type)
-mee = OptimizerTorch(**conditions)
-
+conditions = meent.testcase.load_setting(backend, dtype, device, grating_type)
+mee = meent.call_mee(backend, **conditions)
 pois = ['ucell', 'thickness']
 
 forward = mee.conv_solve

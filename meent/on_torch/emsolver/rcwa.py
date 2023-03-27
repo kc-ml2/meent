@@ -99,7 +99,7 @@ class RCWATorch(_BaseRCWA):
 
         return de_ri, de_ti
 
-    def calculate_field(self, resolution=None, plot=True, field_algo=2):
+    def calculate_field(self, resolution=None, plot=False, field_algo=2):
 
         if self.grating_type == 0:
             resolution = [100, 1, 100] if not resolution else resolution
