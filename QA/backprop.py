@@ -1,20 +1,12 @@
-from meent.on_torch.optimizer.loss import LossDeflector
-
-try:
-    import os
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
-except:
-    pass
-
 import numpy as np
-import jax
-import jax.numpy as jnp
-import time
+
 from copy import deepcopy
 
 from meent.main import call_mee
-import torch
+
+# import jax
+# import jax.numpy as jnp
+# import torch
 
 
 def load_setting(mode_key, dtype, device):
@@ -86,6 +78,8 @@ def load_setting(mode_key, dtype, device):
         ucell = ucell.astype(type_complex)
 
     elif mode_key == 1:  # JAX
+        import jax
+        import jax.numpy as jnp
         jax.config.update('jax_platform_name', 'cpu') if device == 0 else jax.config.update('jax_platform_name', 'gpu')
 
         thickness = jnp.array(thickness)
@@ -103,6 +97,8 @@ def load_setting(mode_key, dtype, device):
             ucell = jnp.array(ucell, dtype=jnp.float32)
 
     else:  # Torch
+        import torch
+
         device = torch.device('cpu') if device == 0 else torch.device('cuda')
         type_complex = torch.complex128 if dtype == 0 else torch.complex64
 
@@ -119,6 +115,8 @@ def load_setting(mode_key, dtype, device):
 
 
 def optimize_jax_ucell_metasurface(mode_key, dtype, device):
+    import jax
+    import jax.numpy as jnp
     from meent.on_jax.emsolver.convolution_matrix import to_conv_mat_discrete
 
     grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
@@ -176,6 +174,8 @@ def optimize_torch_metasurface(mode_key, dtype, device):
     out of date.
     Will be updated.
     """
+    import torch
+
     from meent.on_torch.emsolver.convolution_matrix import to_conv_mat_discrete
 
     grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
