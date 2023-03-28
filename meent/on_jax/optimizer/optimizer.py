@@ -3,6 +3,8 @@ import optax
 
 from functools import partial
 
+from tqdm import tqdm
+
 from ..emsolver.rcwa import RCWAJax
 
 
@@ -52,10 +54,10 @@ class OptimizerJax:
 
     def grad(self, pois, forward, loss_fn):
         params = {poi: (getattr(self, poi)) for poi in pois}
-        loss_value, grads = self._grad(params, forward, loss_fn)
+        _, grads = self._grad(params, forward, loss_fn)
         [setattr(self, poi, params[poi]) for poi in pois]
 
-        return loss_value, grads
+        return grads
 
     # @partial(jax.jit, static_argnums=(3, 4, 5))  # TODO: is self static? then what about self.conv_solver?
     # @jax.jit
@@ -89,7 +91,7 @@ class OptimizerJax:
             params = optax.apply_updates(params, updates)
             return params, opt_state, loss_value
 
-        for i in range(iteration):
+        for _ in tqdm(range(iteration)):
             params, opt_state, loss_value = step(params, opt_state)
 
         [setattr(self, poi, params[poi]) for poi in pois]

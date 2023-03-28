@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 from ..emsolver.rcwa import RCWATorch
 
 
@@ -27,15 +29,17 @@ class OptimizerTorch(Grad):
         res = _opt(_parameters_to_fit, *args, **kwargs)
         return res
 
-    def fit(self, pois, forward, loss_fn, optimizer, opt_options, iteration=100):
+    def fit(self, pois, forward, loss_fn, optimizer, opt_options, iteration=1):
         optimizer = self.meent_optimizer(pois, optimizer, **opt_options)
         [setattr(getattr(self, poi), 'requires_grad', True) for poi in pois]
 
-        for i in range(iteration):
+        for _ in tqdm(range(iteration)):
             optimizer.zero_grad()
             result = forward()  # Forward Prop.
             loss_value = loss_fn(result)  # Loss
 
             loss_value.backward()  # Back Prop.
             optimizer.step()
-            print(f'step {i}, loss: {loss_value}')
+            # print(f'step {i}, loss: {loss_value}')
+
+        return [getattr(self, poi) for poi in pois]
