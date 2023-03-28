@@ -4,13 +4,15 @@ extras = {
     'jax': ['jax>=0.4.1',
             'jaxlib>=0.4.1',
             'optax>=0.1.4',
+            'tqdm>=4.64.1',
             ],
     'pytorch': ['torch>=2.0.0',
+                'tqdm>=4.64.1',
                 ],
 }
 setup(
     name='meent',
-    version='0.8.10',
+    version='0.8.11',
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
