@@ -1,6 +1,17 @@
 # Examples
 
-Well-organized examples will be provided later.
+## Tutorial is (partially) ready! (though it deals only surface of Meent).
+
+* [tutorial_01.ipynb](tutorial_01.ipynb)
+  * modeling and Electromagnetic simulation(Meent uses RCWA).
+* [tutorial_02_JAX.ipynb](tutorial_02_JAX.ipynb) or [tutorial_02_Torch.ipynb](tutorial_02_Torch.ipynb)
+  * gradient and optimization with the help of Automatic Differentiation(a.k.a. backprop).
+  * separately written JAX and Torch backends for user convenience.
+
+---
+# Under Construction
+well-organized examples will be provided later.
+
 
 Unit cell
 ---
