@@ -62,11 +62,11 @@ import meent
 backend = 1
 mee = meent.call_mee(backend=backend, ...)
 ```
-
+## Tutorials
+Jupyter notebooks are prepared in [examples](examples) to give a (very) brief introduction.
 
 ## Reference
-
-Many literatures and codes are referred for development and quality assurance
+Will be updated.
 
 [1] https://opg.optica.org/josa/abstract.cfm?uri=josa-71-7-811, Rigorous coupled-wave analysis of planar-grating diffraction \
 [2] https://opg.optica.org/josaa/abstract.cfm?uri=josaa-12-5-1068 \
