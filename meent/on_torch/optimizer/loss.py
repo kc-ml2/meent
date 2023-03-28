@@ -6,10 +6,9 @@ class LossDeflector:
         self.x_order = x_order
         self.y_order = y_order
 
-    def __call__(self, value, *args, **kwargs):  # tODO: is it ok to delete val=1 ?
+    def __call__(self, value, *args, **kwargs):
         de_ri, de_ti = value
 
-        # TODO: x y order?
         if len(de_ti.shape) == 1:
             c_x = de_ti.shape[0] // 2
             res = de_ti[c_x + self.x_order]
