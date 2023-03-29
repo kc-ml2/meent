@@ -1,6 +1,6 @@
 import torch
 
-
+# tODO: where is this used?
 def field_distribution(grating_type, *args, **kwargs):
     if grating_type == 0:
         res = field_dist_1d_vanilla(*args, **kwargs)
@@ -12,10 +12,7 @@ def field_distribution(grating_type, *args, **kwargs):
 
 
 def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, period,
-                                pol, resolution=(100, 1, 100), type_complex=torch.complex128):
-
-    # TODO: needed for arange. how about other backends? move to Class?
-    type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
+                                pol, resolution=(100, 1, 100), type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
@@ -93,8 +90,7 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
 
 
 def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                        resolution=(100, 100, 100), device='cpu', type_complex=torch.complex128):
-    type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
+                                        resolution=(100, 100, 100), device='cpu', type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
@@ -143,12 +139,11 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
 
 
 def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                                resolution=(10, 10, 10), device='cpu', type_complex=torch.complex128):
-    type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
+                                resolution=(10, 10, 10), device='cpu', type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
 
-    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1)
+    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
     ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) + fourier_indices_y * (
@@ -209,8 +204,7 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
 
 
 def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, period,
-                                 pol, resolution=(100, 1, 100), type_complex=torch.complex128):
-    type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
+                                 pol, resolution=(100, 1, 100), type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
@@ -287,8 +281,7 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
 
 
 def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                         resolution=(100, 100, 100), device='cpu', type_complex=torch.complex128):
-    type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
+                                         resolution=(100, 100, 100), device='cpu', type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
@@ -358,12 +351,11 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
 
 
 def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                                 resolution=(10, 10, 10), device='cpu', type_complex=torch.complex128):
-    type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
+                                 resolution=(10, 10, 10), device='cpu', type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
 
-    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1)
+    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
     ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) + fourier_indices_y * (
@@ -451,7 +443,6 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
 
 def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
                           type_complex=torch.complex128, *args, **kwargs):
-    type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
 
     k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
@@ -514,8 +505,7 @@ def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, po
 
 
 def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period, resolution=(100, 1, 100),
-                                  device='cpu', type_complex=torch.complex128):
-    type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
+                                  device='cpu', type_complex=torch.complex128, *args, **kwargs):
 
     k0 = 2 * torch.pi / wavelength
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
@@ -583,12 +573,11 @@ def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, la
 
 
 def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period, resolution=(100, 100, 100),
-                          device='cpu', type_complex=torch.complex128):
-    type_float = torch.float32 if type_complex is torch.complex64 else torch.float64
+                          device='cpu', type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
 
-    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1)
+    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
     ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) + fourier_indices_y * (

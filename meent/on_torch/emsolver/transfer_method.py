@@ -69,10 +69,8 @@ def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, the
     de_ri = torch.real(R * torch.conj(R) * k_I_z / (k0 * n_I * torch.cos(theta)))
     if polarization == 0:
         de_ti = T * torch.conj(T) * torch.real(k_II_z / (k0 * n_I * torch.cos(theta)))
-        # de_ti = torch.real(T * torch.conj(T) * k_II_z / (k0 * n_I * torch.cos(theta)))
     elif polarization == 1:
         de_ti = T * torch.conj(T) * torch.real(k_II_z / n_II ** 2) / (k0 * torch.cos(theta) / n_I)
-        # de_ti = torch.real(T * torch.conj(T) * k_II_z / n_II ** 2) / (k0 * torch.cos(theta) / n_I)
     else:
         raise ValueError
 

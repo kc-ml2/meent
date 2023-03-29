@@ -19,6 +19,8 @@ class _BaseRCWA:
 
         self.device = device
         self.type_complex = type_complex
+        self.type_float = torch.float32 if type_complex is torch.complex64 else torch.float64  # TODO: newly added
+        self.type_int = torch.int32 if type_complex is torch.complex64 else torch.int64  # TODO: newly added
 
         # common
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
@@ -27,15 +29,15 @@ class _BaseRCWA:
         self.n_II = n_II
 
         # degree to radian due to JAX JIT
-        self.theta = torch.tensor(theta)
-        self.phi = torch.tensor(phi)
-        self.psi = torch.tensor(psi)  # TODO: integrate psi and pol
+        self.theta = torch.tensor(theta, dtype=self.type_float)
+        self.phi = torch.tensor(phi, dtype=self.type_float)
+        self.psi = torch.tensor(psi, dtype=self.type_float)  # TODO: integrate psi and pol
 
         self.pol = pol  # TE 0, TM 1
         if self.pol == 0:  # TE
-            self.psi = torch.tensor(np.pi / 2, device=self.device)
+            self.psi = torch.tensor(np.pi / 2, device=self.device, dtype=self.type_float)
         elif self.pol == 1:  # TM
-            self.psi = torch.tensor(0, device=self.device)
+            self.psi = torch.tensor(0, device=self.device, dtype=self.type_float)
         else:
             print('not implemented yet')
             raise ValueError
@@ -47,7 +49,7 @@ class _BaseRCWA:
         else:
             self._fourier_order = [int(v) for v in fourier_order]
 
-        self.period = deepcopy(period)
+        self.period = deepcopy(period)  # TODO deepcopy?
 
         self.wavelength = wavelength
         self.thickness = deepcopy(thickness)
@@ -78,7 +80,8 @@ class _BaseRCWA:
     def get_kx_vector(self, wavelength):
 
         k0 = 2 * np.pi / wavelength
-        fourier_indices = torch.arange(-self.fourier_order[0], self.fourier_order[0] + 1, device=self.device)
+        fourier_indices = torch.arange(-self.fourier_order[0], self.fourier_order[0] + 1, device=self.device,
+                                       dtype=self.type_float)
         if self.grating_type == 0:
             kx_vector = k0 * (self.n_I * torch.sin(self.theta) + fourier_indices * (wavelength / self.period[0])
                               ).type(self.type_complex)
@@ -247,8 +250,8 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        # fourier_indices = torch.arange(-self.fourier_order, self.fourier_order + 1, device=self.device)
-        fourier_indices_y = torch.arange(-self.fourier_order[1], self.fourier_order[1] + 1, device=self.device)  # TODO: dtype
+        fourier_indices_y = torch.arange(-self.fourier_order[1], self.fourier_order[1] + 1, device=self.device,
+                                         dtype=self.type_float)
 
         ff_x = self.fourier_order[0] * 2 + 1
         ff_y = self.fourier_order[1] * 2 + 1

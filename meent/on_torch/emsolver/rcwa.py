@@ -75,7 +75,7 @@ class RCWATorch(_BaseRCWA):
         return de_ri, de_ti
 
     def conv_solve(self, **kwargs):
-        [setattr(self, k, v) for k, v in kwargs.items()]  # TODO: need this? for optimization?
+        [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
         if self.fft_type == 0:
             E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order, type_complex=self.type_complex,
@@ -111,11 +111,12 @@ class RCWATorch(_BaseRCWA):
             elif field_algo == 1:
                 field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.T1, self.layer_info_list,
                                                          self.period, self.pol, resolution=resolution,
-                                                         type_complex=self.type_complex)
+                                                         type_complex=self.type_complex, type_float=self.type_float)
             elif field_algo == 2:
                 field_cell = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector, self.T1,
                                                           self.layer_info_list, self.period, self.pol,
-                                                          resolution=resolution, type_complex=self.type_complex)
+                                                          resolution=resolution, type_complex=self.type_complex,
+                                                          type_float=self.type_float)
             else:
                 raise ValueError
 
@@ -129,11 +130,15 @@ class RCWATorch(_BaseRCWA):
             elif field_algo == 1:
                 field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                                  self.phi, self.T1, self.layer_info_list, self.period,
-                                                                 resolution=resolution, device=self.device, type_complex=self.type_complex)
+                                                                 resolution=resolution, device=self.device,
+                                                                 type_complex=self.type_complex,
+                                                                 type_float=self.type_float)
             elif field_algo == 2:
                 field_cell = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                                   self.phi, self.T1, self.layer_info_list, self.period,
-                                                                  resolution=resolution, device=self.device, type_complex=self.type_complex)
+                                                                  resolution=resolution, device=self.device,
+                                                                  type_complex=self.type_complex,
+                                                                  type_float=self.type_float)
             else:
                 raise ValueError
 
@@ -143,17 +148,18 @@ class RCWATorch(_BaseRCWA):
             if field_algo == 0:
                 field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
                                                    *self.fourier_order, self.T1, self.layer_info_list, self.period,
-                                                   resolution=resolution, device=self.device, type_complex=self.type_complex)
+                                                   resolution=resolution, device=self.device,
+                                                   type_complex=self.type_complex, type_float=self.type_float)
             elif field_algo == 1:
                 field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                          self.phi, *self.fourier_order, self.T1, self.layer_info_list,
                                                          self.period, resolution=resolution, device=self.device,
-                                                         type_complex=self.type_complex)
+                                                         type_complex=self.type_complex, type_float=self.type_float)
             elif field_algo == 2:
                 field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                           self.phi, *self.fourier_order, self.T1, self.layer_info_list,
                                                           self.period, resolution=resolution, device=self.device,
-                                                          type_complex=self.type_complex)
+                                                          type_complex=self.type_complex, type_float=self.type_float)
             else:
                 raise ValueError
         else:
@@ -180,14 +186,14 @@ class RCWATorch(_BaseRCWA):
             field_cell1 = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector,
                                                       self.T1, self.layer_info_list, self.period, self.pol,
                                                       resolution=resolution,
-                                                      type_complex=self.type_complex)
+                                                      type_complex=self.type_complex, type_float=self.type_float)
             print('ji vector', time.time() - t0)
 
             t0 = time.time()
             field_cell2 = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector,
                                                        self.T1, self.layer_info_list, self.period, self.pol,
                                                        resolution=resolution,
-                                                       type_complex=self.type_complex)
+                                                       type_complex=self.type_complex, type_float=self.type_float)
             print('kji vector', time.time() - t0)
 
             print('gap: ', torch.linalg.norm(field_cell1 - field_cell0))
@@ -208,7 +214,8 @@ class RCWATorch(_BaseRCWA):
                                                               self.phi,
                                                               self.T1, self.layer_info_list, self.period,
                                                               resolution=resolution, device=self.device,
-                                                              type_complex=self.type_complex)
+                                                              type_complex=self.type_complex,
+                                                              type_float=self.type_float)
             print('ji vector', time.time() - t0)
 
             t0 = time.time()
@@ -216,7 +223,8 @@ class RCWATorch(_BaseRCWA):
                                                                self.phi,
                                                                self.T1, self.layer_info_list, self.period,
                                                                resolution=resolution, device=self.device,
-                                                               type_complex=self.type_complex)
+                                                               type_complex=self.type_complex,
+                                                               type_float=self.type_float)
             print('kji vector', time.time() - t0)
 
             print('gap: ', torch.linalg.norm(field_cell1 - field_cell0))
@@ -230,7 +238,7 @@ class RCWATorch(_BaseRCWA):
                                                 self.phi, *self.fourier_order,
                                                 self.T1, self.layer_info_list, self.period,
                                                 resolution=resolution, device=self.device,
-                                                type_complex=self.type_complex)
+                                                type_complex=self.type_complex, type_float=self.type_float)
             print('no vector', time.time() - t0)
 
             t0 = time.time()
@@ -238,7 +246,7 @@ class RCWATorch(_BaseRCWA):
                                                       *self.fourier_order,
                                                       self.T1, self.layer_info_list, self.period, resolution=resolution,
                                                       device=self.device,
-                                                      type_complex=self.type_complex)
+                                                      type_complex=self.type_complex, type_float=self.type_float)
             print('ji vector', time.time() - t0)
 
             t0 = time.time()
@@ -246,7 +254,7 @@ class RCWATorch(_BaseRCWA):
                                                        self.phi, *self.fourier_order,
                                                        self.T1, self.layer_info_list, self.period,
                                                        resolution=resolution, device=self.device,
-                                                       type_complex=self.type_complex)
+                                                       type_complex=self.type_complex, type_float=self.type_float)
             print('kji vector', time.time() - t0)
 
             print('gap: ', torch.linalg.norm(field_cell1 - field_cell0))
