@@ -19,12 +19,10 @@ class _BaseRCWA:
 
         self.device = device
         self.type_complex = type_complex
-        if self.type_complex == jnp.complex128:  # TODO: need this?
-            jax.config.update('jax_enable_x64', True)
 
-        # TODO: consider to make systematic and apply to other bds
-        self.type_int = jnp.int64 if self.type_complex == jnp.complex128 else jnp.int32
-        self.type_float = jnp.float64 if self.type_complex == jnp.complex128 else jnp.float32
+        # currently these two are not used. Only TorchMeent uses.
+        self.type_float = jnp.float64 if self.type_complex is not jnp.complex64 else jnp.float32
+        self.type_int = jnp.int64 if self.type_complex is not jnp.complex64 else jnp.int32
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
 
@@ -63,9 +61,8 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        self.theta = jnp.where(self.theta == 0, self.perturbation, self.theta)
-
-        self.kx_vector = None
+        self.theta = jnp.where(self.theta == 0, self.perturbation, self.theta)  # perturbation
+        self.kx_vector = None  # only kx, not ky, because kx is always used while ky is 2D only.
 
     @property
     def fourier_order(self):
@@ -73,7 +70,7 @@ class _BaseRCWA:
 
     @fourier_order.setter
     def fourier_order(self, fourier_order):
-        if type(fourier_order) == int:
+        if type(fourier_order) is int:
             self._fourier_order = [fourier_order, 0]
         elif len(fourier_order) == 1:
             self._fourier_order = list(fourier_order) + [0]

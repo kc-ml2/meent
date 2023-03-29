@@ -12,57 +12,180 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 
 
 class _BaseRCWA:
-    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=(2, 2),
+    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
                  period=(100, 100), wavelength=900,
                  thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=torch.complex128):
 
-        self.device = device
-        self.type_complex = type_complex
-        self.type_float = torch.float32 if type_complex is torch.complex64 else torch.float64  # TODO: newly added
-        self.type_int = torch.int32 if type_complex is torch.complex64 else torch.int64  # TODO: newly added
+        # device
+        if device == 0:
+            self._device = torch.device('cpu')
+        elif device == 1:
+            self._device = torch.device('cuda')
+        elif type(device) is torch.device:
+            self._device = device
+        else:
+            raise ValueError
 
-        # common
+        # type_complex
+        if type_complex == 0:
+            self._type_complex = torch.complex128
+        elif type_complex == 1:
+            self._type_complex = torch.complex64
+        elif type(type_complex) is torch.dtype:
+            self._type_complex = type_complex
+        elif type(type_complex) is np.dtype:
+            if type_complex != np.complex128:
+                self._type_complex = torch.complex64
+            else:
+                self._type_complex = torch.complex128
+        else:
+            raise ValueError
+        self._type_float = torch.float64 if self._type_complex is not torch.complex64 else torch.float32
+        self._type_int = torch.int64 if self._type_complex is not torch.complex64 else torch.int32
+        self.perturbation = perturbation
+
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
-
         self.n_I = n_I
         self.n_II = n_II
 
         # degree to radian due to JAX JIT
-        self.theta = torch.tensor(theta, dtype=self.type_float)
-        self.phi = torch.tensor(phi, dtype=self.type_float)
-        self.psi = torch.tensor(psi, dtype=self.type_float)  # TODO: integrate psi and pol
+        self.theta = theta
+        self.phi = phi
+        self.pol = pol
+        self._psi = torch.tensor((torch.pi / 2 * (1 - pol)), device=self.device, dtype=self.type_float)
+        # self._theta = torch.tensor(theta, device=self.device, dtype=self.type_float)
+        # self._theta = torch.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
+        # self._phi = torch.tensor(phi, device=self.device, dtype=self.type_float)
 
-        self.pol = pol  # TE 0, TM 1
-        if self.pol == 0:  # TE
-            self.psi = torch.tensor(np.pi / 2, device=self.device, dtype=self.type_float)
-        elif self.pol == 1:  # TM
-            self.psi = torch.tensor(0, device=self.device, dtype=self.type_float)
-        else:
-            print('not implemented yet')
-            raise ValueError
+        # self._pol = pol  # TE 0, TM 1
+        # self.psi = torch.tensor((torch.pi / 2 * (1 - pol)), device=self.device, dtype=self.type_float)
 
-        if type(fourier_order) == int:
-            self._fourier_order = [fourier_order, 0]
-        elif len(fourier_order) == 1:
-            self._fourier_order = list(fourier_order) + [0]
-        else:
-            self._fourier_order = [int(v) for v in fourier_order]
+        # fourier_order
+        self.fourier_order = fourier_order
 
-        self.period = deepcopy(period)  # TODO deepcopy?
+        # if type(fourier_order) in (int, float):
+        #     self._fourier_order = [int(fourier_order), 0]
+        # elif len(fourier_order) == 1:
+        #     self._fourier_order = [int(fourier_order[0]), 0]
+        # else:
+        #     self._fourier_order = [int(v) for v in fourier_order]
+
+        self.period = deepcopy(period)  # TODO: deepcopy?
 
         self.wavelength = wavelength
-        self.thickness = deepcopy(thickness)
+
+        # thickness
+        self.thickness = thickness
+
+        # if type(thickness) in (int, float):
+        #     self._thickness = torch.tensor([thickness], device=self.device, dtype=self.type_float)
+        # elif type(thickness) in (list, np.ndarray, torch.Tensor):
+        #     self._thickness = torch.tensor(thickness, device=self.device, dtype=self.type_float)
+        # else:
+        #     raise ValueError
 
         self.algo = algo
-        self.perturbation = perturbation
 
         self.layer_info_list = []
         self.T1 = None
 
-        self.theta = torch.where(self.theta == 0, self.perturbation, self.theta)  # TODO: check correct?
+        self.kx_vector = None  # only kx, not ky, because kx is always used while ky is 2D only.
 
-        self.kx_vector = None
+    @property
+    def device(self):
+        return self._device
+
+    @device.setter
+    def device(self, device):
+        if device == 0:
+            self._device = torch.device('cpu')
+        elif device == 1:
+            self._device = torch.device('cuda')
+        elif type(device) is torch.device:
+            self._device = device
+        else:
+            raise ValueError
+
+        try:
+            self._theta = self._theta.to(self.device)
+            self._phi = self._phi.to(self.device)
+            self._psi = self._psi.to(self.device)
+            self.thickness = self._thickness.to(self.device)
+        except AssertionError as e:
+            print(f'{e}. Get back to CPU')
+            self._device = torch.device('cpu')
+
+    @property
+    def type_complex(self):
+        return self._type_complex
+
+    @type_complex.setter
+    def type_complex(self, type_complex):
+        if type_complex == 0:
+            self._type_complex = torch.complex128
+        elif type_complex == 1:
+            self._type_complex = torch.complex64
+        elif type(type_complex) is torch.dtype:
+            self._type_complex = type_complex
+        elif type(type_complex) is np.dtype:
+            if type_complex != np.complex128:
+                self._type_complex = torch.complex64
+            else:
+                self._type_complex = torch.complex128
+        else:
+            raise ValueError
+
+        self._type_float = torch.float64 if self.type_complex is not torch.complex64 else torch.float32
+        self._type_int = torch.int64 if self.type_complex is not torch.complex64 else torch.int32
+        self._theta = self._theta.to(self.type_float)
+        self._phi = self._phi.to(self.type_float)
+        self._psi = self._psi.to(self.type_float)
+
+        self.fourier_order = self._fourier_order
+        self.thickness = self._thickness
+
+    @property
+    def type_float(self):
+        return self._type_float
+
+    @property
+    def type_int(self):
+        return self._type_int
+
+    @property
+    def pol(self):
+        return self._pol
+
+    @pol.setter
+    def pol(self, pol):
+        if not 0 <= pol <= 1:
+            raise ValueError
+
+        self._pol = pol
+        psi = torch.pi / 2 * (1 - self.pol)
+        self._psi = torch.tensor(psi, device=self.device, dtype=self.type_float)
+
+    @property
+    def theta(self):
+        return self._theta
+
+    @theta.setter
+    def theta(self, theta):
+        self._theta = torch.tensor(theta, device=self.device, dtype=self.type_float)
+        self._theta = torch.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
+
+    @property
+    def phi(self):
+        return self._phi
+
+    @phi.setter
+    def phi(self, phi):
+        self._phi = torch.tensor(phi, device=self.device, dtype=self.type_float)
+
+    @property
+    def psi(self):
+        return self._psi
 
     @property
     def fourier_order(self):
@@ -70,12 +193,27 @@ class _BaseRCWA:
 
     @fourier_order.setter
     def fourier_order(self, fourier_order):
-        if type(fourier_order) == int:
-            self._fourier_order = [fourier_order, 0]
+        if type(fourier_order) in (int, float):
+            self._fourier_order = torch.tensor([int(fourier_order), 0], device=self.device)
         elif len(fourier_order) == 1:
-            self._fourier_order = list(fourier_order) + [0]
+            self._fourier_order = torch.tensor([int(fourier_order[0]), 0], device=self.device)
         else:
-            self._fourier_order = [int(v) for v in fourier_order]
+            self._fourier_order = torch.tensor([int(v) for v in fourier_order], device=self.device)
+
+    @property
+    def thickness(self):
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, thickness):
+        if type(thickness) in (int, float):
+            self._thickness = torch.tensor([thickness], device=self.device, dtype=self.type_float)
+        elif type(thickness) in (list, np.ndarray):
+            self._thickness = torch.tensor(thickness, device=self.device, dtype=self.type_float)
+        elif type(thickness) is torch.Tensor:
+            self._thickness = thickness.to(device=self.device, dtype=self.type_float)
+        else:
+            raise ValueError
 
     def get_kx_vector(self, wavelength):
 
@@ -127,9 +265,6 @@ class _BaseRCWA:
             E_conv = E_conv_all[layer_index]
             o_E_conv = o_E_conv_all[layer_index]
             d = self.thickness[layer_index]
-
-        # Can't use this. seems like bug in Torch.
-        # for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
 
             if self.pol == 0:
                 E_conv_i = None
@@ -213,8 +348,6 @@ class _BaseRCWA:
             o_E_conv = o_E_conv_all[layer_index]
             d = self.thickness[layer_index]
 
-        # Can't use this. Seems like bug in Torch.
-        # for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
             E_conv_i = torch.linalg.inv(E_conv)
             o_E_conv_i = torch.linalg.inv(o_E_conv)
 

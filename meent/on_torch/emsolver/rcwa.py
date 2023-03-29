@@ -34,7 +34,7 @@ class RCWATorch(_BaseRCWA):
                  **kwargs,
                  ):
 
-        super().__init__(grating_type=grating_type, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi, pol=pol,
+        super().__init__(grating_type=grating_type, n_I=n_I, n_II=n_II, theta=theta, phi=phi, pol=pol,
                          fourier_order=fourier_order, period=period, wavelength=wavelength,
                          thickness=thickness, algo=algo, perturbation=perturbation,
                          device=device, type_complex=type_complex)
@@ -44,8 +44,8 @@ class RCWATorch(_BaseRCWA):
         self.ucell_info_list = ucell_info_list
 
         self.backend = backend
-        self.device = device
-        self.type_complex = type_complex
+        # self.device = device
+        # self.type_complex = type_complex
         self.fft_type = fft_type
         self.improve_dft = improve_dft
 
@@ -170,7 +170,7 @@ class RCWATorch(_BaseRCWA):
 
         return field_cell
 
-    def calculate_field_all(self, resolution=None, plot=True):
+    def calculate_field_all(self, resolution=None, plot=False):
 
         if self.grating_type == 0:
             resolution = [100, 1, 100] if not resolution else resolution
@@ -257,8 +257,9 @@ class RCWATorch(_BaseRCWA):
                                                        type_complex=self.type_complex, type_float=self.type_float)
             print('kji vector', time.time() - t0)
 
-            print('gap: ', torch.linalg.norm(field_cell1 - field_cell0))
-            print('gap: ', torch.linalg.norm(field_cell2 - field_cell0))
+            print('gap(1-0): ', torch.linalg.norm(field_cell1 - field_cell0))
+            print('gap(2-1): ', torch.linalg.norm(field_cell2 - field_cell1))
+            print('gap(0-2): ', torch.linalg.norm(field_cell0 - field_cell2))
 
         if plot:
             field_plot(field_cell0, self.pol)
