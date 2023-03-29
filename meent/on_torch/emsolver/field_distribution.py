@@ -1,15 +1,5 @@
 import torch
 
-# tODO: where is this used?
-def field_distribution(grating_type, *args, **kwargs):
-    if grating_type == 0:
-        res = field_dist_1d_vanilla(*args, **kwargs)
-    elif grating_type == 1:
-        res = field_dist_1d_conical_vanilla(*args, **kwargs)
-    else:
-        res = field_dist_2d_vanilla(*args, **kwargs)
-    return res
-
 
 def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, period,
                                 pol, resolution=(100, 1, 100), type_complex=torch.complex128, type_float=torch.float64):

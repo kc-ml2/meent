@@ -6,7 +6,6 @@ import numpy as np
 
 from meent.main import call_mee
 
-jax.config.update('jax_enable_x64', True)
 
 # common
 grating_type = 2  # 0: 1D, 1: 1D conical, 2:2D.

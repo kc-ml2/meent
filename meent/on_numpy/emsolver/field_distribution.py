@@ -1,15 +1,4 @@
-import scipy
 import numpy as np
-
-
-def field_distribution(grating_type, *args, **kwargs):
-    if grating_type == 0:
-        res = field_dist_1d_vectorized_ji(*args, **kwargs)
-    elif grating_type == 1:
-        res = field_dist_1d_conical_vectorized_ji(*args, **kwargs)
-    else:
-        res = field_dist_2d_vectorized_ji(*args, **kwargs)
-    return res
 
 
 def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, period,
