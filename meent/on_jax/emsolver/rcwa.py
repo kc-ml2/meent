@@ -49,8 +49,8 @@ class RCWAJax(_BaseRCWA):
         self.ucell_info_list = ucell_info_list
 
         self.backend = backend
-        self.device = device
-        self.type_complex = type_complex
+        # self.device = device
+        # self.type_complex = type_complex
         self.fft_type = fft_type
         self.improve_dft = improve_dft
 
@@ -152,6 +152,7 @@ class RCWAJax(_BaseRCWA):
         # self.kx_vector = kx_vector
         return de_ri, de_ti, layer_info_list, T1, kx_vector
 
+    @_BaseRCWA.jax_device_set
     def _conv_solve_no_jit(self):
 
         E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
@@ -163,6 +164,7 @@ class RCWAJax(_BaseRCWA):
 
         return de_ri, de_ti, layer_info_list, T1, kx_vector
 
+    @_BaseRCWA.jax_device_set
     def conv_solve(self, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
@@ -208,60 +210,58 @@ class RCWAJax(_BaseRCWA):
         de_ti = jnp.array(de_ti)
         return de_ri, de_ti
 
-    def calculate_field(self, resolution=None, plot=False, field_algo=2):
+    @_BaseRCWA.jax_device_set
+    def calculate_field(self, res_x=20, res_y=20, res_z=20, plot=False, field_algo=2):
 
         if self.grating_type == 0:
-            resolution = [100, 1, 100] if not resolution else resolution
 
             if field_algo == 0:
                 field_cell = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
                                                    self.T1, self.layer_info_list, self.period, self.pol,
-                                                   resolution=resolution, type_complex=self.type_complex)
+                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.T1, self.layer_info_list,
-                                                         self.period, self.pol, resolution=resolution,
+                                                         self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
                                                          type_complex=self.type_complex)
             elif field_algo == 2:
                 field_cell = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector, self.T1,
                                                           self.layer_info_list, self.period, self.pol,
-                                                          resolution=resolution, type_complex=self.type_complex)
+                                                          res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             else:
                 raise ValueError
 
         elif self.grating_type == 1:
-            resolution = [100, 1, 100] if not resolution else resolution
 
             if field_algo == 0:
                 field_cell = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                            self.phi, self.T1, self.layer_info_list, self.period,
-                                                           resolution=resolution, type_complex=self.type_complex)
+                                                           res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                                  self.phi, self.T1, self.layer_info_list, self.period,
-                                                                 resolution=resolution, type_complex=self.type_complex)
+                                                                 res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             elif field_algo == 2:
                 field_cell = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                                   self.phi, self.T1, self.layer_info_list, self.period,
-                                                                  resolution=resolution, type_complex=self.type_complex)
+                                                                  res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             else:
                 raise ValueError
 
         elif self.grating_type == 2:
-            resolution = [10, 10, 10] if not resolution else resolution
 
             if field_algo == 0:
                 field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
                                                    *self.fourier_order, self.T1, self.layer_info_list, self.period,
-                                                   resolution=resolution, type_complex=self.type_complex)
+                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                          self.phi, *self.fourier_order, self.T1, self.layer_info_list,
-                                                         self.period, resolution=resolution,
+                                                         self.period, res_x=res_x, res_y=res_y, res_z=res_z,
                                                          type_complex=self.type_complex)
             elif field_algo == 2:
                 field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                           self.phi, *self.fourier_order, self.T1, self.layer_info_list,
-                                                          self.period, resolution=resolution,
+                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z,
                                                           type_complex=self.type_complex)
             else:
                 raise ValueError
@@ -273,29 +273,29 @@ class RCWAJax(_BaseRCWA):
 
         return field_cell
 
-    def calculate_field_all(self, resolution=None, plot=False):
+    @_BaseRCWA.jax_device_set
+    def calculate_field_all(self, res_x=20, res_y=20, res_z=20, plot=False):
 
         if self.grating_type == 0:
-            resolution = [100, 1, 100] if not resolution else resolution
 
             t0 = time.time()
             field_cell0 = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
                                                 self.T1, self.layer_info_list, self.period, self.pol,
-                                                resolution=resolution,
+                                                res_x=res_x, res_y=res_y, res_z=res_z,
                                                 type_complex=self.type_complex)
             print('no vector', time.time() - t0)
 
             t0 = time.time()
             field_cell1 = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector,
                                                       self.T1, self.layer_info_list, self.period, self.pol,
-                                                      resolution=resolution,
+                                                      res_x=res_x, res_y=res_y, res_z=res_z,
                                                       type_complex=self.type_complex)
             print('ji vector', time.time() - t0)
 
             t0 = time.time()
             field_cell2 = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector,
                                                        self.T1, self.layer_info_list, self.period, self.pol,
-                                                       resolution=resolution,
+                                                       res_x=res_x, res_y=res_y, res_z=res_z,
                                                        type_complex=self.type_complex)
             print('kji vector', time.time() - t0)
 
@@ -303,12 +303,11 @@ class RCWAJax(_BaseRCWA):
             print('gap: ', jnp.linalg.norm(field_cell2 - field_cell0))
 
         elif self.grating_type == 1:
-            resolution = [100, 1, 100] if not resolution else resolution
 
             t0 = time.time()
             field_cell0 = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
                                                         self.T1, self.layer_info_list, self.period,
-                                                        resolution=resolution,
+                                                        res_x=res_x, res_y=res_y, res_z=res_z,
                                                         type_complex=self.type_complex)
             print('no vector', time.time() - t0)
 
@@ -316,7 +315,7 @@ class RCWAJax(_BaseRCWA):
             field_cell1 = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                               self.phi,
                                                               self.T1, self.layer_info_list, self.period,
-                                                              resolution=resolution,
+                                                              res_x=res_x, res_y=res_y, res_z=res_z,
                                                               type_complex=self.type_complex)
             print('ji vector', time.time() - t0)
 
@@ -324,7 +323,7 @@ class RCWAJax(_BaseRCWA):
             field_cell2 = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                                self.phi,
                                                                self.T1, self.layer_info_list, self.period,
-                                                               resolution=resolution,
+                                                               res_x=res_x, res_y=res_y, res_z=res_z,
                                                                type_complex=self.type_complex)
             print('kji vector', time.time() - t0)
 
@@ -332,20 +331,19 @@ class RCWAJax(_BaseRCWA):
             print('gap: ', jnp.linalg.norm(field_cell2 - field_cell0))
 
         else:
-            resolution = [10, 10, 10] if not resolution else resolution
 
             t0 = time.time()
             field_cell0 = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                 self.phi, *self.fourier_order,
                                                 self.T1, self.layer_info_list, self.period,
-                                                resolution=resolution,
+                                                res_x=res_x, res_y=res_y, res_z=res_z,
                                                 type_complex=self.type_complex)
             print('no vector', time.time() - t0)
 
             t0 = time.time()
             field_cell1 = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
                                                       *self.fourier_order,
-                                                      self.T1, self.layer_info_list, self.period, resolution=resolution,
+                                                      self.T1, self.layer_info_list, self.period, res_x=res_x, res_y=res_y, res_z=res_z,
                                                       type_complex=self.type_complex)
             print('ji vector', time.time() - t0)
 
@@ -353,7 +351,7 @@ class RCWAJax(_BaseRCWA):
             field_cell2 = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                        self.phi, *self.fourier_order,
                                                        self.T1, self.layer_info_list, self.period,
-                                                       resolution=resolution,
+                                                       res_x=res_x, res_y=res_y, res_z=res_z,
                                                        type_complex=self.type_complex)
             print('kji vector', time.time() - t0)
 
@@ -367,32 +365,106 @@ class RCWAJax(_BaseRCWA):
 
         return
 
-    @jax.jit
-    def conv_solve_calculate_field(self, resolution=None, plot=False):
-        self._conv_solve()
+    # @jax.jit
+    # TODO: pytree?
+    @partial(jax.jit, static_argnums=(1, 2, 3, 4))
+    def conv_solve_calculate_field(self, res_x=20, res_y=20, res_z=20, plot=False, field_algo=2):
+        de_ri, de_ti = self.conv_solve()  # TODO:self._conv_solve(). we need this?
+        # if self.grating_type == 0:
+        #     resolution = [100, 1, 100] if not resolution else resolution
+        #     field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
+        #                                              self.fourier_order, self.T1,
+        #                                              self.layer_info_list, self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
+        #                                              type_complex=self.type_complex)
+        # elif self.grating_type == 1:
+        #     resolution = [100, 1, 100] if not resolution else resolution
+        #     field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
+        #                                                      self.phi,
+        #                                                      self.fourier_order, self.T1, self.layer_info_list,
+        #                                                      self.period,
+        #                                                      res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        #
+        # else:
+        #     resolution = [10, 10, 10] if not resolution else resolution
+        #     field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+        #                                              self.fourier_order, self.T1, self.layer_info_list, self.period,
+        #                                              res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+
         if self.grating_type == 0:
+            # import numpy as np
+            # resolution = np.array([100, 1, 100]) if not resolution else resolution
 
-            resolution = [100, 1, 100] if not resolution else resolution
-            field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                     self.fourier_order, self.T1,
-                                                     self.layer_info_list, self.period, self.pol, resolution=resolution,
-                                                     type_complex=self.type_complex)
+            if field_algo == 0:
+                field_cell = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
+                                                   self.T1, self.layer_info_list, self.period, self.pol,
+                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+            elif field_algo == 1:
+                field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.T1, self.layer_info_list,
+                                                         self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
+                                                         type_complex=self.type_complex)
+            elif field_algo == 2:
+                # @partial(jax.jit, static_argnums=(5, 6, 7, 8, 9))
+
+                # jitted = jax.jit(field_dist_1d_vectorized_kji, static_argnums=(5,6,7,8,9))
+                # field_cell = jitted(self.wavelength, self.kx_vector, self.T1,
+                #                                           self.layer_info_list, self.period, self.pol,
+                #                                           res_x=res_x, res_y=res_y, res_z=res_z,
+                #                                           type_complex=self.type_complex)
+
+                field_cell = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector, self.T1,
+                                                          self.layer_info_list, self.period, self.pol,
+                                                          res_x=res_x, res_y=res_y, res_z=res_z,
+                                                          type_complex=self.type_complex)
+
+                # field_cell = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector, self.T1,
+                #                                           self.layer_info_list, self.period, self.pol,
+                #                                           res_x=res_x, res_y=res_y, res_z=res_z,
+                #                                           type_complex=self.type_complex)
+            else:
+                raise ValueError
+
         elif self.grating_type == 1:
-            resolution = [100, 1, 100] if not resolution else resolution
-            field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                             self.phi,
-                                                             self.fourier_order, self.T1, self.layer_info_list,
-                                                             self.period,
-                                                             resolution=resolution, type_complex=self.type_complex)
 
+            if field_algo == 0:
+                field_cell = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
+                                                           self.phi, self.T1, self.layer_info_list, self.period,
+                                                           res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+            elif field_algo == 1:
+                field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
+                                                                 self.phi, self.T1, self.layer_info_list, self.period,
+                                                                 res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+            elif field_algo == 2:
+                field_cell = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
+                                                                  self.phi, self.T1, self.layer_info_list, self.period,
+                                                                  res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+            else:
+                raise ValueError
+
+        elif self.grating_type == 2:
+
+            if field_algo == 0:
+                field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
+                                                   *self.fourier_order, self.T1, self.layer_info_list, self.period,
+                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+            elif field_algo == 1:
+                field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
+                                                         self.phi, *self.fourier_order, self.T1, self.layer_info_list,
+                                                         self.period, res_x=res_x, res_y=res_y, res_z=res_z,
+                                                         type_complex=self.type_complex)
+            elif field_algo == 2:
+                field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
+                                                          self.phi, *self.fourier_order, self.T1, self.layer_info_list,
+                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z,
+                                                          type_complex=self.type_complex)
+            else:
+                raise ValueError
         else:
-            resolution = [10, 10, 10] if not resolution else resolution
-            field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-                                                     self.fourier_order, self.T1, self.layer_info_list, self.period,
-                                                     resolution=resolution, type_complex=self.type_complex)
+            raise ValueError
+
+
         if plot:
             field_plot(field_cell, self.pol)
-        return field_cell
+        return de_ri, de_ti, field_cell
 
     # def generate_spectrum(self, wl_list):
     #     ucell = deepcopy(self.ucell)

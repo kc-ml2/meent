@@ -1,4 +1,7 @@
+import functools
+
 import jax
+
 import jax.numpy as jnp
 import numpy as np
 
@@ -22,8 +25,12 @@ class _BaseRCWA:
         # TODO: how should this be handled...
         if device == 0:
             self._device = 'cpu'
+            self._device = jax.devices('cpu')
         elif device == 1:
             self._device = 'gpu'
+            self._device = jax.devices('gpu')
+        elif type(device) is list and (str(type(device[0])) == "<class 'jaxlib.xla_extension.Device'>"):
+            self._device = device
         else:
             raise ValueError
 
@@ -71,14 +78,26 @@ class _BaseRCWA:
 
     @device.setter
     def device(self, device):
-        # TODO: implement
         if device == 0:
             self._device = 'cpu'
+            self._device = jax.devices('cpu')
         elif device == 1:
             self._device = 'gpu'
+            self._device = jax.devices('gpu')
+        elif type(device) is list and (str(type(device[0])) == "<class 'jaxlib.xla_extension.Device'>"):
+            self._device = device
         else:
             raise ValueError
-        jax.config.update('jax_platform_name', self.device)
+
+        # # TODO: implement
+        # if device == 0:
+        #     self._device = 'cpu'
+        # elif device == 1:
+        #     self._device = 'gpu'
+        # else:
+        #     raise ValueError
+        # # jax.config.update('jax_platform_name', self.device)
+        # self._device = jax.devices(self.device)
 
     @property
     def type_complex(self):
@@ -183,12 +202,24 @@ class _BaseRCWA:
         elif type(thickness) is jnp.ndarray:
             self._thickness = jnp.array(thickness, dtype=self.type_float)
         elif thickness.dtype in ['int', 'float']:
-            self._thickness = jnp.array(thickness, dtype=self.type_float)
+            self._thickness = jnp.array(thickness, dtype=self.type_float)  # Todo: other wrappers
+        elif type(thickness) is jax.interpreters.partial_eval.DynamicJaxprTracer:
+            self._thickness = thickness
         else:
             raise ValueError
 
-    def get_kx_vector(self, wavelength):
+    @staticmethod
+    def jax_device_set(func):
+        @functools.wraps(func)
+        def wrap(*args, **kwargs):
+            self, *_ = args
+            with jax.default_device(self.device[0]):
+                res = func(*args, **kwargs)
+                return res
+        return wrap
 
+    @jax_device_set
+    def get_kx_vector(self, wavelength):
         k0 = 2 * jnp.pi / wavelength
         fourier_indices = jnp.arange(-self.fourier_order[0], self.fourier_order[0] + 1)
         if self.grating_type == 0:
@@ -202,6 +233,7 @@ class _BaseRCWA:
 
         return kx_vector
 
+    @jax_device_set
     def solve_1d(self, wavelength, E_conv_all, o_E_conv_all):
         self.layer_info_list = []
         self.T1 = None
@@ -275,6 +307,7 @@ class _BaseRCWA:
 
         return de_ri, de_ti, self.layer_info_list, self.T1
 
+    @jax_device_set
     def solve_1d_conical(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
@@ -329,6 +362,7 @@ class _BaseRCWA:
 
         return de_ri, de_ti, self.layer_info_list, self.T1
 
+    @jax_device_set
     def solve_2d(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []

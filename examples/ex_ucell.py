@@ -32,9 +32,9 @@ thickness = [500]
 ucell_materials = [1, 'p_si__real']
 period = [1000, 1000]
 
-fourier_order = [20, 2]
+fourier_order = [20, 10]
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
-n_iter_de = 1
+n_iter_de = 2
 n_iter_field = 2
 
 
@@ -54,6 +54,7 @@ def run_test(grating_type, backend, dtype, device):
 
     elif backend == 1:
         # JAX
+
         if device == 0:
             jax.config.update('jax_platform_name', 'cpu')
         else:
@@ -66,8 +67,8 @@ def run_test(grating_type, backend, dtype, device):
         else:
             type_complex = jnp.complex64
 
-        # from meent.on_jax.modeler.modeling import ModelingJax
-        # ucell = ModelingJax().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, type_complex)
+        from meent.on_jax.modeler.modeling import ModelingJax
+        ucell = ModelingJax().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, type_complex)
 
     else:
         # Torch
@@ -89,18 +90,22 @@ def run_test(grating_type, backend, dtype, device):
                          ucell_materials=ucell_materials,
                          thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
 
-    mee.device = 1
+    # mee.device = 1
     # mee.type_complex = 1
 
-    for i in range(n_iter_de):
-        t0 = time.time()
-        de_ri, de_ti = mee.conv_solve()
-        # print(de_ri)
-        print(f'run_cell: {i}: ', time.time() - t0)
+    # for i in range(n_iter_de):
+    #     t0 = time.time()
+    #     de_ri, de_ti = mee.conv_solve()
+    #     # print(de_ri)
+    #     print(f'run_cell: {i}: ', time.time() - t0)
     resolution = (20, 20, 20)
+    # for i in range(n_iter_field):
+    #     t0 = time.time()
+    #     mee.calculate_field(res_x=resolution[0], res_y=resolution[1], res_z=resolution[2], plot=False)
+    #     print(f'cal_field: {i}', time.time() - t0)
     for i in range(n_iter_field):
         t0 = time.time()
-        mee.calculate_field_all(resolution=resolution, plot=False)
+        de_ri, de_ti, field_cell = mee.conv_solve_calculate_field(res_x=resolution[0], res_y=resolution[1], res_z=resolution[2], plot=False)
         print(f'cal_field: {i}', time.time() - t0)
 
     # center = np.array(de_ri.shape) // 2
@@ -188,5 +193,5 @@ def load_ucell(grating_type):
 
 
 if __name__ == '__main__':
-    run_loop([0,1,2], [1], [0], [0])
+    run_loop([0], [1], [0], [0])
     # run_loop([0,1,2], [0,1,2], [0], [0])
