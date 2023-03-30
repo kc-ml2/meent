@@ -54,42 +54,14 @@ class _BaseRCWA:
         self.phi = phi
         self.pol = pol
         self._psi = torch.tensor((torch.pi / 2 * (1 - pol)), device=self.device, dtype=self.type_float)
-        # self._theta = torch.tensor(theta, device=self.device, dtype=self.type_float)
-        # self._theta = torch.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
-        # self._phi = torch.tensor(phi, device=self.device, dtype=self.type_float)
 
-        # self._pol = pol  # TE 0, TM 1
-        # self.psi = torch.tensor((torch.pi / 2 * (1 - pol)), device=self.device, dtype=self.type_float)
-
-        # fourier_order
         self.fourier_order = fourier_order
-
-        # if type(fourier_order) in (int, float):
-        #     self._fourier_order = [int(fourier_order), 0]
-        # elif len(fourier_order) == 1:
-        #     self._fourier_order = [int(fourier_order[0]), 0]
-        # else:
-        #     self._fourier_order = [int(v) for v in fourier_order]
-
-        self.period = deepcopy(period)  # TODO: deepcopy?
-
+        self.period = deepcopy(period)
         self.wavelength = wavelength
-
-        # thickness
         self.thickness = thickness
-
-        # if type(thickness) in (int, float):
-        #     self._thickness = torch.tensor([thickness], device=self.device, dtype=self.type_float)
-        # elif type(thickness) in (list, np.ndarray, torch.Tensor):
-        #     self._thickness = torch.tensor(thickness, device=self.device, dtype=self.type_float)
-        # else:
-        #     raise ValueError
-
         self.algo = algo
-
         self.layer_info_list = []
         self.T1 = None
-
         self.kx_vector = None  # only kx, not ky, because kx is always used while ky is 2D only.
 
     @property
@@ -159,6 +131,12 @@ class _BaseRCWA:
 
     @pol.setter
     def pol(self, pol):
+        room = 1E-6
+        if 1 < pol < 1 + room:
+            pol = 1
+        elif 0 - room < pol < 0:
+            pol = 0
+
         if not 0 <= pol <= 1:
             raise ValueError
 

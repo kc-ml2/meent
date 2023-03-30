@@ -66,8 +66,8 @@ def run_test(grating_type, backend, dtype, device):
         else:
             type_complex = jnp.complex64
 
-        from meent.on_jax.modeler.modeling import ModelingJax
-        ucell = ModelingJax().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, type_complex)
+        # from meent.on_jax.modeler.modeling import ModelingJax
+        # ucell = ModelingJax().put_refractive_index_in_ucell(ucell, ucell_materials, wavelength, type_complex)
 
     else:
         # Torch
@@ -89,8 +89,8 @@ def run_test(grating_type, backend, dtype, device):
                          ucell_materials=ucell_materials,
                          thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
 
-    # mee.device = 0
-    mee.type_complex = 1
+    mee.device = 1
+    # mee.type_complex = 1
 
     for i in range(n_iter_de):
         t0 = time.time()
@@ -188,5 +188,5 @@ def load_ucell(grating_type):
 
 
 if __name__ == '__main__':
-    run_loop([0,1,2], [0], [0], [0])
+    run_loop([0,1,2], [1], [0], [0])
     # run_loop([0,1,2], [0,1,2], [0], [0])

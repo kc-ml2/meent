@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from copy import deepcopy
 
@@ -17,52 +18,144 @@ class _BaseRCWA:
                  thickness=None, algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=jnp.complex128):
 
-        self.device = device
-        self.type_complex = type_complex
+        # device
+        # TODO: how should this be handled...
+        if device == 0:
+            self._device = 'cpu'
+        elif device == 1:
+            self._device = 'gpu'
+        else:
+            raise ValueError
 
+        # type_complex
+        if type_complex == 0:
+            self._type_complex = np.complex128
+        elif type_complex == 1:
+            self._type_complex = np.complex64
+        elif type_complex in (jnp.complex128, jnp.complex64):
+            self._type_complex = type_complex
+        elif type(type_complex) is np.dtype:
+            if type_complex != np.complex128:
+                self._type_complex = jnp.complex64
+            else:
+                self._type_complex = jnp.complex128
+        else:
+            raise ValueError
         # currently these two are not used. Only TorchMeent uses.
-        self.type_float = jnp.float64 if self.type_complex is not jnp.complex64 else jnp.float32
-        self.type_int = jnp.int64 if self.type_complex is not jnp.complex64 else jnp.int32
+        self._type_float = jnp.float64 if self._type_complex is not jnp.complex64 else jnp.float32
+        self._type_int = jnp.int64 if self._type_complex is not jnp.complex64 else jnp.int32
+        self.perturbation = perturbation
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
-
         self.n_I = n_I
         self.n_II = n_II
 
         # degree to radian due to JAX JIT
-        self.theta = jnp.array(theta)
-        self.phi = jnp.array(phi)
-        self.psi = jnp.array(psi)  # TODO: integrate psi and pol
+        self.theta = theta
+        self.phi = phi
+        self.pol = pol
+        self._psi = jnp.array((jnp.pi / 2 * (1 - pol)), dtype=self.type_float)
 
-        self.pol = pol  # TE 0, TM 1
-        if self.pol == 0:  # TE
-            self.psi = jnp.pi / 2
-        elif self.pol == 1:  # TM
-            self.psi = 0
-        else:
-            print('not implemented yet')
-            raise ValueError
-
-        if type(fourier_order) == int:
-            self._fourier_order = [fourier_order, 0]
-        elif len(fourier_order) == 1:
-            self._fourier_order = list(fourier_order) + [0]
-        else:
-            self._fourier_order = [int(v) for v in fourier_order]
-
+        self.fourier_order = fourier_order
         self.period = deepcopy(period)
-
         self.wavelength = wavelength
-        self.thickness = deepcopy(thickness)
-
+        self.thickness = thickness
         self.algo = algo
-        self.perturbation = perturbation
-
         self.layer_info_list = []
         self.T1 = None
-
-        self.theta = jnp.where(self.theta == 0, self.perturbation, self.theta)  # perturbation
         self.kx_vector = None  # only kx, not ky, because kx is always used while ky is 2D only.
+
+    @property
+    def device(self):
+        return self._device
+
+    @device.setter
+    def device(self, device):
+        # TODO: implement
+        if device == 0:
+            self._device = 'cpu'
+        elif device == 1:
+            self._device = 'gpu'
+        else:
+            raise ValueError
+        jax.config.update('jax_platform_name', self.device)
+
+    @property
+    def type_complex(self):
+        return self._type_complex
+
+    @type_complex.setter
+    def type_complex(self, type_complex):
+        if type_complex == 0:
+            self._type_complex = np.complex128
+        elif type_complex == 1:
+            self._type_complex = np.complex64
+        elif type_complex in (jnp.complex128, jnp.complex64):
+            self._type_complex = type_complex
+        elif type(type_complex) is np.dtype:
+            if type_complex != np.complex128:
+                self._type_complex = jnp.complex64
+            else:
+                self._type_complex = jnp.complex128
+        else:
+            raise ValueError
+
+        self._type_float = np.float64 if self.type_complex is not np.complex64 else np.float32
+        self._type_int = np.int64 if self.type_complex is not np.complex64 else np.int32
+        self.theta = self.theta
+        self.phi = self.phi
+        self._psi = self.psi
+
+        self.fourier_order = self.fourier_order
+        self.thickness = self.thickness
+
+    @property
+    def type_float(self):
+        return self._type_float
+
+    @property
+    def type_int(self):
+        return self._type_int
+
+    @property
+    def pol(self):
+        return self._pol
+
+    @pol.setter
+    def pol(self, pol):
+        room = 1E-6
+        if 1 < pol < 1 + room:
+            pol = 1
+        elif 0 - room < pol < 0:
+            pol = 0
+
+        if not 0 <= pol <= 1:
+            raise ValueError
+
+        self._pol = pol
+        psi = np.pi / 2 * (1 - self.pol)
+        self._psi = np.array(psi, dtype=self.type_float)
+
+    @property
+    def theta(self):
+        return self._theta
+
+    @theta.setter
+    def theta(self, theta):
+        self._theta = jnp.array(theta, dtype=self.type_float)
+        self._theta = jnp.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
+
+    @property
+    def phi(self):
+        return self._phi
+
+    @phi.setter
+    def phi(self, phi):
+        self._phi = jnp.array(phi, dtype=self.type_float)
+
+    @property
+    def psi(self):
+        return self._psi
 
     @property
     def fourier_order(self):
@@ -70,12 +163,29 @@ class _BaseRCWA:
 
     @fourier_order.setter
     def fourier_order(self, fourier_order):
-        if type(fourier_order) is int:
-            self._fourier_order = [fourier_order, 0]
+        if type(fourier_order) in (int, float):
+            self._fourier_order = np.array([fourier_order, 0])
         elif len(fourier_order) == 1:
-            self._fourier_order = list(fourier_order) + [0]
+            self._fourier_order = np.array([int(fourier_order[0]), 0])
         else:
-            self._fourier_order = [int(v) for v in fourier_order]
+            self._fourier_order = np.array([int(v) for v in fourier_order])
+
+    @property
+    def thickness(self):
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, thickness):
+        if type(thickness) in (int, float):
+            self._thickness = jnp.array([thickness], dtype=self.type_float)
+        elif type(thickness) in (list, np.ndarray):
+            self._thickness = jnp.array(thickness, dtype=self.type_float)
+        elif type(thickness) is jnp.ndarray:
+            self._thickness = jnp.array(thickness, dtype=self.type_float)
+        elif thickness.dtype in ['int', 'float']:
+            self._thickness = jnp.array(thickness, dtype=self.type_float)
+        else:
+            raise ValueError
 
     def get_kx_vector(self, wavelength):
 

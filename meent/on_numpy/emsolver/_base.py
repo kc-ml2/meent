@@ -12,7 +12,7 @@ class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
                  period=(100, 100), wavelength=900,
                  thickness=None, algo='TMM', perturbation=1E-10,
-                 type_complex=np.complex128, *args, **kwargs):  # TODO: remove psi for all bds.
+                 type_complex=np.complex128, *args, **kwargs):  # TODO: remove psi for all bds.(check usage too)
 
         self._device = 'cpu'
 
@@ -39,37 +39,15 @@ class _BaseRCWA:
         self.theta = theta
         self.phi = phi
         self.pol = pol
-        self._psi = np.array(np.pi / 2 * (1 - pol), dtype=self.type_float)
+        self._psi = np.array((np.pi / 2 * (1 - pol)), dtype=self.type_float)
 
-        # if self.pol == 0:  # TE
-        #     self.psi = np.pi / 2
-        # elif self.pol == 1:  # TM
-        #     self.psi = 0
-        # else:
-        #     print('not implemented yet')
-        #     raise ValueError
-
-        # fourier_order
         self.fourier_order = fourier_order
-
-        # if type(fourier_order) == int:
-        #     self._fourier_order = [fourier_order, 0]
-        # elif len(fourier_order) == 1:
-        #     self._fourier_order = list(fourier_order) + [0]
-        # else:
-        #     self._fourier_order = [int(v) for v in fourier_order]
-
         self.period = deepcopy(period)
-
         self.wavelength = wavelength
         self.thickness = thickness
-
         self.algo = algo
-
         self.layer_info_list = []
         self.T1 = None
-
-        # self.theta = np.where(self.theta == 0, self.perturbation, self.theta)  # perturbation
         self.kx_vector = None  # only kx, not ky, because kx is always used while ky is 2D only.
 
     @property
@@ -118,6 +96,12 @@ class _BaseRCWA:
 
     @pol.setter
     def pol(self, pol):
+        room = 1E-6
+        if 1 < pol < 1 + room:
+            pol = 1
+        elif 0 - room < pol < 0:
+            pol = 0
+
         if not 0 <= pol <= 1:
             raise ValueError
 
@@ -152,17 +136,8 @@ class _BaseRCWA:
 
     @fourier_order.setter
     def fourier_order(self, fourier_order):
-        if type(fourier_order) == int:
-            self._fourier_order = [fourier_order, 0]
-        elif len(fourier_order) == 1:
-            self._fourier_order = list(fourier_order) + [0]
-        else:
-            self._fourier_order = [int(v) for v in fourier_order]
-
-    @fourier_order.setter
-    def fourier_order(self, fourier_order):
         if type(fourier_order) in (int, float):
-            self._fourier_order = np.arrau([int(fourier_order), 0])
+            self._fourier_order = np.array([int(fourier_order), 0])
         elif len(fourier_order) == 1:
             self._fourier_order = np.array([int(fourier_order[0]), 0])
         else:

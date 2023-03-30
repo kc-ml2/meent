@@ -164,7 +164,7 @@ class RCWAJax(_BaseRCWA):
         return de_ri, de_ti, layer_info_list, T1, kx_vector
 
     def conv_solve(self, **kwargs):
-        [setattr(self, k, v) for k, v in kwargs.items()]  # TODO: need this? for optimization?
+        [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
         if self.fft_type == 1:
             de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve_no_jit()
