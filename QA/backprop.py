@@ -130,8 +130,7 @@ def optimize_jax_ucell_metasurface(mode_key, dtype, device):
     @jax.grad
     def grad_loss(ucell):
         mee.ucell = ucell
-        # de_ri, de_ti, _, _, _ = mee._conv_solve()
-        de_ri, de_ti = mee.conv_solve()  # tODO: what happened?
+        de_ri, de_ti, _, _, _ = mee._conv_solve()
 
         # E_conv_all = to_conv_mat_discrete(ucell, *fourier_order, type_complex=type_complex)
         # o_E_conv_all = to_conv_mat_discrete(1 / ucell, *fourier_order, type_complex=type_complex)
@@ -149,15 +148,20 @@ def optimize_jax_ucell_metasurface(mode_key, dtype, device):
                 for c in range(ucell.shape[2]):
                     ucell_delta_m = ucell.at[layer, r, c].set(ucell[layer, r, c] - delta)
 
-                    E_conv_all_m = to_conv_mat_discrete(ucell_delta_m, *fourier_order, type_complex=type_complex)
-                    o_E_conv_all_m = to_conv_mat_discrete(1 / ucell_delta_m, *fourier_order, type_complex=type_complex)
-                    de_ri_delta_m, de_ti_delta_m = mee.solve(wavelength, E_conv_all_m, o_E_conv_all_m)
+                    # E_conv_all_m = to_conv_mat_discrete(ucell_delta_m, *fourier_order, type_complex=type_complex)
+                    # o_E_conv_all_m = to_conv_mat_discrete(1 / ucell_delta_m, *fourier_order, type_complex=type_complex)
+                    # de_ri_delta_m, de_ti_delta_m = mee.solve(wavelength, E_conv_all_m, o_E_conv_all_m)
+                    mee.ucell = ucell_delta_m
+                    de_ri_delta_m, de_ti_delta_m, _, _, _ = mee._conv_solve()
 
                     ucell_delta_p = ucell.at[layer, r, c].set(ucell[layer, r, c] + delta)
 
-                    E_conv_all_p = to_conv_mat_discrete(ucell_delta_p, *fourier_order, type_complex=type_complex)
-                    o_E_conv_all_p = to_conv_mat_discrete(1 / ucell_delta_p, *fourier_order, type_complex=type_complex)
-                    de_ri_delta_p, de_ti_delta_p = mee.solve(wavelength, E_conv_all_p, o_E_conv_all_p)
+                    # E_conv_all_p = to_conv_mat_discrete(ucell_delta_p, *fourier_order, type_complex=type_complex)
+                    # o_E_conv_all_p = to_conv_mat_discrete(1 / ucell_delta_p, *fourier_order, type_complex=type_complex)
+                    # de_ri_delta_p, de_ti_delta_p = mee.solve(wavelength, E_conv_all_p, o_E_conv_all_p)
+
+                    mee.ucell = ucell_delta_p
+                    de_ri_delta_p, de_ti_delta_p, _, _, _ = mee._conv_solve()
 
                     center = de_ti_delta_m.shape[0] // 2
                     grad_numeric = (de_ti_delta_p[center, center] - de_ti_delta_m[center, center]) / (2*delta)
