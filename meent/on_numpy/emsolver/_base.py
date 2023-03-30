@@ -12,9 +12,9 @@ class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
                  period=(100, 100), wavelength=900,
                  thickness=None, algo='TMM', perturbation=1E-10,
-                 type_complex=np.complex128, *args, **kwargs):  # TODO: remove psi for all bds.(check usage too)
+                 type_complex=np.complex128, *args, **kwargs):
 
-        self._device = 'cpu'
+        self._device = 0
 
         # type_complex
         if type_complex == 0:
@@ -161,14 +161,12 @@ class _BaseRCWA:
         k0 = 2 * np.pi / wavelength
         fourier_indices_x = np.arange(-self.fourier_order[0], self.fourier_order[0] + 1)
 
-        if self.grating_type == 0:  # TODO: need this?
+        if self.grating_type == 0:
             kx_vector = k0 * (self.n_I * np.sin(self.theta) + fourier_indices_x * (wavelength / self.period[0])
                               ).astype(self.type_complex)
         else:
             kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) + fourier_indices_x * (
                     wavelength / self.period[0])).astype(self.type_complex)
-
-        # kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector
 

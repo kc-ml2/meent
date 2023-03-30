@@ -3,11 +3,9 @@ import jax.numpy as jnp
 
 from functools import partial
 
-# TODO: resolution -> res_x, res_y, res_z; change the order accordingly in other functions. and other bds.
-
-@partial(jax.jit, static_argnums=(5, 6, 7))
+# @partial(jax.jit, static_argnums=(5, 6, 7, 8, 9))
 def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, period,
-                                pol, res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128):
+                                pol, res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128, type_float=jnp.float64):
 
     k0 = 2 * jnp.pi / wavelength
     Kx = jnp.diag(kx_vector / k0)
@@ -40,7 +38,7 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
                 Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 C = Kx @ Sy
 
-                x_1d = jnp.arange(res_x).reshape((1, -1, 1))
+                x_1d = jnp.arange(res_x, dtype=type_float).reshape((1, -1, 1))
                 x_1d = -1j * x_1d * period[0] / res_x
                 x_2d = jnp.tile(x_1d, (res_y, 1, 1))
                 x_2d = x_2d * kx_vector
@@ -61,7 +59,7 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
 
                 C = EKx @ Uy  # there is a better option for convergence
 
-                x_1d = jnp.arange(res_x).reshape((1, -1, 1))
+                x_1d = jnp.arange(res_x, dtype=type_float).reshape((1, -1, 1))
                 x_1d = -1j * x_1d * period[0] / res_x
                 x_2d = jnp.tile(x_1d, (res_y, 1, 1))
                 x_2d = x_2d * kx_vector
@@ -83,9 +81,9 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
     return field_cell
 
 
-@partial(jax.jit, static_argnums=(8, 9))
+# @partial(jax.jit, static_argnums=(8, 9, 10, 11))
 def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                        res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128):
+                                        res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128, type_float=jnp.float64):
 
     k0 = 2 * jnp.pi / wavelength
     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
@@ -131,7 +129,7 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
 
             Uz = -1j * (Kx @ Sy - ky * Sx)
 
-            x_1d = jnp.arange(res_x).reshape((1, -1, 1))
+            x_1d = jnp.arange(res_x, dtype=type_float).reshape((1, -1, 1))
             x_1d = -1j * x_1d * period[0] / res_x
             x_2d = jnp.tile(x_1d, (res_y, 1, 1))
             x_2d = x_2d * kx_vector
@@ -157,13 +155,13 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
     return field_cell
 
 
-@partial(jax.jit, static_argnums=(5, 6, 10, 11))
+# @partial(jax.jit, static_argnums=(5, 6, 10, 11, 12, 13))
 def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                                res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128):
+                                res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128, type_float=jnp.float64):
 
     k0 = 2 * jnp.pi / wavelength
 
-    fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
+    fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
@@ -213,8 +211,8 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
 
             Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
-            x_1d = jnp.arange(res_x).reshape((1, -1, 1))
-            y_1d = jnp.arange(res_y).reshape((-1, 1, 1))
+            x_1d = jnp.arange(res_x, dtype=type_float).reshape((1, -1, 1))
+            y_1d = jnp.arange(res_y, dtype=type_float).reshape((-1, 1, 1))
 
             x_1d = -1j * x_1d * period[0] / res_x
             y_1d = -1j * y_1d * period[1] / res_y
@@ -248,9 +246,8 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
     return field_cell
 
 
-# @partial(jax.jit, static_argnums=(5, 6, 7, 8, 9))
-def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, period,
-                                 pol, res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128):
+def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, period, pol, res_x=20, res_y=20, res_z=20,
+                                 type_complex=jnp.complex128, type_float=jnp.float64):
 
     k0 = 2 * jnp.pi / wavelength
     Kx = jnp.diag(kx_vector / k0)
@@ -275,14 +272,14 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
             V = E_conv_i @ W @ Q
             EKx = E_conv_i @ Kx
 
-        z_1d = jnp.arange(res_z).reshape((-1, 1, 1)) / res_z * d
+        z_1d = jnp.arange(res_z, dtype=type_float).reshape((-1, 1, 1)) / res_z * d
 
         if pol == 0:
             Sy = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
             Ux = V @ (-diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
             C = Kx @ Sy
 
-            x_1d = jnp.arange(res_x).reshape((1, -1, 1))
+            x_1d = jnp.arange(res_x, dtype=type_float).reshape((1, -1, 1))
             x_1d = -1j * x_1d * period[0] / res_x
             x_2d = jnp.tile(x_1d, (res_y, 1, 1))
             x_2d = x_2d * kx_vector
@@ -303,7 +300,7 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
 
             C = EKx @ Uy  # there is a better option for convergence
 
-            x_1d = jnp.arange(res_x).reshape((1, -1, 1))
+            x_1d = jnp.arange(res_x, dtype=type_float).reshape((1, -1, 1))
             x_1d = -1j * x_1d * period[0] / res_x
             x_2d = jnp.tile(x_1d, (res_y, 1, 1))
             x_2d = x_2d * kx_vector
@@ -325,9 +322,10 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
     return field_cell
 
 
-@partial(jax.jit, static_argnums=(8, 9))
+# @partial(jax.jit, static_argnums=(8, 9, 10, 11))
 def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                         res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128):
+                                         res_x=20, res_y=20, res_z=20,
+                                         type_complex=jnp.complex128, type_float=jnp.float64):
 
     k0 = 2 * jnp.pi / wavelength
     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
@@ -345,7 +343,7 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
 
         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
 
-        z_1d = jnp.arange(res_z).reshape((-1, 1, 1)) / res_z * d
+        z_1d = jnp.arange(res_z, dtype=type_float).reshape((-1, 1, 1)) / res_z * d
 
         ff = len(c) // 4
 
@@ -370,7 +368,7 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
         Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
         Uz = -1j * (Kx @ Sy - ky * Sx)
 
-        x_1d = jnp.arange(res_x).reshape((1, -1, 1))
+        x_1d = jnp.arange(res_x, dtype=type_float).reshape((1, -1, 1))
         x_1d = -1j * x_1d * period[0] / res_x
         x_2d = jnp.tile(x_1d, (res_y, 1, 1))
         x_2d = x_2d * kx_vector
@@ -395,13 +393,13 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
 
     return field_cell
 
-@partial(jax.jit, static_argnums=(5, 6, 10, 11))
+# @partial(jax.jit, static_argnums=(5, 6, 10, 11, 12, 13))
 def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                                 res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128):
+                                 res_x=20, res_y=20, res_z=20, type_complex=jnp.complex128, type_float=jnp.float64):
 
     k0 = 2 * jnp.pi / wavelength
 
-    fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
+    fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
@@ -421,7 +419,7 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
             in enumerate(layer_info_list[::-1]):
 
         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-        z_1d = jnp.arange(res_z).reshape((-1, 1, 1)) / res_z * d
+        z_1d = jnp.arange(res_z, dtype=type_float).reshape((-1, 1, 1)) / res_z * d
 
         ff = len(c) // 4
 
@@ -450,8 +448,8 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
         Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
         Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
-        x_1d = jnp.arange(res_x).reshape((1, -1, 1))
-        y_1d = jnp.arange(res_y).reshape((-1, 1, 1))
+        x_1d = jnp.arange(res_x, dtype=type_float).reshape((1, -1, 1))
+        y_1d = jnp.arange(res_y, dtype=type_float).reshape((-1, 1, 1))
 
         x_1d = -1j * x_1d * period[0] / res_x
         y_1d = -1j * y_1d * period[1] / res_y
@@ -952,7 +950,9 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
                 plt.imshow((abs(field_cell[:, y_slice, :, idx]) ** 2), cmap='jet', aspect='auto')
                 # plt.clim(0, 2)  # identical to caxis([-4,4]) in MATLAB
                 plt.colorbar()
-                plt.title(title[idx])
+                plt.title(f'{title[idx]}, Side View')
+                plt.xlabel('X')
+                plt.ylabel('Z')
                 plt.show()
     if yx:
         for idx in range(len(title)):
@@ -960,7 +960,9 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
                 plt.imshow((abs(field_cell[z_slice, :, :, idx]) ** 2), cmap='jet', aspect='auto')
                 # plt.clim(0, 3.5)  # identical to caxis([-4,4]) in MATLAB
                 plt.colorbar()
-                plt.title(title[idx])
+                plt.title(f'{title[idx]}, Top View')
+                plt.xlabel('X')
+                plt.ylabel('Y')
                 plt.show()
 
 

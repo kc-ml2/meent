@@ -2,13 +2,12 @@ import numpy as np
 
 
 def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, period,
-                                pol, resolution=(100, 1, 100), type_complex=np.complex128):
+                                pol, res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     Kx = np.diag(kx_vector / k0)
 
-    resolution_x, resolution_y, resolution_z = resolution
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 3), dtype=type_complex)
 
     T_layer = T1
 
@@ -28,22 +27,22 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
             V = E_conv_i @ W @ Q
             EKx = E_conv_i @ Kx
 
-        for k in range(resolution_z):
-            z = k / resolution_z * d
+        for k in range(res_z):
+            z = k / res_z * d
 
             if pol == 0:
                 Sy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 C = Kx @ Sy
 
-                x_1d = np.arange(resolution_x).reshape((1, -1, 1))
-                x_1d = -1j * x_1d * period[0] / resolution_x
-                x_2d = np.tile(x_1d, (resolution_y, 1, 1))
+                x_1d = np.arange(res_x).reshape((1, -1, 1))
+                x_1d = -1j * x_1d * period[0] / res_x
+                x_2d = np.tile(x_1d, (res_y, 1, 1))
                 x_2d = x_2d * kx_vector
-                x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
+                x_2d = x_2d.reshape((res_y, res_x, 1, len(kx_vector)))
 
                 exp_K = np.exp(x_2d)
-                exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
+                exp_K = exp_K.reshape((res_y, res_x, -1))
 
                 Ey = exp_K @ Sy
                 Hx = -1j * exp_K @ Ux
@@ -57,14 +56,14 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
 
                 C = EKx @ Uy  # there is a better option for convergence
 
-                x_1d = np.arange(resolution_x).reshape((1, -1, 1))
-                x_1d = -1j * x_1d * period[0] / resolution_x
-                x_2d = np.tile(x_1d, (resolution_y, 1, 1))
+                x_1d = np.arange(res_x).reshape((1, -1, 1))
+                x_1d = -1j * x_1d * period[0] / res_x
+                x_2d = np.tile(x_1d, (res_y, 1, 1))
                 x_2d = x_2d * kx_vector
-                x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
+                x_2d = x_2d.reshape((res_y, res_x, 1, len(kx_vector)))
 
                 exp_K = np.exp(x_2d)
-                exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
+                exp_K = exp_K.reshape((res_y, res_x, -1))
 
                 Hy = exp_K @ Uy
                 Ex = 1j * exp_K @ Sx
@@ -72,7 +71,7 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
 
                 val = np.concatenate((Hy, Ex, Ez), axis=-1)
 
-            field_cell[resolution_z * idx_layer + k] = val
+            field_cell[res_z * idx_layer + k] = val
 
         T_layer = a_i @ X @ T_layer
 
@@ -80,14 +79,13 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
 
 
 def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                        resolution=(100, 100, 100), type_complex=np.complex128):
+                                        res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     ky = k0 * n_I * np.sin(theta) * np.sin(phi)
     Kx = np.diag(kx_vector / k0)
 
-    resolution_x, resolution_y, resolution_z = resolution
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
 
     T_layer = T1
 
@@ -108,8 +106,8 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
         big_Q1 = np.diag(q_1)
         big_Q2 = np.diag(q_2)
 
-        for k in range(resolution_z):
-            z = k / resolution_z * d
+        for k in range(res_z):
+            z = k / res_z * d
 
             Sx = W_2 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
             Sy = V_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
@@ -120,14 +118,14 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
             Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
             Uz = -1j * (Kx @ Sy - ky * Sx)
 
-            x_1d = np.arange(resolution_x).reshape((1, -1, 1))
-            x_1d = -1j * x_1d * period[0] / resolution_x
-            x_2d = np.tile(x_1d, (resolution_y, 1, 1))
+            x_1d = np.arange(res_x).reshape((1, -1, 1))
+            x_1d = -1j * x_1d * period[0] / res_x
+            x_2d = np.tile(x_1d, (res_y, 1, 1))
             x_2d = x_2d * kx_vector
-            x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
+            x_2d = x_2d.reshape((res_y, res_x, 1, len(kx_vector)))
 
             exp_K = np.exp(x_2d)
-            exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
+            exp_K = exp_K.reshape((res_y, res_x, -1))
 
             Ex = exp_K @ Sx
             Ey = exp_K @ Sy
@@ -139,7 +137,7 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
 
             val = np.concatenate((Ex, Ey, Ez, Hx, Hy, Hz), axis=-1)
 
-            field_cell[resolution_z * idx_layer + k] = val
+            field_cell[res_z * idx_layer + k] = val
 
         T_layer = big_A_i @ big_X @ T_layer
 
@@ -147,7 +145,7 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
 
 
 def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                                resolution=(10, 10, 10), type_complex=np.complex128):
+                                res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
 
@@ -160,8 +158,7 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
     Kx = np.diag(np.tile(kx_vector, ff_y).flatten()) / k0
     Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 
-    resolution_x, resolution_y, resolution_z = resolution
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
 
     T_layer = T1
 
@@ -185,8 +182,8 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
         big_Q1 = np.diag(q1)
         big_Q2 = np.diag(q2)
 
-        for k in range(resolution_z):
-            z = k / resolution_z * d
+        for k in range(res_z):
+            z = k / res_z * d
 
             Sx = W_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
                  + W_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
@@ -199,19 +196,19 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
             Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
             Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
-            x_1d = np.arange(resolution_x).reshape((1, -1, 1))
-            y_1d = np.arange(resolution_y).reshape((-1, 1, 1))
-            x_1d = -1j * x_1d * period[0] / resolution_x
-            y_1d = -1j * y_1d * period[1] / resolution_y
-            x_2d = np.tile(x_1d, (resolution_y, 1, 1))
-            y_2d = np.tile(y_1d, (1, resolution_x, 1))
+            x_1d = np.arange(res_x).reshape((1, -1, 1))
+            y_1d = np.arange(res_y).reshape((-1, 1, 1))
+            x_1d = -1j * x_1d * period[0] / res_x
+            y_1d = -1j * y_1d * period[1] / res_y
+            x_2d = np.tile(x_1d, (res_y, 1, 1))
+            y_2d = np.tile(y_1d, (1, res_x, 1))
             x_2d = x_2d * kx_vector
             y_2d = y_2d * ky_vector
-            x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
-            y_2d = y_2d.reshape((resolution_y, resolution_x, len(ky_vector), 1))
+            x_2d = x_2d.reshape((res_y, res_x, 1, len(kx_vector)))
+            y_2d = y_2d.reshape((res_y, res_x, len(ky_vector), 1))
 
             exp_K = np.exp(x_2d) * np.exp(y_2d)
-            exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
+            exp_K = exp_K.reshape((res_y, res_x, -1))
 
             Ex = exp_K @ Sx
             Ey = exp_K @ Sy
@@ -221,7 +218,7 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
             Hz = -1j * exp_K @ Uz
 
             val = np.concatenate((Ex, Ey, Ez, Hx, Hy, Hz), axis=-1)
-            field_cell[resolution_z * idx_layer + k] = val
+            field_cell[res_z * idx_layer + k] = val
 
         T_layer = big_A_i @ big_X @ T_layer
 
@@ -229,13 +226,12 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
 
 
 def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, period,
-                                 pol, resolution=(100, 1, 100), type_complex=np.complex128):
+                                 pol, res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     Kx = np.diag(kx_vector / k0)
 
-    resolution_x, resolution_y, resolution_z = resolution
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 3), dtype=type_complex)
 
     T_layer = T1
 
@@ -252,21 +248,21 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
             V = E_conv_i @ W @ Q
             EKx = E_conv_i @ Kx
 
-        z_1d = np.arange(resolution_z).reshape((-1, 1, 1)) / resolution_z * d
+        z_1d = np.arange(res_z).reshape((-1, 1, 1)) / res_z * d
 
         if pol == 0:
             Sy = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
             Ux = V @ (-diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
             C = Kx @ Sy
 
-            x_1d = np.arange(resolution_x).reshape((1, -1, 1))
-            x_1d = -1j * x_1d * period[0] / resolution_x
-            x_2d = np.tile(x_1d, (resolution_y, 1, 1))
+            x_1d = np.arange(res_x).reshape((1, -1, 1))
+            x_1d = -1j * x_1d * period[0] / res_x
+            x_2d = np.tile(x_1d, (res_y, 1, 1))
             x_2d = x_2d * kx_vector
-            x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
+            x_2d = x_2d.reshape((res_y, res_x, 1, len(kx_vector)))
 
             exp_K = np.exp(x_2d)
-            exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
+            exp_K = exp_K.reshape((res_y, res_x, -1))
 
             Ey = exp_K[:, :, None, :] @ Sy[:, None, None, :, :]
             Hx = -1j * exp_K[:, :, None, :] @ Ux[:, None, None, :, :]
@@ -280,14 +276,14 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
 
             C = EKx @ Uy  # there is a better option for convergence
 
-            x_1d = np.arange(resolution_x).reshape((1, -1, 1))
-            x_1d = -1j * x_1d * period[0] / resolution_x
-            x_2d = np.tile(x_1d, (resolution_y, 1, 1))
+            x_1d = np.arange(res_x).reshape((1, -1, 1))
+            x_1d = -1j * x_1d * period[0] / res_x
+            x_2d = np.tile(x_1d, (res_y, 1, 1))
             x_2d = x_2d * kx_vector
-            x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
+            x_2d = x_2d.reshape((res_y, res_x, 1, len(kx_vector)))
 
             exp_K = np.exp(x_2d)
-            exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
+            exp_K = exp_K.reshape((res_y, res_x, -1))
 
             Hy = exp_K[:, :, None, :] @ Uy[:, None, None, :, :]
             Ex = 1j * exp_K[:, :, None, :] @ Sx[:, None, None, :, :]
@@ -295,7 +291,7 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
 
             val = np.concatenate((Hy.squeeze(-1), Ex.squeeze(-1), Ez.squeeze(-1)), axis=-1)
 
-        field_cell[resolution_z * idx_layer:resolution_z * (idx_layer + 1)] = val
+        field_cell[res_z * idx_layer:res_z * (idx_layer + 1)] = val
 
         T_layer = a_i @ X @ T_layer
 
@@ -303,14 +299,13 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
 
 
 def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                         resolution=(100, 100, 100), type_complex=np.complex128):
+                                         res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     ky = k0 * n_I * np.sin(theta) * np.sin(phi)
     Kx = np.diag(kx_vector / k0)
 
-    resolution_x, resolution_y, resolution_z = resolution
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
 
     T_layer = T1
 
@@ -321,7 +316,7 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
             in enumerate(layer_info_list[::-1]):
 
         c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-        z_1d = np.arange(resolution_z).reshape((-1, 1, 1)) / resolution_z * d
+        z_1d = np.arange(res_z).reshape((-1, 1, 1)) / res_z * d
 
         ff = len(c) // 4
 
@@ -342,14 +337,14 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
         Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
         Uz = -1j * (Kx @ Sy - ky * Sx)
 
-        x_1d = np.arange(resolution_x).reshape((1, -1, 1))
-        x_1d = -1j * x_1d * period[0] / resolution_x
-        x_2d = np.tile(x_1d, (resolution_y, 1, 1))
+        x_1d = np.arange(res_x).reshape((1, -1, 1))
+        x_1d = -1j * x_1d * period[0] / res_x
+        x_2d = np.tile(x_1d, (res_y, 1, 1))
         x_2d = x_2d * kx_vector
-        x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
+        x_2d = x_2d.reshape((res_y, res_x, 1, len(kx_vector)))
 
         exp_K = np.exp(x_2d)
-        exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
+        exp_K = exp_K.reshape((res_y, res_x, -1))
 
         Ex = exp_K[:, :, None, :] @ Sx[:, None, None, :, :]
         Ey = exp_K[:, :, None, :] @ Sy[:, None, None, :, :]
@@ -361,14 +356,14 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
 
         val = np.concatenate(
             (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)), -1)
-        field_cell[resolution_z * idx_layer:resolution_z * (idx_layer + 1)] = val
+        field_cell[res_z * idx_layer:res_z * (idx_layer + 1)] = val
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell
 
 
 def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
-                                 resolution=(10, 10, 10), type_complex=np.complex128):
+                                 res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
 
@@ -381,8 +376,7 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
     Kx = np.diag(np.tile(kx_vector, ff_y).flatten()) / k0
     Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 
-    resolution_x, resolution_y, resolution_z = resolution
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
 
     T_layer = T1
 
@@ -393,7 +387,7 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
             in enumerate(layer_info_list[::-1]):
 
         c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-        z_1d = np.arange(resolution_z).reshape((-1, 1, 1)) / resolution_z * d
+        z_1d = np.arange(res_z).reshape((-1, 1, 1)) / res_z * d
 
         ff = len(c) // 4
 
@@ -418,19 +412,19 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
         Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
         Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
-        x_1d = np.arange(resolution_x).reshape((1, -1, 1))
-        y_1d = np.arange(resolution_y).reshape((-1, 1, 1))
-        x_1d = -1j * x_1d * period[0] / resolution_x
-        y_1d = -1j * y_1d * period[1] / resolution_y
-        x_2d = np.tile(x_1d, (resolution_y, 1, 1))
-        y_2d = np.tile(y_1d, (1, resolution_x, 1))
+        x_1d = np.arange(res_x).reshape((1, -1, 1))
+        y_1d = np.arange(res_y).reshape((-1, 1, 1))
+        x_1d = -1j * x_1d * period[0] / res_x
+        y_1d = -1j * y_1d * period[1] / res_y
+        x_2d = np.tile(x_1d, (res_y, 1, 1))
+        y_2d = np.tile(y_1d, (1, res_x, 1))
         x_2d = x_2d * kx_vector
         y_2d = y_2d * ky_vector
-        x_2d = x_2d.reshape((resolution_y, resolution_x, 1, len(kx_vector)))
-        y_2d = y_2d.reshape((resolution_y, resolution_x, len(ky_vector), 1))
+        x_2d = x_2d.reshape((res_y, res_x, 1, len(kx_vector)))
+        y_2d = y_2d.reshape((res_y, res_x, len(ky_vector), 1))
 
         exp_K = np.exp(x_2d) * np.exp(y_2d)
-        exp_K = exp_K.reshape((resolution_y, resolution_x, -1))
+        exp_K = exp_K.reshape((res_y, res_x, -1))
 
         Ex = exp_K[:, :, None, :] @ Sx[:, None, None, :, :]
         Ey = exp_K[:, :, None, :] @ Sy[:, None, None, :, :]
@@ -441,21 +435,20 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
 
         val = np.concatenate(
             (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)), -1)
-        field_cell[resolution_z * idx_layer:resolution_z * (idx_layer + 1)] = val
+        field_cell[res_z * idx_layer:res_z * (idx_layer + 1)] = val
 
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell
 
 
-def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, pol, resolution=(100, 1, 100),
+def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, pol, res_x=20, res_y=20, res_z=20,
                           type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     Kx = np.diag(kx_vector / k0)
 
-    resolution_x, resolution_y, resolution_z = resolution
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 3), dtype=type_complex)
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 3), dtype=type_complex)
 
     T_layer = T1
 
@@ -472,38 +465,38 @@ def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, po
             V = E_conv_i @ W @ Q
             EKx = E_conv_i @ Kx
 
-        for k in range(resolution_z):
-            z = k / resolution_z * d
+        for k in range(res_z):
+            z = k / res_z * d
 
             if pol == 0:  # TE
                 Sy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 f_here = (-1j) * Kx @ Sy
 
-                for j in range(resolution_y):
-                    for i in range(resolution_x):
-                        x = i * period[0] / resolution_x
+                for j in range(res_y):
+                    for i in range(res_x):
+                        x = i * period[0] / res_x
 
                         Ey = Sy.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
                         Hx = -1j * Ux.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
                         Hz = f_here.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
 
-                        field_cell[resolution_z * idx_layer + k, j, i] = [Ey[0, 0], Hx[0, 0], Hz[0, 0]]
+                        field_cell[res_z * idx_layer + k, j, i] = [Ey[0, 0], Hx[0, 0], Hz[0, 0]]
             else:  # TM
                 Uy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 Sx = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
 
                 f_here = (-1j) * EKx @ Uy  # there is a better option for convergence
 
-                for j in range(resolution_y):
-                    for i in range(resolution_x):
-                        x = i * period[0] / resolution_x
+                for j in range(res_y):
+                    for i in range(res_x):
+                        x = i * period[0] / res_x
 
                         Hy = Uy.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
                         Ex = 1j * Sx.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
                         Ez = f_here.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x)
 
-                        field_cell[resolution_z * idx_layer + k, j, i] = [Hy[0, 0], Ex[0, 0], Ez[0, 0]]
+                        field_cell[res_z * idx_layer + k, j, i] = [Hy[0, 0], Ex[0, 0], Ez[0, 0]]
 
         T_layer = a_i @ X @ T_layer
 
@@ -511,14 +504,13 @@ def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, po
 
 
 def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                  resolution=(100, 100, 100), type_complex=np.complex128):
+                                  res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     ky = k0 * n_I * np.sin(theta) * np.sin(phi)
     Kx = np.diag(kx_vector / k0)
 
-    resolution_x, resolution_y, resolution_z = resolution
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
 
     T_layer = T1
     big_I = np.eye((len(T1)), dtype=type_complex)
@@ -539,8 +531,8 @@ def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, la
         big_Q1 = np.diag(q_1)
         big_Q2 = np.diag(q_2)
 
-        for k in range(resolution_z):
-            z = k / resolution_z * d
+        for k in range(res_z):
+            z = k / res_z * d
 
             Sx = W_2 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
             Sy = V_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
@@ -551,9 +543,9 @@ def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, la
             Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
             Uz = -1j * (Kx @ Sy - ky * Sx)
 
-            for j in range(resolution_y):
-                for i in range(resolution_x):
-                    x = i * period[0] / resolution_x
+            for j in range(res_y):
+                for i in range(res_x):
+                    x = i * period[0] / res_x
                     exp_K = np.exp(-1j*kx_vector.reshape((-1, 1)) * x)
                     # exp_K = exp_K.flatten()
 
@@ -564,14 +556,15 @@ def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, la
                     Hy = -1j * Uy.T @ exp_K
                     Hz = -1j * Uz.T @ exp_K
 
-                    field_cell[resolution_z * idx_layer + k, j, i] = [Ex[0, 0], Ey[0, 0], Ez[0, 0], Hx[0, 0], Hy[0, 0], Hz[0, 0]]
+                    field_cell[res_z * idx_layer + k, j, i] = [Ex[0, 0], Ey[0, 0], Ez[0, 0], Hx[0, 0], Hy[0, 0], Hz[0, 0]]
 
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell
 
 
-def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period, resolution=(100, 100, 100),
+def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list,
+                          period, res_x=20, res_y=20, res_z=20,
                           type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
@@ -586,8 +579,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
     Kx = np.diag(np.tile(kx_vector, ff_y).flatten()) / k0
     Ky = np.diag(np.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 
-    resolution_x, resolution_y, resolution_z = resolution
-    field_cell = np.zeros((resolution_z * len(layer_info_list), resolution_y, resolution_x, 6), dtype=type_complex)
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
 
     T_layer = T1
     big_I = np.eye((len(T1)), dtype=type_complex)
@@ -610,8 +602,8 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
         big_Q1 = np.diag(q1)
         big_Q2 = np.diag(q2)
 
-        for k in range(resolution_z):
-            z = k / resolution_z * d
+        for k in range(res_z):
+            z = k / res_z * d
 
             Sx = W_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
                  + W_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
@@ -624,11 +616,11 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
             Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
             Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
-            for j in range(resolution_y):
-                y = j * period[1] / resolution_y
+            for j in range(res_y):
+                y = j * period[1] / res_y
 
-                for i in range(resolution_x):
-                    x = i * period[0] / resolution_x
+                for i in range(res_x):
+                    x = i * period[0] / res_x
 
                     exp_K = np.exp(-1j*kx_vector.reshape((1, -1)) * x) * np.exp(-1j*ky_vector.reshape((-1, 1)) * y)
                     exp_K = exp_K.flatten()
@@ -640,7 +632,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
                     Hy = -1j * Uy.T @ exp_K
                     Hz = -1j * Uz.T @ exp_K
 
-                    field_cell[resolution_z * idx_layer + k, j, i] = [Ex[0], Ey[0], Ez[0], Hx[0], Hy[0], Hz[0]]
+                    field_cell[res_z * idx_layer + k, j, i] = [Ex[0], Ey[0], Ez[0], Hx[0], Hy[0], Hz[0]]
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell
@@ -668,7 +660,9 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
                 plt.imshow((abs(field_cell[:, y_slice, :, idx]) ** 2), cmap='jet', aspect='auto')
                 # plt.clim(0, 2)  # identical to caxis([-4,4]) in MATLAB
                 plt.colorbar()
-                plt.title(title[idx])
+                plt.title(f'{title[idx]}, Side View')
+                plt.xlabel('X')
+                plt.ylabel('Z')
                 plt.show()
     if yx:
         for idx in range(len(title)):
@@ -676,7 +670,9 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
                 plt.imshow((abs(field_cell[z_slice, :, :, idx]) ** 2), cmap='jet', aspect='auto')
                 # plt.clim(0, 3.5)  # identical to caxis([-4,4]) in MATLAB
                 plt.colorbar()
-                plt.title(title[idx])
+                plt.title(f'{title[idx]}, Top View')
+                plt.xlabel('X')
+                plt.ylabel('Y')
                 plt.show()
 
 

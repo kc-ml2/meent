@@ -54,7 +54,7 @@ plt.show()
 
 ucell_materials = ['p_si__real', 1]
 
-solver = call_mee(backend=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+solver = call_mee(backend=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                   fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                   ucell_materials=ucell_materials, thickness=thickness)
 

@@ -85,7 +85,7 @@ def compare_conv_mat_method(mode_key, dtype, device):
     for thickness, period in zip([[1120], [500], [500], [1120]], [[100, 100], [100, 100], [1000, 1000], [1000, 1000]]):
 
         mee = call_mee(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                          psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                          fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                           ucell_materials=ucell_materials, thickness=thickness, device=device,
                           type_complex=type_complex, )
 

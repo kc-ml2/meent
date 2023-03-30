@@ -15,12 +15,12 @@ class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
                  period=(100, 100), wavelength=900,
                  thickness=None, algo='TMM', perturbation=1E-10,
-                 device='cpu', type_complex=torch.complex128):
+                 device=0, type_complex=torch.complex128):
 
         # device
-        if device == 0:
+        if device in (0, 'cpu'):
             self._device = torch.device('cpu')
-        elif device == 1:
+        elif device in (1, 'gpu', 'cuda'):
             self._device = torch.device('cuda')
         elif type(device) is torch.device:
             self._device = device

@@ -146,19 +146,6 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=None, t
                                                  fourier_order, type_complex=type_complex)
         center = np.array(f_coeffs.shape) // 2
 
-        # conv_idx = np.arange(-ff + 1, ff, 1)
-        # conv_idx = circulant(conv_idx)
-        # conv_i = np.repeat(conv_idx, ff, axis=1)
-        # conv_i = np.repeat(conv_i, [ff] * ff, axis=0)
-        # conv_j = np.tile(conv_idx, (ff, ff))
-        #
-        # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-        # o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
-        #
-        # e_conv_all[i] = e_conv
-        # o_e_conv_all[i] = o_e_conv
-
-        # TODO: check correct
         conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
         conv_idx_y = circulant(conv_idx_y)
         conv_i = np.repeat(conv_idx_y, ff_x, axis=1)

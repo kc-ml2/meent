@@ -14,7 +14,6 @@ class RCWATorch(_BaseRCWA):
                  n_II=1.,
                  theta=0,
                  phi=0,
-                 psi=0,
                  period=(100, 100),
                  wavelength=900,
                  ucell=None,
@@ -39,17 +38,32 @@ class RCWATorch(_BaseRCWA):
                          thickness=thickness, algo=algo, perturbation=perturbation,
                          device=device, type_complex=type_complex)
 
-        self.ucell = ucell.clone()
+        self.ucell = ucell
         self.ucell_materials = ucell_materials
         self.ucell_info_list = ucell_info_list
 
         self.backend = backend
-        # self.device = device
-        # self.type_complex = type_complex
         self.fft_type = fft_type
         self.improve_dft = improve_dft
 
         self.layer_info_list = []
+
+    @property
+    def ucell(self):
+        return self._ucell
+
+    @ucell.setter
+    def ucell(self, ucell):
+        if type(ucell) is list:
+            self._ucell = torch.tensor(ucell)
+        if str(type(ucell)) == "<class 'numpy.ndarray'>":
+            self._ucell = torch.tensor(ucell, device=self.device, dtype=self.type_complex)
+        elif type(ucell) is torch.Tensor:
+            self._ucell = ucell.to(device=self.device, dtype=self.type_complex)
+        elif ucell is None:
+            self._ucell = ucell
+        else:
+            raise ValueError
 
     def _solve(self, wavelength, e_conv_all, o_e_conv_all):
         self.kx_vector = self.get_kx_vector(wavelength)
@@ -99,171 +113,89 @@ class RCWATorch(_BaseRCWA):
 
         return de_ri, de_ti
 
-    def calculate_field(self, resolution=None, plot=False, field_algo=2):
+    def calculate_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
 
         if self.grating_type == 0:
-            resolution = [100, 1, 100] if not resolution else resolution
-
             if field_algo == 0:
                 field_cell = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
                                                    self.T1, self.layer_info_list, self.period, self.pol,
-                                                   resolution=resolution, type_complex=self.type_complex)
+                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.T1, self.layer_info_list,
-                                                         self.period, self.pol, resolution=resolution,
+                                                         self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
                                                          type_complex=self.type_complex, type_float=self.type_float)
             elif field_algo == 2:
                 field_cell = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector, self.T1,
                                                           self.layer_info_list, self.period, self.pol,
-                                                          resolution=resolution, type_complex=self.type_complex,
+                                                          res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex,
                                                           type_float=self.type_float)
             else:
                 raise ValueError
 
         elif self.grating_type == 1:
-            resolution = [100, 1, 100] if not resolution else resolution
-
             if field_algo == 0:
                 field_cell = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                            self.phi, self.T1, self.layer_info_list, self.period,
-                                                           resolution=resolution, device=self.device, type_complex=self.type_complex)
+                                                           res_x=res_x, res_y=res_y, res_z=res_z, device=self.device, type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                                  self.phi, self.T1, self.layer_info_list, self.period,
-                                                                 resolution=resolution, device=self.device,
+                                                                 res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
                                                                  type_complex=self.type_complex,
                                                                  type_float=self.type_float)
             elif field_algo == 2:
                 field_cell = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                                   self.phi, self.T1, self.layer_info_list, self.period,
-                                                                  resolution=resolution, device=self.device,
+                                                                  res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
                                                                   type_complex=self.type_complex,
                                                                   type_float=self.type_float)
             else:
                 raise ValueError
 
         elif self.grating_type == 2:
-            resolution = [10, 10, 10] if not resolution else resolution
-
             if field_algo == 0:
                 field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
                                                    *self.fourier_order, self.T1, self.layer_info_list, self.period,
-                                                   resolution=resolution, device=self.device,
+                                                   res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
                                                    type_complex=self.type_complex, type_float=self.type_float)
             elif field_algo == 1:
                 field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                          self.phi, *self.fourier_order, self.T1, self.layer_info_list,
-                                                         self.period, resolution=resolution, device=self.device,
+                                                         self.period, res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
                                                          type_complex=self.type_complex, type_float=self.type_float)
             elif field_algo == 2:
                 field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                           self.phi, *self.fourier_order, self.T1, self.layer_info_list,
-                                                          self.period, resolution=resolution, device=self.device,
+                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
                                                           type_complex=self.type_complex, type_float=self.type_float)
             else:
                 raise ValueError
         else:
             raise ValueError
 
-        if plot:
-            field_plot(field_cell, self.pol)
-
         return field_cell
 
-    def calculate_field_all(self, resolution=None, plot=False):
+    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
+        de_ri, de_ti = self.conv_solve()
+        field_cell = self.calculate_field(res_x, res_y, res_z, field_algo=field_algo)
+        return de_ri, de_ti, field_cell
 
-        if self.grating_type == 0:
-            resolution = [100, 1, 100] if not resolution else resolution
+    def field_plot(self, field_cell):
+        field_plot(field_cell, self.pol)
 
-            t0 = time.time()
-            field_cell0 = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
-                                                self.T1, self.layer_info_list, self.period, self.pol,
-                                                resolution=resolution,
-                                                type_complex=self.type_complex)
-            print('no vector', time.time() - t0)
+    def calculate_field_all(self, res_x=20, res_y=20, res_z=20):
+        t0 = time.time()
+        field_cell0 = self.calculate_field(res_x=res_x, res_y=res_y, res_z=res_z, field_algo=0)
+        print('no vector', time.time() - t0)
+        t0 = time.time()
+        field_cell1 = self.calculate_field(res_x=res_x, res_y=res_y, res_z=res_z, field_algo=1)
+        print('ji vector', time.time() - t0)
+        t0 = time.time()
+        field_cell2 = self.calculate_field(res_x=res_x, res_y=res_y, res_z=res_z, field_algo=2)
+        print('kji vector', time.time() - t0)
 
-            t0 = time.time()
-            field_cell1 = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector,
-                                                      self.T1, self.layer_info_list, self.period, self.pol,
-                                                      resolution=resolution,
-                                                      type_complex=self.type_complex, type_float=self.type_float)
-            print('ji vector', time.time() - t0)
+        print('gap(1-0): ', torch.linalg.norm(field_cell1 - field_cell0))
+        print('gap(2-1): ', torch.linalg.norm(field_cell2 - field_cell1))
+        print('gap(0-2): ', torch.linalg.norm(field_cell0 - field_cell2))
 
-            t0 = time.time()
-            field_cell2 = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector,
-                                                       self.T1, self.layer_info_list, self.period, self.pol,
-                                                       resolution=resolution,
-                                                       type_complex=self.type_complex, type_float=self.type_float)
-            print('kji vector', time.time() - t0)
-
-            print('gap: ', torch.linalg.norm(field_cell1 - field_cell0))
-            print('gap: ', torch.linalg.norm(field_cell2 - field_cell0))
-
-        elif self.grating_type == 1:
-            resolution = [100, 1, 100] if not resolution else resolution
-
-            t0 = time.time()
-            field_cell0 = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-                                                        self.T1, self.layer_info_list, self.period,
-                                                        resolution=resolution, device=self.device,
-                                                        type_complex=self.type_complex)
-            print('no vector', time.time() - t0)
-
-            t0 = time.time()
-            field_cell1 = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                              self.phi,
-                                                              self.T1, self.layer_info_list, self.period,
-                                                              resolution=resolution, device=self.device,
-                                                              type_complex=self.type_complex,
-                                                              type_float=self.type_float)
-            print('ji vector', time.time() - t0)
-
-            t0 = time.time()
-            field_cell2 = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                               self.phi,
-                                                               self.T1, self.layer_info_list, self.period,
-                                                               resolution=resolution, device=self.device,
-                                                               type_complex=self.type_complex,
-                                                               type_float=self.type_float)
-            print('kji vector', time.time() - t0)
-
-            print('gap: ', torch.linalg.norm(field_cell1 - field_cell0))
-            print('gap: ', torch.linalg.norm(field_cell2 - field_cell0))
-
-        else:
-            resolution = [10, 10, 10] if not resolution else resolution
-
-            t0 = time.time()
-            field_cell0 = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                self.phi, *self.fourier_order,
-                                                self.T1, self.layer_info_list, self.period,
-                                                resolution=resolution, device=self.device,
-                                                type_complex=self.type_complex, type_float=self.type_float)
-            print('no vector', time.time() - t0)
-
-            t0 = time.time()
-            field_cell1 = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-                                                      *self.fourier_order,
-                                                      self.T1, self.layer_info_list, self.period, resolution=resolution,
-                                                      device=self.device,
-                                                      type_complex=self.type_complex, type_float=self.type_float)
-            print('ji vector', time.time() - t0)
-
-            t0 = time.time()
-            field_cell2 = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                       self.phi, *self.fourier_order,
-                                                       self.T1, self.layer_info_list, self.period,
-                                                       resolution=resolution, device=self.device,
-                                                       type_complex=self.type_complex, type_float=self.type_float)
-            print('kji vector', time.time() - t0)
-
-            print('gap(1-0): ', torch.linalg.norm(field_cell1 - field_cell0))
-            print('gap(2-1): ', torch.linalg.norm(field_cell2 - field_cell1))
-            print('gap(0-2): ', torch.linalg.norm(field_cell0 - field_cell2))
-
-        if plot:
-            field_plot(field_cell0, self.pol)
-            field_plot(field_cell1, self.pol)
-            field_plot(field_cell2, self.pol)
-
-        return
+        return field_cell0, field_cell1, field_cell2

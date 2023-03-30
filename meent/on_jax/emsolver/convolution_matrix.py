@@ -94,7 +94,7 @@ def fft_piecewise_constant(cell, fourier_order_x, fourier_order_y, type_complex=
     return f_coeffs_xy.T
 
 
-# @partial(jax.jit, static_argnums=(1,2 ))  # tODO: jit-able?
+# @partial(jax.jit, static_argnums=(1,2 ))
 def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, type_complex=jnp.complex128):
     # X axis
     cell_next_x = jnp.roll(cell, -1, axis=1)

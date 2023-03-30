@@ -16,18 +16,14 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 
 class _BaseRCWA:
 
-    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=(2, 2),
+    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
                  period=(100, 100), wavelength=900,
                  thickness=None, algo='TMM', perturbation=1E-10,
-                 device='cpu', type_complex=jnp.complex128):
+                 device=0, type_complex=jnp.complex128):
 
-        # device
-        # TODO: how should this be handled...
-        if device == 0:
-            self._device = 'cpu'
+        if device in (0, 'cpu'):
             self._device = jax.devices('cpu')
-        elif device == 1:
-            self._device = 'gpu'
+        elif device in (1, 'gpu', 'cuda'):
             self._device = jax.devices('gpu')
         elif type(device) is list and (str(type(device[0])) == "<class 'jaxlib.xla_extension.Device'>"):
             self._device = device
@@ -36,9 +32,9 @@ class _BaseRCWA:
 
         # type_complex
         if type_complex == 0:
-            self._type_complex = np.complex128
+            self._type_complex = jnp.complex128
         elif type_complex == 1:
-            self._type_complex = np.complex64
+            self._type_complex = jnp.complex64
         elif type_complex in (jnp.complex128, jnp.complex64):
             self._type_complex = type_complex
         elif type(type_complex) is np.dtype:
@@ -89,16 +85,6 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        # # TODO: implement
-        # if device == 0:
-        #     self._device = 'cpu'
-        # elif device == 1:
-        #     self._device = 'gpu'
-        # else:
-        #     raise ValueError
-        # # jax.config.update('jax_platform_name', self.device)
-        # self._device = jax.devices(self.device)
-
     @property
     def type_complex(self):
         return self._type_complex
@@ -106,9 +92,9 @@ class _BaseRCWA:
     @type_complex.setter
     def type_complex(self, type_complex):
         if type_complex == 0:
-            self._type_complex = np.complex128
+            self._type_complex = jnp.complex128
         elif type_complex == 1:
-            self._type_complex = np.complex64
+            self._type_complex = jnp.complex64
         elif type_complex in (jnp.complex128, jnp.complex64):
             self._type_complex = type_complex
         elif type(type_complex) is np.dtype:
@@ -119,8 +105,8 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        self._type_float = np.float64 if self.type_complex is not np.complex64 else np.float32
-        self._type_int = np.int64 if self.type_complex is not np.complex64 else np.int32
+        self._type_float = jnp.float64 if self.type_complex is not jnp.complex64 else jnp.float32
+        self._type_int = jnp.int64 if self.type_complex is not jnp.complex64 else jnp.int32
         self.theta = self.theta
         self.phi = self.phi
         self._psi = self.psi
@@ -202,7 +188,7 @@ class _BaseRCWA:
         elif type(thickness) is jnp.ndarray:
             self._thickness = jnp.array(thickness, dtype=self.type_float)
         elif thickness.dtype in ['int', 'float']:
-            self._thickness = jnp.array(thickness, dtype=self.type_float)  # Todo: other wrappers
+            self._thickness = jnp.array(thickness, dtype=self.type_float)
         elif type(thickness) is jax.interpreters.partial_eval.DynamicJaxprTracer:
             self._thickness = thickness
         else:

@@ -51,7 +51,7 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
 
     cell = cell.type(type_complex)
 
-    modes_x = torch.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1, device=device, dtype=type_complex)
+    modes_x = torch.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1, device=device).type(type_complex)
 
     f_coeffs_x = cell_diff_x @ torch.exp(-1j * 2 * np.pi * x @ modes_x[None, :]).type(type_complex)
     c = f_coeffs_x.shape[1] // 2
@@ -137,7 +137,7 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=torch.d
     e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).type(type_complex)
     o_e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).type(type_complex)
 
-    # 2D  # tODO: 1D
+    # 2D
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
         ucell_layer = ucell_layer ** 2
