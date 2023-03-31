@@ -41,7 +41,7 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, f
 
     T = jnp.eye(2 * fourier_order[0] + 1).astype(type_complex)
 
-    return kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T
+    return kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T
 
 
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=jnp.complex128):

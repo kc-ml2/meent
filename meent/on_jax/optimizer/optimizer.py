@@ -66,6 +66,7 @@ class OptimizerJax:
         @jax.jit
         def step(params, opt_state):
             loss_value, grads = self._grad(params, forward, loss_fn)
+            grads = {k: v.conj() for k, v in grads.items()}
             updates, opt_state = optimizer.update(grads, opt_state, params)
             params = optax.apply_updates(params, updates)
             return params, opt_state, loss_value

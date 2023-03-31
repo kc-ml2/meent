@@ -250,7 +250,6 @@ class _BaseRCWA:
                 Eig.perturbation = self.perturbation
                 eigenvalues, W = Eig.apply(A)
                 q = eigenvalues ** 0.5
-
                 Q = torch.diag(q)
                 V = W @ Q
 
@@ -262,10 +261,6 @@ class _BaseRCWA:
                 Eig.perturbation = self.perturbation
                 eigenvalues, W = Eig.apply(o_E_conv_i @ B)
                 q = eigenvalues ** 0.5
-
-                # eigenvalues, W = torch.linalg.eig(o_E_conv_i @ B)
-                # q = eigenvalues ** 0.5
-
                 Q = torch.diag(q)
                 V = o_E_conv @ W @ Q
 

@@ -232,7 +232,7 @@ class _BaseRCWA:
         k0 = 2 * jnp.pi / wavelength
 
         if self.algo == 'TMM':
-            kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T \
+            kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \
                 = transfer_1d_1(ff, self.pol, k0, self.n_I, self.n_II, self.kx_vector,
                                 self.theta, delta_i0, self.fourier_order, type_complex=self.type_complex)
         elif self.algo == 'SMM':
@@ -250,7 +250,6 @@ class _BaseRCWA:
                 A = Kx ** 2 - E_conv
                 eigenvalues, W = eig(A, type_complex=self.type_complex, perturbation=self.perturbation, device=self.device)
                 q = eigenvalues ** 0.5
-
                 Q = jnp.diag(q)
                 V = W @ Q
 
@@ -261,7 +260,6 @@ class _BaseRCWA:
                 eigenvalues, W = eig(o_E_conv_i @ B, type_complex=self.type_complex, perturbation=self.perturbation,
                                      device=self.device)
                 q = eigenvalues ** 0.5
-
                 Q = jnp.diag(q)
                 V = o_E_conv @ W @ Q
 

@@ -52,6 +52,7 @@ def run_test(grating_type, backend, dtype, device):
         t0 = time.time()
         de_ri, de_ti = mee.conv_solve()
         print(f'run_cell: {i}: ', time.time() - t0)
+        print(de_ri[de_ri.shape[0]//2])
     for i in range(n_iter_field):
         t0 = time.time()
         field_cell = mee.calculate_field(res_x=resolution[0], res_y=resolution[1], res_z=resolution[2])
@@ -116,10 +117,10 @@ def load_ucell(grating_type):
                 [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
                 [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
             ],
-        ]) * 4 + 1
+        ]) * 4 + 1 +1j
 
     return ucell
 
 
 if __name__ == '__main__':
-    run_loop([0,1,2], [0,1,2], [0], [0])
+    run_loop([0], [0,1,2], [0], [0])

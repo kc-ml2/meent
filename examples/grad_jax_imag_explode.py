@@ -10,12 +10,11 @@ import torch
 import meent
 from meent.on_torch.optimizer.loss import LossDeflector
 
-iteration = 10
+iteration = 1000
 
 backend = 1  # JAX
 
 # common
-pol = 0  # 0: TE, 1: TM
 
 n_I = 1  # n_incidence
 n_II = 1  # n_transmission
@@ -32,6 +31,7 @@ fourier_order = [10]
 type_complex = 0
 device = 0
 
+pol = 0  # 0: TE, 1: TM
 grating_type = 0  # grating type: 0 for 1D grating without rotation (phi == 0)
 thickness = [500, 1000]  # thickness of each layer, from top to bottom.
 ucell_1d_m = np.array([
@@ -45,19 +45,19 @@ jmee = meent.call_mee(backend=backend, grating_type=grating_type, pol=pol, n_I=n
 
 pois = ['ucell', 'thickness']
 forward = jmee.conv_solve
-loss_fn = LossDeflector(x_order=1, y_order=0)
+loss_fn = LossDeflector(x_order=0, y_order=0)
 # TODO: LossDeflector cross-platform?
 
 # case 1: Gradient
 grad = jmee.grad(pois, forward, loss_fn)
 
-# print('ucell gradient:')
-# print(grad['ucell'])
-# print('thickness gradient:')
-# print(grad['thickness'])
+print('ucell gradient:')
+print(grad['ucell'])
+print('thickness gradient:')
+print(grad['thickness'])
 
 
-optimizer = optax.sgd(learning_rate=1e-2, momentum=0.9)
+optimizer = optax.sgd(learning_rate=1e-2)
 t0 = time.time()
 res = jmee.fit(pois, forward, loss_fn, optimizer, iteration=iteration)
 print('Time JAX', time.time() - t0)
@@ -75,17 +75,17 @@ tmee = meent.call_mee(backend=backend, grating_type=grating_type, pol=pol, n_I=n
 
 # pois = ['ucell', 'thickness']  # Parameter Of Interests
 forward = tmee.conv_solve
-loss_fn = LossDeflector(x_order=1)  # predefined in meent
+loss_fn = LossDeflector(x_order=0)  # predefined in meent
 
-# grad = tmee.grad(pois, forward, loss_fn)
-# print('ucell gradient:')
-# print(grad['ucell'])
-# print('thickness gradient:')
-# print(grad['thickness'])
+grad = tmee.grad(pois, forward, loss_fn)
+print('ucell gradient:')
+print(grad['ucell'])
+print('thickness gradient:')
+print(grad['thickness'])
 
 opt_torch = torch.optim.SGD
 opt_options = {'lr': 1E-2,
-               'momentum': 0.9,
+               # 'momentum': 0.9,
                }
 
 t0 = time.time()
