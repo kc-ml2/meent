@@ -64,7 +64,6 @@ class OptimizerJax:
         opt_state = optimizer.init(params)
 
         @jax.jit
-        # @partial(jax.jit, static_argnums=(1,))
         def step(params, opt_state):
             loss_value, grads = self._grad(params, forward, loss_fn)
             updates, opt_state = optimizer.update(grads, opt_state, params)

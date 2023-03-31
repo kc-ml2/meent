@@ -311,6 +311,9 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', ty
     Eig.perturbation = perturbation
     eigenvalues, W = Eig.apply(S2_from_S)
 
+    # TODO
+    # eigenvalues, W = torch.linalg.eig(S2_from_S)
+
     q = eigenvalues ** 0.5
 
     Q = torch.diag(q)

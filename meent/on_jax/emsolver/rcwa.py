@@ -149,7 +149,9 @@ class RCWAJax(_BaseRCWA):
             print('CFT (fft_type=1) is not supported for jit-compilation. Using non-jit-compiled method.')
             de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
         else:
-            de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve_jit()
+            # TODO
+            # de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve_jit()
+            de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
 
         self.layer_info_list = layer_info_list
         self.T1 = T1

@@ -15,7 +15,7 @@ class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
                  period=(100, 100), wavelength=900,
                  thickness=None, algo='TMM', perturbation=1E-10,
-                 device=0, type_complex=torch.complex128):
+                 device='cpu', type_complex=torch.complex128):
 
         # device
         if device in (0, 'cpu'):
@@ -262,6 +262,9 @@ class _BaseRCWA:
                 Eig.perturbation = self.perturbation
                 eigenvalues, W = Eig.apply(o_E_conv_i @ B)
                 q = eigenvalues ** 0.5
+
+                # eigenvalues, W = torch.linalg.eig(o_E_conv_i @ B)
+                # q = eigenvalues ** 0.5
 
                 Q = torch.diag(q)
                 V = o_E_conv @ W @ Q
