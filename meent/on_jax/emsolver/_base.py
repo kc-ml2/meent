@@ -249,6 +249,7 @@ class _BaseRCWA:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
                 eigenvalues, W = eig(A, type_complex=self.type_complex, perturbation=self.perturbation, device=self.device)
+                eigenvalues += 0j  # to get positive square root
                 q = eigenvalues ** 0.5
                 Q = jnp.diag(q)
                 V = W @ Q
@@ -259,6 +260,7 @@ class _BaseRCWA:
                 o_E_conv_i = jnp.linalg.inv(o_E_conv)
                 eigenvalues, W = eig(o_E_conv_i @ B, type_complex=self.type_complex, perturbation=self.perturbation,
                                      device=self.device)
+                eigenvalues += 0j  # to get positive square root
                 q = eigenvalues ** 0.5
                 Q = jnp.diag(q)
                 V = o_E_conv @ W @ Q

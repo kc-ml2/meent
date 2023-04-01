@@ -145,6 +145,7 @@ for wl in wls:
             ])
 
         eigenvalues, W = np.linalg.eig(S2_from_S)
+        eigenvalues += 0j  # to get positive square root
 
         q = eigenvalues ** 0.5
 

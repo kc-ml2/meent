@@ -77,7 +77,7 @@ class RCWANumpy(_BaseRCWA):
         else:
             raise ValueError
 
-        return de_ri.real, de_ti.real, layer_info_list, T1, self.kx_vector
+        return de_ri, de_ti, layer_info_list, T1, self.kx_vector
 
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
         de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(wavelength, e_conv_all, o_e_conv_all)
@@ -92,19 +92,19 @@ class RCWANumpy(_BaseRCWA):
         # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
 
         if self.fft_type == 0:
-            E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex,
-                                              improve_dft=self.improve_dft, perturbation=self.perturbation)
-            o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex,
-                                                improve_dft=self.improve_dft, perturbation=self.perturbation)
+            E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                              type_complex=self.type_complex, improve_dft=self.improve_dft)
+            o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                type_complex=self.type_complex, improve_dft=self.improve_dft)
         elif self.fft_type == 1:
-            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex,
-                                                perturbation=self.perturbation)
-            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex,
-                                                  perturbation=self.perturbation)
+            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                type_complex=self.type_complex)
+            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                  type_complex=self.type_complex)
         elif self.fft_type == 2:
-            E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order[0], self.fourier_order[1],
-                                                                     type_complex=self.type_complex,
-                                                                     perturbation=self.perturbation)
+            E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order[0],
+                                                                     self.fourier_order[1],
+                                                                     type_complex=self.type_complex)
         else:
             raise ValueError
 

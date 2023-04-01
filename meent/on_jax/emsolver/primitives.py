@@ -4,6 +4,11 @@ import jax.numpy as jnp
 from functools import partial
 
 
+def conj(arr):
+    return arr.real + arr.imag * -1j
+    # return arr.conj()
+
+
 @partial(jax.custom_vjp, nondiff_argnums=(1, 2, 3))
 def eig(x, type_complex=jnp.complex128, perturbation=1E-10, device='cpu'):
 

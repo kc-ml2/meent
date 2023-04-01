@@ -84,7 +84,7 @@ class ModelingJax:
                     self.mat_table = read_material_table()
                 assign_value = find_nk_index(material, self.mat_table, wl)
             else:
-                assign_value = type_complex(material)  # TODO: to complex?
+                assign_value = type_complex(material)
             res = res.at[mask].set(assign_value)
 
         return res

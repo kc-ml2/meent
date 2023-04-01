@@ -81,7 +81,8 @@ def fft_piecewise_constant(cell, fourier_order_x, fourier_order_y, device=torch.
     return f_coeffs_xy.T
 
 
-def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, device=torch.device('cpu'), type_complex=torch.complex128):
+def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
+                                  type_complex=torch.complex128):
     # X axis
     cell_next_x = torch.roll(cell, -1, dims=1)
     cell_diff_x = cell_next_x - cell
@@ -123,7 +124,7 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, 
 
 
 def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
-                                  type_complex=torch.complex128, perturbation=1E-10):
+                                  type_complex=torch.complex128):
 
     ff_x = 2 * fourier_order_x + 1
     ff_y = 2 * fourier_order_y + 1
@@ -160,14 +161,11 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
 
         e_conv_all[i] = e_conv
         o_e_conv_all[i] = o_e_conv
-    # e_conv_all = torch.where(e_conv_all == 0, perturbation, e_conv_all)  # perturbation
-    # o_e_conv_all = torch.where(o_e_conv_all == 0, perturbation, o_e_conv_all)  # perturbation
-
     return e_conv_all, o_e_conv_all
 
 
-def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=torch.device('cpu'), type_complex=torch.complex128,
-                           perturbation=1E-10):
+def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
+                           type_complex=torch.complex128):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
@@ -204,12 +202,11 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=torch
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
-    # res = torch.where(res == 0, perturbation, res)  # perturbation
     return res
 
 
 def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=torch.device('cpu'), type_complex=torch.complex128,
-                         improve_dft=True, perturbation=1E-10):
+                         improve_dft=True):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
@@ -268,7 +265,6 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=torch.d
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
-    # res = torch.where(res == 0, perturbation, res)  # perturbation
     return res
 
 

@@ -39,10 +39,6 @@ class _BaseRCWA:
                 self._type_complex = torch.complex64
             else:
                 self._type_complex = torch.complex128
-        elif str(type_complex) == "<class 'jax.numpy.complex128'>":  # TODO other bds
-            self._type_complex = torch.complex128
-        elif str(type_complex) == "<class 'jax.numpy.complex64'>":
-            self._type_complex = torch.complex64
         else:
             raise ValueError
         self._type_float = torch.float64 if self._type_complex is not torch.complex64 else torch.float32
@@ -111,7 +107,6 @@ class _BaseRCWA:
                 self._type_complex = torch.complex128
         else:
             raise ValueError
-
         self._type_float = torch.float64 if self.type_complex is not torch.complex64 else torch.float32
         self._type_int = torch.int64 if self.type_complex is not torch.complex64 else torch.int32
         self._theta = self._theta.to(self.type_float)

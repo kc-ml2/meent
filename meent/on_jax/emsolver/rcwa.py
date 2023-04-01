@@ -125,7 +125,7 @@ class RCWAJax(_BaseRCWA):
         else:
             raise ValueError
 
-        return de_ri.real, de_ti.real, layer_info_list, T1, self.kx_vector
+        return de_ri, de_ti, layer_info_list, T1, self.kx_vector
 
     @_BaseRCWA.jax_device_set
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
@@ -140,21 +140,18 @@ class RCWAJax(_BaseRCWA):
     def _conv_solve(self):
         if self.fft_type == 0:
             E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                              type_complex=self.type_complex, improve_dft=self.improve_dft,
-                                              perturbation=self.perturbation)
+                                              type_complex=self.type_complex, improve_dft=self.improve_dft)
             o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                type_complex=self.type_complex, improve_dft=self.improve_dft,
-                                                perturbation=self.perturbation)
+                                                type_complex=self.type_complex, improve_dft=self.improve_dft)
         elif self.fft_type == 1:
             E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                type_complex=self.type_complex, perturbation=self.perturbation)
+                                                type_complex=self.type_complex)
             o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                  type_complex=self.type_complex, perturbation=self.perturbation)
+                                                  type_complex=self.type_complex)
         elif self.fft_type == 2:
             E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list,
                                                                      self.fourier_order[0], self.fourier_order[1],
-                                                                     type_complex=self.type_complex,
-                                                                     perturbation=self.perturbation)
+                                                                     type_complex=self.type_complex)
         else:
             raise ValueError
 
@@ -173,9 +170,8 @@ class RCWAJax(_BaseRCWA):
             print('CFT (fft_type=1) is not supported for jit-compilation. Using non-jit-compiled method.')
             de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
         else:
-            # TODO
-            # de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve_jit()
-            de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
+            de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve_jit()
+            # de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
 
         self.layer_info_list = layer_info_list
         self.T1 = T1

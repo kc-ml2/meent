@@ -73,6 +73,7 @@ for wl in wls:
 
         A = Kx**2 - E_conv
         eigenvalues, W = np.linalg.eig(A)
+        eigenvalues += 0j  # to get positive square root
         q = eigenvalues ** 0.5
 
         Q = np.diag(q)

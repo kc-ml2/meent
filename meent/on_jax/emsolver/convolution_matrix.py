@@ -140,7 +140,7 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, 
 
 
 def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=None,
-                                  type_complex=jnp.complex128, perturbation=1E-10):
+                                  type_complex=jnp.complex128):
 
     ff_x = 2 * fourier_order_x + 1
     ff_y = 2 * fourier_order_y + 1
@@ -173,14 +173,10 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
 
         e_conv_all = e_conv_all.at[i].set(e_conv)
         o_e_conv_all = o_e_conv_all.at[i].set(o_e_conv)
-    # e_conv_all = jnp.where(e_conv_all == 0, perturbation, e_conv_all)  # perturbation
-    # o_e_conv_all = jnp.where(o_e_conv_all == 0, perturbation, o_e_conv_all)  # perturbation
-
     return e_conv_all, o_e_conv_all
 
 
-def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128,
-                           perturbation=1E-10):
+def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
@@ -219,14 +215,12 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res = res.at[i].set(e_conv)
-    # res = jnp.where(res == 0, perturbation, res)  # perturbation
     return res
 
 
-# TODO: keep jit?
-# @partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))
+@partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))
 def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128,
-                         improve_dft=True, perturbation=1E-10):
+                         improve_dft=True):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
@@ -289,7 +283,6 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res = res.at[i].set(e_conv)
-    # res = jnp.where(res == 0, perturbation, res)  # perturbation
     return res
 
 

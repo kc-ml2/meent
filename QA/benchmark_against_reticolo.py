@@ -71,4 +71,24 @@ def consistency(backend):
     mee.field_plot(field_cell_meent)
 
 
-consistency(0)
+if __name__ == '__main__':
+    try:
+        print('NumpyMeent')
+        consistency(0)
+    except Exception as e:
+        print('NumpyMeent has problem.')
+        print(e)
+
+    try:
+        print('JaxMeent')
+        consistency(1)
+    except Exception as e:
+        print('JaxMeent has problem. Do you have JAX?')
+        print(e)
+
+    try:
+        print('TorchMeent')
+        consistency(2)
+    except Exception as e:
+        print('TorchMeent has problem. Do you have PyTorch?')
+        print(e)

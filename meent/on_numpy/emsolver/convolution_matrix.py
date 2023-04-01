@@ -119,9 +119,9 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, 
 
     return f_coeffs_xy.T
 
-# TODO: seperate fourier order
-def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128,
-                                  perturbation=1E-10):
+
+def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=None,
+                                  type_complex=np.complex128):
     # TODO: do conv and 1/conv in simultaneously?
 
     ff_x = 2 * fourier_order_x + 1
@@ -155,13 +155,11 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
 
         e_conv_all[i] = e_conv
         o_e_conv_all[i] = o_e_conv
-    # e_conv_all = np.where(e_conv_all == 0, perturbation, e_conv_all)  # perturbation
-    # o_e_conv_all = np.where(o_e_conv_all == 0, perturbation, o_e_conv_all)  # perturbation
 
     return e_conv_all, o_e_conv_all
 
 
-def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128, perturbation=1E-10):
+def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128):
     ucell_pmt = ucell ** 2
 
     # TODO: do conv and 1/conv in simultaneously?
@@ -201,12 +199,11 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
-    # res = np.where(res == 0, perturbation, res)  # perturbation # TODO: other bds; add perturbation as an arg;
     return res
 
 
-def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128, improve_dft=True,
-                         perturbation=1E-10):
+def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128,
+                         improve_dft=True):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
@@ -269,7 +266,6 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
-    # res = np.where(res == 0, perturbation, res)  # perturbation
     return res
 
 

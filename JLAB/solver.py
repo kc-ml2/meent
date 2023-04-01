@@ -22,8 +22,8 @@ class JLABCode(RCWA):
         self.ucell = (self.ucell + 1) / 2
         self.ucell = self.ucell * (n_ridge - n_groove) + n_groove
 
-        e_conv_all = to_conv_mat_continuous(self.ucell, *self.fourier_order)
-        o_e_conv_all = to_conv_mat_continuous(1 / self.ucell, *self.fourier_order)
+        e_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1])
+        o_e_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1])
 
         de_ri, de_ti = self.solve(self.wavelength, e_conv_all, o_e_conv_all)
 

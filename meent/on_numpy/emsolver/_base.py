@@ -199,6 +199,7 @@ class _BaseRCWA:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
                 eigenvalues, W = np.linalg.eig(A)
+                eigenvalues += 0j  # to get positive square root
                 q = eigenvalues ** 0.5
                 Q = np.diag(q)
                 V = W @ Q
@@ -208,6 +209,7 @@ class _BaseRCWA:
                 o_E_conv_i = np.linalg.inv(o_E_conv)
 
                 eigenvalues, W = np.linalg.eig(o_E_conv_i @ B)
+                eigenvalues += 0j  # to get positive square root
                 q = eigenvalues ** 0.5
                 Q = np.diag(q)
                 V = o_E_conv @ W @ Q
