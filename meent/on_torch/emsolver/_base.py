@@ -14,7 +14,7 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
                  period=(100, 100), wavelength=900,
-                 thickness=None, algo='TMM', perturbation=1E-10,
+                 thickness=None, algo='TMM', perturbation=1E-20,
                  device='cpu', type_complex=torch.complex128):
 
         # device
@@ -39,6 +39,10 @@ class _BaseRCWA:
                 self._type_complex = torch.complex64
             else:
                 self._type_complex = torch.complex128
+        elif str(type_complex) == "<class 'jax.numpy.complex128'>":  # TODO other bds
+            self._type_complex = torch.complex128
+        elif str(type_complex) == "<class 'jax.numpy.complex64'>":
+            self._type_complex = torch.complex64
         else:
             raise ValueError
         self._type_float = torch.float64 if self._type_complex is not torch.complex64 else torch.float32
@@ -195,14 +199,14 @@ class _BaseRCWA:
 
     def get_kx_vector(self, wavelength):
 
-        k0 = 2 * np.pi / wavelength
-        fourier_indices = torch.arange(-self.fourier_order[0], self.fourier_order[0] + 1, device=self.device,
+        k0 = 2 * torch.pi / wavelength
+        fourier_indices_x = torch.arange(-self.fourier_order[0], self.fourier_order[0] + 1, device=self.device,
                                        dtype=self.type_float)
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * torch.sin(self.theta) + fourier_indices * (wavelength / self.period[0])
+            kx_vector = k0 * (self.n_I * torch.sin(self.theta) + fourier_indices_x * (wavelength / self.period[0])
                               ).type(self.type_complex)
         else:
-            kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) + fourier_indices * (
+            kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) + fourier_indices_x * (
                     wavelength / self.period[0])).type(self.type_complex)
 
         # kx_vector = torch.where(kx_vector == 0, self.perturbation, kx_vector)
@@ -221,7 +225,7 @@ class _BaseRCWA:
         delta_i0 = torch.zeros(ff, device=self.device, dtype=self.type_complex)
         delta_i0[self.fourier_order[0]] = 1
 
-        k0 = 2 * np.pi / wavelength
+        k0 = 2 * torch.pi / wavelength
 
         if self.algo == 'TMM':
             kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T \

@@ -11,7 +11,7 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 class _BaseRCWA:
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
                  period=(100, 100), wavelength=900,
-                 thickness=None, algo='TMM', perturbation=1E-10,
+                 thickness=None, algo='TMM', perturbation=1E-20,
                  type_complex=np.complex128, *args, **kwargs):
 
         self._device = 0
@@ -200,10 +200,8 @@ class _BaseRCWA:
                 A = Kx ** 2 - E_conv
                 eigenvalues, W = np.linalg.eig(A)
                 q = eigenvalues ** 0.5
-
                 Q = np.diag(q)
                 V = W @ Q
-
             elif self.pol == 1:
                 E_conv_i = np.linalg.inv(E_conv)
                 B = Kx @ E_conv_i @ Kx - np.eye(E_conv.shape[0], dtype=self.type_complex)
@@ -211,10 +209,8 @@ class _BaseRCWA:
 
                 eigenvalues, W = np.linalg.eig(o_E_conv_i @ B)
                 q = eigenvalues ** 0.5
-
                 Q = np.diag(q)
                 V = o_E_conv @ W @ Q
-
             else:
                 raise ValueError
 

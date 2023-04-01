@@ -43,7 +43,7 @@ def eig_bwd(type_complex, perturbation, device, res, g):
     grad_eigval = jnp.diag(grad_eigval)
     W_H = eig_vector.T.conj()
 
-    Fij = eig_val.conj().reshape((1, -1)) - eig_val.conj().reshape((-1, 1))
+    Fij = eig_val.reshape((1, -1)) - eig_val.reshape((-1, 1))
     Fij = Fij / (jnp.abs(Fij) ** 2 + perturbation)
     Fij = Fij.at[jnp.diag_indices_from(Fij)].set(0)
 

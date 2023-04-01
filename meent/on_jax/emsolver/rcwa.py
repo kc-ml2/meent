@@ -31,7 +31,7 @@ class RCWAJax(_BaseRCWA):
                  fourier_order=2,
                  ucell_materials=None,
                  algo='TMM',
-                 perturbation=1E-10,
+                 perturbation=1E-20,
                  device='cpu',
                  type_complex=jnp.complex128,
                  fft_type=0,
@@ -82,14 +82,34 @@ class RCWAJax(_BaseRCWA):
 
     @ucell.setter
     def ucell(self, ucell):
-        if type(ucell) is list:
-            self._ucell = jnp.array(ucell, dtype=self.type_complex)
+        if isinstance(ucell, jnp.ndarray):
+            if ucell.dtype in (jnp.complex128, jnp.complex64):
+                dtype = self.type_complex
+            elif ucell.dtype in (jnp.float64, jnp.float32, jnp.int64, jnp.int32):
+                dtype = self.type_float
+            else:
+                raise ValueError
+            self._ucell = ucell.astype(dtype)
         elif str(type(ucell)) == "<class 'numpy.ndarray'>":
-            self._ucell = jnp.array(ucell, dtype=self.type_complex)
-        elif isinstance(ucell, jnp.ndarray):
-            self._ucell = jnp.array(ucell, dtype=self.type_complex)
+            if str(ucell.dtype) in ('int64', 'float64', 'int32', 'float32'):
+                dtype = self.type_float
+            elif str(ucell.dtype) in ('complex128', 'complex64'):
+                dtype = self.type_complex
+            else:
+                raise ValueError
+            self._ucell = jnp.array(ucell, dtype=dtype)
         elif ucell is None:
             self._ucell = ucell
+        elif type(ucell) is list:
+            ucell_ = jnp.array(ucell)
+            if ucell_.dtype in (jnp.complex128, jnp.complex64):
+                dtype = self.type_complex
+            elif ucell_.dtype in (jnp.float64, jnp.float32, jnp.int64, jnp.int32):
+                dtype = self.type_float
+            else:
+                raise ValueError
+            self._ucell = ucell.astype(dtype)
+
         else:
             raise ValueError
 
@@ -120,17 +140,21 @@ class RCWAJax(_BaseRCWA):
     def _conv_solve(self):
         if self.fft_type == 0:
             E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                              type_complex=self.type_complex, improve_dft=self.improve_dft)
+                                              type_complex=self.type_complex, improve_dft=self.improve_dft,
+                                              perturbation=self.perturbation)
             o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                type_complex=self.type_complex, improve_dft=self.improve_dft)
+                                                type_complex=self.type_complex, improve_dft=self.improve_dft,
+                                                perturbation=self.perturbation)
         elif self.fft_type == 1:
             E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                type_complex=self.type_complex)
+                                                type_complex=self.type_complex, perturbation=self.perturbation)
             o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                  type_complex=self.type_complex)
+                                                  type_complex=self.type_complex, perturbation=self.perturbation)
         elif self.fft_type == 2:
-            E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order,
-                                                                     type_complex=self.type_complex)
+            E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list,
+                                                                     self.fourier_order[0], self.fourier_order[1],
+                                                                     type_complex=self.type_complex,
+                                                                     perturbation=self.perturbation)
         else:
             raise ValueError
 

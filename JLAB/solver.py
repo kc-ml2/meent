@@ -5,7 +5,7 @@ from meent.on_numpy.emsolver.rcwa import RCWANumpy as RCWA
 from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_continuous
 from meent.on_numpy.modeler.modeling import find_nk_index
 
-
+# TODO: delete or update
 class JLABCode(RCWA):
     def __init__(self, grating_type=0, n_I=1.45, n_II=1., theta=0, phi=0, psi=0, fourier_order=40, period=100,
                  wavelength=np.linspace(900, 900, 1), pol=1, patterns=None, ucell=None, ucell_materials=None, thickness=(325,), algo='TMM'):
@@ -22,8 +22,8 @@ class JLABCode(RCWA):
         self.ucell = (self.ucell + 1) / 2
         self.ucell = self.ucell * (n_ridge - n_groove) + n_groove
 
-        e_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order)
-        o_e_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order)
+        e_conv_all = to_conv_mat_continuous(self.ucell, *self.fourier_order)
+        o_e_conv_all = to_conv_mat_continuous(1 / self.ucell, *self.fourier_order)
 
         de_ri, de_ti = self.solve(self.wavelength, e_conv_all, o_e_conv_all)
 

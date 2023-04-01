@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 
 def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.complex128):
@@ -38,9 +37,7 @@ def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.comple
     return cell_comp, x, y
 
 
-def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
-    if len(fourier_order) == 1:
-        fourier_order = fourier_order + [0]
+def fft_piecewise_constant(cell, fourier_order_x, fourier_order_y, device=torch.device('cpu'), type_complex=torch.complex128):
 
     cell, x, y = cell_compression(cell, device=device, type_complex=type_complex)
 
@@ -51,9 +48,9 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
 
     cell = cell.type(type_complex)
 
-    modes_x = torch.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1, device=device).type(type_complex)
+    modes_x = torch.arange(-2 * fourier_order_x, 2 * fourier_order_x + 1, 1, device=device).type(type_complex)
 
-    f_coeffs_x = cell_diff_x @ torch.exp(-1j * 2 * np.pi * x @ modes_x[None, :]).type(type_complex)
+    f_coeffs_x = cell_diff_x @ torch.exp(-1j * 2 * torch.pi * x @ modes_x[None, :]).type(type_complex)
     c = f_coeffs_x.shape[1] // 2
 
     x_next = torch.vstack((torch.roll(x, -1, dims=0)[:-1], torch.tensor([1], device=device))) - x
@@ -61,15 +58,15 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
     f_coeffs_x[:, c] = (cell @ torch.vstack((x[0], x_next[:-1]))).flatten()
     mask = torch.ones(f_coeffs_x.shape[1], device=device).type(torch.bool)
     mask[c] = False
-    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes_x[mask])
+    f_coeffs_x[:, mask] /= (1j * 2 * torch.pi * modes_x[mask])
 
     # Y axis
     f_coeffs_x_next_y = torch.roll(f_coeffs_x, -1, dims=0)
     f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
 
-    modes_y = torch.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1, device=device).type(type_complex)
+    modes_y = torch.arange(-2 * fourier_order_y, 2 * fourier_order_y + 1, 1, device=device).type(type_complex)
 
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ torch.exp(-1j * 2 * np.pi * y @ modes_y[None, :])
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ torch.exp(-1j * 2 * torch.pi * y @ modes_y[None, :])
     c = f_coeffs_xy.shape[1] // 2
 
     y_next = torch.vstack((torch.roll(y, -1, dims=0)[:-1], torch.tensor([1], device=device))) - y
@@ -79,15 +76,12 @@ def fft_piecewise_constant(cell, fourier_order, device=torch.device('cpu'), type
     if c:
         mask = torch.ones(f_coeffs_xy.shape[1], device=device).type(torch.bool)
         mask[c] = False
-        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes_y[mask])
+        f_coeffs_xy[:, mask] /= (1j * 2 * torch.pi * modes_y[mask])
 
     return f_coeffs_xy.T
 
 
-def fft_piecewise_constant_vector(cell, x, y, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
-    if len(fourier_order) == 1:
-        fourier_order = fourier_order + [0]
-
+def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, device=torch.device('cpu'), type_complex=torch.complex128):
     # X axis
     cell_next_x = torch.roll(cell, -1, dims=1)
     cell_diff_x = cell_next_x - cell
@@ -95,9 +89,9 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order, device=torch.device
 
     cell = cell.type(type_complex)
 
-    modes_x = torch.arange(-2 * fourier_order[0], 2 * fourier_order[0] + 1, 1, device=device).type(type_complex)
+    modes_x = torch.arange(-2 * fourier_order_x, 2 * fourier_order_x + 1, 1, device=device).type(type_complex)
 
-    f_coeffs_x = cell_diff_x @ torch.exp(-1j * 2 * np.pi * x @ modes_x[None, :]).type(type_complex)
+    f_coeffs_x = cell_diff_x @ torch.exp(-1j * 2 * torch.pi * x @ modes_x[None, :]).type(type_complex)
     c = f_coeffs_x.shape[1] // 2
 
     x_next = torch.vstack((torch.roll(x, -1, dims=0)[:-1], torch.tensor([1], device=device))) - x
@@ -105,15 +99,15 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order, device=torch.device
     f_coeffs_x[:, c] = (cell @ torch.vstack((x[0], x_next[:-1]))).flatten()
     mask = torch.ones(f_coeffs_x.shape[1], device=device).type(torch.bool)
     mask[c] = False
-    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes_x[mask])
+    f_coeffs_x[:, mask] /= (1j * 2 * torch.pi * modes_x[mask])
 
     # Y axis
     f_coeffs_x_next_y = torch.roll(f_coeffs_x, -1, dims=0)
     f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
 
-    modes_y = torch.arange(-2 * fourier_order[1], 2 * fourier_order[1] + 1, 1, device=device).type(type_complex)
+    modes_y = torch.arange(-2 * fourier_order_y, 2 * fourier_order_y + 1, 1, device=device).type(type_complex)
 
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ torch.exp(-1j * 2 * np.pi * y @ modes_y[None, :])
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ torch.exp(-1j * 2 * torch.pi * y @ modes_y[None, :])
     c = f_coeffs_xy.shape[1] // 2
 
     y_next = torch.vstack((torch.roll(y, -1, dims=0)[:-1], torch.tensor([1], device=device))) - y
@@ -123,16 +117,16 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order, device=torch.device
     if c:
         mask = torch.ones(f_coeffs_xy.shape[1], device=device).type(torch.bool)
         mask[c] = False
-        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes_y[mask])
+        f_coeffs_xy[:, mask] /= (1j * 2 * torch.pi * modes_y[mask])
 
     return f_coeffs_xy.T
 
 
-def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=torch.device('cpu'),
-                                  type_complex=torch.complex128):
+def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
+                                  type_complex=torch.complex128, perturbation=1E-10):
 
-    ff_x = 2 * fourier_order[0] + 1
-    ff_y = 2 * fourier_order[1] + 1
+    ff_x = 2 * fourier_order_x + 1
+    ff_y = 2 * fourier_order_y + 1
 
     e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).type(type_complex)
     o_e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).type(type_complex)
@@ -146,9 +140,9 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=torch.d
         # y_list = torch.tensor(y_list, dtype=type_complex) if type(y_list) != torch.Tensor else y_list
 
         f_coeffs = fft_piecewise_constant_vector(ucell_layer, x_list, y_list,
-                                                 fourier_order, type_complex=type_complex)
+                                                 fourier_order_x, fourier_order_y, type_complex=type_complex)
         o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
-                                                 fourier_order, type_complex=type_complex)
+                                                 fourier_order_x, fourier_order_y, type_complex=type_complex)
 
         center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
 
@@ -166,20 +160,23 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order, device=torch.d
 
         e_conv_all[i] = e_conv
         o_e_conv_all[i] = o_e_conv
+    # e_conv_all = torch.where(e_conv_all == 0, perturbation, e_conv_all)  # perturbation
+    # o_e_conv_all = torch.where(o_e_conv_all == 0, perturbation, o_e_conv_all)  # perturbation
 
     return e_conv_all, o_e_conv_all
 
 
-def to_conv_mat_continuous(ucell, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128):
+def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=torch.device('cpu'), type_complex=torch.complex128,
+                           perturbation=1E-10):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
-        ff = 2 * fourier_order[0] + 1
+        ff = 2 * fourier_order_x + 1
 
         res = torch.zeros((ucell_pmt.shape[0], ff, ff), device=device).type(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
-            f_coeffs = fft_piecewise_constant(layer, fourier_order, device=device, type_complex=type_complex)
+            f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
             center = f_coeffs.shape[1] // 2
             conv_idx = torch.arange(-ff + 1, ff, 1, device=device)
             conv_idx = circulant(conv_idx, device=device)
@@ -187,13 +184,13 @@ def to_conv_mat_continuous(ucell, fourier_order, device=torch.device('cpu'), typ
             res[i] = e_conv
 
     else:  # 2D
-        ff_x = 2 * fourier_order[0] + 1
-        ff_y = 2 * fourier_order[1] + 1
+        ff_x = 2 * fourier_order_x + 1
+        ff_y = 2 * fourier_order_y + 1
 
         res = torch.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y), device=device).type(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
-            f_coeffs = fft_piecewise_constant(layer, fourier_order, device=device, type_complex=type_complex)
+            f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
             center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
 
             conv_idx_y = torch.arange(-ff_y + 1, ff_y, 1, device=device)
@@ -207,14 +204,16 @@ def to_conv_mat_continuous(ucell, fourier_order, device=torch.device('cpu'), typ
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
+    # res = torch.where(res == 0, perturbation, res)  # perturbation
     return res
 
 
-def to_conv_mat_discrete(ucell, fourier_order, device=torch.device('cpu'), type_complex=torch.complex128, improve_dft=True):
+def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=torch.device('cpu'), type_complex=torch.complex128,
+                         improve_dft=True, perturbation=1E-10):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
-        ff = 2 * fourier_order[0] + 1
+        ff = 2 * fourier_order_x + 1
         res = torch.zeros((ucell_pmt.shape[0], ff, ff), device=device).type(type_complex)
         if improve_dft:
             minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]
@@ -225,7 +224,7 @@ def to_conv_mat_discrete(ucell, fourier_order, device=torch.device('cpu'), type_
             n = minimum_pattern_size // layer.shape[1]
             layer = layer.repeat_interleave(n + 1, axis=1)
 
-            f_coeffs = torch.fft.fftshift(torch.fft.fftn(layer / (layer.size(0)*layer.size(1))))
+            f_coeffs = torch.fft.fftshift(torch.fft.fft(layer / (layer.size(0)*layer.size(1))))
             center = f_coeffs.shape[1] // 2
 
             conv_idx = torch.arange(-ff + 1, ff, 1, device=device)
@@ -234,8 +233,8 @@ def to_conv_mat_discrete(ucell, fourier_order, device=torch.device('cpu'), type_
             res[i] = e_conv
 
     else:  # 2D
-        ff_x = 2 * fourier_order[0] + 1
-        ff_y = 2 * fourier_order[1] + 1
+        ff_x = 2 * fourier_order_x + 1
+        ff_y = 2 * fourier_order_y + 1
 
         res = torch.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y), device=device).type(type_complex)
 
@@ -269,7 +268,7 @@ def to_conv_mat_discrete(ucell, fourier_order, device=torch.device('cpu'), type_
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
             res[i] = e_conv
-
+    # res = torch.where(res == 0, perturbation, res)  # perturbation
     return res
 
 

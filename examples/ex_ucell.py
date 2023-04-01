@@ -9,10 +9,11 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '2'
 # os.environ["VECLIB_MAXIMUM_THREADS"] = "4" # export VECLIB_MAXIMUM_THREADS=4
 # os.environ["NUMEXPR_NUM_THREADS"] = "6" # export NUMEXPR_NUM_THREADS=6
 
-import numpy as np
 import time
+import numpy as np
 
 import meent
+
 
 # common
 pol = 0  # 0: TE, 1: TM
@@ -117,10 +118,10 @@ def load_ucell(grating_type):
                 [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
                 [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, ],
             ],
-        ]) * 4 + 1 +1j
+        ]) * 4 + 1
 
     return ucell
 
 
 if __name__ == '__main__':
-    run_loop([0], [0,1,2], [0], [0])
+    run_loop([0,1,2], [0,1,2], [0], [0])

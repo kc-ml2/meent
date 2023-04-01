@@ -5,7 +5,7 @@ import meent
 
 from meent.on_numpy.modeler.modeling import find_nk_index
 
-os.environ['OCTAVE_EXECUTABLE'] = '/opt/homebrew/bin/octave-cli'
+# os.environ['OCTAVE_EXECUTABLE'] = '/opt/homebrew/bin/octave-cli'
 
 
 class Reticolo:

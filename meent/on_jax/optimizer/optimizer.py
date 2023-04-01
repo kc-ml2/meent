@@ -1,11 +1,7 @@
 import jax
 import optax
 
-from functools import partial
-
 from tqdm import tqdm
-
-from ..emsolver.rcwa import RCWAJax
 
 
 class OptimizerJax:

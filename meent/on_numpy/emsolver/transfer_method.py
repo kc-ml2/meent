@@ -50,7 +50,6 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=np.comple
     a = 0.5 * (W_i @ f + V_i @ g)
     b = 0.5 * (W_i @ f - V_i @ g)
 
-    # TODO: with CFT, this a is singular while JAX and PyTorch are not. Run verfi.py to reproduce.
     a_i = np.linalg.inv(a)
 
     f = W @ (np.eye(2 * fourier_order[0] + 1, dtype=type_complex) + X @ b @ a_i @ X)
@@ -117,6 +116,7 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
 
     A = Kx ** 2 - E_conv
     B = Kx @ E_conv_i @ Kx - I
+
     A_i = np.linalg.inv(A)
     B_i = np.linalg.inv(B)
 

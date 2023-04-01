@@ -27,7 +27,7 @@ class RCWANumpy(_BaseRCWA):
                  fourier_order=2,
                  ucell_materials=None,
                  algo='TMM',
-                 perturbation=1E-10,
+                 perturbation=1E-20,
                  device='cpu',
                  type_complex=np.complex128,
                  fft_type=0,
@@ -92,16 +92,19 @@ class RCWANumpy(_BaseRCWA):
         # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
 
         if self.fft_type == 0:
-            E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order, type_complex=self.type_complex,
-                                              improve_dft=self.improve_dft)
-            o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order, type_complex=self.type_complex,
-                                                improve_dft=self.improve_dft)
+            E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex,
+                                              improve_dft=self.improve_dft, perturbation=self.perturbation)
+            o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex,
+                                                improve_dft=self.improve_dft, perturbation=self.perturbation)
         elif self.fft_type == 1:
-            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order, type_complex=self.type_complex)
-            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order, type_complex=self.type_complex)
+            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex,
+                                                perturbation=self.perturbation)
+            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1], type_complex=self.type_complex,
+                                                  perturbation=self.perturbation)
         elif self.fft_type == 2:
-            E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order,
-                                                                     type_complex=self.type_complex)
+            E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order[0], self.fourier_order[1],
+                                                                     type_complex=self.type_complex,
+                                                                     perturbation=self.perturbation)
         else:
             raise ValueError
 
@@ -147,16 +150,16 @@ class RCWANumpy(_BaseRCWA):
         elif self.grating_type == 2:
             if field_algo == 0:
                 field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-                                                   *self.fourier_order, self.T1, self.layer_info_list, self.period,
+                                                   self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list, self.period,
                                                    res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                         self.phi, *self.fourier_order, self.T1, self.layer_info_list,
+                                                         self.phi, self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list,
                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z,
                                                          type_complex=self.type_complex)
             elif field_algo == 2:
                 field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                          self.phi, *self.fourier_order, self.T1, self.layer_info_list,
+                                                          self.phi, self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list,
                                                           self.period, res_x=res_x, res_y=res_y, res_z=res_z,
                                                           type_complex=self.type_complex)
             else:

@@ -18,7 +18,7 @@ class _BaseRCWA:
 
     def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
                  period=(100, 100), wavelength=900,
-                 thickness=None, algo='TMM', perturbation=1E-10,
+                 thickness=None, algo='TMM', perturbation=1E-20,
                  device=0, type_complex=jnp.complex128):
 
         if device in (0, 'cpu'):
