@@ -13,16 +13,15 @@ n_II = 1  # n_transmission
 
 theta = 0 * np.pi / 180
 phi = 0 * np.pi / 180
-psi = 0 if pol else 90 * np.pi / 180  # in degree, notation from Moharam paper
 
 wavelength = 900
 
 period = [700, 700]
-fourier_order = 9
+fourier_order = [3, 3]
 
-thickness = [100] * 10
+thickness = [100] * 5
 
-ucell_z, ucell_y, ucell_x = 3, 100, 100
+ucell_z, ucell_y, ucell_x = 5, 100, 100
 
 ucell = np.zeros((ucell_z, ucell_y, ucell_x), dtype=int)
 
@@ -43,6 +42,8 @@ for i in range(ucell_z):
     colors[indices] = (0., 1., 0., 1)
     voxelarray |= indices
 
+ucell = ucell * 4 + 1
+
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
 
@@ -52,16 +53,14 @@ plt.show()
 plt.imshow(np.flipud(ucell[:, 50, :]), aspect='auto')
 plt.show()
 
-ucell_materials = ['p_si__real', 1]
-
-solver = call_mee(backend=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi, psi=psi,
+solver = call_mee(backend=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                   fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                  ucell_materials=ucell_materials, thickness=thickness)
+                  thickness=thickness)
 
-wavelength_array = np.linspace(500, 1000, 10)
+wavelength_array = np.linspace(500, 1000, 100)
 
-spectrum_r = np.zeros([len(wavelength_array)] + [2 * fourier_order + 1] * (grating_type // 2 + 1))
-spectrum_t = np.zeros([len(wavelength_array)] + [2 * fourier_order + 1] * (grating_type // 2 + 1))
+spectrum_r = np.zeros([len(wavelength_array), 2 * fourier_order[0] + 1, 2*fourier_order[1] + 1])
+spectrum_t = np.zeros([len(wavelength_array), 2 * fourier_order[0] + 1, 2*fourier_order[1] + 1])
 
 for i, wavelength in enumerate(wavelength_array):
     solver.wavelength = wavelength

@@ -75,6 +75,7 @@ for wl in wls:
         E_i = np.linalg.inv(E_conv)
         B = Kx @ E_i @ Kx - np.eye(E_conv.shape[0])
         eigenvalues, W = np.linalg.eig(E_conv @ B)
+        eigenvalues += 0j  # to get positive square root
         q = eigenvalues ** 0.5
 
         Q = np.diag(q)

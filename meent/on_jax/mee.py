@@ -11,7 +11,7 @@ class MeeJax(ModelingJax, RCWAJax, OptimizerJax):
         OptimizerJax.__init__(self, *args, **kwargs)
 
     def _tree_flatten(self):
-        children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
+        children = (self.n_I, self.n_II, self.theta, self.phi,
                     self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
         aux_data = {
             'backend': self.backend,

@@ -80,6 +80,7 @@ for wl in wls:
         oneover_E_conv_i = np.linalg.inv(oneover_E_conv)
 
         eigenvalues, W = np.linalg.eig(oneover_E_conv_i @ B)
+        eigenvalues += 0j  # to get positive square root
         q = eigenvalues ** 0.5
 
         Q = np.diag(q)

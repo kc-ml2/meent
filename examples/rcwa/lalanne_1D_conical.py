@@ -100,6 +100,8 @@ for wl in wls:
 
         eigenvalues_1, W_1 = np.linalg.eig(to_decompose_W_1)
         eigenvalues_2, W_2 = np.linalg.eig(to_decompose_W_2)
+        eigenvalues_1 += 0j  # to get positive square root
+        eigenvalues_2 += 0j  # to get positive square root
 
         q_1 = eigenvalues_1 ** 0.5
         q_2 = eigenvalues_2 ** 0.5

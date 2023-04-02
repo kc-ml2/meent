@@ -50,7 +50,6 @@ def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=np.comple
     a = 0.5 * (W_i @ f + V_i @ g)
     b = 0.5 * (W_i @ f - V_i @ g)
 
-    # TODO: with CFT, this a is singular while JAX and PyTorch are not. Run verfi.py to reproduce.
     a_i = np.linalg.inv(a)
 
     f = W @ (np.eye(2 * fourier_order[0] + 1, dtype=type_complex) + X @ b @ a_i @ X)
@@ -117,6 +116,7 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
 
     A = Kx ** 2 - E_conv
     B = Kx @ E_conv_i @ Kx - I
+
     A_i = np.linalg.inv(A)
     B_i = np.linalg.inv(B)
 
@@ -125,6 +125,8 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
 
     eigenvalues_1, W_1 = np.linalg.eig(to_decompose_W_1)
     eigenvalues_2, W_2 = np.linalg.eig(to_decompose_W_2)
+    eigenvalues_1 += 0j  # to get positive square root
+    eigenvalues_2 += 0j  # to get positive square root
 
     q_1 = eigenvalues_1 ** 0.5
     q_2 = eigenvalues_2 ** 0.5
@@ -274,9 +276,8 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=np.
         ])
 
     eigenvalues, W = np.linalg.eig(S2_from_S)
-
+    eigenvalues += 0j  # to get positive square root
     q = eigenvalues ** 0.5
-    # q = q.conjugate()
 
     Q = np.diag(q)
     Q_i = np.linalg.inv(Q)

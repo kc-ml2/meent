@@ -1,7 +1,5 @@
 import numpy as np
 
-from copy import deepcopy
-
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
 from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, \
@@ -9,53 +7,124 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 
 
 class _BaseRCWA:
-    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., psi=0., pol=0, fourier_order=(2, 2),
-                 period=(100, 100), wavelength=900,
-                 thickness=None, algo='TMM', perturbation=1E-10,
-                 device='cpu', type_complex=np.complex128):
+    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0., fourier_order=(2, 2),
+                 period=(100., 100.), wavelength=900.,
+                 thickness=(0., ), algo='TMM', perturbation=1E-20,
+                 type_complex=np.complex128, *args, **kwargs):
 
-        self.device = device
-        self.type_complex = type_complex
+        self._device = 0
+
+        # type_complex
+        if type_complex in (0, np.complex128):
+            self._type_complex = np.complex128
+        elif type_complex in (1, np.complex64):
+            self._type_complex = np.complex64
+        else:
+            raise ValueError('Numpy type_complex')
+
+        # currently these two are not used. Only TorchMeent uses.
+        self._type_float = np.float64 if self.type_complex is not np.complex64 else np.float32
+        self._type_int = np.int64 if self.type_complex is not np.complex64 else np.int32
+        self.perturbation = perturbation
 
         self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
         self.n_I = n_I
         self.n_II = n_II
 
         # degree to radian due to JAX JIT
-        self.theta = np.array(theta)
-        self.phi = np.array(phi)
-        self.psi = np.array(psi)  # TODO: integrate psi and pol
+        self.theta = theta
+        self.phi = phi
+        self.pol = pol
+        self._psi = np.array((np.pi / 2 * (1 - pol)), dtype=self.type_float)
 
-        self.pol = pol  # TE 0, TM 1
-        if self.pol == 0:  # TE
-            self.psi = np.pi / 2
-        elif self.pol == 1:  # TM
-            self.psi = 0
-        else:
-            print('not implemented yet')
-            raise ValueError
-
-        if type(fourier_order) == int:
-            self._fourier_order = [fourier_order, 0]
-        elif len(fourier_order) == 1:
-            self._fourier_order = list(fourier_order) + [0]
-        else:
-            self._fourier_order = [int(v) for v in fourier_order]
-
-        self.period = deepcopy(period)
-
+        self.fourier_order = fourier_order
+        self.period = period
         self.wavelength = wavelength
-        self.thickness = deepcopy(thickness)
-
+        self.thickness = thickness
         self.algo = algo
-        self.perturbation = perturbation
-
         self.layer_info_list = []
         self.T1 = None
+        self.kx_vector = None  # only kx, not ky, because kx is always used while ky is 2D only.
 
-        self.theta = np.where(self.theta == 0, self.perturbation, self.theta)
+    @property
+    def device(self):
+        return self._device
 
-        self.kx_vector = None  # tODO: need this? why only kx, not ky?
+    @device.setter
+    def device(self, device):
+        print('NumpyMeent support only CPU.')
+
+    @property
+    def type_complex(self):
+        return self._type_complex
+
+    @type_complex.setter
+    def type_complex(self, type_complex):
+        if type_complex == 0:
+            self._type_complex = np.complex128
+        elif type_complex == 1:
+            self._type_complex = np.complex64
+        elif type_complex in (np.complex128, np.complex64):
+            self._type_complex = type_complex
+        else:
+            raise ValueError
+
+        self._type_float = np.float64 if self.type_complex is not np.complex64 else np.float32
+        self._type_int = np.int64 if self.type_complex is not np.complex64 else np.int32
+        self.theta = self.theta
+        self.phi = self.phi
+        self._psi = self.psi
+
+        self.fourier_order = self.fourier_order
+        self.thickness = self.thickness
+
+    @property
+    def type_float(self):
+        return self._type_float
+
+    @property
+    def type_int(self):
+        return self._type_int
+
+    @property
+    def pol(self):
+        return self._pol
+
+    @pol.setter
+    def pol(self, pol):
+        room = 1E-6
+        if 1 < pol < 1 + room:
+            pol = 1
+        elif 0 - room < pol < 0:
+            pol = 0
+
+        if not 0 <= pol <= 1:
+            raise ValueError
+
+        self._pol = pol
+        psi = np.pi / 2 * (1 - self.pol)
+        self._psi = np.array(psi, dtype=self.type_float)
+
+    @property
+    def theta(self):
+        return self._theta
+
+    @theta.setter
+    def theta(self, theta):
+        self._theta = np.array(theta, dtype=self.type_float)
+        self._theta = np.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
+
+    @property
+    def phi(self):
+        return self._phi
+
+    @phi.setter
+    def phi(self, phi):
+        self._phi = np.array(phi, dtype=self.type_float)
+
+    @property
+    def psi(self):
+        return self._psi
 
     @property
     def fourier_order(self):
@@ -63,26 +132,68 @@ class _BaseRCWA:
 
     @fourier_order.setter
     def fourier_order(self, fourier_order):
-        if type(fourier_order) == int:
-            self._fourier_order = [fourier_order, 0]
-        elif len(fourier_order) == 1:
-            self._fourier_order = list(fourier_order) + [0]
+
+        if type(fourier_order) in (list, tuple):
+            if len(fourier_order) == 1:
+                self._fourier_order = [int(fourier_order[0]), 0]
+            elif len(fourier_order) == 2:
+                self._fourier_order = [int(v) for v in fourier_order]
+            else:
+                raise ValueError
+        elif isinstance(fourier_order, np.ndarray):
+            self._fourier_order = fourier_order.tolist()
+            if type(self._fourier_order) is list:
+                if len(self._fourier_order) == 1:
+                    self._fourier_order = [int(self._fourier_order[0]), 0]
+                elif len(self._fourier_order) == 2:
+                    self._fourier_order = [int(v) for v in self._fourier_order]
+                else:
+                    raise ValueError
+            elif type(self._fourier_order) in (int, float):
+                self._fourier_order = [int(self._fourier_order), 0]
+            else:
+                raise ValueError
+        elif type(fourier_order) in (int, float):
+            self._fourier_order = [int(fourier_order), 0]
         else:
-            self._fourier_order = [int(v) for v in fourier_order]
+            raise ValueError
+
+    @property
+    def period(self):
+        return self._period
+
+    @period.setter
+    def period(self, period):
+        if type(period) in (int, float):
+            self._period = np.array([period], dtype=self.type_float)
+        elif type(period) in (list, tuple, np.ndarray):
+            self._period = np.array(period, dtype=self.type_float)
+        else:
+            raise ValueError
+
+    @property
+    def thickness(self):
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, thickness):
+        if type(thickness) in (int, float):
+            self._thickness = np.array([thickness], dtype=self.type_float)
+        elif type(thickness) in (list, tuple, np.ndarray):
+            self._thickness = np.array(thickness, dtype=self.type_float)
+        else:
+            raise ValueError
 
     def get_kx_vector(self, wavelength):
-
         k0 = 2 * np.pi / wavelength
         fourier_indices_x = np.arange(-self.fourier_order[0], self.fourier_order[0] + 1)
 
-        if self.grating_type == 0:  # TODO: need this?
+        if self.grating_type == 0:
             kx_vector = k0 * (self.n_I * np.sin(self.theta) + fourier_indices_x * (wavelength / self.period[0])
                               ).astype(self.type_complex)
         else:
             kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) + fourier_indices_x * (
                     wavelength / self.period[0])).astype(self.type_complex)
-
-        # kx_vector = np.where(kx_vector == 0, self.perturbation, kx_vector)
 
         return kx_vector
 
@@ -115,22 +226,20 @@ class _BaseRCWA:
                 E_conv_i = None
                 A = Kx ** 2 - E_conv
                 eigenvalues, W = np.linalg.eig(A)
+                eigenvalues += 0j  # to get positive square root
                 q = eigenvalues ** 0.5
-
                 Q = np.diag(q)
                 V = W @ Q
-
             elif self.pol == 1:
                 E_conv_i = np.linalg.inv(E_conv)
                 B = Kx @ E_conv_i @ Kx - np.eye(E_conv.shape[0], dtype=self.type_complex)
                 o_E_conv_i = np.linalg.inv(o_E_conv)
 
                 eigenvalues, W = np.linalg.eig(o_E_conv_i @ B)
+                eigenvalues += 0j  # to get positive square root
                 q = eigenvalues ** 0.5
-
                 Q = np.diag(q)
                 V = o_E_conv @ W @ Q
-
             else:
                 raise ValueError
 

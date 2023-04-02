@@ -6,6 +6,7 @@ from copy import deepcopy
 import jax
 
 from meent.on_jax.emsolver.convolution_matrix import read_material_table
+# TODO: update or delete
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
 
@@ -80,7 +81,7 @@ ucell = np.array([
 ], dtype=np.float64)
 
 solver = call_mee(backend=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                  psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                  fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                   ucell_materials=ucell_materials,
                   thickness=thickness, device=device, type_complex=type_complex, )
 
@@ -188,7 +189,7 @@ plt.show()
 # print('difference de_ti:', np.linalg.norm(spectrum_ti_pmap - spectrum_ti_single))
 
 solver1 = call_mee(backend=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                   psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                   fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                    ucell_materials=ucell_materials,
                    thickness=thickness, device=device, type_complex=type_complex, )
 
@@ -205,8 +206,7 @@ for i, (wl, perm) in enumerate(zip(wavelength_list, mat_pmtvy_interp)):
     ucell1 *= perm
     ucell1 += 1.
 
-    E_conv_all = to_conv_mat_discrete(ucell1, fourier_order, type_complex=type_complex,)
-    o_E_conv_all = to_conv_mat_discrete(1 / ucell1, fourier_order, type_complex=type_complex,)
+    E_conv_all, o_E_conv_all = to_conv_mat_discrete(ucell1, *fourier_order, type_complex=type_complex,)
     de_ri, de_ti, _,_,_ = solver1.solve(wl, E_conv_all, o_E_conv_all)
 
     spectrum_ri[i] = de_ri.sum()

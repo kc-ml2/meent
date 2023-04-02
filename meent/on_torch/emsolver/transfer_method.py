@@ -69,10 +69,8 @@ def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, the
     de_ri = torch.real(R * torch.conj(R) * k_I_z / (k0 * n_I * torch.cos(theta)))
     if polarization == 0:
         de_ti = T * torch.conj(T) * torch.real(k_II_z / (k0 * n_I * torch.cos(theta)))
-        # de_ti = torch.real(T * torch.conj(T) * k_II_z / (k0 * n_I * torch.cos(theta)))
     elif polarization == 1:
         de_ti = T * torch.conj(T) * torch.real(k_II_z / n_II ** 2) / (k0 * torch.cos(theta) / n_I)
-        # de_ti = torch.real(T * torch.conj(T) * k_II_z / n_II ** 2) / (k0 * torch.cos(theta) / n_I)
     else:
         raise ValueError
 
@@ -312,9 +310,7 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', ty
 
     Eig.perturbation = perturbation
     eigenvalues, W = Eig.apply(S2_from_S)
-
     q = eigenvalues ** 0.5
-
     Q = torch.diag(q)
     Q_i = torch.linalg.inv(Q)
     U1_from_S = torch.cat(

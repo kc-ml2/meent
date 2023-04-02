@@ -1,10 +1,7 @@
-import time
-from functools import partial
-
 import jax
 import jax.numpy as jnp
 
-from .primitives import eig
+from .primitives import eig, conj
 
 
 def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, fourier_order,
@@ -13,8 +10,12 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, f
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2) ** 0.5
 
-    k_I_z = k_I_z.conjugate()
-    k_II_z = k_II_z.conjugate()
+    # conj() is not allowed with grad x jit
+    # k_I_z = k_I_z.conjugate()
+    # k_II_z = k_II_z.conjugate()
+
+    k_I_z = conj(k_I_z)  # manual conjugate
+    k_II_z = conj(k_II_z)  # manual conjugate
 
     Kx = jnp.diag(kx_vector / k0)
 
@@ -41,7 +42,7 @@ def transfer_1d_1(ff, polarization, k0, n_I, n_II, kx_vector, theta, delta_i0, f
 
     T = jnp.eye(2 * fourier_order[0] + 1).astype(type_complex)
 
-    return kx_vector, Kx, k_I_z, k_II_z, Kx, f, YZ_I, g, inc_term, T
+    return kx_vector, Kx, k_I_z, k_II_z, f, YZ_I, g, inc_term, T
 
 
 def transfer_1d_2(k0, q, d, W, V, f, g, fourier_order, T, type_complex=jnp.complex128):
@@ -67,13 +68,20 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
     R = f @ T1 - delta_i0
     T = T @ T1
 
-    de_ri = jnp.real(R * jnp.conj(R) * k_I_z / (k0 * n_I * jnp.cos(theta)))
+    # conj() is not allowed with grad x jit
+    # de_ri = jnp.real(R * jnp.conj(R) * k_I_z / (k0 * n_I * jnp.cos(theta)))
+    # if polarization == 0:
+    #     de_ti = T * jnp.conj(T) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta)))
+    # elif polarization == 1:
+    #     de_ti = T * jnp.conj(T) * jnp.real(k_II_z / n_II ** 2) / (k0 * jnp.cos(theta) / n_I)
+    # else:
+    #     raise ValueError
+
+    de_ri = jnp.real(R * conj(R) * k_I_z / (k0 * n_I * jnp.cos(theta)))  # manual conjugate
     if polarization == 0:
-        de_ti = T * jnp.conj(T) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta)))
-        # de_ti = jnp.real(T * jnp.conj(T) * k_II_z / (k0 * n_I * jnp.cos(theta)))
+        de_ti = T * conj(T) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta)))  # manual conjugate
     elif polarization == 1:
-        de_ti = T * jnp.conj(T) * jnp.real(k_II_z / n_II ** 2) / (k0 * jnp.cos(theta) / n_I)
-        # de_ti = jnp.real(T * jnp.conj(T) * k_II_z / n_II ** 2) / (k0 * jnp.cos(theta) / n_I)
+        de_ti = T * jnp.conj(T) * jnp.real(k_II_z / n_II ** 2) / (k0 * jnp.cos(theta) / n_I)  # manual conjugate
     else:
         raise ValueError
 
@@ -92,8 +100,12 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
 
-    k_I_z = k_I_z.conjugate()
-    k_II_z = k_II_z.conjugate()
+    # conj() is not allowed with grad x jit
+    # k_I_z = k_I_z.conjugate()
+    # k_II_z = k_II_z.conjugate()
+
+    k_I_z = conj(k_I_z)  # manual conjugate
+    k_II_z = conj(k_II_z)  # manual conjugate
 
     Kx = jnp.diag(kx_vector / k0)
     varphi = jnp.arctan(ky / kx_vector)
@@ -127,6 +139,8 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
 
     eigenvalues_1, W_1 = eig(to_decompose_W_1, type_complex=type_complex, perturbation=perturbation, device=device)
     eigenvalues_2, W_2 = eig(to_decompose_W_2, type_complex=type_complex, perturbation=perturbation, device=device)
+    eigenvalues_1 += 0j  # to get positive square root
+    eigenvalues_2 += 0j  # to get positive square root
 
     q_1 = eigenvalues_1 ** 0.5
     q_2 = eigenvalues_2 ** 0.5
@@ -219,11 +233,18 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     T_s = big_T[:ff, :].flatten()
     T_p = big_T[ff:, :].flatten()
 
-    de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
-            + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
+    # conj() is not allowed with grad x jit
+    # de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
+    #         + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
+    #
+    # de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
+    #         + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))
 
-    de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
-            + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))
+    de_ri = R_s * conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
+            + R_p * conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))  # manual conjugate
+
+    de_ti = T_s * conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
+            + T_p * conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))  # manual conjugate
 
     return de_ri.real, de_ti.real, big_T1
 
@@ -242,8 +263,14 @@ def transfer_2d_1(ff_x, ff_y, ff_xy, k0, n_I, n_II, kx_vector, period, fourier_i
     k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5
     k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2 - ky_vector.reshape((-1, 1)) ** 2) ** 0.5
 
-    k_I_z = k_I_z.flatten().conjugate()
-    k_II_z = k_II_z.flatten().conjugate()
+    # k_I_z = k_I_z.flatten().conjugate()
+    # k_II_z = k_II_z.flatten().conjugate()
+
+    # conj() is not allowed with grad x jit
+    k_I_z = k_I_z.flatten()
+    k_II_z = k_II_z.flatten()
+    k_I_z = conj(k_I_z)  # manual conjugate
+    k_II_z = conj(k_II_z)  # manual conjugate
 
     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
@@ -277,6 +304,7 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', ty
         ])
 
     eigenvalues, W = eig(S2_from_S, type_complex=type_complex, perturbation=perturbation, device=device)
+    eigenvalues += 0j  # to get positive square root
 
     q = eigenvalues ** 0.5
     # q = q.conjugate()
@@ -390,10 +418,17 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff_xy, delt
     T_s = big_T[:ff_xy, :].flatten()
     T_p = big_T[ff_xy:, :].flatten()
 
-    de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
-            + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
+    # conj() is not allowed with grad x jit
+    # de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
+    #         + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
+    #
+    # de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
+    #         + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))
 
-    de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
-            + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))
+    de_ri = R_s * conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
+            + R_p * conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))  # manual conjugate
+
+    de_ti = T_s * conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
+            + T_p * conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))  # manual conjugate
 
     return de_ri.real, de_ti.real, big_T1

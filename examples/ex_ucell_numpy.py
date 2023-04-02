@@ -54,7 +54,7 @@ def run_test(grating_type, ucell, backend, dtype, device='cpu'):
         type_complex = np.complex64
 
     mee = meent.call_mee(backend=backend, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                         psi=psi, fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                         fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                          thickness=thickness, device=device, type_complex=type_complex, fft_type=0, improve_dft=True)
 
     t0 = time.time()

@@ -1,11 +1,7 @@
 import jax
 import optax
 
-from functools import partial
-
 from tqdm import tqdm
-
-from ..emsolver.rcwa import RCWAJax
 
 
 class OptimizerJax:
@@ -59,34 +55,14 @@ class OptimizerJax:
 
         return grads
 
-    # @partial(jax.jit, static_argnums=(3, 4, 5))  # TODO: is self static? then what about self.conv_solver?
-    # @jax.jit
-    # def step(self, params, opt_state, optimizer, forward, loss_fn):
-    #
-    #     loss_value, grads = self._grad(params, forward, loss_fn)
-    #
-    #     updates, opt_state = optimizer.update(grads, opt_state, params)
-    #     params = optax.apply_updates(params, updates)
-    #     return params, opt_state, loss_value
-
     def fit(self, pois, forward, loss_fn, optimizer, iteration=1):
         params = {poi: (getattr(self, poi)) for poi in pois}
         opt_state = optimizer.init(params)
 
-        # @partial(jax.jit, static_argnums=(0, 1, 2, 3))
-        # def _fit(forward, loss_fn, optimizer, iteration):
-        #     opt_state = optimizer.init(self.params)
-        #
-        #     for i in range(iteration):
-        #         self.params, opt_state, loss_value = self.step(self.params, opt_state, optimizer, forward, loss_fn)
-        #         if i % 1 == 0:
-        #             jax.debug.print('step {}, loss: {}', i, loss_value)
-        #     return self.params
-
-        # @partial(jax.jit, static_argnums=(1, 2, 3, 4))
         @jax.jit
         def step(params, opt_state):
             loss_value, grads = self._grad(params, forward, loss_fn)
+            grads = {k: v.conj() for k, v in grads.items()}
             updates, opt_state = optimizer.update(grads, opt_state, params)
             params = optax.apply_updates(params, updates)
             return params, opt_state, loss_value
