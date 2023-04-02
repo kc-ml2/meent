@@ -122,8 +122,6 @@ def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, 
 
 def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=None,
                                   type_complex=np.complex128):
-    # TODO: do conv and 1/conv in simultaneously?
-
     ff_x = 2 * fourier_order_x + 1
     ff_y = 2 * fourier_order_y + 1
 
@@ -162,30 +160,33 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
 def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128):
     ucell_pmt = ucell ** 2
 
-    # TODO: do conv and 1/conv in simultaneously?
-
     if ucell_pmt.shape[1] == 1:  # 1D
         ff = 2 * fourier_order_x + 1
 
-        res = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
+        e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
+        o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
-            center = f_coeffs.shape[1] // 2
+            o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
+            center = np.array(f_coeffs.shape) // 2  # TODO: other bds
+
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
-            e_conv = f_coeffs[0, center + conv_idx]
-            res[i] = e_conv
-
+            e_conv = f_coeffs[center[0], center[1] + conv_idx]
+            o_e_conv = o_f_coeffs[center[0], center[1] + conv_idx]
+            e_conv_all[i] = e_conv
+            o_e_conv_all[i] = o_e_conv
     else:  # 2D
-
         ff_x = 2 * fourier_order_x + 1
         ff_y = 2 * fourier_order_y + 1
 
-        res = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
+        e_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
+        o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
+            o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
             center = np.array(f_coeffs.shape) // 2
 
             conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
@@ -198,8 +199,10 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
             conv_j = np.tile(conv_idx_x, (ff_y, ff_y))
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            res[i] = e_conv
-    return res
+            o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            e_conv_all[i] = e_conv
+            o_e_conv_all[i] = o_e_conv
+    return e_conv_all, o_e_conv_all
 
 
 def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128,
@@ -208,7 +211,8 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
 
     if ucell_pmt.shape[1] == 1:  # 1D
         ff = 2 * fourier_order_x + 1
-        res = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
+        e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
+        o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
         if improve_dft:
             minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]
         else:
@@ -217,22 +221,25 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
         for i, layer in enumerate(ucell_pmt):
             n = minimum_pattern_size // layer.shape[1]
             layer = np.repeat(layer, n + 1, axis=1)
-
             f_coeffs = np.fft.fftshift(np.fft.fft(layer / layer.size))
+            o_f_coeffs = np.fft.fftshift(np.fft.fft(1/layer / layer.size))
             # FFT scaling:
             # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
 
-            center = f_coeffs.shape[1] // 2
+            center = np.array(f_coeffs.shape) // 2
+
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
-            e_conv = f_coeffs[0, center + conv_idx]
-            res[i] = e_conv
-
+            e_conv = f_coeffs[center[0], center[1] + conv_idx]
+            o_e_conv = o_f_coeffs[center[0], center[1] + conv_idx]
+            e_conv_all[i] = e_conv
+            o_e_conv_all[i] = o_e_conv
     else:  # 2D
         ff_x = 2 * fourier_order_x + 1
         ff_y = 2 * fourier_order_y + 1
 
-        res = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
+        e_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
+        o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
 
         if improve_dft:
             minimum_pattern_size_y = 2 * ff_y * ucell_pmt.shape[1]
@@ -243,7 +250,6 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
         # e.g., 8 bytes * (40*500) * (40*500) / 1E6 = 3200 MB = 3.2 GB
 
         for i, layer in enumerate(ucell_pmt):
-
             if layer.shape[0] < minimum_pattern_size_y:
                 n = minimum_pattern_size_y // layer.shape[0]
                 layer = np.repeat(layer, n + 1, axis=0)
@@ -253,6 +259,7 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
                 layer = np.repeat(layer, n + 1, axis=1)
 
             f_coeffs = np.fft.fftshift(np.fft.fft2(layer / layer.size))
+            o_f_coeffs = np.fft.fftshift(np.fft.fft2(1/layer / layer.size))
             center = np.array(f_coeffs.shape) // 2
 
             conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
@@ -265,8 +272,10 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
             conv_j = np.tile(conv_idx_x, (ff_y, ff_y))
 
             e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            res[i] = e_conv
-    return res
+            o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
+            e_conv_all[i] = e_conv
+            o_e_conv_all[i] = o_e_conv
+    return e_conv_all, o_e_conv_all
 
 
 def circulant(c):

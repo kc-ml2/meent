@@ -112,17 +112,15 @@ class RCWATorch(_BaseRCWA):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
         if self.fft_type == 0:
-            E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1], device=self.device,
-                                              type_complex=self.type_complex, improve_dft=self.improve_dft)
-            o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order[0], self.fourier_order[1], device=self.device,
-                                                type_complex=self.type_complex, improve_dft=self.improve_dft)
+            E_conv_all, o_E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                            device=self.device, type_complex=self.type_complex,
+                                                            improve_dft=self.improve_dft)
         elif self.fft_type == 1:
-            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1], device=self.device,
-                                                type_complex=self.type_complex)
-            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1], device=self.device,
-                                                  type_complex=self.type_complex)
+            E_conv_all, o_E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                              device=self.device, type_complex=self.type_complex)
         elif self.fft_type == 2:
-            E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order[0], self.fourier_order[1],
+            E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order[0],
+                                                                     self.fourier_order[1],
                                                                      type_complex=self.type_complex)
         else:
             raise ValueError
@@ -141,7 +139,8 @@ class RCWATorch(_BaseRCWA):
             if field_algo == 0:
                 field_cell = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
                                                    self.T1, self.layer_info_list, self.period, self.pol,
-                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+                                                   res_x=res_x, res_y=res_y, res_z=res_z,
+                                                   type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.T1, self.layer_info_list,
                                                          self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
@@ -149,7 +148,8 @@ class RCWATorch(_BaseRCWA):
             elif field_algo == 2:
                 field_cell = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector, self.T1,
                                                           self.layer_info_list, self.period, self.pol,
-                                                          res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex,
+                                                          res_x=res_x, res_y=res_y, res_z=res_z,
+                                                          type_complex=self.type_complex,
                                                           type_float=self.type_float)
             else:
                 raise ValueError
@@ -158,17 +158,20 @@ class RCWATorch(_BaseRCWA):
             if field_algo == 0:
                 field_cell = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                            self.phi, self.T1, self.layer_info_list, self.period,
-                                                           res_x=res_x, res_y=res_y, res_z=res_z, device=self.device, type_complex=self.type_complex)
+                                                           res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
+                                                           type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                                  self.phi, self.T1, self.layer_info_list, self.period,
-                                                                 res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
+                                                                 res_x=res_x, res_y=res_y, res_z=res_z,
+                                                                 device=self.device,
                                                                  type_complex=self.type_complex,
                                                                  type_float=self.type_float)
             elif field_algo == 2:
                 field_cell = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                                   self.phi, self.T1, self.layer_info_list, self.period,
-                                                                  res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
+                                                                  res_x=res_x, res_y=res_y, res_z=res_z,
+                                                                  device=self.device,
                                                                   type_complex=self.type_complex,
                                                                   type_float=self.type_float)
             else:
@@ -177,18 +180,23 @@ class RCWATorch(_BaseRCWA):
         elif self.grating_type == 2:
             if field_algo == 0:
                 field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-                                                   self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list, self.period,
+                                                   self.fourier_order[0], self.fourier_order[1], self.T1,
+                                                   self.layer_info_list, self.period,
                                                    res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
                                                    type_complex=self.type_complex, type_float=self.type_float)
             elif field_algo == 1:
                 field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                         self.phi, self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list,
-                                                         self.period, res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
+                                                         self.phi, self.fourier_order[0], self.fourier_order[1],
+                                                         self.T1, self.layer_info_list,
+                                                         self.period, res_x=res_x, res_y=res_y, res_z=res_z,
+                                                         device=self.device,
                                                          type_complex=self.type_complex, type_float=self.type_float)
             elif field_algo == 2:
                 field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                          self.phi, self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list,
-                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
+                                                          self.phi, self.fourier_order[0], self.fourier_order[1],
+                                                          self.T1, self.layer_info_list,
+                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z,
+                                                          device=self.device,
                                                           type_complex=self.type_complex, type_float=self.type_float)
             else:
                 raise ValueError

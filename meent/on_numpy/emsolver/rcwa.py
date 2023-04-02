@@ -92,15 +92,11 @@ class RCWANumpy(_BaseRCWA):
         # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
 
         if self.fft_type == 0:
-            E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
+            E_conv_all, o_E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
                                               type_complex=self.type_complex, improve_dft=self.improve_dft)
-            o_E_conv_all = to_conv_mat_discrete(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                type_complex=self.type_complex, improve_dft=self.improve_dft)
         elif self.fft_type == 1:
-            E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
+            E_conv_all, o_E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
                                                 type_complex=self.type_complex)
-            o_E_conv_all = to_conv_mat_continuous(1 / self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                  type_complex=self.type_complex)
         elif self.fft_type == 2:
             E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list, self.fourier_order[0],
                                                                      self.fourier_order[1],
