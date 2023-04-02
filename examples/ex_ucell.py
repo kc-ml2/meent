@@ -33,7 +33,7 @@ period = [1000, 1000]
 
 fourier_order = [20, 4]
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
-n_iter_de = 1
+n_iter_de = 2
 n_iter_field = 1
 
 
@@ -44,7 +44,7 @@ def run_test(grating_type, backend, dtype, device):
                          fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
                          ucell_materials=ucell_materials,
                          thickness=thickness, device=device, type_complex=dtype, fft_type=0, improve_dft=True)
-    mee.fft_type = 1
+    # mee.fft_type = 1
     # mee.device = 1
     # mee.type_complex = 1
     resolution = (20, 20, 20)
@@ -129,4 +129,6 @@ def load_ucell(grating_type):
 if __name__ == '__main__':
     # run_loop([0], [1], [0], [0])
     # run_loop([1], [0,2], [0], [0])
+    # run_loop([0], [1], [0], [0])
     run_loop([0,1,2], [0,1,2], [0], [0])
+    run_loop([0,1,2], [0,1,2], [1], [0])

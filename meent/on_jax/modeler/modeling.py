@@ -7,11 +7,12 @@ from pathlib import Path
 
 class ModelingJax:
     def __init__(self, *args, **kwargs):
-        self.ucell = None
-        self.ucell_vector = None
-        self.x_list = None
-        self.y_list = None
-        self.mat_table = None
+        pass
+        # self.ucell = None
+        # self.ucell_vector = None
+        # self.x_list = None
+        # self.y_list = None
+        # self.mat_table = None
 
     def vector(self, layer_info):
         period, pmtvy_base, obj_list = layer_info

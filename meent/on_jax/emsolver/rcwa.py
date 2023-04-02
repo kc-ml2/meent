@@ -1,9 +1,9 @@
-import functools
 import time
-from copy import deepcopy
 from functools import partial
 
 import jax
+
+import numpy as np
 import jax.numpy as jnp
 
 from ._base import _BaseRCWA
@@ -18,17 +18,17 @@ class RCWAJax(_BaseRCWA):
     def __init__(self,
                  n_I=1.,
                  n_II=1.,
-                 theta=0,
-                 phi=0,
-                 period=(100, 100),
-                 wavelength=900,
+                 theta=0.,
+                 phi=0.,
+                 period=(100., 100.),
+                 wavelength=900.,
                  ucell=None,
                  ucell_info_list=None,
-                 thickness=None,
+                 thickness=(0., ),
                  backend=1,
                  grating_type=0,
-                 pol=0,
-                 fourier_order=2,
+                 pol=0.,
+                 fourier_order=(2, 0),
                  ucell_materials=None,
                  algo='TMM',
                  perturbation=1E-20,
@@ -83,33 +83,23 @@ class RCWAJax(_BaseRCWA):
     @ucell.setter
     def ucell(self, ucell):
         if isinstance(ucell, jnp.ndarray):
-            if ucell.dtype in (jnp.complex128, jnp.complex64):
-                dtype = self.type_complex
-            elif ucell.dtype in (jnp.float64, jnp.float32, jnp.int64, jnp.int32):
+            if ucell.dtype in (jnp.float64, jnp.float32, jnp.int64, jnp.int32):
                 dtype = self.type_float
+            elif ucell.dtype in (jnp.complex128, jnp.complex64):
+                dtype = self.type_complex
             else:
                 raise ValueError
             self._ucell = ucell.astype(dtype)
-        elif str(type(ucell)) == "<class 'numpy.ndarray'>":
-            if str(ucell.dtype) in ('int64', 'float64', 'int32', 'float32'):
+        elif isinstance(ucell, np.ndarray):
+            if ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
                 dtype = self.type_float
-            elif str(ucell.dtype) in ('complex128', 'complex64'):
+            elif ucell.dtype in (np.complex128, np.complex64):
                 dtype = self.type_complex
             else:
                 raise ValueError
             self._ucell = jnp.array(ucell, dtype=dtype)
         elif ucell is None:
             self._ucell = ucell
-        elif type(ucell) is list:
-            ucell_ = jnp.array(ucell)
-            if ucell_.dtype in (jnp.complex128, jnp.complex64):
-                dtype = self.type_complex
-            elif ucell_.dtype in (jnp.float64, jnp.float32, jnp.int64, jnp.int32):
-                dtype = self.type_float
-            else:
-                raise ValueError
-            self._ucell = ucell.astype(dtype)
-
         else:
             raise ValueError
 
@@ -138,6 +128,7 @@ class RCWAJax(_BaseRCWA):
         return de_ri, de_ti
 
     def _conv_solve(self):
+
         if self.fft_type == 0:
             E_conv_all, o_E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
                                               type_complex=self.type_complex, improve_dft=self.improve_dft)
@@ -158,16 +149,51 @@ class RCWAJax(_BaseRCWA):
     def _conv_solve_jit(self):
         return self._conv_solve()
 
+    # @jax.jit
+    # def _conv_solve_jit(self):
+    #
+    #     if self.fft_type == 0:
+    #         E_conv_all, o_E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
+    #                                                         type_complex=self.type_complex,
+    #                                                         improve_dft=self.improve_dft)
+    #     elif self.fft_type == 1:
+    #         E_conv_all, o_E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
+    #                                                           type_complex=self.type_complex)
+    #     elif self.fft_type == 2:
+    #         E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list,
+    #                                                                  self.fourier_order[0], self.fourier_order[1],
+    #                                                                  type_complex=self.type_complex)
+    #     else:
+    #         raise ValueError
+    #
+    #     de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
+    #     return de_ri, de_ti, layer_info_list, T1, kx_vector
+
+    # @jax.jit
+    # def _conv_solve_jit_discrete(self):
+    #     E_conv_all, o_E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
+    #                                                     type_complex=self.type_complex,
+    #                                                     improve_dft=self.improve_dft)
+    #     de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
+    #     return de_ri, de_ti, layer_info_list, T1, kx_vector
+    #
+    # @jax.jit
+    # def _conv_solve_jit_cont_vector(self):
+    #     E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list,
+    #                                                              self.fourier_order[0], self.fourier_order[1],
+    #                                                              type_complex=self.type_complex)
+    #     de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
+    #     return de_ri, de_ti, layer_info_list, T1, kx_vector
+
     @_BaseRCWA.jax_device_set
     def conv_solve(self, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
-
         if self.fft_type == 1:
             print('CFT (fft_type=1) is not supported for jit-compilation. Using non-jit-compiled method.')
             de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
+
         else:
             de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve_jit()
-            # de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
 
         self.layer_info_list = layer_info_list
         self.T1 = T1

@@ -1,6 +1,8 @@
 import time
 import torch
 
+import numpy as np
+
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous, to_conv_mat_continuous_vector
 from .field_distribution import field_dist_1d_vanilla, field_dist_2d_vanilla, field_plot, field_dist_1d_conical_vanilla, \
@@ -12,17 +14,17 @@ class RCWATorch(_BaseRCWA):
     def __init__(self,
                  n_I=1.,
                  n_II=1.,
-                 theta=0,
-                 phi=0,
-                 period=(100, 100),
-                 wavelength=900,
+                 theta=0.,
+                 phi=0.,
+                 period=(100., 100.),
+                 wavelength=900.,
                  ucell=None,
                  ucell_info_list=None,
-                 thickness=None,
+                 thickness=(0., ),
                  backend=2,
                  grating_type=0,
-                 pol=0,
-                 fourier_order=2,
+                 pol=0.,
+                 fourier_order=(2, 0),
                  ucell_materials=None,
                  algo='TMM',
                  perturbation=1E-20,
@@ -62,26 +64,16 @@ class RCWATorch(_BaseRCWA):
             else:
                 raise ValueError
             self._ucell = ucell.to(device=self.device, dtype=dtype)
-        elif str(type(ucell)) == "<class 'numpy.ndarray'>":
-            if str(ucell.dtype) in ('int64', 'float64', 'int32', 'float32'):
+        elif isinstance(ucell, np.ndarray):
+            if ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
                 dtype = self.type_float
-            elif str(ucell.dtype) in ('complex128', 'complex64'):
+            elif ucell.dtype in (np.complex128, np.complex64):
                 dtype = self.type_complex
             else:
                 raise ValueError
             self._ucell = torch.tensor(ucell, device=self.device, dtype=dtype)
         elif ucell is None:
             self._ucell = ucell
-        elif type(ucell) is list:
-            ucell_ = torch.tensor(ucell)
-            if ucell_.dtype in (torch.complex128, torch.complex64):
-                dtype = self.type_complex
-            elif ucell_.dtype in (torch.float64, torch.float32, torch.int64, torch.int32):
-                dtype = self.type_float
-            else:
-                raise ValueError
-            self._ucell = ucell.type(dtype)
-
         else:
             raise ValueError
 

@@ -1,6 +1,4 @@
 import time
-from copy import deepcopy
-
 import numpy as np
 
 from ._base import _BaseRCWA
@@ -14,17 +12,17 @@ class RCWANumpy(_BaseRCWA):
     def __init__(self,
                  n_I=1.,
                  n_II=1.,
-                 theta=0,
-                 phi=0,
-                 period=(100, 100),
-                 wavelength=900,
+                 theta=0.,
+                 phi=0.,
+                 period=(100., 100.),
+                 wavelength=900.,
                  ucell=None,
                  ucell_info_list=None,
-                 thickness=None,
+                 thickness=(0., ),
                  backend=0,
                  grating_type=0,
-                 pol=0,
-                 fourier_order=2,
+                 pol=0.,
+                 fourier_order=(2, 0),
                  ucell_materials=None,
                  algo='TMM',
                  perturbation=1E-20,
@@ -40,7 +38,7 @@ class RCWANumpy(_BaseRCWA):
                          thickness=thickness, algo=algo, perturbation=perturbation,
                          device=device, type_complex=type_complex, )
 
-        self.ucell = deepcopy(ucell)
+        self.ucell = ucell
         self.ucell_materials = ucell_materials
         self.ucell_info_list = ucell_info_list
 
@@ -56,10 +54,14 @@ class RCWANumpy(_BaseRCWA):
 
     @ucell.setter
     def ucell(self, ucell):
-        if type(ucell) is list:
-            self._ucell = np.array(ucell, dtype=self.type_complex)
-        if str(type(ucell)) == "<class 'numpy.ndarray'>":
-            self._ucell = np.array(ucell, dtype=self.type_complex)
+        if isinstance(ucell, np.ndarray):
+            if ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
+                dtype = self.type_float
+            elif ucell.dtype in (np.complex128, np.complex64):
+                dtype = self.type_complex
+            else:
+                raise ValueError
+            self._ucell = np.array(ucell, dtype=dtype)
         elif ucell is None:
             self._ucell = ucell
         else:

@@ -180,7 +180,6 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
-
         ff = 2 * fourier_order_x + 1
 
         e_conv_all = jnp.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
@@ -190,7 +189,6 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
             f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
             o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
             center = jnp.array(f_coeffs.shape) // 2
-
             conv_idx = jnp.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
             e_conv = f_coeffs[center[0], center[1] + conv_idx]
@@ -225,7 +223,7 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
     return e_conv_all, o_e_conv_all
 
 
-@partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))
+# @partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))
 def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128,
                          improve_dft=True):
     ucell_pmt = ucell ** 2

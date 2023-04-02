@@ -169,8 +169,7 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
         for i, layer in enumerate(ucell_pmt):
             f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
             o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
-            center = np.array(f_coeffs.shape) // 2  # TODO: other bds
-
+            center = np.array(f_coeffs.shape) // 2
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
             e_conv = f_coeffs[center[0], center[1] + conv_idx]

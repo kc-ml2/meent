@@ -1,11 +1,8 @@
 import functools
-
 import jax
 
 import jax.numpy as jnp
 import numpy as np
-
-from copy import deepcopy
 
 from .primitives import eig
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
@@ -16,34 +13,21 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 
 class _BaseRCWA:
 
-    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
-                 period=(100, 100), wavelength=900,
-                 thickness=None, algo='TMM', perturbation=1E-20,
+    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0., fourier_order=(2, 0),
+                 period=(100., 100.), wavelength=900.,
+                 thickness=(0.,), algo='TMM', perturbation=1E-20,
                  device=0, type_complex=jnp.complex128):
 
-        if device in (0, 'cpu'):
-            self._device = jax.devices('cpu')
-        elif device in (1, 'gpu', 'cuda'):
-            self._device = jax.devices('gpu')
-        elif type(device) is list and (str(type(device[0])) == "<class 'jaxlib.xla_extension.Device'>"):
-            self._device = device
-        else:
-            raise ValueError
+        self.device = device
 
         # type_complex
-        if type_complex == 0:
+        if type_complex in (0, jnp.complex128, np.complex128):
             self._type_complex = jnp.complex128
-        elif type_complex == 1:
+        elif type_complex in (1, jnp.complex64, np.complex64):
             self._type_complex = jnp.complex64
-        elif type_complex in (jnp.complex128, jnp.complex64):
-            self._type_complex = type_complex
-        elif type(type_complex) is np.dtype:
-            if type_complex != np.complex128:
-                self._type_complex = jnp.complex64
-            else:
-                self._type_complex = jnp.complex128
         else:
-            raise ValueError
+            raise ValueError('JAX type_complex')
+
         # currently these two are not used. Only TorchMeent uses.
         self._type_float = jnp.float64 if self._type_complex is not jnp.complex64 else jnp.float32
         self._type_int = jnp.int64 if self._type_complex is not jnp.complex64 else jnp.int32
@@ -60,7 +44,7 @@ class _BaseRCWA:
         self._psi = jnp.array((jnp.pi / 2 * (1 - pol)), dtype=self.type_float)
 
         self.fourier_order = fourier_order
-        self.period = deepcopy(period)
+        self.period = period
         self.wavelength = wavelength
         self.thickness = thickness
         self.algo = algo
@@ -74,11 +58,9 @@ class _BaseRCWA:
 
     @device.setter
     def device(self, device):
-        if device == 0:
-            self._device = 'cpu'
+        if device in (0, 'cpu'):
             self._device = jax.devices('cpu')
-        elif device == 1:
-            self._device = 'gpu'
+        elif device in (1, 'gpu', 'cuda'):
             self._device = jax.devices('gpu')
         elif type(device) is list and (str(type(device[0])) == "<class 'jaxlib.xla_extension.Device'>"):
             self._device = device
@@ -91,19 +73,13 @@ class _BaseRCWA:
 
     @type_complex.setter
     def type_complex(self, type_complex):
-        if type_complex == 0:
+        # type_complex
+        if type_complex in (0, jnp.complex128, np.complex128):
             self._type_complex = jnp.complex128
-        elif type_complex == 1:
+        elif type_complex in (1, jnp.complex64, np.complex64):
             self._type_complex = jnp.complex64
-        elif type_complex in (jnp.complex128, jnp.complex64):
-            self._type_complex = type_complex
-        elif type(type_complex) is np.dtype:
-            if type_complex != np.complex128:
-                self._type_complex = jnp.complex64
-            else:
-                self._type_complex = jnp.complex128
         else:
-            raise ValueError
+            raise ValueError('JAX type_complex')
 
         self._type_float = jnp.float64 if self.type_complex is not jnp.complex64 else jnp.float32
         self._type_int = jnp.int64 if self.type_complex is not jnp.complex64 else jnp.int32
@@ -138,8 +114,8 @@ class _BaseRCWA:
             raise ValueError
 
         self._pol = pol
-        psi = np.pi / 2 * (1 - self.pol)
-        self._psi = np.array(psi, dtype=self.type_float)
+        psi = jnp.pi / 2 * (1 - self.pol)
+        self._psi = jnp.array(psi, dtype=self.type_float)
 
     @property
     def theta(self):
@@ -168,12 +144,50 @@ class _BaseRCWA:
 
     @fourier_order.setter
     def fourier_order(self, fourier_order):
-        if type(fourier_order) in (int, float):
-            self._fourier_order = np.array([fourier_order, 0])
-        elif len(fourier_order) == 1:
-            self._fourier_order = np.array([int(fourier_order[0]), 0])
+
+        if type(fourier_order) in (list, tuple):
+            if len(fourier_order) == 1:
+                self._fourier_order = [int(fourier_order[0]), 0]
+            elif len(fourier_order) == 2:
+                self._fourier_order = [int(v) for v in fourier_order]
+            else:
+                raise ValueError
+        elif isinstance(fourier_order, np.ndarray) or isinstance(fourier_order, jnp.ndarray):
+            self._fourier_order = fourier_order.tolist()
+            if type(self._fourier_order) is list:
+                if len(self._fourier_order) == 1:
+                    self._fourier_order = [int(self._fourier_order[0]), 0]
+                elif len(self._fourier_order) == 2:
+                    self._fourier_order = [int(v) for v in self._fourier_order]
+                else:
+                    raise ValueError
+            elif type(self._fourier_order) in (int, float):
+                self._fourier_order = [int(self._fourier_order), 0]
+            else:
+                raise ValueError
+        elif type(fourier_order) in (int, float):
+            self._fourier_order = [int(fourier_order), 0]
         else:
-            self._fourier_order = np.array([int(v) for v in fourier_order])
+            raise ValueError
+
+    @property
+    def period(self):
+        return self._period
+
+    @period.setter
+    def period(self, period):
+        if type(period) in (int, float):
+            self._period = jnp.array([period], dtype=self.type_float)
+        elif type(period) in (list, tuple, np.ndarray):
+            self._period = jnp.array(period, dtype=self.type_float)
+        elif isinstance(period, jnp.ndarray):
+            self._period = jnp.array(period, dtype=self.type_float)
+        elif type(period) is jax.interpreters.partial_eval.DynamicJaxprTracer:
+            print('init period')
+            jax.debug.print('init period')
+            self._period = period
+        else:
+            raise ValueError
 
     @property
     def thickness(self):
@@ -183,13 +197,13 @@ class _BaseRCWA:
     def thickness(self, thickness):
         if type(thickness) in (int, float):
             self._thickness = jnp.array([thickness], dtype=self.type_float)
-        elif type(thickness) in (list, np.ndarray):
+        elif type(thickness) in (list, tuple, np.ndarray):
             self._thickness = jnp.array(thickness, dtype=self.type_float)
-        elif type(thickness) is jnp.ndarray:
-            self._thickness = jnp.array(thickness, dtype=self.type_float)
-        elif thickness.dtype in ['int', 'float']:
+        elif isinstance(thickness, jnp.ndarray):
             self._thickness = jnp.array(thickness, dtype=self.type_float)
         elif type(thickness) is jax.interpreters.partial_eval.DynamicJaxprTracer:
+            print('init period')
+            jax.debug.print('init period')
             self._thickness = thickness
         else:
             raise ValueError

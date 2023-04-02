@@ -1,20 +1,11 @@
-try:
-    import os
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
-except:
-    pass
-
 import numpy as np
-import jax
-import jax.numpy as jnp
 import time
 
 from meent.main import call_mee
 import torch
 
 
-def load_setting(mode_key, dtype, device):
+def load_setting():
     grating_type = 2
 
     pol = 0  # 0: TE, 1: TM
@@ -24,14 +15,12 @@ def load_setting(mode_key, dtype, device):
 
     theta = 0
     phi = 0
-    psi = 0 if pol else 90
 
     wavelength = 900
 
-    ucell_materials = [1, 3.48]
     thickness = [1120]
     period = [1000, 1000]
-    fourier_order = 5
+    fourier_order = [5, 5]
 
     ucell = np.array([
 
@@ -49,45 +38,19 @@ def load_setting(mode_key, dtype, device):
         ],
     ]) * 4 + 1
 
-    if mode_key == 0:
-        device = 0
-        type_complex = np.complex128 if dtype == 0 else np.complex64
-        ucell = ucell.astype(type_complex)
-
-    elif mode_key == 1:  # JAX
-        ucell = jnp.array(ucell)
-        jax.config.update('jax_platform_name', 'cpu') if device == 0 else jax.config.update('jax_platform_name', 'gpu')
-
-        if dtype == 0:
-            from jax.config import config
-            config.update("jax_enable_x64", True)
-            type_complex = jnp.complex128
-            ucell = ucell.astype(type_complex)
-            # ucell = ucell.astype(jnp.float64)
-        else:
-            type_complex = jnp.complex64
-            ucell = ucell.astype(type_complex)
-
-    else:  # Torch
-        device = torch.device('cpu') if device == 0 else torch.device('cuda')
-        type_complex = torch.complex128 if dtype == 0 else torch.complex64
-        ucell = torch.tensor(ucell, dtype=type_complex, device=device)
-
-    return grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order,\
-           type_complex, device, ucell
+    return grating_type, pol, n_I, n_II, theta, phi, wavelength, thickness, period, fourier_order,\
+        ucell
 
 
-def compare_conv_mat_method(mode_key, dtype, device):
-    grating_type, pol, n_I, n_II, theta, phi, psi, wavelength, thickness, ucell_materials, period, fourier_order, \
-    type_complex, device, ucell \
-        = load_setting(mode_key, dtype, device)
+def compare_conv_mat_method(backend, type_complex, device):
+    grating_type, pol, n_I, n_II, theta, phi, wavelength, thickness, period, fourier_order, ucell = load_setting()
 
     for thickness, period in zip([[1120], [500], [500], [1120]], [[100, 100], [100, 100], [1000, 1000], [1000, 1000]]):
 
-        mee = call_mee(mode_key, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
-                          fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-                          ucell_materials=ucell_materials, thickness=thickness, device=device,
-                          type_complex=type_complex, )
+        mee = call_mee(backend, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
+                       fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
+                       ucell_thickness=thickness, device=device,
+                       type_complex=type_complex, )
 
         mee.fft_type = 0
         de_ri, de_ti = mee.conv_solve()
@@ -108,6 +71,9 @@ if __name__ == '__main__':
     dtype = 0
     device = 0
 
-    compare_conv_mat_method(mode_key=0, dtype=dtype, device=device)
-    compare_conv_mat_method(1, dtype=dtype, device=device)
-    compare_conv_mat_method(2, dtype=dtype, device=device)
+    print('NumpyMeent')
+    compare_conv_mat_method(0, type_complex=dtype, device=device)
+    print('JaxMeent')
+    compare_conv_mat_method(1, type_complex=dtype, device=device)
+    print('TorchMeent')
+    compare_conv_mat_method(2, type_complex=dtype, device=device)

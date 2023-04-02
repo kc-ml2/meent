@@ -206,7 +206,6 @@ for i, (wl, perm) in enumerate(zip(wavelength_list, mat_pmtvy_interp)):
     ucell1 *= perm
     ucell1 += 1.
 
-    # TODO: update
     E_conv_all, o_E_conv_all = to_conv_mat_discrete(ucell1, *fourier_order, type_complex=type_complex,)
     de_ri, de_ti, _,_,_ = solver1.solve(wl, E_conv_all, o_E_conv_all)
 

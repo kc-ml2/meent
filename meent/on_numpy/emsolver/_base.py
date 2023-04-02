@@ -1,7 +1,5 @@
 import numpy as np
 
-from copy import deepcopy
-
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
 from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, \
@@ -9,22 +7,20 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 
 
 class _BaseRCWA:
-    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0, fourier_order=(2, 2),
-                 period=(100, 100), wavelength=900,
-                 thickness=None, algo='TMM', perturbation=1E-20,
+    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0., fourier_order=(2, 2),
+                 period=(100., 100.), wavelength=900.,
+                 thickness=(0., ), algo='TMM', perturbation=1E-20,
                  type_complex=np.complex128, *args, **kwargs):
 
         self._device = 0
 
         # type_complex
-        if type_complex == 0:
+        if type_complex in (0, np.complex128):
             self._type_complex = np.complex128
-        elif type_complex == 1:
+        elif type_complex in (1, np.complex64):
             self._type_complex = np.complex64
-        elif type_complex in (np.complex128, np.complex64):
-            self._type_complex = type_complex
         else:
-            raise ValueError
+            raise ValueError('Numpy type_complex')
 
         # currently these two are not used. Only TorchMeent uses.
         self._type_float = np.float64 if self.type_complex is not np.complex64 else np.float32
@@ -42,7 +38,7 @@ class _BaseRCWA:
         self._psi = np.array((np.pi / 2 * (1 - pol)), dtype=self.type_float)
 
         self.fourier_order = fourier_order
-        self.period = deepcopy(period)
+        self.period = period
         self.wavelength = wavelength
         self.thickness = thickness
         self.algo = algo
@@ -136,12 +132,44 @@ class _BaseRCWA:
 
     @fourier_order.setter
     def fourier_order(self, fourier_order):
-        if type(fourier_order) in (int, float):
-            self._fourier_order = np.array([int(fourier_order), 0])
-        elif len(fourier_order) == 1:
-            self._fourier_order = np.array([int(fourier_order[0]), 0])
+
+        if type(fourier_order) in (list, tuple):
+            if len(fourier_order) == 1:
+                self._fourier_order = [int(fourier_order[0]), 0]
+            elif len(fourier_order) == 2:
+                self._fourier_order = [int(v) for v in fourier_order]
+            else:
+                raise ValueError
+        elif isinstance(fourier_order, np.ndarray):
+            self._fourier_order = fourier_order.tolist()
+            if type(self._fourier_order) is list:
+                if len(self._fourier_order) == 1:
+                    self._fourier_order = [int(self._fourier_order[0]), 0]
+                elif len(self._fourier_order) == 2:
+                    self._fourier_order = [int(v) for v in self._fourier_order]
+                else:
+                    raise ValueError
+            elif type(self._fourier_order) in (int, float):
+                self._fourier_order = [int(self._fourier_order), 0]
+            else:
+                raise ValueError
+        elif type(fourier_order) in (int, float):
+            self._fourier_order = [int(fourier_order), 0]
         else:
-            self._fourier_order = np.array([int(v) for v in fourier_order])
+            raise ValueError
+
+    @property
+    def period(self):
+        return self._period
+
+    @period.setter
+    def period(self, period):
+        if type(period) in (int, float):
+            self._period = np.array([period], dtype=self.type_float)
+        elif type(period) in (list, tuple, np.ndarray):
+            self._period = np.array(period, dtype=self.type_float)
+        else:
+            raise ValueError
 
     @property
     def thickness(self):
@@ -151,13 +179,12 @@ class _BaseRCWA:
     def thickness(self, thickness):
         if type(thickness) in (int, float):
             self._thickness = np.array([thickness], dtype=self.type_float)
-        elif type(thickness) in (list, np.ndarray):
+        elif type(thickness) in (list, tuple, np.ndarray):
             self._thickness = np.array(thickness, dtype=self.type_float)
         else:
             raise ValueError
 
     def get_kx_vector(self, wavelength):
-
         k0 = 2 * np.pi / wavelength
         fourier_indices_x = np.arange(-self.fourier_order[0], self.fourier_order[0] + 1)
 
