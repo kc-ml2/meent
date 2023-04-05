@@ -33,8 +33,9 @@ def eig_fwd(x, type_complex, perturbation, device):
 def eig_bwd(type_complex, perturbation, device, res, g):
     """
     Gradient of a general square (complex valued) matrix
-    Eq. 30~32 in https://www.sciencedirect.com/science/article/abs/pii/S0010465522002715
+    Eq 2~5 in https://www.nature.com/articles/s42005-021-00568-6
     Eq 4.77 in https://arxiv.org/pdf/1701.00392.pdf
+    Eq. 30~32 in https://www.sciencedirect.com/science/article/abs/pii/S0010465522002715
     https://github.com/kch3782/torcwa
     https://github.com/weiliangjinca/grcwa
     https://github.com/pytorch/pytorch/issues/41857
