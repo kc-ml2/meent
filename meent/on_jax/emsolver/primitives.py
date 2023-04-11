@@ -6,7 +6,7 @@ from functools import partial
 
 def conj(arr):
     return arr.real + arr.imag * -1j
-    # return arr.conj()
+    # return arr.conj()  # TODO: this bug will be fixed. replace.
 
 
 @partial(jax.custom_vjp, nondiff_argnums=(1, 2, 3))

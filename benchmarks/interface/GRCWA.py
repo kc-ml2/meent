@@ -73,15 +73,28 @@ class GRCWA:
 
 
 if __name__ == '__main__':
-    from meent.testcase import load_setting
 
-    mode = 0
-    dtype = 0
-    device = 0
-    grating_type = 2
-    pre = load_setting(mode, dtype, device, grating_type)
+    option = {
+        'grating_type': 0,
+        'pol': 1,
+        'n_I': 1,
+        'n_II': 1,
+        'theta': 1,
+        'phi': 1,
+        'wavelength': 1,
+        'fourier_order': 1,
+        'thickness': [1000, 300],
+        'period': [1000],
+        'fft_type': 1,
+        'ucell': np.array(
+            [
+                [[3.1, 1.1, 1.2, 1.6, 3.1]],
+                [[3, 3, 1, 1, 1]],
+            ]
+        ),
+    }
 
-    res = GRCWA(**pre)
+    res = GRCWA(**option)
 
     de_ri, de_ti = res.run()
     print(de_ri.sum() + de_ti.sum())

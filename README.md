@@ -65,6 +65,17 @@ mee = meent.call_mee(backend=backend, ...)
 ## Tutorials
 Jupyter notebooks are prepared in [examples](examples) to give a (very) brief introduction.
 
+## Citing Meent
+To cite:
+```
+@software{Kim_Meent,
+  author = {Kim, Yongha and Kim, Sanmun and Lee, Jinmyoung and Kim, Seolho and Jeong, Anthony Wonseok},
+  license = {MIT},
+  title = {{Meent}},
+  url = {https://github.com/kc-ml2/meent}
+}
+```
+
 ## Reference
 Will be updated.
 

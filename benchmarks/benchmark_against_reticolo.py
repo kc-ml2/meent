@@ -2,25 +2,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from meent import call_mee
-try:
-    from benchmarks.interface.Reticolo import Reticolo
-except:
-    pass
+from benchmarks.interface.Reticolo import Reticolo
 
 
 def consistency(backend):
-    condition = {}
-    condition['grating_type'] = 0  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
-    condition['pol'] = 0  # 0: TE, 1: TM
-    condition['n_I'] = 1  # n_incidence
-    condition['n_II'] = 1.5  # n_transmission
-    condition['theta'] = 0 * np.pi / 180
-    condition['phi'] = 0 * np.pi / 180
-    condition['psi'] = 0 if condition['pol'] else 90 * np.pi / 180
-    condition['fourier_order'] = 40
-    condition['period'] = [1000]
-    condition['wavelength'] = 650
-    condition['thickness'] = [500, 200, 100, 60, 432, 500]  # final term is for h_substrate
+    option = {}
+    option['grating_type'] = 0  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
+    option['pol'] = 0  # 0: TE, 1: TM
+    option['n_I'] = 1  # n_incidence
+    option['n_II'] = 1.5  # n_transmission
+    option['theta'] = 0 * np.pi / 180
+    option['phi'] = 0 * np.pi / 180
+    option['psi'] = 0 if option['pol'] else 90 * np.pi / 180
+    option['fourier_order'] = 40
+    option['period'] = [1000]
+    option['wavelength'] = 650
+    option['thickness'] = [500, 200, 100, 60, 432, 500]  # final term is for h_substrate
 
     n_1 = 1
     n_2 = 3
@@ -35,13 +32,13 @@ def consistency(backend):
             [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0,]],
         ]) * (n_2 - n_1) + n_1
 
-    condition['ucell'] = ucell
+    option['ucell'] = ucell
 
-    mee = call_mee(backend=backend, **condition)
+    mee = call_mee(backend=backend, **option)
 
     # Reticolo
     reti = Reticolo()
-    top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell_reti = reti.run_res3(**condition)
+    top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell_reti = reti.run_res3(**option)
     center = top_tran_info.shape[0] // 2
     plot_length = min(center, 2)
 
@@ -54,6 +51,7 @@ def consistency(backend):
     de_ri, de_ti = mee.conv_solve()
     # print('meent_cont de_ri', de_ri)
     print('meent_cont; de_ri.sum(), de_ti.sum():', de_ri.sum(), de_ti.sum())
+    center = de_ri.shape[0] // 2
     plt.plot(de_ti[center - plot_length:center + plot_length + 1], label='continuous', marker=6)
 
     # Meent with DFT

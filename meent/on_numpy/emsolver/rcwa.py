@@ -116,6 +116,7 @@ class RCWANumpy(_BaseRCWA):
 
     def calculate_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
         if self.grating_type == 0:
+            res_y = 1
             if field_algo == 0:
                 field_cell = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
                                                    self.T1, self.layer_info_list, self.period, self.pol,
@@ -131,6 +132,7 @@ class RCWANumpy(_BaseRCWA):
             else:
                 raise ValueError
         elif self.grating_type == 1:
+            res_y = 1
             if field_algo == 0:
                 field_cell = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                            self.phi, self.T1, self.layer_info_list, self.period,

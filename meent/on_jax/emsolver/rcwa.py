@@ -189,7 +189,7 @@ class RCWAJax(_BaseRCWA):
     def conv_solve(self, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
         if self.fft_type == 1:
-            print('CFT (fft_type=1) is not supported for jit-compilation. Using non-jit-compiled method.')
+            # print('CFT (fft_type=1) is not supported for jit-compilation. Using non-jit-compiled method.')
             de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
 
         else:
@@ -205,7 +205,7 @@ class RCWAJax(_BaseRCWA):
     def calculate_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
 
         if self.grating_type == 0:
-
+            res_y = 1
             if field_algo == 0:
                 field_cell = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
                                                    self.T1, self.layer_info_list, self.period, self.pol,
@@ -224,7 +224,7 @@ class RCWAJax(_BaseRCWA):
                 raise ValueError
 
         elif self.grating_type == 1:
-
+            res_y = 1
             if field_algo == 0:
                 field_cell = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
                                                            self.phi, self.T1, self.layer_info_list, self.period,

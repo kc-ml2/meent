@@ -61,13 +61,13 @@ def run_test(grating_type, backend, dtype, device):
         t0 = time.time()
         field_cell = mee.calculate_field(res_x=resolution[0], res_y=resolution[1], res_z=resolution[2])
         print(f'cal_field: {i}', time.time() - t0)
-        # mee.field_plot(field_cell)
+        # mee.cal_field(field_cell)
 
     for i in range(n_iter_field):
         t0 = time.time()
         de_ri, de_ti, field_cell = mee.conv_solve_field(res_x=resolution[0], res_y=resolution[1], res_z=resolution[2])
         print(f'cal_field: {i}', time.time() - t0)
-        # mee.field_plot(field_cell)
+        # mee.cal_field(field_cell)
 
 
 def run_loop(a, b, c, d):
