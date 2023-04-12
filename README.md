@@ -68,10 +68,10 @@ Jupyter notebooks are prepared in [examples](examples) to give a (very) brief in
 ## Citing Meent
 To cite:
 ```
-@software{Kim_Meent,
+@software{Kim_Meent_Electromagnetic_simulation,
   author = {Kim, Yongha and Kim, Sanmun and Lee, Jinmyoung and Kim, Seolho and Jeong, Anthony Wonseok},
   license = {MIT},
-  title = {{Meent}},
+  title = {{Meent:Electromagnetic simulation & optimization package in Python}},
   url = {https://github.com/kc-ml2/meent}
 }
 ```
