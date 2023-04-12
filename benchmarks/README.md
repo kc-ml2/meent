@@ -1,6 +1,7 @@
 # Benchmark
-Compare Meent to other EM simulation SW. \
-This is only to provide technical report and discussion, not to say any tool is good or bad.
+Meent performance analyses
+
+## RCWA result (compared to reticolo)
 
 ## 1. Fourier transform
 convergence test with both of Discrete FT and Continuous FT.

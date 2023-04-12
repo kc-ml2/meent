@@ -933,7 +933,7 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
         import matplotlib.pyplot as plt
     except (ImportError, ModuleNotFoundError) as e:
         print(e)
-        print('To use field_plot(), please install matplotlib')
+        print('To use cal_field(), please install matplotlib')
         raise e
 
     if field_cell.shape[-1] == 6:  # 2D grating

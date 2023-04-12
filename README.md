@@ -65,6 +65,18 @@ mee = meent.call_mee(backend=backend, ...)
 ## Tutorials
 Jupyter notebooks are prepared in [examples](examples) to give a (very) brief introduction.
 
+## Citing Meent
+To cite this repository:
+
+```
+@software{Kim_Meent_Electromagnetic_simulation,
+  author = {Kim, Yongha and Kim, Sanmun and Lee, Jinmyoung and Jeong, Anthony Wonseok and Kim, Seolho},
+  license = {MIT},
+  title = {{Meent:Electromagnetic simulation & optimization package in Python}},
+  url = {https://github.com/kc-ml2/meent}
+}
+```
+
 ## Reference
 Will be updated.
 

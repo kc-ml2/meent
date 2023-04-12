@@ -16,7 +16,6 @@ psi = 0 * np.pi / 180 if pol else 90 * np.pi / 180
 wavelength = 900
 
 thickness = [500]
-ucell_materials = ['p_si__real', 3.48]
 
 mode_options = {0: 'numpy', 1: 'JAX', 2: 'Torch', }
 
@@ -57,7 +56,6 @@ resolution = (50, 50, 50)
 # Numpy
 mee = call_mee(backend=0, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-               ucell_materials=ucell_materials,
                thickness=thickness, )
 
 de_ri_numpy, de_ti_numpy = mee.conv_solve()
@@ -66,7 +64,7 @@ field_cell_numpy = mee.calculate_field(res_x=resolution[0], res_y=resolution[1],
 # JAX
 mee = call_mee(backend=1, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-               ucell_materials=ucell_materials, thickness=thickness, type_complex=type_complex)
+               thickness=thickness, type_complex=type_complex)
 
 de_ri_jax, de_ti_jax = mee.conv_solve()
 field_cell_jax = mee.calculate_field(res_x=resolution[0], res_y=resolution[1], res_z=resolution[2])
@@ -74,7 +72,7 @@ field_cell_jax = mee.calculate_field(res_x=resolution[0], res_y=resolution[1], r
 # Torch
 mee = call_mee(backend=2, grating_type=grating_type, pol=pol, n_I=n_I, n_II=n_II, theta=theta, phi=phi,
                fourier_order=fourier_order, wavelength=wavelength, period=period, ucell=ucell,
-               ucell_materials=ucell_materials, thickness=thickness, type_complex=type_complex)
+               thickness=thickness, type_complex=type_complex)
 
 de_ri_torch, de_ti_torch = mee.conv_solve()
 de_ri_torch, de_ti_torch = de_ri_torch.numpy(), de_ti_torch.numpy()

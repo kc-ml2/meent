@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-title: Meent
+title: Meent:Electromagnetic simulation & optimization package in Python
 message: If you use this software, please cite it using the metadata from this file.
 type: software
 authors:
@@ -7,12 +7,12 @@ authors:
     family-names: Kim
   - given-names: Sanmun
     family-names: Kim
-  - given-names: Seolho
-    family-names: Kim
-  - given-names: Anthony Wonseok
-    family-names: Jeong
   - given-names: Jinmyoung
     family-names: Lee
+  - given-names: Anthony Wonseok
+    family-names: Jeong
+  - given-names: Seolho
+    family-names: Kim
 
 repository-code: 'https://github.com/kc-ml2/meent'
 license: MIT

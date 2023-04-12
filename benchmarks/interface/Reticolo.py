@@ -5,6 +5,7 @@ import meent
 
 from meent.on_numpy.modeler.modeling import find_nk_index
 
+
 # os.environ['OCTAVE_EXECUTABLE'] = '/opt/homebrew/bin/octave-cli'
 
 
@@ -84,12 +85,12 @@ class Reticolo:
 
         top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info = \
             self._run(pol, theta, phi, period, n_I, fourier_order, textures, profile, wavelength, grating_type,
-                      field_plot=False)
+                      cal_field=False)
 
         return top_refl_info.efficiency, top_tran_info.efficiency, bottom_refl_info.efficiency, bottom_tran_info.efficiency
 
     def run_res3(self, grating_type, period, fourier_order, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II,
-                 *args, **kwargs):
+                 matlab_plot_field=0, res3_npts=0, *args, **kwargs):
         phi *= (180 / np.pi)
 
         if grating_type in (0, 1):
@@ -138,20 +139,21 @@ class Reticolo:
 
         profile = np.array([[0, *thickness, 0], range(1, len(thickness) + 3)])
 
-        top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell =\
+        top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell = \
             self._run(pol, theta, phi, period, n_I, fourier_order, textures, profile, wavelength, grating_type,
-                      field_plot=True)
+                      cal_field=True, matlab_plot_field=matlab_plot_field, res3_npts=res3_npts)
 
-        return top_refl_info.efficiency, top_tran_info.efficiency, bottom_refl_info.efficiency,\
+        return top_refl_info.efficiency, top_tran_info.efficiency, bottom_refl_info.efficiency, \
                bottom_tran_info.efficiency, field_cell
 
     def _run(self, pol, theta, phi, period, n_I, fourier_order,
-                                  textures, profile, wavelength, grating_type, field_plot=False):
+             textures, profile, wavelength, grating_type, cal_field=False, matlab_plot_field=0, res3_npts=0):
 
-        if field_plot:
-            top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell =\
+        if cal_field:
+            top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell = \
                 self.eng.reticolo_res3(pol, theta, phi, period, n_I, fourier_order,
-                                      textures, profile, wavelength, grating_type, nout=5)
+                                       textures, profile, wavelength, grating_type, matlab_plot_field, res3_npts,
+                                       nout=5)
             res = (top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell)
         else:
             top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info = \
@@ -160,97 +162,83 @@ class Reticolo:
             res = (top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info)
         return res
 
-    def run_acs(self, pattern, n_si='SILICON'):
-        if type(n_si) == str and n_si.upper() == 'SILICON':
-            n_si = find_nk_index(n_si, self.mat_table, self.wavelength)
-
-        abseff, effi_r, effi_t = self.eng.reticolo_res2(pattern, self.wavelength, self.deflected_angle, self.fourier_order,
-                                                      self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
-        effi_r, effi_t = np.array(effi_r).flatten(), np.array(effi_t).flatten()
-
-        return abseff, effi_r, effi_t
+    # def run_acs(self, pattern, n_si='SILICON'):
+    #     if type(n_si) == str and n_si.upper() == 'SILICON':
+    #         n_si = find_nk_index(n_si, self.mat_table, self.wavelength)
+    #
+    #     abseff, effi_r, effi_t = self.eng.reticolo_res2(pattern, self.wavelength, self.deflected_angle,
+    #                                                     self.fourier_order,
+    #                                                     self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
+    #     effi_r, effi_t = np.array(effi_r).flatten(), np.array(effi_t).flatten()
+    #
+    #     return abseff, effi_r, effi_t
 
 
 if __name__ == '__main__':
-    from meent.testcase import load_setting
-    mode = 0
-    dtype = 0
-    device = 0
-    grating_type = 2
-    pre = load_setting(mode, dtype, device, grating_type)
+
+    option = {
+        'grating_type': 1,
+        'pol': 1,
+        'n_I': 1,
+        'n_II': 1,
+        'theta': 1,
+        'phi': 1,
+        'wavelength': 1,
+        'fourier_order': 1,
+        'thickness': [1000, 300],
+        'period': [1000],
+        'fft_type': 1,
+        'ucell': np.array(
+            [
+                [[3.1, 1.1, 1.2, 1.6, 3.1]],
+                [[3, 3, 1, 1, 1]],
+            ]
+        ),
+    }
 
     reti = Reticolo()
-    a,b,c,d, field_cell = reti.run_res3(**pre)
-
-    print(np.array(a).flatten())
-    print(np.array(b).flatten())
-    # print(np.array(a))
-    # print(np.array(b))
-    # print(c)
-    # print(d)
+    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option)
+    print('reti de_ri', np.array(reti_de_ri).flatten())
+    print('reti de_ti', np.array(reti_de_ti).flatten())
 
     # Numpy
-    mode = 0
-    pre = load_setting(mode, dtype, device, grating_type)
-    mee = meent.call_mee(backend=mode, perturbation=1E-30, **pre)
-    mee.fft_type = 0
-
-    de_ri, de_ti = mee.conv_solve()
-    center = np.array(de_ri.shape) // 2
-    try:
-        print(de_ri[center[0]-1:center[0]+2, center[1]-1:center[1]+2])
-        print(de_ti[center[0]-1:center[0]+2, center[1]-1:center[1]+2])
-    except:
-        # print(de_ri[c-1:c+2])
-        # print(de_ti[c-1:c+2])
-        print(de_ri[center[0]-1:center[0]+2])
-        print(de_ti[center[0]-1:center[0]+2])
-
-        # print(de_ri)
-        # print(de_ti)
-
-    print(a.sum(),de_ri.sum())
-    print(b.sum(),de_ti.sum())
-    print(a.sum()+b.sum(),de_ri.sum()+de_ti.sum())
+    backend = 0
+    nmee = meent.call_mee(backend=backend, perturbation=1E-30, **option)
+    n_de_ri, n_de_ti = nmee.conv_solve()
+    n_field_cell = nmee.calculate_field(res_z=200, res_x=5)
+    print('nmeent de_ri', n_de_ri)
+    print('nmeent de_ti', n_de_ti)
 
     # JAX
-    mode = 1
-    pre = load_setting(mode, dtype, device, grating_type)
-    mee = meent.call_mee(backend=mode, perturbation=1E-30, **pre)
-    mee.fft_type = 1
-
-    de_ri, de_ti = mee.conv_solve()
-    c = de_ri.shape[0]//2
-    try:
-        print(de_ri[c-1:c+2,c-1:c+2])
-        print(de_ti[c-1:c+2,c-1:c+2])
-    except:
-        # print(de_ri[c-1:c+2])
-        # print(de_ti[c-1:c+2])
-        print(de_ri)
-        print(de_ti)
-
-    print(a.sum(),de_ri.sum())
-    print(b.sum(),de_ti.sum())
-    print(a.sum()+b.sum(),de_ri.sum()+de_ti.sum())
+    backend = 1
+    jmee = meent.call_mee(backend=backend, perturbation=1E-30, **option)
+    j_de_ri, j_de_ti = jmee.conv_solve()
+    j_field_cell = jmee.calculate_field(res_z=200, res_x=5)
+    print('jmeent de_ri', j_de_ri)
+    print('jmeent de_ti', j_de_ti)
 
     # Torch
-    mode = 2
-    pre = load_setting(mode, dtype, device, grating_type)
-    mee = meent.call_mee(backend=mode, perturbation=1E-30, **pre)
-    mee.fft_type = 0
+    backend = 2
+    tmee = meent.call_mee(backend=backend, perturbation=1E-30, **option)
+    t_de_ri, t_de_ti = tmee.conv_solve()
+    t_field_cell = tmee.calculate_field(res_z=200, res_x=5)
+    print('tmeent de_ri', t_de_ri)
+    print('tmeent de_ti', t_de_ti)
 
-    de_ri, de_ti = mee.conv_solve()
-    c = de_ri.shape[0]//2
-    try:
-        print(de_ri[c-1:c+2,c-1:c+2])
-        print(de_ti[c-1:c+2,c-1:c+2])
-    except:
-        # print(de_ri[c-1:c+2])
-        # print(de_ti[c-1:c+2])
-        print(de_ri)
-        print(de_ti)
+    import matplotlib.pyplot as plt
 
-    print(a.sum(), de_ri.sum())
-    print(b.sum(), de_ti.sum())
-    print(a.sum()+b.sum(), de_ri.sum()+de_ti.sum())
+    plt.imshow(abs(r_field_cell[:,:,0]**2), cmap='jet', aspect='auto')
+    plt.colorbar()
+    plt.show()
+
+    plt.imshow(abs(n_field_cell[:,0,:,0]**2), cmap='jet', aspect='auto')
+    plt.colorbar()
+    plt.show()
+
+    plt.imshow(abs(j_field_cell[:,0,:,0]**2), cmap='jet', aspect='auto')
+    plt.colorbar()
+    plt.show()
+
+    plt.imshow(abs(t_field_cell[:,0,:,0]**2), cmap='jet', aspect='auto')
+    plt.colorbar()
+    plt.show()

@@ -1,4 +1,5 @@
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = run_reticolo(_pol, theta, phi, period, n_inc, nn, _textures, _profile, wavelength, grating_type)
+function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reticolo_res3(_pol,
+    theta, phi, period, n_inc, nn, _textures, _profile, wavelength, grating_type, matlab_plot_field, res3_npts)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -36,7 +37,7 @@ if grating_type == 0
     aa = res1(wavelength,period,textures,nn,k_parallel,parm);
     res = res2(aa, profile);
 else
-    aa = res1(wavelength,period,textures,nn,k_parallel,phi,parm);
+    aa = res1(wavelength,period,textures,nn,k_parallel, phi, parm);
     res = res2(aa, profile);
 end
 
@@ -44,10 +45,27 @@ end
 x = textures(2){1}{1};
 %parm.res3.sens=1;
 %##parm.res3.gauss_x = 100
-parm.res3.trace=1 ;%trace automatique % automatic trace
-parm.res3.npts = 100;
-[e,z,o]=res3(x,aa,profile,1,parm);
+if matlab_plot_field == 1
+    parm.res3.trace=1 ;%trace automatique % automatic trace
+else
+    parm.res3.trace=0;
+end
 
+if res3_npts ~= 0
+    parm.res3.npts = res3_npts;
+end
+if grating_type == 0
+    [e,z,o]=res3(x,aa,profile,1,parm);
+else
+    if pol == 1
+        einc = [0, 1];
+    elseif pol == -1
+        einc = [1, 0];
+    else
+        disp('only TE or TM is allowed.');
+    end
+    [e,z,o]=res3(x,aa,profile,einc, parm);
+end
 
 if grating_type == 0
     top_refl_info = res.inc_top_reflected;

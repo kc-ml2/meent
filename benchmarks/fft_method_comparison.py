@@ -1,15 +1,15 @@
 import numpy as np
 import time
 
-from meent.main import call_mee
+from meent import call_mee
 import torch
 
 
-def load_setting():
+def compare_conv_mat_method(backend, type_complex, device):
+
     grating_type = 2
 
     pol = 0  # 0: TE, 1: TM
-
     n_I = 1  # n_incidence
     n_II = 1.5  # n_transmission
 
@@ -17,9 +17,6 @@ def load_setting():
     phi = 0
 
     wavelength = 900
-
-    thickness = [1120]
-    period = [1000, 1000]
     fourier_order = [5, 5]
 
     ucell = np.array([
@@ -37,13 +34,6 @@ def load_setting():
             [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, ],
         ],
     ]) * 4 + 1
-
-    return grating_type, pol, n_I, n_II, theta, phi, wavelength, thickness, period, fourier_order,\
-        ucell
-
-
-def compare_conv_mat_method(backend, type_complex, device):
-    grating_type, pol, n_I, n_II, theta, phi, wavelength, thickness, period, fourier_order, ucell = load_setting()
 
     for thickness, period in zip([[1120], [500], [500], [1120]], [[100, 100], [100, 100], [1000, 1000], [1000, 1000]]):
 
@@ -66,7 +56,6 @@ def compare_conv_mat_method(backend, type_complex, device):
 
 
 if __name__ == '__main__':
-    t0 = time.time()
 
     dtype = 0
     device = 0
