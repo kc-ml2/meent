@@ -9,10 +9,10 @@ authors:
     family-names: Kim
   - given-names: Jinmyoung
     family-names: Lee
-  - given-names: Seolho
-    family-names: Kim
   - given-names: Anthony Wonseok
     family-names: Jeong
+  - given-names: Seolho
+    family-names: Kim
 
 repository-code: 'https://github.com/kc-ml2/meent'
 license: MIT
