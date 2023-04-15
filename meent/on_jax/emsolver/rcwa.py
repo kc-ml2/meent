@@ -149,42 +149,6 @@ class RCWAJax(_BaseRCWA):
     def _conv_solve_jit(self):
         return self._conv_solve()
 
-    # @jax.jit
-    # def _conv_solve_jit(self):
-    #
-    #     if self.fft_type == 0:
-    #         E_conv_all, o_E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
-    #                                                         type_complex=self.type_complex,
-    #                                                         improve_dft=self.improve_dft)
-    #     elif self.fft_type == 1:
-    #         E_conv_all, o_E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
-    #                                                           type_complex=self.type_complex)
-    #     elif self.fft_type == 2:
-    #         E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list,
-    #                                                                  self.fourier_order[0], self.fourier_order[1],
-    #                                                                  type_complex=self.type_complex)
-    #     else:
-    #         raise ValueError
-    #
-    #     de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
-    #     return de_ri, de_ti, layer_info_list, T1, kx_vector
-
-    # @jax.jit
-    # def _conv_solve_jit_discrete(self):
-    #     E_conv_all, o_E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
-    #                                                     type_complex=self.type_complex,
-    #                                                     improve_dft=self.improve_dft)
-    #     de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
-    #     return de_ri, de_ti, layer_info_list, T1, kx_vector
-    #
-    # @jax.jit
-    # def _conv_solve_jit_cont_vector(self):
-    #     E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list,
-    #                                                              self.fourier_order[0], self.fourier_order[1],
-    #                                                              type_complex=self.type_complex)
-    #     de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
-    #     return de_ri, de_ti, layer_info_list, T1, kx_vector
-
     @_BaseRCWA.jax_device_set
     def conv_solve(self, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
