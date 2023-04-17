@@ -1,3 +1,4 @@
 examples/** linguist-vendored
 benchmarks/** linguist-vendored
 QA/** linguist-vendored
+tutorials/** linguist-vendored

@@ -1,4 +1,5 @@
-<p align="center"><img src="images/meent_logo.svg" width=80% /></p>
+[//]: # (<p align="center"><img src="images/meent_logo.svg" width=80% /></p>)
+<p align="center"><img src="images/meent_logo.png" width=50% /></p>
 
 # Meent
 
@@ -63,9 +64,9 @@ backend = 1
 mee = meent.call_mee(backend=backend, ...)
 ```
 ## Tutorials
-Jupyter notebooks are prepared in [examples](examples) to give a (very) brief introduction.
+Jupyter notebooks are prepared in [tutorials](tutorials) to give a brief introduction.
 
-## Citing Meent
+## Citation
 To cite this repository:
 
 ```
