@@ -132,16 +132,17 @@ class RCWATorch(_BaseRCWA):
                 field_cell = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
                                                    self.T1, self.layer_info_list, self.period, self.pol,
                                                    res_x=res_x, res_y=res_y, res_z=res_z,
-                                                   type_complex=self.type_complex)
+                                                   device=self.device, type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.T1, self.layer_info_list,
                                                          self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
-                                                         type_complex=self.type_complex, type_float=self.type_float)
+                                                         device=self.device, type_complex=self.type_complex,
+                                                         type_float=self.type_float)
             elif field_algo == 2:
                 field_cell = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector, self.T1,
                                                           self.layer_info_list, self.period, self.pol,
                                                           res_x=res_x, res_y=res_y, res_z=res_z,
-                                                          type_complex=self.type_complex,
+                                                          device=self.device, type_complex=self.type_complex,
                                                           type_float=self.type_float)
             else:
                 raise ValueError

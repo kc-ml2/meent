@@ -145,6 +145,7 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
 
         center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
+        center = torch.tensor(center, device=device)
 
         conv_idx_y = torch.arange(-ff_y + 1, ff_y, 1, device=device)
         conv_idx_y = circulant(conv_idx_y, device=device)
@@ -177,6 +178,7 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=torch
             f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
             o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
             center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
+            center = torch.tensor(center, device=device)
             conv_idx = torch.arange(-ff + 1, ff, 1, device=device)
             conv_idx = circulant(conv_idx, device=device)
             e_conv = f_coeffs[center[0], center[1] + conv_idx]
@@ -194,6 +196,7 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=torch
             f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
             o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
             center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
+            center = torch.tensor(center, device=device)
 
             conv_idx_y = torch.arange(-ff_y + 1, ff_y, 1, device=device)
             conv_idx_y = circulant(conv_idx_y, device=device)
@@ -230,6 +233,7 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=torch.d
             f_coeffs = torch.fft.fftshift(torch.fft.fft(layer / layer.numel()))
             o_f_coeffs = torch.fft.fftshift(torch.fft.fft(1/layer / layer.numel()))
             center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
+            center = torch.tensor(center, device=device)
             conv_idx = torch.arange(-ff + 1, ff, 1, device=device)
             conv_idx = circulant(conv_idx, device=device)
             e_conv = f_coeffs[center[0], center[1] + conv_idx]
@@ -255,14 +259,17 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=torch.d
         for i, layer in enumerate(ucell_pmt):
             if layer.shape[0] < minimum_pattern_size_y:
                 n = torch.div(minimum_pattern_size_y, layer.shape[0], rounding_mode='trunc')
+                n = torch.tensor(n, device=device)
                 layer = layer.repeat_interleave(n + 1, axis=0)
             if layer.shape[1] < minimum_pattern_size_x:
                 n = torch.div(minimum_pattern_size_x, layer.shape[1], rounding_mode='trunc')
+                n = torch.tensor(n, device=device)
                 layer = layer.repeat_interleave(n + 1, axis=1)
 
             f_coeffs = torch.fft.fftshift(torch.fft.fft2(layer / layer.numel()))
             o_f_coeffs = torch.fft.fftshift(torch.fft.fft2(1/layer / layer.numel()))
             center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
+            center = torch.tensor(center, device=device)
 
             conv_idx_y = torch.arange(-ff_y + 1, ff_y, 1, device=device)
             conv_idx_y = circulant(conv_idx_y, device=device)
