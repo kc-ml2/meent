@@ -2,7 +2,8 @@ import torch
 
 
 def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, period,
-                                pol, res_x=20, res_y=20, res_z=20, type_complex=torch.complex128, type_float=torch.float64):
+                                pol, res_x=20, res_y=20, res_z=20,  device='cpu',
+                                type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
@@ -35,7 +36,7 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
                 Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
                 C = Kx @ Sy
 
-                x_1d = torch.arange(res_x, dtype=type_float).reshape((1, -1, 1))
+                x_1d = torch.arange(res_x, dtype=type_float, device=device).reshape((1, -1, 1))
                 x_1d = -1j * x_1d * period[0] / res_x
                 x_2d = torch.tile(x_1d, (res_y, 1, 1))
                 x_2d = x_2d * kx_vector
@@ -56,7 +57,7 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
 
                 C = EKx @ Uy  # there is a better option for convergence
 
-                x_1d = torch.arange(res_x, dtype=type_float).reshape((1, -1, 1))
+                x_1d = torch.arange(res_x, dtype=type_float, device=device).reshape((1, -1, 1))
                 x_1d = -1j * x_1d * period[0] / res_x
                 x_2d = torch.tile(x_1d, (res_y, 1, 1))
                 x_2d = x_2d * kx_vector
@@ -79,7 +80,8 @@ def field_dist_1d_vectorized_ji(wavelength, kx_vector, T1, layer_info_list, peri
 
 
 def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, T1, layer_info_list, period,
-                                        res_x=20, res_y=20, res_z=20, device='cpu', type_complex=torch.complex128, type_float=torch.float64):
+                                        res_x=20, res_y=20, res_z=20, device='cpu',
+                                        type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
     ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
@@ -100,7 +102,7 @@ def field_dist_1d_conical_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, 
         for k in range(res_z):
             Sx, Sy, Ux, Uy, Sz, Uz = z_loop_1d_conical(k, c, k0, Kx, ky, res_z, E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, d)
 
-            x_1d = torch.arange(res_x, dtype=type_float).reshape((1, -1, 1))
+            x_1d = torch.arange(res_x, dtype=type_float, device=device).reshape((1, -1, 1))
             x_1d = -1j * x_1d * period[0] / res_x
             x_2d = torch.tile(x_1d, (res_y, 1, 1))
             x_2d = x_2d * kx_vector
@@ -131,7 +133,7 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
 
     k0 = 2 * torch.pi / wavelength
 
-    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float)
+    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float, device=device)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
     ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) + fourier_indices_y * (
@@ -155,8 +157,8 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
         for k in range(res_z):
             Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, res_z, E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, d)
 
-            x_1d = torch.arange(res_x, dtype=type_float).reshape((1, -1, 1))
-            y_1d = torch.arange(res_y, dtype=type_float).reshape((-1, 1, 1))
+            x_1d = torch.arange(res_x, dtype=type_float, device=device).reshape((1, -1, 1))
+            y_1d = torch.arange(res_y, dtype=type_float, device=device).reshape((-1, 1, 1))
 
             x_1d = -1j * x_1d * period[0] / res_x
             y_1d = -1j * y_1d * period[1] / res_y
@@ -191,7 +193,8 @@ def field_dist_2d_vectorized_ji(wavelength, kx_vector, n_I, theta, phi, fourier_
 
 
 def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, period,
-                                 pol, res_x=20, res_y=20, res_z=20, type_complex=torch.complex128, type_float=torch.float64):
+                                 pol, res_x=20, res_y=20, res_z=20,  device='cpu',
+                                 type_complex=torch.complex128, type_float=torch.float64):
 
     k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
@@ -216,14 +219,14 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
             V = E_conv_i @ W @ Q
             EKx = E_conv_i @ Kx
 
-        z_1d = torch.arange(res_z, dtype=type_float).reshape((-1, 1, 1)) / res_z * d
+        z_1d = torch.arange(res_z, dtype=type_float, device=device).reshape((-1, 1, 1)) / res_z * d
 
         if pol == 0:
             Sy = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
             Ux = V @ (-diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
             C = Kx @ Sy
 
-            x_1d = torch.arange(res_x, dtype=type_float).reshape((1, -1, 1))
+            x_1d = torch.arange(res_x, dtype=type_float, device=device).reshape((1, -1, 1))
             x_1d = -1j * x_1d * period[0] / res_x
             x_2d = torch.tile(x_1d, (res_y, 1, 1))
             x_2d = x_2d * kx_vector
@@ -244,7 +247,7 @@ def field_dist_1d_vectorized_kji(wavelength, kx_vector, T1, layer_info_list, per
 
             C = EKx @ Uy  # there is a better option for convergence
 
-            x_1d = torch.arange(res_x, dtype=type_float).reshape((1, -1, 1))
+            x_1d = torch.arange(res_x, dtype=type_float, device=device).reshape((1, -1, 1))
             x_1d = -1j * x_1d * period[0] / res_x
             x_2d = torch.tile(x_1d, (res_y, 1, 1))
             x_2d = x_2d * kx_vector
@@ -285,7 +288,7 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
 
         c = torch.cat([big_I, big_B @ big_A_i @ big_X])  @ T_layer
 
-        z_1d = torch.arange(res_z, dtype=type_float).reshape((-1, 1, 1)) / res_z * d
+        z_1d = torch.arange(res_z, dtype=type_float, device=device).reshape((-1, 1, 1)) / res_z * d
 
         ff = len(c) // 4
 
@@ -310,7 +313,7 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
         Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
         Uz = -1j * (Kx @ Sy - ky * Sx)
 
-        x_1d = torch.arange(res_x, dtype=type_float).reshape((1, -1, 1))
+        x_1d = torch.arange(res_x, dtype=type_float, device=device).reshape((1, -1, 1))
         x_1d = -1j * x_1d * period[0] / res_x
         x_2d = torch.tile(x_1d, (res_y, 1, 1))
         x_2d = x_2d * kx_vector
@@ -340,7 +343,7 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
 
     k0 = 2 * torch.pi / wavelength
 
-    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float)
+    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float, device=device)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
     ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) + fourier_indices_y * (
@@ -360,7 +363,7 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
             in enumerate(layer_info_list[::-1]):
 
         c = torch.cat([big_I, big_B @ big_A_i @ big_X])  @ T_layer
-        z_1d = torch.arange(res_z, dtype=type_float).reshape((-1, 1, 1)) / res_z * d
+        z_1d = torch.arange(res_z, dtype=type_float, device=device).reshape((-1, 1, 1)) / res_z * d
 
         ff = len(c) // 4
 
@@ -373,7 +376,6 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
         q2 = q[len(q) // 2:]
         big_Q1 = torch.diag(q1)
         big_Q2 = torch.diag(q2)
-
         Sx = W_11 @ (diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
               + W_12 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
 
@@ -389,8 +391,8 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
         Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
         Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
-        x_1d = torch.arange(res_x, dtype=type_float).reshape((1, -1, 1))
-        y_1d = torch.arange(res_y, dtype=type_float).reshape((-1, 1, 1))
+        x_1d = torch.arange(res_x, dtype=type_float, device=device).reshape((1, -1, 1))
+        y_1d = torch.arange(res_y, dtype=type_float, device=device).reshape((-1, 1, 1))
 
         x_1d = -1j * x_1d * period[0] / res_x
         y_1d = -1j * y_1d * period[1] / res_y
@@ -426,7 +428,7 @@ def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier
 
 
 def field_dist_1d_vanilla(wavelength, kx_vector, T1, layer_info_list, period, pol, res_x=20, res_y=20, res_z=20,
-                          type_complex=torch.complex128, *args, **kwargs):
+                          device='cpu', type_complex=torch.complex128, *args, **kwargs):
 
     k0 = 2 * torch.pi / wavelength
     Kx = torch.diag(kx_vector / k0)
@@ -560,7 +562,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 
     k0 = 2 * torch.pi / wavelength
 
-    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float)
+    fourier_indices_y = torch.arange(-fourier_order_y, fourier_order_y + 1, dtype=type_float, device=device)
     ff_x = fourier_order_x * 2 + 1
     ff_y = fourier_order_y * 2 + 1
     ky_vector = k0 * (n_I * torch.sin(theta) * torch.sin(phi) + fourier_indices_y * (
@@ -679,8 +681,8 @@ def diag_exp(x):
 
 
 def diag_exp_batch(x):
-    res = torch.zeros(x.shape, dtype=x.dtype)
-    ix = torch.arange(x.shape[-1])
+    res = torch.zeros(x.shape, device=x.device, dtype=x.dtype)
+    ix = torch.arange(x.shape[-1], device=x.device)
     res[:, ix, ix] = torch.exp(x[:, ix, ix])
     return res
 
