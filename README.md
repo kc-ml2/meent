@@ -71,7 +71,7 @@ To cite this repository:
 
 ```
 @software{Kim_Meent_Electromagnetic_simulation,
-  author = {Kim, Yongha and Kim, Sanmun and Lee, Jinmyoung and Jeong, Anthony Wonseok and Kim, Seolho},
+  author = {Kim, Yongha and Kim, Sanmun and Lee, Jinmyoung and Jung, Anthony W. and Kim, Seolho},
   license = {MIT},
   title = {{Meent:Electromagnetic simulation & optimization package in Python}},
   url = {https://github.com/kc-ml2/meent}
