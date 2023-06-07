@@ -254,7 +254,8 @@ class RCWAJax(_BaseRCWA):
 
     @partial(jax.jit, static_argnums=(1, 2, 3, 4))
     @_BaseRCWA.jax_device_set
-    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
+    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, field_algo=2, **kwargs):
+        [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
         if self.fft_type == 1:
             print('CFT (fft_type=1) is not supported with JAX jit-compilation. Use conv_solve_field_no_jit.')
