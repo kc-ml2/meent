@@ -1,8 +1,31 @@
+from bisect import bisect, bisect_left
+
 import torch
 import numpy as np
 
 from os import walk
 from pathlib import Path
+
+
+class Compress(torch.autograd.Function):
+    """
+    Not available as of now and actually no need to use this class.
+    https://github.com/pytorch/pytorch/issues/103155
+    Seems like a bug that lose gradient information
+    """
+
+    @staticmethod
+    def setup_context(ctx, inputs, output):
+        # layer_info, datatype = inputs
+        pass
+
+    @staticmethod
+    def forward(layer_info, datatype=torch.complex128):
+        pass
+
+    @staticmethod
+    def backward(ctx, grad_ucell_layer, grad_x_list, grad_y_list):
+        pass
 
 
 class ModelingTorch:
@@ -23,14 +46,34 @@ class ModelingTorch:
 
         for obj in obj_list:
             top_left, bottom_right, pmty = obj
-            row_list.extend([top_left[0], bottom_right[0]])
-            col_list.extend([top_left[1], bottom_right[1]])
 
-        row_list = list(set(row_list))
-        col_list = list(set(col_list))
+            # top_left[0]
+            index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+            if len(row_list) > index and top_left[0] == row_list[index]:
+                row_list[index] = top_left[0]
+            else:
+                row_list.insert(index, top_left[0])
 
-        row_list.sort()
-        col_list.sort()
+            # bottom_right[0]
+            index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+            if len(row_list) > index and bottom_right[0] == row_list[index]:
+                row_list[index] = bottom_right[0]
+            else:
+                row_list.insert(index, bottom_right[0])
+
+            # top_left[1]
+            index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+            if len(col_list) > index and top_left[1] == col_list[index]:
+                col_list[index] = top_left[1]
+            else:
+                col_list.insert(index, top_left[1])
+
+            # bottom_right[1]
+            index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+            if len(col_list) > index and bottom_right[1] == col_list[index]:
+                col_list[index] = bottom_right[1]
+            else:
+                col_list.insert(index, bottom_right[1])
 
         if not row_list or row_list[-1] != period[0]:
             row_list.append(period[0])
@@ -60,8 +103,14 @@ class ModelingTorch:
 
             ucell_layer[row_begin:row_end, col_begin:col_end] = pmty
 
-        x_list = torch.tensor(col_list, dtype=datatype).reshape((-1, 1)) / period[0]
-        y_list = torch.tensor(row_list, dtype=datatype).reshape((-1, 1)) / period[1]
+        x_list = torch.ones((len(col_list), 1), dtype=datatype)
+        y_list = torch.ones((len(row_list), 1), dtype=datatype)
+
+        for i in range(len(col_list)):
+            x_list[i] = col_list[i] / period[0]
+
+        for i in range(len(row_list)):
+            y_list[i] = row_list[i] / period[1]
 
         return ucell_layer, x_list, y_list
 
@@ -70,6 +119,7 @@ class ModelingTorch:
 
         for layer_info in layer_info_list:
             ucell_layer, x_list, y_list = self.vector(layer_info)
+            # ucell_layer, x_list, y_list = Compress.apply(layer_info)
             ucell_info_list.append([ucell_layer, x_list, y_list])
 
         return ucell_info_list

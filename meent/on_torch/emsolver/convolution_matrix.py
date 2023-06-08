@@ -145,6 +145,7 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
 
         center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
+        # TODO: resolve tensor copy warning
         center = torch.tensor(center, device=device)
 
         conv_idx_y = torch.arange(-ff_y + 1, ff_y, 1, device=device)
