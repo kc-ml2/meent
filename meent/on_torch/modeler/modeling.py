@@ -37,6 +37,27 @@ class ModelingTorch:
         self.y_list = None
         self.mat_table = None
 
+    def rectangle(self, cx, cy, lx, ly, base, rotation_angle=0):
+        points = torch.tensor([[cx - lx//2, cy - ly//2], [cx + lx//2, cy + ly//2]])
+        rotate = torch.tensor([torch.cos(rotation_angle), -torch.sin(rotation_angle)],
+                     [torch.sin(rotation_angle), torch.cos(rotation_angle)],
+                     )
+        points = (rotate @ points.T).T
+        res = [points[0], points[1], base]
+        return res
+
+    def ellipse(self, cx, cy, lx, ly, dx, dy, base, rotation_angle=0 * torch.pi / 180):
+        points_x = torch.arange(cx-lx, cx+lx, dx+2)
+        points_y = torch.arange(cy-ly, cy+ly, dy+2)
+
+        rotate = torch.tensor([torch.cos(rotation_angle), -torch.sin(rotation_angle)],
+                              [torch.sin(rotation_angle),  torch.cos(rotation_angle)],
+                              )
+
+        points = rotate @ torch.vstack((points_x, points_y))
+        res = [points[0], points[1], base]
+        return res
+
     def vector(self, layer_info, datatype=torch.complex128):
         period, pmtvy_base, obj_list = layer_info
 
