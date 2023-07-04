@@ -66,7 +66,7 @@ class ModelingTorch:
         col_list = []
 
         for obj in obj_list:
-            top_left, bottom_right, pmty = obj
+            top_left, bottom_right, _ = obj
 
             # top_left[0]
             index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)

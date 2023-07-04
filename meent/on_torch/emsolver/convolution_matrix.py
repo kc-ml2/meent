@@ -17,7 +17,7 @@ def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.comple
 
     cell_next = torch.roll(cell, -1, dims=1)
 
-    for col in range(cell.shape[1]):
+    for col in torch.arange(cell.shape[1]):
         if not (cell[:, col] == cell_next[:, col]).all() or (col == cell.shape[1] - 1):
             x.append(step_x * (col + 1))
             cell_x.append(cell[:, col].reshape((1, -1)))
