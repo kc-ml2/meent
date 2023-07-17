@@ -230,6 +230,7 @@ class _BaseRCWA:
                 q = eigenvalues ** 0.5
                 Q = np.diag(q)
                 V = W @ Q
+
             elif self.pol == 1:
                 E_conv_i = np.linalg.inv(E_conv)
                 B = Kx @ E_conv_i @ Kx - np.eye(E_conv.shape[0], dtype=self.type_complex)

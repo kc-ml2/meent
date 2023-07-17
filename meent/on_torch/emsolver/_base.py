@@ -71,14 +71,15 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        try:
-            self._theta = self._theta.to(self.device)
-            self._phi = self._phi.to(self.device)
-            self._psi = self._psi.to(self.device)
-            self.thickness = self._thickness.to(self.device)
-        except AssertionError as e:
-            print(f'{e}. Get back to CPU')
-            self._device = torch.device('cpu')
+        # TODO: need this?
+        # try:
+        #     self._theta = self._theta.to(self.device)
+        #     self._phi = self._phi.to(self.device)
+        #     self._psi = self._psi.to(self.device)
+        #     self.thickness = self._thickness.to(self.device)
+        # except AssertionError as e:
+        #     print(f'{e}. Get back to CPU')
+        #     self._device = torch.device('cpu')
 
     @property
     def type_complex(self):
@@ -93,14 +94,15 @@ class _BaseRCWA:
         else:
             raise ValueError('type_complex')
 
-        self._type_float = torch.float64 if self.type_complex is not torch.complex64 else torch.float32
-        self._type_int = torch.int64 if self.type_complex is not torch.complex64 else torch.int32
-        self._theta = self._theta.to(self.type_float)
-        self._phi = self._phi.to(self.type_float)
-        self._psi = self._psi.to(self.type_float)
+        # TODO: need this?
+        # self._type_float = torch.float64 if self.type_complex is not torch.complex64 else torch.float32
+        # self._type_int = torch.int64 if self.type_complex is not torch.complex64 else torch.int32
+        # self._theta = self._theta.to(self.type_float)
+        # self._phi = self._phi.to(self.type_float)
+        # self._psi = self._psi.to(self.type_float)
 
-        self.fourier_order = self._fourier_order
-        self.thickness = self._thickness
+        # self.fourier_order = self._fourier_order
+        # self.thickness = self._thickness
 
     @property
     def type_float(self):
