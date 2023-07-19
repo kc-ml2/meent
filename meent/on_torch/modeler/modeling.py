@@ -42,40 +42,30 @@ class ModelingTorch:
     @staticmethod
     def rectangle(cx, cy, lx, ly, base):
 
-        a = torch.hstack([cy - ly / 2, cx - lx / 2])
-        b = torch.hstack([cy + ly / 2, cx + lx / 2])
+        a = torch.hstack([cy - ly / 2, cx - lx / 2])  # row, col
+        b = torch.hstack([cy + ly / 2, cx + lx / 2])  # row, col
 
-        points = torch.vstack([a, b])
-
-        res = [[points[0], points[1], base]]
+        res = [[a, b, base]]  # top_left, bottom_right
         return res
 
     def rectangle_rotate(self, cx, cy, lx, ly, dx, dy, base, angle=None, angle_margin=1E-5):
+        ddx, ddy = dx + 2, dy + 2
+
         if angle is None:
             angle = torch.tensor(0 * torch.pi / 180)
 
-        # TODO
         if 0 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 0 * torch.pi / 2 + angle_margin:
-            return self.rectangle(cx, cy, lx, ly, base), [0, 0], [0, 0]
+            return self.rectangle(cx, cy, lx, ly, base)
         elif 1 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 1 * torch.pi / 2 + angle_margin:
-            return self.rectangle(cx, cy, ly, lx, base), [0, 0], [0, 0]
+            return self.rectangle(cx, cy, ly, lx, base)
         elif 2 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 2 * torch.pi / 2 + angle_margin:
-            return self.rectangle(cx, cy, lx, ly, base), [0, 0], [0, 0]
+            return self.rectangle(cx, cy, lx, ly, base)
         elif 3 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 3 * torch.pi / 2 + angle_margin:
-            return self.rectangle(cx, cy, ly, lx, base), [0, 0], [0, 0]
+            return self.rectangle(cx, cy, ly, lx, base)
         else:
             pass
 
-        x_up = (lx / 2).repeat(dx + 2) * torch.linspace(-1, 1, dx + 2)
-        y_up = torch.tensor([ly / 2] * (dx + 2))
-        x_right = torch.tensor([lx / 2] * (dy + 2))
-        y_right = (ly / 2).repeat(dy + 2) * torch.linspace(1, -1, dy + 2)
-        # y_right = (ly / 2).repeat(dy + 2) * torch.linspace(-1, 1, dy + 2)
-        x_left = torch.tensor([-lx / 2] * (dy + 2))
-        y_left = (ly / 2).repeat(dy + 2) * torch.linspace(-1, 1, dy + 2)
-        x_down = (lx / 2).repeat(dx + 2) * torch.linspace(1, 1, dx + 2)
-        # x_down = (lx / 2).repeat(dx + 2) * torch.linspace(-1, -1, dx + 2)
-        y_down = torch.tensor([-ly / 2] * (dx + 2))
+        angle = angle % (2 * torch.pi)
 
         rotate = torch.ones((2, 2), dtype=torch.complex128)
         rotate[0, 0] = torch.cos(angle)
@@ -83,149 +73,180 @@ class ModelingTorch:
         rotate[1, 0] = torch.sin(angle)
         rotate[1, 1] = torch.cos(angle)
 
-        UR = rotate @ torch.hstack([lx / 2, ly / 2])
-        RD = rotate @ torch.hstack([lx / 2, -ly / 2])
-        DL = rotate @ torch.hstack([-lx / 2, -ly / 2])
-        LU = rotate @ torch.hstack([-lx / 2, ly / 2])
+        UR = rotate @ torch.vstack([lx / 2, ly / 2])
+        RD = rotate @ torch.vstack([lx / 2, -ly / 2])
+        DL = rotate @ torch.vstack([-lx / 2, -ly / 2])
+        LU = rotate @ torch.vstack([-lx / 2, ly / 2])
 
-        UR += torch.tensor([cx, cy])
-        RD += torch.tensor([cx, cy])
-        DL += torch.tensor([cx, cy])
-        LU += torch.tensor([cx, cy])
+        UR += torch.tensor([[cx], [cy]])
+        RD += torch.tensor([[cx], [cy]])
+        DL += torch.tensor([[cx], [cy]])
+        LU += torch.tensor([[cx], [cy]])
 
-        p_up = rotate @ torch.vstack((x_up, y_up))
-        p_down = rotate @ torch.vstack((x_down, y_down))
-        p_left = rotate @ torch.vstack((x_left, y_left))
-        p_right = rotate @ torch.vstack((x_right, y_right))
-
-        p_up[0] += cx
-        p_up[1] += cy
-        # p_up[0], p_up[1] = p_up[0] + cx, p_up[1] + cy
-        p_down[0] += cx
-        p_down[1] += cy
-        p_left[0] += cx
-        p_left[1] += cy
-        p_right[0] += cx
-        p_right[1] += cy
-
-        # TODO: negative angle
-        if 0 < (angle / (torch.pi / 180)) % 360 < 90:
-            angle_new = (angle % (2 * torch.pi)) - 0
+        if 0 < angle < torch.pi / 2:
+            angle_inside = (torch.pi / 2) - angle
 
             # trail = L + U
             top1, top4 = UR, DL
-            length_1, length_2 = lx, ly
-            trail = torch.hstack([p_left, p_up])
-            p_out1, p_out2 = p_left, p_up
 
-            if LU[1].real >= RD[1].real:
+            if LU[1].real > RD[1].real:
                 top2, top3 = LU, RD
+                length_top12, length_top24 = lx, ly
+                top2_left = True
             else:
                 top2, top3 = RD, LU
+                length_top12, length_top24 = ly, lx
+                top2_left = False
 
-        elif 90 < (angle / (torch.pi / 180)) % 360 < 180:
-            angle_new = (angle % (2 * torch.pi)) - torch.pi / 2
+        elif torch.pi / 2 < angle < torch.pi:
 
+            angle_inside = torch.pi - angle
             # trail = U + R
             top1, top4 = RD, LU
-            length_1, length_2 = ly, lx
-            trail = torch.hstack([p_up, p_right])
-            p_out1, p_out2 = p_up, p_right
 
-            if UR[1].real >= DL[1].real:
+            if UR[1].real > DL[1].real:
                 top2, top3 = UR, DL
+                length_top12, length_top24 = ly, lx
+                top2_left = True
             else:
                 top2, top3 = DL, UR
+                length_top12, length_top24 = lx, ly
+                top2_left = False
 
-        elif 180 < (angle / (torch.pi / 180)) % 360 < 270:
-            angle_new = (angle % (2 * torch.pi)) - torch.pi
+        elif torch.pi < angle < torch.pi / 2 * 3:
+            angle_inside = (torch.pi * 3 / 2) - angle
 
             # trail = R + D
             top1, top4 = DL, UR
-            length_1, length_2 = lx, ly
-            trail = torch.hstack([p_right, p_down])
-            p_out1, p_out2 = p_right, p_down
 
-            if RD[1].real >= LU[1].real:
+            if RD[1].real > LU[1].real:
                 top2, top3 = RD, LU
+                length_top12, length_top24 = lx, ly
+                top2_left = True
             else:
                 top2, top3 = LU, RD
-        elif 270 < (angle / (torch.pi / 180)) % 360 < 360:
-            angle_new = (angle % (2 * torch.pi)) - torch.pi * 3 / 2
+                length_top12, length_top24 = ly, lx
+                top2_left = False
 
+        elif torch.pi / 2 * 3 < angle < torch.pi * 2:
+            angle_inside = (torch.pi * 2) - angle
             # trail = D + L
             top1, top4 = LU, RD
-            length_1, length_2 = ly, lx
-            trail = torch.hstack([p_down, p_left])
-            p_out1, p_out2 = p_down, p_left
 
-            if DL[1].real >= UR[1].real:
+            if DL[1].real > UR[1].real:
                 top2, top3 = DL, UR
+                length_top12, length_top24 = ly, lx
+                top2_left = True
             else:
                 top2, top3 = UR, DL
+                length_top12, length_top24 = lx, ly
+                top2_left = False
         else:
             raise ValueError
 
-        obj_list = []
+        # point in region 1(top1~top2), 2(top2~top3) and 3(top3~top4)
 
-        trail_couple = []
-        # trail_couple = torch.zeros(trail.shape, dtype=torch.complex128, requires_grad=False)
-        for i, (x, y) in enumerate(zip(*trail)):
-            # if i == trail.shape[1]-1:
-            #     continue
+        xxx, yyy = [], []
+        xxx_cp, yyy_cp = [], []
+        if top2_left:
 
-            if top2[1].real < y.real <= top1[1].real:
-                length = ((x - top1[0]) ** 2 + (y - top1[1]) ** 2) ** (1 / 2)
-                length = length / torch.cos(angle_new)
-                xx = x + length
+            length = length_top12 / torch.sin(angle_inside)
+            top3_cp = [top3[0] - length, top3[1]]
 
-            elif top3[1].real <= y.real <= top2[1].real:
-                if top3[0].real <= top2[0].real:
-                    length = length_2 / abs(torch.sin(angle_new))
-                # elif top3[0].real > top2[0].real:
-                #     length = length_1 / abs(torch.cos(angle_new))
-                else:
-                    length = length_1 / abs(torch.cos(angle_new))
+            for i in range(ddx + 1):
+                x = top1[0] - (top1[0] - top2[0]) / ddx * i
+                y = top1[1] - (top1[1] - top2[1]) / ddy * i
+                xxx.append(x)
+                yyy.append(y)
 
-                # if (x + length).real < trail[0, i+1].real:
-                #     xx = trail[0, i+1]
-                # else:
-                #     xx = x + length
-                xx = x + length
+                xxx_cp.append(x + length / ddx * i)
+                yyy_cp.append(y)
 
-            # elif top4[1].real < y.real < top3[1].real:
-            else:
-                length = ((x - top4[0]) ** 2 + (y - top4[1]) ** 2) ** (1 / 2)
+            for i in range(ddy + 1):
 
-                # TODO: ?? sin and sin?
-                # if 0 < (angle / (torch.pi / 180)) % 360 < 90 or 180 < (angle / (torch.pi / 180)) % 360 < 270:
-                if 0 < (angle / (torch.pi / 180)) % 360 < 90 or 180 < (angle / (torch.pi / 180)) % 360 < 270:
-                    length = length / abs(torch.sin(angle_new))
-                else:
-                    length = length / abs(torch.sin(angle_new))
+                x = top2[0] + (top3_cp[0] - top2[0]) / ddx * i
+                y = top2[1] - (top2[1] - top3_cp[1]) / ddy * i
+                xxx.append(x)
+                yyy.append(y)
 
-                xx = x + length
+                xxx_cp.append(x + length)
+                yyy_cp.append(y)
 
-            # y_next = trail[1, i+1]
-            # trail_couple = trail_couple.clone()
-            # trail_couple[0, i] = xx
-            # trail_couple[1, i] = y
-            trail_couple.append([xx, y])
+            for i in range(ddx + 1):
+                x = top3_cp[0] + (top4[0] - top3_cp[0]) / ddx * i
+                y = top3_cp[1] - (top3_cp[1] - top4[1]) / ddy * i
+                xxx.append(x)
+                yyy.append(y)
 
-        trail_couple = torch.as_tensor(trail_couple).T
-        for index, (x, y) in enumerate(zip(*trail)):
-            if index == trail.shape[1] - 1:
-                continue
+                xxx_cp.append(x + length / ddx * (ddx - i))
+                yyy_cp.append(y)
 
-            xx, yy = trail_couple[:, index]
-            x_next, y_next = trail[:, index + 1]
-            xx_next, yy_next = trail_couple[:, index + 1]
-            x_mean = (x_next + x) / 2
-            xx_mean = (xx_next + xx) / 2
-            # obj_list.append([[x_mean, y], [xx_mean, y_next], base])  # tODO
-            obj_list.append([[y, x_mean], [y_next, xx_mean], base])
+            obj_list1 = []
 
-        return obj_list, p_out1, p_out2
+            for i in range(len(xxx)):
+                if i == len(xxx) - 1:
+                    break
+                x, y = xxx[i], yyy[i]
+                x_cp, y_cp = xxx_cp[i], yyy_cp[i]
+
+                x_next, y_next = xxx[i + 1], yyy[i + 1]
+                x_cp_next, y_cp_next = xxx_cp[i + 1], yyy_cp[i + 1]
+
+                x_mean = (x + x_next) / 2
+                x_cp_mean = (x_cp + x_cp_next) / 2
+                obj_list1.append([[y_cp_next, x_mean], [y, x_cp_mean], base])
+
+            return obj_list1
+
+        else:
+
+            length = length_top12 / torch.cos(angle_inside)
+            top3_cp = [top3[0] + length, top3[1]]
+
+            for i in range(ddx + 1):
+                x = top1[0] + (top2[0] - top1[0]) / ddx * i
+                y = top1[1] - (top1[1] - top2[1]) / ddy * i
+                xxx.append(x)
+                yyy.append(y)
+
+                xxx_cp.append(x - length / ddx * i)
+                yyy_cp.append(y)
+
+            for i in range(ddy + 1):
+
+                x = top2[0] - (top2[0] - top3_cp[0]) / ddx * i
+                y = top2[1] - (top2[1] - top3_cp[1]) / ddy * i
+                xxx.append(x)
+                yyy.append(y)
+
+                xxx_cp.append(x - length)
+                yyy_cp.append(y)
+
+            for i in range(ddx + 1):
+                x = top3_cp[0] - (top3_cp[0] - top4[0]) / ddx * i
+                y = top3_cp[1] - (top3_cp[1] - top4[1]) / ddy * i
+                xxx.append(x)
+                yyy.append(y)
+
+                xxx_cp.append(x - length / ddx * (ddx - i))
+                yyy_cp.append(y)
+
+            obj_list1 = []
+
+            for i in range(len(xxx)):
+                if i == len(xxx) - 1:
+                    break
+                x, y = xxx[i], yyy[i]
+                x_cp, y_cp = xxx_cp[i], yyy_cp[i]
+
+                x_next, y_next = xxx[i + 1], yyy[i + 1]
+                x_cp_next, y_cp_next = xxx_cp[i + 1], yyy_cp[i + 1]
+
+                x_mean = (x + x_next) / 2
+                x_cp_mean = (x_cp + x_cp_next) / 2
+                obj_list1.append([[y_cp_next, x_cp_mean], [y, x_mean], base])
+
+            return obj_list1
 
     def ellipse(self, cx, cy, lx, ly, dx, dy, base, rotation_angle=0 * torch.pi / 180):
         points_x = torch.arange(cx-lx, cx+lx, dx+2)
@@ -309,10 +330,10 @@ class ModelingTorch:
                 index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
                 col_list.insert(index, bottom_right[1])
 
-        if not row_list or row_list[-1] != self.period[0]:
-            row_list.append(self.period[0])
-        if not col_list or col_list[-1] != self.period[1]:
-            col_list.append(self.period[1])
+        if not row_list or row_list[-1] != self.period[1]:
+            row_list.append(self.period[1])
+        if not col_list or col_list[-1] != self.period[0]:
+            col_list.append(self.period[0])
 
         if row_list and row_list[0] == 0:
             row_list = row_list[1:]
