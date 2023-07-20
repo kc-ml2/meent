@@ -262,6 +262,7 @@ class ModelingTorch:
 
     def vector(self, layer_info, x64=True):
 
+        # TODO: activate and apply 'x64' option thru this function and connect to meent class.
         if x64:
             datatype = torch.complex128
             perturbation = 1E-14
