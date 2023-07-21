@@ -262,6 +262,7 @@ class ModelingTorch:
 
     def vector(self, layer_info, x64=True):
 
+        # TODO: activate and apply 'x64' option thru this function and connect to meent class.
         if x64:
             datatype = torch.complex128
             perturbation = 1E-14
@@ -282,12 +283,16 @@ class ModelingTorch:
             for _ in range(100):
                 index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
                 if len(row_list) > index and top_left[0] == row_list[index]:
-                    top_left[0] = top_left[0] - (top_left[0] * perturbation)
+                    if top_left[0] == 0:
+                        top_left[0] = top_left[0] + perturbation
+                    else:
+                        # top_left[0] = top_left[0] - (top_left[0] * perturbation)  # TODO: plus or minus?
+                        top_left[0] = top_left[0] + (top_left[0] * perturbation)
                 else:
                     row_list.insert(index, top_left[0])
                     break
             else:
-                print('WARNING: Overlapping of the objects in modeling is too complicated. Backprop may not work as expected.')
+                print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
                 index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
                 row_list.insert(index, top_left[0])
 
@@ -295,12 +300,19 @@ class ModelingTorch:
             for _ in range(100):
                 index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
                 if len(row_list) > index and bottom_right[0] == row_list[index]:
-                    bottom_right[0] = bottom_right[0] + (bottom_right[0] * perturbation)
+                    # if bottom_right[0] == 0:
+                    #     bottom_right[0] = bottom_right[0] + perturbation
+                    # else:
+                    #     # bottom_right[0] = bottom_right[0] + (bottom_right[0] * perturbation)
+                    #     bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
+
+                    # bottom_right[0] = bottom_right[0] + (bottom_right[0] * perturbation)
+                    bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
                 else:
                     row_list.insert(index, bottom_right[0])
                     break
             else:
-                print('WARNING: Overlapping of the objects in modeling is too complicated. Backprop may not work as expected.')
+                print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
                 index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
                 row_list.insert(index, bottom_right[0])
 
@@ -308,12 +320,16 @@ class ModelingTorch:
             for _ in range(100):
                 index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
                 if len(col_list) > index and top_left[1] == col_list[index]:
-                    top_left[1] = top_left[1] - (top_left[1] * perturbation)
+                    if top_left[1] == 0:
+                        top_left[1] = top_left[1] + perturbation
+                    else:
+                        # top_left[1] = top_left[1] - (top_left[1] * perturbation)
+                        top_left[1] = top_left[1] + (top_left[1] * perturbation)
                 else:
                     col_list.insert(index, top_left[1])
                     break
             else:
-                print('WARNING: Overlapping of the objects in modeling is too complicated. Backprop may not work as expected.')
+                print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
                 index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
                 col_list.insert(index, top_left[1])
 
@@ -321,12 +337,19 @@ class ModelingTorch:
             for _ in range(100):
                 index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
                 if len(col_list) > index and bottom_right[1] == col_list[index]:
-                    bottom_right[1] = bottom_right[1] + (bottom_right[1] * perturbation)
+                    # if bottom_right[1] == 0:
+                    #     bottom_right[1] = bottom_right[1] + perturbation
+                    # else:
+                    #     # bottom_right[1] = bottom_right[1] + (bottom_right[1] * perturbation)
+                    #     bottom_right[1] = bottom_right[1] - (bottom_right[1] * perturbation)
+
+                    # bottom_right[1] = bottom_right[1] + (bottom_right[1] * perturbation)
+                    bottom_right[1] = bottom_right[1] - (bottom_right[1] * perturbation)
                 else:
                     col_list.insert(index, bottom_right[1])
                     break
             else:
-                print('WARNING: Overlapping of the objects in modeling is too complicated. Backprop may not work as expected.')
+                print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
                 index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
                 col_list.insert(index, bottom_right[1])
 
