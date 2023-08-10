@@ -42,28 +42,53 @@ class ModelingTorch:
     @staticmethod
     def rectangle(cx, cy, lx, ly, base):
 
-        a = torch.hstack([cy - ly / 2, cx - lx / 2])  # row, col
-        b = torch.hstack([cy + ly / 2, cx + lx / 2])  # row, col
+        # a = torch.hstack([cy - ly / 2, cx - lx / 2])  # row, col
+        # b = torch.hstack([cy + ly / 2, cx + lx / 2])  # row, col
+        #
+        # res = [[[a, b, base]]]  # top_left, bottom_right
+
+        a = [cy - ly / 2, cx - lx / 2]  # row, col
+        b = [cy + ly / 2, cx + lx / 2]  # row, col
 
         res = [[a, b, base]]  # top_left, bottom_right
+
+
         return res
 
-    def rectangle_rotate(self, cx, cy, lx, ly, dx, dy, base, angle=None, angle_margin=1E-5):
-        ddx, ddy = dx + 2, dy + 2
+    def rectangle_rotate(self, cx, cy, lx, ly, n_split_triangle, n_split_parallelogram, n_index, angle=None, angle_margin=1E-5):
+        # if type(lx) in (int, float):
+        #     lx = torch.tensor(lx)
+        # if type(ly) in (int, float):
+        #     ly = torch.tensor(ly)
+        # if type(angle) in (int, float):
+        #     angle = torch.tensor(angle)
+        if type(lx) in (int, float):
+            lx = torch.tensor([lx])
+        if type(ly) in (int, float):
+            ly = torch.tensor([ly])
+        if type(angle) in (int, float):
+            angle = torch.tensor([angle])
+
+        if lx.type not in (torch.complex64, torch.complex128):
+            lx = lx.type(self.type_complex)  # TODO
+        if ly.type not in (torch.complex64, torch.complex128):
+            ly = ly.type(self.type_complex)
+
+        n_split_triangle, n_split_parallelogram = n_split_triangle + 2, n_split_parallelogram + 2
 
         if angle is None:
             angle = torch.tensor(0 * torch.pi / 180)
 
-        if 0 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 0 * torch.pi / 2 + angle_margin:
-            return self.rectangle(cx, cy, lx, ly, base)
-        elif 1 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 1 * torch.pi / 2 + angle_margin:
-            return self.rectangle(cx, cy, ly, lx, base)
-        elif 2 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 2 * torch.pi / 2 + angle_margin:
-            return self.rectangle(cx, cy, lx, ly, base)
-        elif 3 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 3 * torch.pi / 2 + angle_margin:
-            return self.rectangle(cx, cy, ly, lx, base)
-        else:
-            pass
+        # if 0 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 0 * torch.pi / 2 + angle_margin:
+        #     return self.rectangle(cx, cy, lx, ly, n_index)
+        # elif 1 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 1 * torch.pi / 2 + angle_margin:
+        #     return self.rectangle(cx, cy, ly, lx, n_index)
+        # elif 2 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 2 * torch.pi / 2 + angle_margin:
+        #     return self.rectangle(cx, cy, lx, ly, n_index)
+        # elif 3 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 3 * torch.pi / 2 + angle_margin:
+        #     return self.rectangle(cx, cy, ly, lx, n_index)
+        # else:
+        #     pass
 
         angle = angle % (2 * torch.pi)
 
@@ -83,7 +108,7 @@ class ModelingTorch:
         DL += torch.tensor([[cx], [cy]])
         LU += torch.tensor([[cx], [cy]])
 
-        if 0 < angle < torch.pi / 2:
+        if 0 <= angle < torch.pi / 2:
             angle_inside = (torch.pi / 2) - angle
 
             # trail = L + U
@@ -98,7 +123,7 @@ class ModelingTorch:
                 length_top12, length_top24 = ly, lx
                 top2_left = False
 
-        elif torch.pi / 2 < angle < torch.pi:
+        elif torch.pi / 2 <= angle < torch.pi:
 
             angle_inside = torch.pi - angle
             # trail = U + R
@@ -113,7 +138,7 @@ class ModelingTorch:
                 length_top12, length_top24 = lx, ly
                 top2_left = False
 
-        elif torch.pi < angle < torch.pi / 2 * 3:
+        elif torch.pi <= angle < torch.pi / 2 * 3:
             angle_inside = (torch.pi * 3 / 2) - angle
 
             # trail = R + D
@@ -128,7 +153,7 @@ class ModelingTorch:
                 length_top12, length_top24 = ly, lx
                 top2_left = False
 
-        elif torch.pi / 2 * 3 < angle < torch.pi * 2:
+        elif torch.pi / 2 * 3 <= angle < torch.pi * 2:
             angle_inside = (torch.pi * 2) - angle
             # trail = D + L
             top1, top4 = LU, RD
@@ -153,32 +178,32 @@ class ModelingTorch:
             length = length_top12 / torch.sin(angle_inside)
             top3_cp = [top3[0] - length, top3[1]]
 
-            for i in range(ddx + 1):
-                x = top1[0] - (top1[0] - top2[0]) / ddx * i
-                y = top1[1] - (top1[1] - top2[1]) / ddy * i
+            for i in range(n_split_triangle + 1):
+                x = top1[0] - (top1[0] - top2[0]) / n_split_triangle * i
+                y = top1[1] - (top1[1] - top2[1]) / n_split_parallelogram * i
                 xxx.append(x)
                 yyy.append(y)
 
-                xxx_cp.append(x + length / ddx * i)
+                xxx_cp.append(x + length / n_split_triangle * i)
                 yyy_cp.append(y)
 
-            for i in range(ddy + 1):
+            for i in range(n_split_parallelogram + 1):
 
-                x = top2[0] + (top3_cp[0] - top2[0]) / ddx * i
-                y = top2[1] - (top2[1] - top3_cp[1]) / ddy * i
+                x = top2[0] + (top3_cp[0] - top2[0]) / n_split_triangle * i
+                y = top2[1] - (top2[1] - top3_cp[1]) / n_split_parallelogram * i
                 xxx.append(x)
                 yyy.append(y)
 
                 xxx_cp.append(x + length)
                 yyy_cp.append(y)
 
-            for i in range(ddx + 1):
-                x = top3_cp[0] + (top4[0] - top3_cp[0]) / ddx * i
-                y = top3_cp[1] - (top3_cp[1] - top4[1]) / ddy * i
+            for i in range(n_split_triangle + 1):
+                x = top3_cp[0] + (top4[0] - top3_cp[0]) / n_split_triangle * i
+                y = top3_cp[1] - (top3_cp[1] - top4[1]) / n_split_parallelogram * i
                 xxx.append(x)
                 yyy.append(y)
 
-                xxx_cp.append(x + length / ddx * (ddx - i))
+                xxx_cp.append(x + length / n_split_triangle * (n_split_triangle - i))
                 yyy_cp.append(y)
 
             obj_list1 = []
@@ -194,7 +219,7 @@ class ModelingTorch:
 
                 x_mean = (x + x_next) / 2
                 x_cp_mean = (x_cp + x_cp_next) / 2
-                obj_list1.append([[y_cp_next, x_mean], [y, x_cp_mean], base])
+                obj_list1.append([[y_cp_next, x_mean], [y, x_cp_mean], n_index])
 
             return obj_list1
 
@@ -203,32 +228,32 @@ class ModelingTorch:
             length = length_top12 / torch.cos(angle_inside)
             top3_cp = [top3[0] + length, top3[1]]
 
-            for i in range(ddx + 1):
-                x = top1[0] + (top2[0] - top1[0]) / ddx * i
-                y = top1[1] - (top1[1] - top2[1]) / ddy * i
+            for i in range(n_split_triangle + 1):
+                x = top1[0] + (top2[0] - top1[0]) / n_split_triangle * i
+                y = top1[1] - (top1[1] - top2[1]) / n_split_parallelogram * i
                 xxx.append(x)
                 yyy.append(y)
 
-                xxx_cp.append(x - length / ddx * i)
+                xxx_cp.append(x - length / n_split_triangle * i)
                 yyy_cp.append(y)
 
-            for i in range(ddy + 1):
+            for i in range(n_split_parallelogram + 1):
 
-                x = top2[0] - (top2[0] - top3_cp[0]) / ddx * i
-                y = top2[1] - (top2[1] - top3_cp[1]) / ddy * i
+                x = top2[0] - (top2[0] - top3_cp[0]) / n_split_triangle * i
+                y = top2[1] - (top2[1] - top3_cp[1]) / n_split_parallelogram * i
                 xxx.append(x)
                 yyy.append(y)
 
                 xxx_cp.append(x - length)
                 yyy_cp.append(y)
 
-            for i in range(ddx + 1):
-                x = top3_cp[0] - (top3_cp[0] - top4[0]) / ddx * i
-                y = top3_cp[1] - (top3_cp[1] - top4[1]) / ddy * i
+            for i in range(n_split_triangle + 1):
+                x = top3_cp[0] - (top3_cp[0] - top4[0]) / n_split_triangle * i
+                y = top3_cp[1] - (top3_cp[1] - top4[1]) / n_split_parallelogram * i
                 xxx.append(x)
                 yyy.append(y)
 
-                xxx_cp.append(x - length / ddx * (ddx - i))
+                xxx_cp.append(x - length / n_split_triangle * (n_split_triangle - i))
                 yyy_cp.append(y)
 
             obj_list1 = []
@@ -244,7 +269,7 @@ class ModelingTorch:
 
                 x_mean = (x + x_next) / 2
                 x_cp_mean = (x_cp + x_cp_next) / 2
-                obj_list1.append([[y_cp_next, x_cp_mean], [y, x_mean], base])
+                obj_list1.append([[y_cp_next, x_cp_mean], [y, x_mean], n_index])
 
             return obj_list1
 
@@ -363,7 +388,9 @@ class ModelingTorch:
         if col_list and col_list[0] == 0:
             col_list = col_list[1:]
 
-        ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype, requires_grad=True) * pmtvy_base
+        # ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype, requires_grad=True) * pmtvy_base
+        ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype) * pmtvy_base
+        # TODO: requires_grad?
 
         for obj in obj_list:
             top_left, bottom_right, pmty = obj
