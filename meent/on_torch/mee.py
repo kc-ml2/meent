@@ -8,7 +8,7 @@ from .optimizer.optimizer import OptimizerTorch
 
 class MeeTorch(ModelingTorch, RCWATorch, OptimizerTorch):
 
-    def __init__(self, device=None, type_complex=None, *args, **kwargs):
+    def __init__(self, device=0, type_complex=0, *args, **kwargs):
 
         # device
         if device in (0, 'cpu'):

@@ -213,9 +213,9 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
         e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
         o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
         if improve_dft:
-            minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]
+            minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]  # TODO: scale factor is 2? to avoid alias?
         else:
-            minimum_pattern_size = 2 * ff
+            minimum_pattern_size = 4 * fourier_order_x + 1  # TODO: other bds
 
         for i, layer in enumerate(ucell_pmt):
             n = minimum_pattern_size // layer.shape[1]

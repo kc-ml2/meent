@@ -422,7 +422,7 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff_xy, delt
 
     final_RT = torch.linalg.inv(final_A) @ final_B
 
-    R_s = final_RT[:ff_xy, :].flatten()
+    R_s = final_RT[:ff_xy, :].flatten()  # TODO: why flatten?
     R_p = final_RT[ff_xy:2 * ff_xy, :].flatten()
 
     big_T1 = final_RT[2 * ff_xy:, :]
