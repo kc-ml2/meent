@@ -213,15 +213,15 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
         e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
         o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
         if improve_dft:
-            minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]
+            minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]  # TODO: scale factor is 2? to avoid alias?
         else:
-            minimum_pattern_size = 2 * ff
+            minimum_pattern_size = 4 * fourier_order_x + 1  # TODO: other bds
 
         for i, layer in enumerate(ucell_pmt):
             n = minimum_pattern_size // layer.shape[1]
             layer = np.repeat(layer, n + 1, axis=1)
-            f_coeffs = np.fft.fftshift(np.fft.fft(layer / layer.size))
-            o_f_coeffs = np.fft.fftshift(np.fft.fft(1/layer / layer.size))
+            f_coeffs = np.fft.fftshift(np.fft.fft(layer / layer.size).astype(type_complex))
+            o_f_coeffs = np.fft.fftshift(np.fft.fft(1/layer / layer.size).astype(type_complex))
             # FFT scaling:
             # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
 
@@ -257,8 +257,8 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
                 n = minimum_pattern_size_x // layer.shape[1]
                 layer = np.repeat(layer, n + 1, axis=1)
 
-            f_coeffs = np.fft.fftshift(np.fft.fft2(layer / layer.size))
-            o_f_coeffs = np.fft.fftshift(np.fft.fft2(1/layer / layer.size))
+            f_coeffs = np.fft.fftshift(np.fft.fft2(layer / layer.size).astype(type_complex))
+            o_f_coeffs = np.fft.fftshift(np.fft.fft2(1/layer / layer.size).astype(type_complex))
             center = np.array(f_coeffs.shape) // 2
 
             conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
