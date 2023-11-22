@@ -364,8 +364,8 @@ def to_conv_mat_raster_discrete(ucell, fourier_order_x, fourier_order_y, device=
         for i, layer in enumerate(ucell_pmt):
             n = minimum_pattern_size // layer.shape[1]
             layer = layer.repeat_interleave(n + 1, axis=1)
-            f_coeffs = torch.fft.fftshift(torch.fft.fft(layer / layer.numel()))
-            o_f_coeffs = torch.fft.fftshift(torch.fft.fft(1/layer / layer.numel()))
+            f_coeffs = torch.fft.fftshift(torch.fft.fft(layer / layer.numel()).type(type_complex))
+            o_f_coeffs = torch.fft.fftshift(torch.fft.fft(1/layer / layer.numel()).type(type_complex))
             center = torch.tensor(f_coeffs.shape, device=device) // 2
             # center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
             # center = torch.tensor(center, device=device)
