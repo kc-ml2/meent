@@ -74,7 +74,7 @@ def transfer_1d_3(g1, YZ_I, f1, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, the
     else:
         raise ValueError
 
-    return de_ri.real, de_ti.real, T1
+    return de_ri.real, de_ti.real, T1, R, T
 
 
 def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, device='cpu', type_complex=torch.complex128):
@@ -245,7 +245,7 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     de_ti = T_s * torch.conj(T_s) * torch.real(k_II_z / (k0 * n_I * torch.cos(theta))) \
            + T_p * torch.conj(T_p) * torch.real((k_II_z / n_II ** 2) / (k0 * n_I * torch.cos(theta)))
 
-    return de_ri.real, de_ti.real, big_T1
+    return de_ri.real, de_ti.real, big_T1, (R_s, R_p), (T_s, T_p)
 
 
 def transfer_2d_1(ff_x, ff_y, ff_xy, k0, n_I, n_II, kx_vector, period, fourier_indices_y, theta, phi, wavelength,
@@ -437,4 +437,4 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff_xy, delt
     de_ti = T_s * torch.conj(T_s) * torch.real(k_II_z / (k0 * n_I * torch.cos(theta))) \
             + T_p * torch.conj(T_p) * torch.real((k_II_z / n_II ** 2) / (k0 * n_I * torch.cos(theta)))
 
-    return de_ri.real, de_ti.real, big_T1
+    return de_ri.real, de_ti.real, big_T1, (R_s, R_p), (T_s, T_p)
