@@ -1,5 +1,5 @@
 function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reticolo_res3(_pol,
-    theta, phi, period, n_inc, nn, _textures, _profile, wavelength, grating_type, matlab_plot_field, res3_npts)
+    theta, phi, period, n_inc, nn, _textures, _profile, wavelength, grating_type, matlab_plot_field, res3_npts);
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
