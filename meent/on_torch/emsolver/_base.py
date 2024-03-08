@@ -52,6 +52,9 @@ class _BaseRCWA:
         self.wavelength = wavelength
         self.thickness = thickness
         self.algo = algo
+
+        self.rayleigh_r = None
+        self.rayleigh_t = None
         self.layer_info_list = []
         self.T1 = None
         self.kx_vector = None  # only kx, not ky, because kx is always used while ky is 2D only.
@@ -241,6 +244,7 @@ class _BaseRCWA:
 
         self.layer_info_list = []
         self.T1 = None
+        self.rayleigh_r, self.rayleigh_t = [], []
 
         # fourier_indices = torch.arange(-self.fourier_order, self.fourier_order + 1, device=self.device)
 
@@ -308,7 +312,7 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.algo == 'TMM':
-            de_ri, de_ti, T1 = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II,
+            de_ri, de_ti, T1, self.rayleigh_r, self.rayleigh_t = transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, self.n_I, self.n_II,
                                              self.theta, self.pol, k_II_z)
             self.T1 = T1
 
@@ -318,12 +322,13 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri, de_ti, self.layer_info_list, self.T1
+        return de_ri, de_ti, self.rayleigh_r, self.rayleigh_t, self.layer_info_list, self.T1
 
     def solve_1d_conical(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
         self.T1 = None
+        self.rayleigh_r, self.rayleigh_t = [], []
 
         # fourier_indices = torch.arange(-self.fourier_order, self.fourier_order + 1, device=self.device)
         ff = self.fourier_order[0] * 2 + 1
@@ -370,7 +375,7 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.algo == 'TMM':
-            de_ri, de_ti, big_T1 = transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, ff,
+            de_ri, de_ti, big_T1, self.rayleigh_r, self.rayleigh_t = transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, ff,
                                                  delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z,
                                                  device=self.device, type_complex=self.type_complex)
             self.T1 = big_T1
@@ -380,12 +385,13 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        return de_ri, de_ti, self.layer_info_list, self.T1
+        return de_ri, de_ti, self.rayleigh_r, self.rayleigh_t, self.layer_info_list, self.T1
 
     def solve_2d(self, wavelength, E_conv_all, o_E_conv_all):
 
         self.layer_info_list = []
         self.T1 = None
+        self.rayleigh_r, self.rayleigh_t = [], []
 
         fourier_indices_y = torch.arange(-self.fourier_order[1], self.fourier_order[1] + 1, device=self.device,
                                          dtype=self.type_float)
@@ -446,7 +452,7 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.algo == 'TMM':
-            de_ri, de_ti, big_T1 = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, ff_xy,
+            de_ri, de_ti, big_T1, self.rayleigh_r, self.rayleigh_t = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, ff_xy,
                                                  delta_i0, k_I_z, k0, self.n_I, self.n_II, k_II_z, device=self.device,
                                                  type_complex=self.type_complex)
             self.T1 = big_T1
@@ -460,4 +466,4 @@ class _BaseRCWA:
         de_ri = de_ri.reshape((ff_y, ff_x)).T
         de_ti = de_ti.reshape((ff_y, ff_x)).T
 
-        return de_ri, de_ti, self.layer_info_list, self.T1
+        return de_ri, de_ti, self.rayleigh_r, self.rayleigh_t, self.layer_info_list, self.T1

@@ -201,3 +201,7 @@ def test():
     # de_ri, de_ti = AA.loop_wavelength_ucell()
     # AA.plot()
     # assert True
+
+
+if __name__ == '__main__':
+    test()

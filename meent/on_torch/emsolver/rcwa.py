@@ -81,19 +81,21 @@ class RCWATorch(_BaseRCWA):
         self.kx_vector = self.get_kx_vector(wavelength)
 
         if self.grating_type == 0:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, e_conv_all, o_e_conv_all)
+            de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1 = self.solve_1d(wavelength, e_conv_all, o_e_conv_all)
         elif self.grating_type == 1:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d_conical(wavelength, e_conv_all, o_e_conv_all)
+            de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1 = self.solve_1d_conical(wavelength, e_conv_all, o_e_conv_all)
         elif self.grating_type == 2:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, e_conv_all, o_e_conv_all)
+            de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1 = self.solve_2d(wavelength, e_conv_all, o_e_conv_all)
         else:
             raise ValueError
 
-        return de_ri, de_ti, layer_info_list, T1, self.kx_vector
+        return de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1, self.kx_vector
 
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(wavelength, e_conv_all, o_e_conv_all)
+        de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1, kx_vector = self._solve(wavelength, e_conv_all, o_e_conv_all)
 
+        self.rayleigh_r = rayleigh_r
+        self.rayleigh_t = rayleigh_t
         self.layer_info_list = layer_info_list
         self.T1 = T1
         self.kx_vector = kx_vector
@@ -118,7 +120,7 @@ class RCWATorch(_BaseRCWA):
         else:
             raise ValueError
 
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
+        de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
 
         self.layer_info_list = layer_info_list
         self.T1 = T1
