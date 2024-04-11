@@ -41,7 +41,7 @@ def forward(length1, length2, angle, c1):
     length1 = length1.type(torch.complex128)
     length2 = length2.type(torch.complex128)
 
-    obj_list = mee.rectangle_rotate(*c1, length1, length2, 5, 5, n_index, angle)
+    obj_list = mee.rectangle(*c1, length1, length2, 5, 5, n_index, angle)
 
     layer_info_list = [[layer_base, obj_list]]
 

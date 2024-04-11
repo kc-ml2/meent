@@ -42,8 +42,8 @@ def forward(input_length1, input_length2, input_length3, input_length4, period, 
     length3 = input_length3.type(torch.complex128)
     length4 = input_length4.type(torch.complex128)
 
-    obj1_list = ModelingTorch.rectangle(*c1, length1, length2, n_index)
-    obj2_list = ModelingTorch.rectangle(*c2, length3, length4, n_index + 2)
+    obj1_list = ModelingTorch.rectangle_no_approximation(*c1, length1, length2, n_index)
+    obj2_list = ModelingTorch.rectangle_no_approximation(*c2, length3, length4, n_index + 2)
 
     obj_list = obj1_list + obj2_list
 
