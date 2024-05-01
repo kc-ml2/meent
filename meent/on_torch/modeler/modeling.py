@@ -39,6 +39,11 @@ class ModelingTorch:
         self.ucell_info_list = None
         self.period = period
 
+        self.film_layer = None
+
+    def film(self):
+        return []
+
     @staticmethod
     def rectangle_no_approximation(cx, cy, lx, ly, base):
 
@@ -546,8 +551,6 @@ class ModelingTorch:
             right_array.append(points_contour_rot[:, y_highest_index])
         elif left_y < right_y:
             left_array.append(points_contour_rot[:, y_highest_index])
-        else:
-            raise ValueError  # TODO
 
         for i in range(points_contour_rot.shape[1]//2):
             left_array.append(points_contour_rot[:, (y_highest_index+i+1) % points_contour_rot.shape[1]])
@@ -690,9 +693,9 @@ class ModelingTorch:
                 col_list.insert(index, bottom_right[1])
 
         if not row_list or row_list[-1] != self.period[1]:
-            row_list.append(self.period[1].reshape(1))
+            row_list.append(self.period[1].reshape(1).type(datatype))
         if not col_list or col_list[-1] != self.period[0]:
-            col_list.append(self.period[0].reshape(1))
+            col_list.append(self.period[0].reshape(1).type(datatype))
 
         if row_list and row_list[0] == 0:
             row_list = row_list[1:]
@@ -727,10 +730,13 @@ class ModelingTorch:
 
     def draw(self, layer_info_list):
         ucell_info_list = []
+        self.film_layer = torch.zeros(len(layer_info_list))
 
-        for layer_info in layer_info_list:
+        for i, layer_info in enumerate(layer_info_list):
             ucell_layer, x_list, y_list = self.vector(layer_info)
             ucell_info_list.append([ucell_layer, x_list, y_list])
+            if len(x_list) == len(y_list) == 1:
+                self.film_layer[i] = 1
         self.ucell_info_list = ucell_info_list
         return ucell_info_list
 
