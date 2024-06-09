@@ -581,7 +581,7 @@ class ModelingTorch:
         else:
             return res[:-1]
 
-    def vector(self, layer_info, x64=True):
+    def vector_per_layer_numeric(self, layer_info, x64=True):
 
         # TODO: activate and apply 'x64' option thru this function and connect to meent class.
         if x64:
@@ -733,7 +733,7 @@ class ModelingTorch:
         self.film_layer = torch.zeros(len(layer_info_list))
 
         for i, layer_info in enumerate(layer_info_list):
-            ucell_layer, x_list, y_list = self.vector(layer_info)
+            ucell_layer, x_list, y_list = self.vector_per_layer_numeric(layer_info)
             ucell_info_list.append([ucell_layer, x_list, y_list])
             if len(x_list) == len(y_list) == 1:
                 self.film_layer[i] = 1
@@ -755,6 +755,37 @@ class ModelingTorch:
             res[mask] = assign_value
 
         return res
+
+    # Optimization + Material table
+    def modeling_vector_instruction(self, rcwa_options, instructions):
+
+        # wavelength = rcwa_options['wavelength']
+
+        # # Thickness update
+        # t = rcwa_options['thickness']
+        # for i in range(len(t)):
+        #     if f'l{i + 1}_thickness' in fitting_parameter_name:
+        #         t[i] = fitting_parameter_value[fitting_parameter_name[f'l{i + 1}_thickness']].reshape((1, 1))
+        # mee.thickness = t
+
+        # mat_table = read_material_table()
+
+        # TODO: refractive index support string for nI and nII
+
+        # Modeling
+        layer_info_list = []
+        for i, layer in enumerate(instructions):
+            obj_list_per_layer = []
+            base_refractive_index = layer[0]
+            for j, vector_object in enumerate(layer[1]):
+                func = getattr(self, vector_object[0])
+                obj_list_per_layer += func(*vector_object[1:])
+
+            layer_info_list.append([base_refractive_index, obj_list_per_layer])
+
+        self.draw(layer_info_list)
+
+        return layer_info_list
 
 
 def find_nk_index(material, mat_table, wl):
