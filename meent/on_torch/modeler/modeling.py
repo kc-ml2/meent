@@ -783,9 +783,9 @@ class ModelingTorch:
 
             layer_info_list.append([base_refractive_index, obj_list_per_layer])
 
-        self.draw(layer_info_list)
+        ucell_info_list = self.draw(layer_info_list)
 
-        return layer_info_list
+        return ucell_info_list
 
 
 def find_nk_index(material, mat_table, wl):

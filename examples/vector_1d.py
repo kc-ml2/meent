@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 import meent
 
@@ -41,6 +42,7 @@ def run_raster(rcwa_options):
         ],
     ]) * (3.97 + 1j*4.2) + 1
 
+    ucell = ucell.numpy()
     mee = meent.call_mee(**rcwa_options)
     mee.ucell = ucell
 
@@ -58,6 +60,10 @@ if __name__ == '__main__':
     de_ri_raster, de_ti_raster = run_raster(rcwa_options_setting)
     print(de_ri_vector)
     print(de_ti_vector)
-    print(torch.norm(de_ri_vector-de_ri_raster))
-    print(torch.norm(de_ti_vector-de_ti_raster))
+    print(de_ri_raster)
+    print(de_ti_raster)
+    # print(torch.norm(de_ri_vector-de_ri_raster))
+    # print(torch.norm(de_ti_vector-de_ti_raster))
+    print(np.linalg.norm(de_ri_vector-de_ri_raster))
+    print(np.linalg.norm(de_ti_vector-de_ti_raster))
     print(0)
