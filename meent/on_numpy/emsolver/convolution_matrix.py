@@ -71,7 +71,7 @@ def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, type_co
 
     y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], period_y)) - y
 
-    f_coeffs_xy[:, c] = f_coeffs_x.T @ np.vstack((y[0], y_next[:-1])).flatten() /period_y
+    f_coeffs_xy[:, c] = f_coeffs_x.T @ np.vstack((y[0], y_next[:-1])).flatten() / period_y
 
     if c:
         mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
@@ -83,6 +83,7 @@ def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, type_co
 
 def to_conv_mat_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=None,
                        type_complex=np.complex128):
+
     ff_x = 2 * fourier_order_x + 1
     ff_y = 2 * fourier_order_y + 1
 

@@ -7,7 +7,7 @@ import numpy as np
 import jax.numpy as jnp
 
 from ._base import _BaseRCWA
-from .convolution_matrix import to_conv_mat_discrete, to_conv_mat_continuous, to_conv_mat_continuous_vector
+from .convolution_matrix import to_conv_mat_raster_discrete, to_conv_mat_raster_continuous, to_conv_mat_vector
 from .field_distribution import field_dist_1d_vectorized_ji, field_dist_1d_conical_vectorized_ji, \
     field_dist_2d_vectorized_ji, field_plot, \
     field_dist_1d_vectorized_kji, field_dist_1d_conical_vectorized_kji, field_dist_1d_vanilla, \
@@ -130,15 +130,15 @@ class RCWAJax(_BaseRCWA):
     def _conv_solve(self):
 
         if self.fft_type == 0:
-            E_conv_all, o_E_conv_all = to_conv_mat_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                              type_complex=self.type_complex, improve_dft=self.improve_dft)
+            E_conv_all, o_E_conv_all = to_conv_mat_raster_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                                   type_complex=self.type_complex, improve_dft=self.improve_dft)
         elif self.fft_type == 1:
-            E_conv_all, o_E_conv_all = to_conv_mat_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                type_complex=self.type_complex)
-        elif self.fft_type == 2:
-            E_conv_all, o_E_conv_all = to_conv_mat_continuous_vector(self.ucell_info_list,
-                                                                     self.fourier_order[0], self.fourier_order[1],
+            E_conv_all, o_E_conv_all = to_conv_mat_raster_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
                                                                      type_complex=self.type_complex)
+        elif self.fft_type == 2:
+            E_conv_all, o_E_conv_all = to_conv_mat_vector(self.ucell_info_list,
+                                                          self.fourier_order[0], self.fourier_order[1],
+                                                          type_complex=self.type_complex)
         else:
             raise ValueError
 
