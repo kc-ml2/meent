@@ -9,12 +9,6 @@ is link.
 Check out the :doc:`usage` section for further information, including
 how to :ref:`installation` the project.
 
-.. note::
-
-   This project is under active development.
-
-dddd
-
 .. grid:: 3
     :margin: 0
     :padding: 0
@@ -66,6 +60,7 @@ dddd
     :hidden:
     :maxdepth: 2
     :caption: Getting Started
+
     getting_started
     usage
     api
