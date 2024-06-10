@@ -61,11 +61,6 @@ dddd
       :link-type: ref
       :class-card: developer-docs
 
-..
-    ffff
-
-    Contents
-    --------
 
 .. toctree::
     :hidden:
@@ -74,5 +69,3 @@ dddd
     getting_started
     usage
     api
-    aaaa
-    bbbb
