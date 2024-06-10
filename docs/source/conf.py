@@ -44,5 +44,5 @@ source_suffix = ['.rst', '.ipynb', '.md']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'images/meent_logo2.png'
-
+html_logo = 'images/meent_logo.png'
+html_favicon = 'images/meent_logo2.png'
