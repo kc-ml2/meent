@@ -48,7 +48,7 @@ if __name__ == '__main__':
                         wavelength=900,
                         fft_type=2,
                         )
-    # TODO: check thickness control in looping layers for all backends.
+
     si = 3.638751670074983-0.007498295841854125j
     sio2 = 1.4518
     si3n4 = 2.0056

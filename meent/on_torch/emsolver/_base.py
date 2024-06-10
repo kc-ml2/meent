@@ -270,7 +270,8 @@ class _BaseRCWA:
         count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
 
         # From the last layer
-        for layer_index in np.arange(count-1, -1, -1):
+        # for layer_index in np.arange(count-1, -1, -1):
+        for layer_index in range(count)[::-1]:
 
             E_conv = E_conv_all[layer_index]
             o_E_conv = o_E_conv_all[layer_index]

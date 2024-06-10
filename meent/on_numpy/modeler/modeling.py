@@ -351,7 +351,6 @@ class ModelingNumpy:
     #         row_list.extend([top_left[0], bottom_right[0]])
     #         col_list.extend([top_left[1], bottom_right[1]])
     #
-    #     # TODO: set seems not right for backprop
     #     row_list = list(set(row_list))
     #     col_list = list(set(col_list))
     #
