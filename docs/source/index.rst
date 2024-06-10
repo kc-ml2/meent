@@ -16,38 +16,39 @@ how to :ref:`installation` the project.
 dddd
 
 .. grid:: 3
-   :margin: 0
-   :padding: 0
-   :gutter: 0
+    :margin: 0
+    :padding: 0
+    :gutter: 0
 
-   .. grid-item-card:: Familiar API
-      :columns: 12 6 6 4
-      :class-card: sd-border-0
-      :shadow: None
+    .. grid-item-card:: Familiar API
+        :columns: 12 6 6 4
+        :class-card: sd-border-0
+        :shadow: None
 
-      JAX provides a familiar NumPy-style API for ease of adoption by researchers and engineers.
+        JAX provides a familiar NumPy-style API for ease of adoption by researchers and engineers.
 
-   .. grid-item-card:: Transformations
-      :columns: 12 6 6 4
-      :class-card: sd-border-0
-      :shadow: None
+    .. grid-item-card:: Transformations
+        :columns: 12 6 6 4
+        :class-card: sd-border-0
+        :shadow: None
 
-      JAX includes composable function transformations for compilation, batching, automatic differentiation, and parallelization.
+        JAX includes composable function transformations for compilation, batching, automatic differentiation, and parallelization.
 
-   .. grid-item-card:: Run Anywhere
-      :columns: 12 6 6 4
-      :class-card: sd-border-0
-      :shadow: None
+    .. grid-item-card:: Run Anywhere
+        :columns: 12 6 6 4
+        :class-card: sd-border-0
+        :shadow: None
 
-      The same code executes on multiple backends, including CPU, GPU, & TPU
+        The same code executes on multiple backends, including CPU, GPU, & TPU
 
 .. grid:: 3
 
     .. grid-item-card:: :material-regular:`rocket_launch;2em` Getting Started
-      :columns: 12 6 6 4
-      :link: beginner-guide
-      :link-type: ref
-      :class-card: getting-started
+        :columns: 12 6 6 4
+        :link: beginner-guide
+        :link-type: ref
+        :class-card: getting-started
+        :color: primary
 
     .. grid-item-card:: :material-regular:`library_books;2em` User Guides
       :columns: 12 6 6 4
