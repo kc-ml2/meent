@@ -16,7 +16,7 @@ Contents
 --------
 
 .. toctree::
-
-   usage
-   api
-   aaaa
+    usage
+    api
+    aaaa
+    bbbb
