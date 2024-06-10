@@ -45,7 +45,7 @@ dddd
 
     .. grid-item-card:: :material-regular:`rocket_launch;2em` Getting Started
         :columns: 12 6 6 4
-        :link: beginner-guide
+        :link: getting_started
         :link-type: ref
         :class-card: getting-started
 
@@ -61,13 +61,15 @@ dddd
       :link-type: ref
       :class-card: developer-docs
 
-ffff
+..
+    ffff
 
-Contents
---------
+    Contents
+    --------
 
-.. toctree::
-    usage
-    api
-    aaaa
-    bbbb
+    .. toctree::
+        getting_started
+        usage
+        api
+        aaaa
+        bbbb
