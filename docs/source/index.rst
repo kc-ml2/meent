@@ -67,9 +67,12 @@ dddd
     Contents
     --------
 
-    .. toctree::
-        getting_started
-        usage
-        api
-        aaaa
-        bbbb
+.. toctree::
+    :hidden:
+    :maxdepth: 2
+    :caption: Getting Started
+    getting_started
+    usage
+    api
+    aaaa
+    bbbb
