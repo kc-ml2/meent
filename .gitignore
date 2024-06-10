@@ -7,6 +7,10 @@ venv/
 build/
 dist/
 
+# Sphinx documentation
+docs/_build/
+
+
 *logs*
 *runs*
 *.pt
