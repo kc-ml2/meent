@@ -39,7 +39,7 @@ how to :ref:`installation` the project.
 
     .. grid-item-card:: :material-regular:`rocket_launch;2em` Getting Started
         :columns: 12 6 6 4
-        :link: getting_started.md
+        :link: getting-started
         :link-type: ref
         :class-card: getting-started
 
@@ -58,8 +58,8 @@ how to :ref:`installation` the project.
 
 .. toctree::
     :maxdepth: 2
-    :caption: Getting Started
+    :caption: Getting Starteddd
 
-    getting_started
+    getting-started
     usage
     api
