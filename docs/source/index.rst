@@ -57,6 +57,7 @@ how to :ref:`installation` the project.
 
 
 .. toctree::
+    :hidden:
     :maxdepth: 2
     :caption: Getting Starteddd
 
