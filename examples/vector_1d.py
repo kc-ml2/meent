@@ -1,69 +1,56 @@
 import torch
-import numpy as np
 
 import meent
 
 
-def run_vector(rcwa_options_setting):
+def run():
+    rcwa_options = dict(backend=2, grating_type=2, thickness=[205, 305, 100000], period=[300, 300],
+                        fourier_order=[3, 3],
+                        n_I=1, n_II=1,
+                        wavelength=900,
+                        fft_type=2,
+                        )
+
+    si = 3.638751670074983-0.007498295841854125j
+    sio2 = 1.4518-0j
+    si3n4 = 2.0056-0j
 
     instructions = [
         # layer 1
-        [1,
+        [sio2,
             [
                 # obj 1
-                ['rectangle', 450, 450, 300, 900, 4.97 + 1j*4.2, 0 * torch.pi / 180, 0, 0],
+                ['ellipse', 75, 225, 101.5, 81.5, si, 20 * torch.pi / 180, 40, 40],
+                # obj 2
+                ['rectangle', 225, 75, 98.5, 81.5, si, 0, 0, 0],
             ],
+        ],
+        # layer 2
+        [si3n4,
+            [
+                # obj 1
+                ['rectangle', 50, 150, 31, 300, si, 0, 0, 0],
+                # obj 2
+                ['rectangle', 200, 150, 49.5, 300, si, 0, 0, 0],
+            ],
+        ],
+        # layer 3
+        [si,
+         []
         ],
     ]
 
-    mee = meent.call_mee(**rcwa_options_setting)
-    mee.fft_type = 2
-    mee.modeling_vector_instruction(rcwa_options_setting, instructions)
-
-    de_ri, de_ti = mee.conv_solve()
-
-    return de_ri, de_ti
-
-
-def run_raster(rcwa_options):
-
-    ucell = torch.tensor([
-        [
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 1, 1, 1, 0, 0, 0],
-        ],
-    ]) * (3.97 + 1j*4.2) + 1
-
-    ucell = ucell.numpy()
     mee = meent.call_mee(**rcwa_options)
-    mee.ucell = ucell
-
-    mee.fft_type = 1  # 0: Discrete Fourier series; 1 is for Continuous FS which is used in vector modeling.
+    mee.modeling_vector_instruction(rcwa_options, instructions)
 
     de_ri, de_ti = mee.conv_solve()
-    return de_ri, de_ti
+    print(de_ri)
+
+    return
 
 
 if __name__ == '__main__':
-    rcwa_options_setting = dict(backend=2, grating_type=2, thickness=[100], period=[900, 900], fourier_order=[2, 0],
-                        n_I=1, n_II=1, wavelength=900)
 
-    de_ri_vector, de_ti_vector = run_vector(rcwa_options_setting)
-    de_ri_raster, de_ti_raster = run_raster(rcwa_options_setting)
-    print(de_ri_vector)
-    print(de_ti_vector)
-    print(de_ri_raster)
-    print(de_ti_raster)
-    # print(torch.norm(de_ri_vector-de_ri_raster))
-    # print(torch.norm(de_ti_vector-de_ti_raster))
-    print(np.linalg.norm(de_ri_vector-de_ri_raster))
-    print(np.linalg.norm(de_ti_vector-de_ti_raster))
+    res = run()
+
     print(0)
