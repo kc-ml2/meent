@@ -39,7 +39,7 @@ how to :ref:`installation` the project.
 
     .. grid-item-card:: :material-regular:`rocket_launch;2em` Getting Started
         :columns: 12 6 6 4
-        :link: getting_started
+        :link: getting_started.md
         :link-type: ref
         :class-card: getting-started
 
