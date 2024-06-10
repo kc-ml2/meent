@@ -33,3 +33,10 @@ html_theme = 'sphinx_rtd_theme'
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
+
+# The suffix(es) of source filenames.
+# Note: important to list ipynb before md here: we have both md and ipynb
+# copies of each notebook, and myst will choose which to convert based on
+# the order in the source_suffix list. Notebooks which are not executed have
+# outputs stored in ipynb but not in md, so we must convert the ipynb.
+source_suffix = ['.rst', '.ipynb', '.md']
