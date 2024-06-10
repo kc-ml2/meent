@@ -400,6 +400,112 @@ class ModelingNumpy:
     #
     #     return ucell_info_list
 
+    def ellipse(self, cx, cy, lx, ly, n_index, angle=0, n_split_w=2, n_split_h=2, angle_margin=1E-5, debug=False):
+
+        if type(lx) in (int, float):
+            lx = np.array(lx).reshape(1)
+        elif type(lx) is np.ndarray:
+            lx = lx.reshape(1)
+
+        if type(ly) in (int, float):
+            ly = np.array(ly).reshape(1)
+        elif type(ly) is np.ndarray:
+            ly = ly.reshape(1)
+
+        if type(angle) in (int, float):
+            angle = np.array(angle).reshape(1)
+        elif type(angle) is np.ndarray:
+            angle = angle.reshape(1)
+
+        if lx.dtype not in (np.complex64, np.complex128):
+            lx = lx.astype(self.type_complex)  # TODO
+        if ly.dtype not in (np.complex64, np.complex128):
+            ly = ly.astype(self.type_complex)
+
+        angle = angle % (2 * np.pi)
+
+        points_x_origin = lx/2 * np.cos(np.linspace(np.pi/2, 0, n_split_w))
+        points_y_origin = ly/2 * np.sin(np.linspace(-np.pi/2, np.pi/2, n_split_h))
+
+        points_x_origin_contour = lx/2 * np.cos(np.linspace(-np.pi, np.pi, n_split_w))[:-1]
+        points_y_origin_contour = ly/2 * np.sin(np.linspace(-np.pi, np.pi, n_split_h))[:-1]
+        points_origin_contour = np.vstack([points_x_origin_contour, points_y_origin_contour])
+
+        axis_x_origin = np.vstack([points_x_origin, np.ones(len(points_x_origin))])
+        axis_y_origin = np.vstack([np.ones(len(points_y_origin)), points_y_origin])
+
+        rotate = np.ones((2, 2), dtype=points_x_origin.dtype)
+        rotate[0, 0] = np.cos(angle)
+        rotate[0, 1] = -np.sin(angle)
+        rotate[1, 0] = np.sin(angle)
+        rotate[1, 1] = np.cos(angle)
+
+        axis_x_origin_rot = rotate @ axis_x_origin
+        axis_y_origin_rot = rotate @ axis_y_origin
+
+        axis_x_rot = axis_x_origin_rot[:, :, None]
+        axis_x_rot[0] += cx
+        axis_x_rot[1] += cy
+
+        axis_y_rot = axis_y_origin_rot[:, :, None]
+        axis_y_rot[0] += cx
+        axis_y_rot[1] += cy
+
+        points_origin_contour_rot = rotate @ points_origin_contour
+        points_contour_rot = points_origin_contour_rot[:, :, None]
+        points_contour_rot[0] += cx
+        points_contour_rot[1] += cy
+
+        y_highest_index = np.argmax(points_contour_rot.real, axis=1)[1, 0]
+
+        points_contour_rot = np.roll(points_contour_rot, (points_contour_rot.shape[1] // 2 - y_highest_index).item(), axis=1)
+        y_highest_index = np.argmax(points_contour_rot.real, axis=1)[1, 0]
+
+        right = points_contour_rot[:, y_highest_index-1]
+        left = points_contour_rot[:, y_highest_index+1]
+
+        right_y = right[1].real
+        left_y = left[1].real
+
+        left_array = []
+        right_array = []
+
+        res = []
+
+        if left_y > right_y:
+            right_array.append(points_contour_rot[:, y_highest_index])
+        elif left_y < right_y:
+            left_array.append(points_contour_rot[:, y_highest_index])
+
+        for i in range(points_contour_rot.shape[1]//2):
+            left_array.append(points_contour_rot[:, (y_highest_index+i+1) % points_contour_rot.shape[1]])
+            right_array.append(points_contour_rot[:, (y_highest_index-i-1) % points_contour_rot.shape[1]])
+
+        arr = np.zeros((2, len(right_array) + len(left_array), 1), dtype=points_contour_rot.dtype)
+
+        if left_y > right_y:
+            arr[:, ::2] = np.stack(right_array, axis=1)
+            arr[:, 1::2] = np.stack(left_array, axis=1)
+        elif left_y < right_y:
+            arr[:, ::2] = np.stack(left_array, axis=1)
+            arr[:, 1::2] = np.stack(right_array, axis=1)
+
+        arr_roll = np.roll(arr, -1, 1)
+
+        for i in range(arr.shape[1]):
+            ax, ay = arr[:, i]
+            bx, by = arr_roll[:, i]
+
+            LL = [min(ay.real, by.real)+0j, min(ax.real, bx.real)+0j]
+            UR = [max(ay.real, by.real)+0j, max(ax.real, bx.real)+0j]
+
+            res.append([LL, UR, n_index])
+
+        if debug:
+            return res[:-1], (axis_x_rot, axis_y_rot, points_contour_rot)
+        else:
+            return res[:-1]
+
     def vector_per_layer_numeric(self, layer_info, x64=True):
 
         # TODO: activate and apply 'x64' option thru this function and connect to meent class.

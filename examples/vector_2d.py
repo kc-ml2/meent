@@ -6,10 +6,9 @@ import meent
 
 
 def run():
-    rcwa_options = dict(backend=2, grating_type=2, thickness=[205, 305, 100000], period=[300, 300],
+    rcwa_options = dict(backend=1, grating_type=2, thickness=[205, 305, 100000], period=[300, 300],
                         fourier_order=[3, 3],
                         n_I=1, n_II=1,
-                        # wavelength_list=range(200, 1001, 10),
                         wavelength=900,
                         fft_type=2,
                         )
