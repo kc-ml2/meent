@@ -6,8 +6,8 @@ project = 'Meent'
 copyright = '2024, The Meent Authors'
 # author = 'Graziella'
 
-release = '0.1'
-version = '0.1.0'
+release = ''
+version = ''
 
 # -- General configuration
 
