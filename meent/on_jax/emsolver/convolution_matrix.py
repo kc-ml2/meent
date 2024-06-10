@@ -3,6 +3,7 @@ import jax.numpy as jnp
 
 from functools import partial
 
+
 def cell_compression(cell, type_complex=jnp.complex128):
 
     if type_complex == jnp.complex128:
@@ -41,9 +42,9 @@ def cell_compression(cell, type_complex=jnp.complex128):
 
 
 # @partial(jax.jit, static_argnums=(1,2 ))
-def fft_piecewise_constant(cell, fourier_order_x, fourier_order_y, type_complex=jnp.complex128):
+def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, type_complex=jnp.complex128):
 
-    cell, x, y = cell_compression(cell, type_complex=type_complex)
+    period_x, period_y = x[-1], y[-1]
 
     # X axis
     cell_next_x = jnp.roll(cell, -1, axis=1)
@@ -51,13 +52,13 @@ def fft_piecewise_constant(cell, fourier_order_x, fourier_order_y, type_complex=
 
     modes_x = jnp.arange(-2 * fourier_order_x, 2 * fourier_order_x + 1, 1)
 
-    f_coeffs_x = cell_diff_x @ jnp.exp(-1j * 2 * jnp.pi * x @ modes_x[None, :]).astype(type_complex)
+    f_coeffs_x = cell_diff_x @ jnp.exp(-1j * 2 * jnp.pi * x @ modes_x[None, :] / period_x).astype(type_complex)
     c = f_coeffs_x.shape[1] // 2
 
-    x_next = jnp.vstack((jnp.roll(x, -1, axis=0)[:-1], 1)) - x
+    x_next = jnp.vstack((jnp.roll(x, -1, axis=0)[:-1], period_x)) - x
 
     assign_index = (jnp.arange(len(f_coeffs_x)), jnp.array([c]))
-    assign_value = (cell @ jnp.vstack((x[0], x_next[:-1]))).flatten().astype(type_complex)
+    assign_value = (cell @ jnp.vstack((x[0], x_next[:-1])) / period_x).flatten().astype(type_complex)
     f_coeffs_x = f_coeffs_x.at[assign_index].set(assign_value)
 
     mask = jnp.hstack([jnp.arange(c), jnp.arange(c+1, f_coeffs_x.shape[1])])
@@ -71,13 +72,13 @@ def fft_piecewise_constant(cell, fourier_order_x, fourier_order_y, type_complex=
 
     modes_y = jnp.arange(-2 * fourier_order_y, 2 * fourier_order_y + 1, 1)
 
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ jnp.exp(-1j * 2 * jnp.pi * y @ modes_y[None, :]).astype(type_complex)
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ jnp.exp(-1j * 2 * jnp.pi * y @ modes_y[None, :] / period_y).astype(type_complex)
     c = f_coeffs_xy.shape[1] // 2
 
-    y_next = jnp.vstack((jnp.roll(y, -1, axis=0)[:-1], 1)) - y
+    y_next = jnp.vstack((jnp.roll(y, -1, axis=0)[:-1], period_y)) - y
 
     assign_index = [c]
-    assign_value = f_coeffs_x.T @ jnp.vstack((y[0], y_next[:-1])).astype(type_complex)
+    assign_value = (f_coeffs_x.T @ jnp.vstack((y[0], y_next[:-1])) / period_y).astype(type_complex)
     f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
 
     if c:
@@ -91,56 +92,8 @@ def fft_piecewise_constant(cell, fourier_order_x, fourier_order_y, type_complex=
     return f_coeffs_xy.T
 
 
-# @partial(jax.jit, static_argnums=(1,2 ))
-def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, type_complex=jnp.complex128):
-    # X axis
-    cell_next_x = jnp.roll(cell, -1, axis=1)
-    cell_diff_x = cell_next_x - cell
-
-    modes_x = jnp.arange(-2 * fourier_order_x, 2 * fourier_order_x + 1, 1)
-
-    f_coeffs_x = cell_diff_x @ jnp.exp(-1j * 2 * jnp.pi * x @ modes_x[None, :]).astype(type_complex)
-    c = f_coeffs_x.shape[1] // 2
-
-    x_next = jnp.vstack((jnp.roll(x, -1, axis=0)[:-1], 1)) - x
-
-    assign_index = (jnp.arange(len(f_coeffs_x)), jnp.array([c]))
-    assign_value = (cell @ jnp.vstack((x[0], x_next[:-1]))).flatten().astype(type_complex)
-    f_coeffs_x = f_coeffs_x.at[assign_index].set(assign_value)
-
-    mask = jnp.hstack([jnp.arange(c), jnp.arange(c+1, f_coeffs_x.shape[1])])
-    assign_index = mask
-    assign_value = f_coeffs_x[:, mask] / (1j * 2 * jnp.pi * modes_x[mask])
-    f_coeffs_x = f_coeffs_x.at[:, assign_index].set(assign_value)
-
-    # Y axis
-    f_coeffs_x_next_y = jnp.roll(f_coeffs_x, -1, axis=0)
-    f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
-
-    modes_y = jnp.arange(-2 * fourier_order_y, 2 * fourier_order_y + 1, 1)
-
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ jnp.exp(-1j * 2 * jnp.pi * y @ modes_y[None, :]).astype(type_complex)
-    c = f_coeffs_xy.shape[1] // 2
-
-    y_next = jnp.vstack((jnp.roll(y, -1, axis=0)[:-1], 1)) - y
-
-    assign_index = [c]
-    assign_value = f_coeffs_x.T @ jnp.vstack((y[0], y_next[:-1])).astype(type_complex)
-    f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
-
-    if c:
-        mask = jnp.hstack([jnp.arange(c), jnp.arange(c + 1, f_coeffs_x.shape[1])])
-
-        assign_index = mask
-        assign_value = f_coeffs_xy[:, mask] / (1j * 2 * jnp.pi * modes_y[mask])
-
-        f_coeffs_xy = f_coeffs_xy.at[:, assign_index].set(assign_value)
-
-    return f_coeffs_xy.T
-
-
-def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=None,
-                                  type_complex=jnp.complex128):
+def to_conv_mat_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=None,
+                       type_complex=jnp.complex128):
 
     ff_x = 2 * fourier_order_x + 1
     ff_y = 2 * fourier_order_y + 1
@@ -153,16 +106,16 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
         ucell_layer, x_list, y_list = ucell_info
         ucell_layer = ucell_layer ** 2
 
-        f_coeffs = fft_piecewise_constant_vector(ucell_layer, x_list, y_list,
+        f_coeffs = fft_piecewise_constant(ucell_layer, x_list, y_list,
                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
-        o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
+        o_f_coeffs = fft_piecewise_constant(1/ucell_layer, x_list, y_list,
                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
         center = jnp.array(f_coeffs.shape) // 2
 
         conv_idx_y = jnp.arange(-ff_y + 1, ff_y, 1)
         conv_idx_y = circulant(conv_idx_y)
         conv_i = jnp.repeat(conv_idx_y, ff_x, axis=1)
-        conv_i = jnp.repeat(conv_i, [ff_x] * ff_y, axis=0, total_repeat_length=ff_x * ff_y)
+        conv_i = jnp.repeat(conv_i, jnp.array([ff_x] * ff_y), axis=0, total_repeat_length=ff_x * ff_y)
 
         conv_idx_x = jnp.arange(-ff_x + 1, ff_x, 1)
         conv_idx_x = circulant(conv_idx_x)
@@ -176,7 +129,7 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
     return e_conv_all, o_e_conv_all
 
 
-def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128):
+def to_conv_mat_raster_continuous(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
@@ -186,8 +139,11 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
         o_e_conv_all = jnp.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
-            f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
-            o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
+
+            cell, x, y = cell_compression(layer, type_complex=type_complex)
+
+            f_coeffs = fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, type_complex=type_complex)
+            o_f_coeffs = fft_piecewise_constant(1/cell, x, y, fourier_order_x, fourier_order_y, type_complex=type_complex)
             center = jnp.array(f_coeffs.shape) // 2
             conv_idx = jnp.arange(-ff + 1, ff, 1)
             conv_idx = circulant(conv_idx)
@@ -203,8 +159,11 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
         o_e_conv_all = jnp.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
-            f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
-            o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
+
+            cell, x, y = cell_compression(layer, type_complex=type_complex)
+
+            f_coeffs = fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, type_complex=type_complex)
+            o_f_coeffs = fft_piecewise_constant(1/cell, x, y, fourier_order_x, fourier_order_y, type_complex=type_complex)
             center = jnp.array(f_coeffs.shape) // 2
 
             conv_idx_y = jnp.arange(-ff_y + 1, ff_y, 1)
@@ -224,8 +183,8 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
 
 
 # @partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))
-def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128,
-                         improve_dft=True):
+def to_conv_mat_raster_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=jnp.complex128,
+                                improve_dft=True):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D

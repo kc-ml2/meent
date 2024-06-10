@@ -257,7 +257,14 @@ class _BaseRCWA:
             raise ValueError
 
         # From the last layer
-        for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+        # for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+        count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
+
+        # From the last layer
+        for layer_index in range(count)[::-1]:
+            E_conv = E_conv_all[layer_index]
+            o_E_conv = o_E_conv_all[layer_index]
+            d = self.thickness[layer_index]
 
             if self.pol == 0:
                 E_conv_i = None
@@ -331,7 +338,16 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+        # for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+        count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
+
+        # From the last layer
+        for layer_index in range(count)[::-1]:
+
+            E_conv = E_conv_all[layer_index]
+            o_E_conv = o_E_conv_all[layer_index]
+            d = self.thickness[layer_index]
+
             E_conv_i = jnp.linalg.inv(E_conv)
             o_E_conv_i = jnp.linalg.inv(o_E_conv)
 
@@ -395,7 +411,16 @@ class _BaseRCWA:
             raise ValueError
 
         # From the last layer
-        for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+        # for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
+
+        count = min(len(E_conv_all), len(o_E_conv_all), len(self.thickness))
+
+        # From the last layer
+        for layer_index in range(count)[::-1]:
+            E_conv = E_conv_all[layer_index]
+            o_E_conv = o_E_conv_all[layer_index]
+            d = self.thickness[layer_index]
+
             E_conv_i = jnp.linalg.inv(E_conv)
             o_E_conv_i = jnp.linalg.inv(o_E_conv)
 

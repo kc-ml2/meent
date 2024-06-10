@@ -37,26 +37,25 @@ def cell_compression(cell, type_complex=np.complex128):
     return cell_comp, x, y
 
 
-def fft_piecewise_constant(cell,  fourier_order_x, fourier_order_y, type_complex=np.complex128):
-    """
-    reference: reticolo
-    """
+def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, type_complex=np.complex128):
 
-    cell, x, y = cell_compression(cell, type_complex=type_complex)
+    period_x, period_y = x[-1], y[-1]
 
     # X axis
     cell_next_x = np.roll(cell, -1, axis=1)
     cell_diff_x = cell_next_x - cell
+    cell_diff_x = cell_diff_x.astype(type_complex)
+
+    cell = cell.astype(type_complex)
 
     modes_x = np.arange(-2 * fourier_order_x, 2 * fourier_order_x + 1, 1)
 
-    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes_x[None, :], dtype=type_complex)
+    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes_x[None, :] / period_x, dtype=type_complex)
     c = f_coeffs_x.shape[1] // 2
 
-    # x_next = np.vstack(np.roll(x, -1, axis=0)[:-1]) - x
-    x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], 1)) - x
+    x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], period_x)) - x
 
-    f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
+    f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten() / period_x
     mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
     mask[c] = False
     f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes_x[mask])
@@ -67,12 +66,12 @@ def fft_piecewise_constant(cell,  fourier_order_x, fourier_order_y, type_complex
 
     modes_y = np.arange(-2 * fourier_order_y, 2 * fourier_order_y + 1, 1)
 
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes_y[None, :], dtype=type_complex)
+    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes_y[None, :] / period_y, dtype=type_complex)
     c = f_coeffs_xy.shape[1] // 2
 
-    y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], 1)) - y
+    y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], period_y)) - y
 
-    f_coeffs_xy[:, c] = f_coeffs_x.T @ np.vstack((y[0], y_next[:-1])).flatten()
+    f_coeffs_xy[:, c] = f_coeffs_x.T @ np.vstack((y[0], y_next[:-1])).flatten() / period_y
 
     if c:
         mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
@@ -82,61 +81,24 @@ def fft_piecewise_constant(cell,  fourier_order_x, fourier_order_y, type_complex
     return f_coeffs_xy.T
 
 
-def fft_piecewise_constant_vector(cell, x, y, fourier_order_x, fourier_order_y, type_complex=np.complex128):
-    # X axis
-    cell_next_x = np.roll(cell, -1, axis=1)
-    cell_diff_x = cell_next_x - cell
+def to_conv_mat_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=None,
+                       type_complex=np.complex128):
 
-    modes_x = np.arange(-2 * fourier_order_x, 2 * fourier_order_x + 1, 1)
-
-    f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes_x[None, :], dtype=type_complex)
-    c = f_coeffs_x.shape[1] // 2
-
-    x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], 1)) - x
-
-    f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten()
-    mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
-    mask[c] = False
-    f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes_x[mask])
-
-    # Y axis
-    f_coeffs_x_next_y = np.roll(f_coeffs_x, -1, axis=0)
-    f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
-
-    modes_y = np.arange(-2 * fourier_order_y, 2 * fourier_order_y + 1, 1)
-
-    f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes_y[None, :], dtype=type_complex)
-    c = f_coeffs_xy.shape[1] // 2
-
-    y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], 1)) - y
-
-    f_coeffs_xy[:, c] = f_coeffs_x.T @ np.vstack((y[0], y_next[:-1])).flatten()
-
-    if c:
-        mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
-        mask[c] = False
-        f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes_y[mask])
-
-    return f_coeffs_xy.T
-
-
-def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=None,
-                                  type_complex=np.complex128):
     ff_x = 2 * fourier_order_x + 1
     ff_y = 2 * fourier_order_y + 1
 
     e_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
     o_e_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
 
-    # 2D  # tODO: 1D
+    # 2D
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
         ucell_layer = ucell_layer ** 2
 
-        f_coeffs = fft_piecewise_constant_vector(ucell_layer, x_list, y_list,
-                                                 fourier_order_x, fourier_order_y, type_complex=type_complex)
-        o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
-                                                 fourier_order_x, fourier_order_y, type_complex=type_complex)
+        f_coeffs = fft_piecewise_constant(ucell_layer, x_list, y_list,
+                                          fourier_order_x, fourier_order_y, type_complex=type_complex)
+        o_f_coeffs = fft_piecewise_constant(1 / ucell_layer, x_list, y_list,
+                                            fourier_order_x, fourier_order_y, type_complex=type_complex)
         center = np.array(f_coeffs.shape) // 2
 
         conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
@@ -157,7 +119,7 @@ def to_conv_mat_continuous_vector(ucell_info_list, fourier_order_x, fourier_orde
     return e_conv_all, o_e_conv_all
 
 
-def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128):
+def to_conv_mat_raster_continuous(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
@@ -167,8 +129,12 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
         o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
-            f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
-            o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
+
+            cell, x, y = cell_compression(layer, type_complex=type_complex)
+
+            f_coeffs = fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, type_complex=type_complex)
+            o_f_coeffs = fft_piecewise_constant(1 / cell, x, y, fourier_order_x, fourier_order_y, type_complex=type_complex)
+
             center = np.array(f_coeffs.shape) // 2
             conv_idx = np.arange(-ff + 1, ff, 1, dtype=int)
             conv_idx = circulant(conv_idx)
@@ -176,6 +142,7 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
             o_e_conv = o_f_coeffs[center[0], center[1] + conv_idx]
             e_conv_all[i] = e_conv
             o_e_conv_all[i] = o_e_conv
+
     else:  # 2D
         ff_x = 2 * fourier_order_x + 1
         ff_y = 2 * fourier_order_y + 1
@@ -184,8 +151,11 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
         o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
-            f_coeffs = fft_piecewise_constant(layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
-            o_f_coeffs = fft_piecewise_constant(1/layer, fourier_order_x, fourier_order_y, type_complex=type_complex)
+
+            cell, x, y = cell_compression(layer, type_complex=type_complex)
+
+            f_coeffs = fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, type_complex=type_complex)
+            o_f_coeffs = fft_piecewise_constant(1 / cell, x, y, fourier_order_x, fourier_order_y, type_complex=type_complex)
             center = np.array(f_coeffs.shape) // 2
 
             conv_idx_y = np.arange(-ff_y + 1, ff_y, 1)
@@ -204,8 +174,8 @@ def to_conv_mat_continuous(ucell, fourier_order_x, fourier_order_y, device=None,
     return e_conv_all, o_e_conv_all
 
 
-def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128,
-                         improve_dft=True):
+def to_conv_mat_raster_discrete(ucell, fourier_order_x, fourier_order_y, device=None, type_complex=np.complex128,
+                                improve_dft=True):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
@@ -215,7 +185,7 @@ def to_conv_mat_discrete(ucell, fourier_order_x, fourier_order_y, device=None, t
         if improve_dft:
             minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]  # TODO: scale factor is 2? to avoid alias?
         else:
-            minimum_pattern_size = 4 * fourier_order_x + 1  # TODO: other bds
+            minimum_pattern_size = 4 * fourier_order_x + 1  # TODO: align with other bds
 
         for i, layer in enumerate(ucell_pmt):
             n = minimum_pattern_size // layer.shape[1]
