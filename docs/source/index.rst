@@ -48,7 +48,6 @@ dddd
         :link: beginner-guide
         :link-type: ref
         :class-card: getting-started
-        :color: primary
 
     .. grid-item-card:: :material-regular:`library_books;2em` User Guides
       :columns: 12 6 6 4
