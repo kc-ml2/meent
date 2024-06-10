@@ -15,12 +15,12 @@ how to :ref:`installation` the project.
 
 dddd
 
-.. grid:: 1 2 3
+.. grid:: 3
    :margin: 0
    :padding: 0
    :gutter: 0
 
-   .. grid-item:: Familiar API
+   .. grid-item-card:: Familiar API
       :columns: 12 6 6 4
       :class-card: sd-border-0
       :shadow: None
