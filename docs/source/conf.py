@@ -18,7 +18,10 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
     'myst_parser',
+    'sphinx_design'
 ]
+
+myst_enable_extensions = ["colon_fence"]
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
