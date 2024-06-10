@@ -41,3 +41,8 @@ epub_show_urls = 'footnote'
 # the order in the source_suffix list. Notebooks which are not executed have
 # outputs stored in ipynb but not in md, so we must convert the ipynb.
 source_suffix = ['.rst', '.ipynb', '.md']
+
+# The name of an image file (relative to this directory) to place at the top
+# of the sidebar.
+html_logo = 'images/meent_logo.png'
+
