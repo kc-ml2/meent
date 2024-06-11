@@ -6,8 +6,8 @@ defaults:
   - override /model_manager: dreamer_v3
   - _self_
 
-# exp: dreamer_v3_metasurface
 seed: 42
+
 # Algorithm
 algo:
   replay_ratio: 2
@@ -25,11 +25,6 @@ algo:
     ent_coef: 3e-4
 
   learning_starts: 1024
-  # world_model:
-  #   encoder:
-  #     cnn_channels_multiplier: 16
-  #   observation_model:
-  #     cnn_channels_multiplier: 256
 
 env:
   screen_size: 256
@@ -42,7 +37,6 @@ env:
 # Checkpoint
 checkpoint:
   every: 1000
-  # resume_from: /home/anthony/test-sheeprl/logs/logs/runs/dreamer_v3/MeentIndexEfield-v0/2024-04-22_09-05-01_dreamer_v3_MeentIndexEfield-v0_42/version_0/checkpoint/ckpt_388000_0.ckpt
 
 # Buffer
 buffer:

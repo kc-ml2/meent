@@ -1,13 +1,16 @@
 # Metasurface design with DQN
 
-### Clone
-```shell
-git clone https://github.com/jLabKAIST/physics-informed-metasurface.git
-```
+This is an extension of our [previous study](https://github.com/jLabKAIST/Physics-Informed-Reinforcement-Learning).
 
-### Requirements
+The RL environment used for this experiment follows `gym<0.25` API, therefore, no truncation.
+
+
+### Setup
+This example requires seperate Python environment, since this study was carried out some time ago.
 
 ```shell
+python3 -m venv dqn
+source dqn/bin/activate
 pip install -r requirements.txt
 ```
 ### DeflectorGym
@@ -19,6 +22,5 @@ pip install -e .
 
 ### Run
 ```shell
-cd physics-informed-metasurface
 python main.py
 ```

@@ -1,5 +1,8 @@
 # Electric field prediction with Fourier neuarl opeartor
-neural operator for approximating EM field
+
+Code for training/testing baselines models for electric field prediction, with various losses.
+
+We adapted the code from original author's [neuralop](https://github.com/neuraloperator/neuraloperator), and the process is controlled by [hydra](https://hydra.cc/docs/intro/).
 
 ## Setup
 ```
@@ -7,34 +10,33 @@ pip install -r requirements.txt
 ```
 
 Build neuraloperator from source.
-We added BatchNorm in neuraloperator and logging is quite buggy (2024/03).
+We added BatchNorm in neuraloperator, aggregation axis in loss function and the logging which is quite buggy (2024/03).
 ```
 cd neuraloperator
 pip install -e .
 ```
 
 ## Generate Dataset
+For this experiment, we stick to simple pickle format, but for larger, complex datasets, we encourage users to use hdf5 format.
 ```
 python data.py
 ```
 
-## Run
-By default, hydra will pick `config.yaml` as configuration file.
+## Config
+For custom hyperparameters and configurations, modify:
 
-Adjust the hyperparameters, etc in config file and run :
+`electric-field-fno/exp-l2.yaml`
+
+## Run
 ```
-python main.py
-```
-With specified config file, run :
-```
-python main.py --config-name my_config.yaml
+python main.py --config-name {config-name}.yaml
 ```
 Sweep over hparams :
 ```
-python main.py --config-name carsten.yaml --multirun seed=7,42,170 data=1100-70-4,1100-50-4,900-70-4,900-50-4
+python main.py --config-name {config-name}.yaml --multirun seed=7,42,170 training-data-dir={path-to-data} test-data-dir={path-to-data}
 ```
 
-**Be sure** to fill experiment name at `experiement :` field.
+**Be sure** to fill experiment name at `experiement:` field.
 
 This is practice to remind yourself what the purpose of this experiment is.
 ```
@@ -47,6 +49,6 @@ model_config:
   in_channels: 1
 ...
 ```
-This will drop a folder with experiement name and datetime under `runs`.
+This will drop a folder with experiment name and datetime under `runs`.
 
 In the folder, **.hydra** folder, **tensorboard** event file and **model** checkpoint will be saved.
