@@ -35,13 +35,18 @@ extensions = [
 ]
 
 myst_enable_extensions = ["colon_fence"]
-
-
+nb_execution_mode = "off"
 
 
 templates_path = ['_templates']
 exclude_patterns = []
 
+# The suffix(es) of source filenames.
+# Note: important to list ipynb before md here: we have both md and ipynb
+# copies of each notebook, and myst will choose which to convert based on
+# the order in the source_suffix list. Notebooks which are not executed have
+# outputs stored in ipynb but not in md, so we must convert the ipynb.
+source_suffix = ['.rst', '.ipynb', '.md']
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -64,6 +69,10 @@ html_theme_options = {
 # of the sidebar.
 html_logo = '_static/meent_logo.png'
 html_favicon = '_static/meent_logo2.png'
+
+html_css_files = [
+    'style.css',
+]
 
 
 import os
