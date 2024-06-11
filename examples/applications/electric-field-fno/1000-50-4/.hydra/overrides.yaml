@@ -1,0 +1,2 @@
+- data=1000-50-4
+- device=cuda\:1

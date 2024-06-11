@@ -1,0 +1,43 @@
+experiment: tfno-h1
+device: cuda:1
+seed: 42
+model: CarstenNO
+model_config:
+  n_modes:
+  - 24
+  - 24
+  in_channels: 1
+  out_channels: 2
+  hidden_channels: 32
+  lifting_channels: 32
+  projection_channels: 32
+  rank: 0.5
+  norm: batch_norm
+  n_layers: 10
+  domain_padding: 0.015625
+  domain_padding_mode: symmetric
+  factorization: tucker
+  implementation: factorized
+n_epochs: 101
+loss: h1
+loss_config:
+  reductions: mean
+eval_losses:
+- l2
+- h1
+- grating_l2
+- substrate_l2
+- superstrate_l2
+optim: AdamW
+optim_config:
+  lr: 0.001
+  weight_decay: 1.0e-06
+save_interval: 50
+log_test_interval: 5
+scheduler: OneCycleLR
+scheduler_config:
+  max_lr: 0.01
+  total_steps: ${n_epochs}
+  base_momentum: 0.85
+  max_momentum: 0.95
+data: 1000-50-4

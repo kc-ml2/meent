@@ -25,7 +25,7 @@ from meent.on_numpy.modeler.modeling import find_nk_index, read_material_table
 
 from neuralop.datasets.tensor_dataset import TensorDataset
 
-from threadpoolctl import threadpool_limits, ThreadpoolController
+from threadpoolctl import ThreadpoolController
 controller = ThreadpoolController()
 
 import constants
@@ -45,9 +45,6 @@ class LazyDataset(Dataset):
         y = torch.from_numpy(np.load(self.ys[idx]))
 
         return {'x': x, 'y': y}                     
-
-def _ts(sample):
-    return {'x': sample['permittivity'].unsqueeze(0), 'y': sample['fields']}
 
 
 @controller.wrap(limits=4)
@@ -85,23 +82,15 @@ def get_field(
     de_ri, de_ti, field_cell = mee.conv_solve_field(
         res_x=field_res[0], res_y=field_res[1], res_z=field_res[2],
     )
-    if grating_type == 0:
-        center = de_ti.shape[0] // 2
-        de_ti_cut = de_ti[center - 1:center + 2]
-        de_ri_cut = de_ri[center - 1:center + 2][::-1]
-    else:
-        x_c, y_c = np.array(de_ti.shape) // 2
-        de_ti_cut = de_ti[x_c - 1:x_c + 2, y_c - 1:y_c + 2][::-1, ::-1]
-        de_ri_cut = de_ri[x_c - 1:x_c + 2, y_c - 1:y_c + 2][::-1, ::-1]
 
     field_ex= np.flipud(field_cell[:, 0, :, 1])
 
-    return de_ti_cut, field_ex
+    return field_ex
 
 
 def gen_struct_uniform(size=10000, width=256):
     l = []
-    for i in range(size):
+    for _ in range(size):
         l.append(
             torch.from_numpy(
                 np.array([random.choice([constants.AIR, constants.SILICA]) for _ in range(width)])
@@ -115,7 +104,8 @@ def generate_data(structs, **kwargs):
     fields = [get_field(struct, **kwargs) for struct in tqdm(structs)]
     xs = np.array(structs)
     xs = xs[:, np.newaxis, np.newaxis, :]
-    xs = utils.carve_pattern(160, 192, xs)
+    upper_idx, lower_idx = int(structs.shape[1]*(5/8)), int(structs.shape[1]*(6/8))
+    xs = utils.carve_pattern(upper_idx, lower_idx, xs)
     fields = [field[1] for field in fields]
     ys = np.array(fields)
     ys = np.stack([np.real(ys), np.imag(ys)], axis=1)
@@ -139,49 +129,46 @@ def plot_data(field_ex, field_res, wavelength, deflected_angle):
     plt.colorbar()
     plt.show()
 
-# TODO: copy the main code from beta
+
 if __name__ == "__main__":
-    # field_res == (256,1,32) -> [256, 256]
+    train_size = 4 # 8000
+    test_size = 2 # 2000
     wavelengths = [900, 1000, 1100]
-    wavelength = wavelengths[2] 
     deflected_angles = [50, 60, 70]
-    deflected_angle = deflected_angles[1] 
 
     # (64, 1, 8) 64 x 64 
-    # (256, 1, 32) 256 x 256 
-    # (100, 1, 20) 160 x 100
+    # (256, 1, 32) 256 x 256
+    # (512, 1, 64) 512 x 512
     field_res=(256, 1, 32) 
 
-    train_structs = np.load('/data1/EM-data/pirl-structs/20240216_065402/train_structs.npy')
-    test_structs = np.load('/data1/EM-data/pirl-structs/20240216_065402/test_structs.npy')
     width = 64
     mfs = field_res[0] // width
-    # train_structs = gen_struct_uniform(8000, width=width)
-    # train_structs = utils.to_blob(mfs, train_structs)
-    # test_structs = gen_struct_uniform(2000, width=width)
-    # test_structs = utils.to_blob(mfs, test_structs)
+    train_structs = gen_struct_uniform(train_size, width=width)
+    train_structs = utils.to_blob(mfs, train_structs)
+    test_structs = gen_struct_uniform(test_size, width=width)
+    test_structs = utils.to_blob(mfs, test_structs)
 
-    # for wavelength in wavelengths:
-    #     for deflected_angle in deflected_angles:
-    train_ds = TensorDataset(
-        *generate_data(
-            train_structs,
-            wavelength=wavelength,
-            deflected_angle=deflected_angle,
-            field_res=field_res
-        )
-    )
-    test_ds = TensorDataset(
-        *generate_data(
-            test_structs,
-            wavelength=wavelength,
-            deflected_angle=deflected_angle,
-            field_res=field_res
-        )
-    )
+    for wavelength in wavelengths:
+        for deflected_angle in deflected_angles:
+            train_ds = TensorDataset(
+                *generate_data(
+                    train_structs,
+                    wavelength=wavelength,
+                    deflected_angle=deflected_angle,
+                    field_res=field_res
+                )
+            )
+            test_ds = TensorDataset(
+                *generate_data(
+                    test_structs,
+                    wavelength=wavelength,
+                    deflected_angle=deflected_angle,
+                    field_res=field_res
+                )
+            )
 
-    now = datetime.now().strftime('%M%S')
-    torch.save(train_ds, f'{wavelength}-{deflected_angle}-{mfs}-{now}-train-ds.pt')
-    torch.save(test_ds, f'{wavelength}-{deflected_angle}-{mfs}-{now}-test-ds.pt')
+            now = datetime.now().strftime('%M%S')
+            torch.save(train_ds, f'{wavelength}-{deflected_angle}-{mfs}-{now}-train-ds.pt')
+            torch.save(test_ds, f'{wavelength}-{deflected_angle}-{mfs}-{now}-test-ds.pt')
 
     # f = nn.Upsample(scale_factor=1.5, mode='nearest')
