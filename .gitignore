@@ -13,3 +13,6 @@ dist/
 *.memmap
 *.ckpt
 *.mp4
+events.*
+venv
+__pycache__
