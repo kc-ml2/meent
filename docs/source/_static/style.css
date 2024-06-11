@@ -9,15 +9,15 @@
 }
 
 .getting-started {
-  background-color: rgba(78, 150, 253, var(--block-bg-opacity));
+  background-color: rgba(0, 102, 255, var(--block-bg-opacity));
 }
 
 .user-guides {
-  background-color: rgba(0, 169, 154, var(--block-bg-opacity));
+  background-color: rgba(153, 102, 255, var(--block-bg-opacity));
 }
 
 .developer-docs {
-  background-color: rgba(171, 0, 182, var(--block-bg-opacity));
+  background-color: rgba(223, 6, 21, var(--block-bg-opacity));
 }
 
 div.red-background pre {

@@ -11,7 +11,7 @@ Meent can be installed via `pip`.
 
 ## Backends
 Meent provides three libraries as a backend:  
-![alt text](images/backends.png "Backends")
+![alt text](_static/backends.png "Backends")
 
 * [NumPy](https://github.com/numpy/numpy)
   * The fundamental package for scientific computing with Python
