@@ -66,6 +66,7 @@ how to :ref:`installation` the project.
     usage
     api
     tutorials
+    meent
 
 .. image:: images/meent-summary.png
   .. :width: 400

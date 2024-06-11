@@ -1,5 +1,11 @@
 # Configuration file for the Sphinx documentation builder.
 
+import os
+import sys
+# Location of Sphinx files
+sys.path.insert(0, os.path.abspath('./../..'))
+
+
 # -- Project information
 
 project = 'Meent'
