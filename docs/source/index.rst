@@ -62,5 +62,6 @@ how to :ref:`installation` the project.
     :caption: Getting Starteddd
 
     getting-started
+    tutorials/README.md
     usage
     api
