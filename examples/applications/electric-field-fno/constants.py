@@ -1,5 +1,0 @@
-WHITE = 255.
-BlACK = 0.
-
-SILICA = 1.0
-AIR = -1.0
