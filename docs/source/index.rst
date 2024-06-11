@@ -68,7 +68,7 @@ how to :ref:`installation` the project.
     tutorials
     meent
 
-.. image:: ..\\images\\meent-summary.png
+.. image:: /images/meent-summary.png
     :alt: Meent summary
 
 Meent
