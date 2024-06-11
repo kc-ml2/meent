@@ -1,9 +1,9 @@
 def call_mee(backend=0, *args, **kwargs):
     """
-    decide backend and return RCWA mee instance
+    return RCWA mee instance according to backend option.
 
     Args:
-        backend: decide backend. 0 is numpy and 1 is JAX.
+        backend: decide backend. 0: NumPy, 1: JAX, 2: Torch
         *args: passed to RCWA instance
         **kwargs: passed to RCWA instance
 
