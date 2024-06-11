@@ -1,0 +1,44 @@
+experiment: debug
+device: cuda:0
+################################################################################
+model: CarstenNO
+model_config:
+  n_modes: [16, 16]
+  in_channels: 1
+  out_channels: 1
+  hidden_channels: 128
+  projection_channels: 256 
+  factorization: null
+  rank: 0.64
+  norm: instance_norm # group_norm, ada_in
+  # ada_in_features: 32
+  n_layers: 1
+
+# regularizer: True
+
+loss: carsten_l2
+loss_config:
+  reductions: mean
+eval_losses: [carsten_l2, carsten_h1]
+
+optim: AdamW
+optim_config:
+  lr: 1e-4
+  weight_decay: 0.002828 # lambda_norm np.sqrt(32/(8000*500))
+
+save_interval: 50
+
+scheduler: CosineAnnealingWarmRestarts # CosineAnnealingLR
+scheduler_config:
+  T_0: 5
+  T_mult: 2
+  # T_max: 500 
+  # milestones: [100, 200, 300, 400]
+  # gamma: 0.5
+
+train_ds: ${hydra:runtime.cwd}/20240223032912-train-ds.pt
+test_ds: ${hydra:runtime.cwd}/20240223032912-test-ds.pt
+################################################################################
+hydra:
+  run:
+    dir: ./runs/debug
