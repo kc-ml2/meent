@@ -65,3 +65,4 @@ how to :ref:`installation` the project.
     tutorials/README.md
     usage
     api
+    tutorials
