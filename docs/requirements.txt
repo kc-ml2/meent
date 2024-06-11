@@ -8,3 +8,9 @@ sphinx-remove-toctrees
 sphinx-design
 sphinxext-rediraffe
 myst-nb>=1.0.0
+
+# Packages used for notebook execution
+matplotlib
+scikit-learn
+numpy
+rich[jupyter]
