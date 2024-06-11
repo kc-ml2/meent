@@ -1,0 +1,50 @@
+experiment: fno-range-aware-larger-h1
+device: cuda:0
+################################################################################
+seed : 170 #7 # 42, 170
+model: CarstenNO
+model_config:
+  n_modes: [16, 16]
+  in_channels: 1
+  out_channels: 2
+  hidden_channels: 48
+  factorization: null
+  rank: 0.64
+  norm: batch_norm # instance_norm # group_norm, ada_in
+  # ada_in_features: 32
+  n_layers: 10
+  domain_padding: 0.015625
+  domain_padding_mode: symmetric
+n_epochs: 101
+# regularizer: True
+
+loss: range_aware_h1
+loss_config:
+  reductions: sum
+eval_losses: [carsten_l2, carsten_h1]
+
+optim: AdamW
+optim_config:
+  lr: 1e-3
+  weight_decay: 1e-6
+  # weight_decay: 0.002828 # lambda_norm np.sqrt(32/(8000*500))
+
+save_interval: 50
+log_test_interval: 5
+
+scheduler: OneCycleLR
+scheduler_config:
+  max_lr: 1e-2
+  total_steps: ${n_epochs}
+  base_momentum: 0.85
+  max_momentum: 0.95
+  # T_max: 500 
+  # milestones: [100, 200, 300, 400]
+  # gamma: 0.5
+# ${hydra:runtime.cwd}
+# 1100-70-4 1100-50-4 900-70-4 900-50-4
+data: 1100-70-4
+################################################################################
+hydra:
+  run:
+    dir: ./runs/${experiment}-${seed}-${data}-${now:%m%d-%H%M%S}
