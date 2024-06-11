@@ -1,4 +1,4 @@
 .. currentmodule:: meent
 
-Public API: jax package
+Public API: meent package
 =======================
