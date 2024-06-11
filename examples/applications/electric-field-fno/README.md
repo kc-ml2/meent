@@ -1,4 +1,4 @@
-# EM-neuraloperator
+# Electric field prediction with Fourier neuarl opeartor
 neural operator for approximating EM field
 
 ## Setup
