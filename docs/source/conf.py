@@ -51,6 +51,16 @@ templates_path = ['_templates']
 
 html_theme = 'sphinx_book_theme'
 
+# Theme options are theme-specific and customize the look and feel of a theme
+# further.  For a list of options available for each theme, see the
+# documentation.
+html_theme_options = {
+    'show_toc_level': 2,
+    'repository_url': 'https://github.com/kc-ml2/meent',
+    'use_repository_button': True,     # add a "link to repository" button
+    'navigation_with_keys': False,
+}
+
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
 
