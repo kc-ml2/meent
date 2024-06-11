@@ -11,14 +11,30 @@ version = ''
 
 # -- General configuration
 
+# extensions = [
+#     'sphinx.ext.duration',
+#     'sphinx.ext.doctest',
+#     'sphinx.ext.autodoc',
+#     'sphinx.ext.autosummary',
+#     'sphinx.ext.intersphinx',
+#     'myst_parser',
+#     'sphinx_design'
+# ]
+
 extensions = [
-    'sphinx.ext.duration',
-    'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
-    'myst_parser',
-    'sphinx_design'
+    'sphinx.ext.linkcode',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'matplotlib.sphinxext.plot_directive',
+    'myst_nb',
+    "sphinx_remove_toctrees",
+    'sphinx_copybutton',
+    'jax_extensions',
+    'sphinx_design',
+    'sphinxext.rediraffe',
 ]
 
 myst_enable_extensions = ["colon_fence"]
