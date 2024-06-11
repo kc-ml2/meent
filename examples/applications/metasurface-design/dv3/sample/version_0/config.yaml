@@ -1,0 +1,315 @@
+num_threads: 1
+float32_matmul_precision: high
+dry_run: false
+seed: 42
+torch_use_deterministic_algorithms: false
+torch_backends_cudnn_benchmark: true
+torch_backends_cudnn_deterministic: false
+cublas_workspace_config: null
+exp_name: dreamer_v3_MeentIndexEfield-v0
+run_name: 2024-05-05_06-34-59_dreamer_v3_MeentIndexEfield-v0_42
+root_dir: dreamer_v3/MeentIndexEfield-v0
+algo:
+  name: dreamer_v3
+  total_steps: 400000
+  per_rank_batch_size: 8
+  run_test: true
+  cnn_keys:
+    encoder:
+    - real_field
+    - imag_field
+    decoder:
+    - real_field
+    - imag_field
+  mlp_keys:
+    encoder:
+    - struct
+    decoder:
+    - struct
+  world_model:
+    optimizer:
+      _target_: torch.optim.Adam
+      lr: 0.0001
+      eps: 1.0e-08
+      weight_decay: 0
+      betas:
+      - 0.9
+      - 0.999
+    discrete_size: 32
+    stochastic_size: 32
+    kl_dynamic: 0.5
+    kl_representation: 0.1
+    kl_free_nats: 1.0
+    kl_regularizer: 1.0
+    continue_scale_factor: 1.0
+    clip_gradients: 1000.0
+    decoupled_rssm: false
+    learnable_initial_recurrent_state: true
+    encoder:
+      cnn_channels_multiplier: 64
+      cnn_act: torch.nn.SiLU
+      dense_act: torch.nn.SiLU
+      mlp_layers: 4
+      cnn_layer_norm:
+        cls: sheeprl.models.models.LayerNormChannelLast
+        kw:
+          eps: 0.001
+      mlp_layer_norm:
+        cls: sheeprl.models.models.LayerNorm
+        kw:
+          eps: 0.001
+      dense_units: 768
+    recurrent_model:
+      recurrent_state_size: 2048
+      layer_norm:
+        cls: sheeprl.models.models.LayerNorm
+        kw:
+          eps: 0.001
+      dense_units: 768
+    transition_model:
+      hidden_size: 768
+      dense_act: torch.nn.SiLU
+      layer_norm:
+        cls: sheeprl.models.models.LayerNorm
+        kw:
+          eps: 0.001
+    representation_model:
+      hidden_size: 768
+      dense_act: torch.nn.SiLU
+      layer_norm:
+        cls: sheeprl.models.models.LayerNorm
+        kw:
+          eps: 0.001
+    observation_model:
+      cnn_channels_multiplier: 64
+      cnn_act: torch.nn.SiLU
+      dense_act: torch.nn.SiLU
+      mlp_layers: 4
+      cnn_layer_norm:
+        cls: sheeprl.models.models.LayerNormChannelLast
+        kw:
+          eps: 0.001
+      mlp_layer_norm:
+        cls: sheeprl.models.models.LayerNorm
+        kw:
+          eps: 0.001
+      dense_units: 768
+    reward_model:
+      dense_act: torch.nn.SiLU
+      mlp_layers: 4
+      layer_norm:
+        cls: sheeprl.models.models.LayerNorm
+        kw:
+          eps: 0.001
+      dense_units: 768
+      bins: 255
+    discount_model:
+      learnable: true
+      dense_act: torch.nn.SiLU
+      mlp_layers: 4
+      layer_norm:
+        cls: sheeprl.models.models.LayerNorm
+        kw:
+          eps: 0.001
+      dense_units: 768
+  actor:
+    optimizer:
+      _target_: torch.optim.Adam
+      lr: 8.0e-05
+      eps: 1.0e-05
+      weight_decay: 0
+      betas:
+      - 0.9
+      - 0.999
+    cls: sheeprl.algos.dreamer_v3.agent.Actor
+    ent_coef: 0.0003
+    min_std: 0.1
+    max_std: 1.0
+    init_std: 2.0
+    dense_act: torch.nn.SiLU
+    mlp_layers: 4
+    layer_norm:
+      cls: sheeprl.models.models.LayerNorm
+      kw:
+        eps: 0.001
+    dense_units: 768
+    clip_gradients: 100.0
+    unimix: 0.01
+    action_clip: 1.0
+    moments:
+      decay: 0.99
+      max: 1.0
+      percentile:
+        low: 0.05
+        high: 0.95
+  critic:
+    optimizer:
+      _target_: torch.optim.Adam
+      lr: 8.0e-05
+      eps: 1.0e-05
+      weight_decay: 0
+      betas:
+      - 0.9
+      - 0.999
+    dense_act: torch.nn.SiLU
+    mlp_layers: 4
+    layer_norm:
+      cls: sheeprl.models.models.LayerNorm
+      kw:
+        eps: 0.001
+    dense_units: 768
+    per_rank_target_network_update_freq: 1
+    tau: 0.02
+    bins: 255
+    clip_gradients: 100.0
+  gamma: 0.996996996996997
+  lmbda: 0.95
+  horizon: 16
+  replay_ratio: 2
+  learning_starts: 1024
+  per_rank_pretrain_steps: 0
+  per_rank_sequence_length: 32
+  cnn_layer_norm:
+    cls: sheeprl.models.models.LayerNormChannelLast
+    kw:
+      eps: 0.001
+  mlp_layer_norm:
+    cls: sheeprl.models.models.LayerNorm
+    kw:
+      eps: 0.001
+  dense_units: 768
+  mlp_layers: 4
+  dense_act: torch.nn.SiLU
+  cnn_act: torch.nn.SiLU
+  unimix: 0.01
+  hafner_initialization: true
+  player:
+    discrete_size: 32
+buffer:
+  size: 100000
+  memmap: true
+  validate_args: false
+  from_numpy: false
+  checkpoint: false
+checkpoint:
+  every: 1000
+  resume_from: null
+  save_last: true
+  keep_last: 5
+distribution:
+  validate_args: false
+  type: auto
+env:
+  id: MeentIndexEfield-v0
+  num_envs: 8
+  frame_stack: -1
+  sync_env: false
+  screen_size: 256
+  action_repeat: 1
+  grayscale: true
+  clip_rewards: false
+  capture_video: true
+  frame_stack_dilation: 1
+  max_episode_steps: 512
+  reward_as_observation: false
+  wrapper:
+    _target_: sheeprl.envs.metasurface.get_deflector_env
+    id: MeentIndexEfield-v0
+fabric:
+  _target_: lightning.fabric.Fabric
+  devices: 1
+  num_nodes: 1
+  strategy: auto
+  accelerator: cuda
+  precision: 32-true
+  callbacks:
+  - _target_: sheeprl.utils.callback.CheckpointCallback
+    keep_last: 5
+metric:
+  log_every: 100
+  disable_timer: false
+  log_level: 1
+  sync_on_compute: false
+  aggregator:
+    _target_: sheeprl.utils.metric.MetricAggregator
+    raise_on_missing: false
+    metrics:
+      Rewards/rew_avg:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Game/ep_len_avg:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Loss/world_model_loss:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Loss/value_loss:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Loss/policy_loss:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Loss/observation_loss:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Loss/reward_loss:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Loss/state_loss:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Loss/continue_loss:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      State/kl:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      State/post_entropy:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      State/prior_entropy:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Grads/world_model:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Grads/actor:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Grads/critic:
+        _target_: torchmetrics.MeanMetric
+        sync_on_compute: false
+      Env/max_eff:
+        _target_: torchmetrics.MaxMetric
+        sync_on_compute: false
+  logger:
+    _target_: lightning.fabric.loggers.TensorBoardLogger
+    name: 2024-05-05_06-34-59_dreamer_v3_MeentIndexEfield-v0_42
+    root_dir: logs/runs/dreamer_v3/MeentIndexEfield-v0
+    version: null
+    default_hp_metric: true
+    prefix: ''
+    sub_dir: null
+model_manager:
+  disabled: true
+  models:
+    world_model:
+      model_name: dreamer_v3_MeentIndexEfield-v0_world_model
+      description: DreamerV3 World Model used in MeentIndexEfield-v0 Environment
+      tags: {}
+    actor:
+      model_name: dreamer_v3_MeentIndexEfield-v0_actor
+      description: DreamerV3 Actor used in MeentIndexEfield-v0 Environment
+      tags: {}
+    critic:
+      model_name: dreamer_v3_MeentIndexEfield-v0_critic
+      description: DreamerV3 Critic used in MeentIndexEfield-v0 Environment
+      tags: {}
+    target_critic:
+      model_name: dreamer_v3_MeentIndexEfield-v0_target_critic
+      description: DreamerV3 Target Critic used in MeentIndexEfield-v0 Environment
+      tags: {}
+    moments:
+      model_name: dreamer_v3_MeentIndexEfield-v0_moments
+      description: DreamerV3 Moments used in MeentIndexEfield-v0 Environment
+      tags: {}

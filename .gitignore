@@ -10,3 +10,5 @@ dist/
 *logs*
 *runs*
 *.pt
+*.memmap
+*.ckpt

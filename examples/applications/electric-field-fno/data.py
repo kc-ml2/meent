@@ -53,7 +53,7 @@ def get_field(
         wavelength=1100, #900
         deflected_angle=60, #50
         fourier_order=40,
-        field_res=(256, 1, 32) #(64,1,8) 64 x 64 (256,1,32) 256 x 256 # (100, 1, 20) 160 x 100
+        field_res=(256, 1, 32)
     ):
     period = [abs(wavelength / np.sin(deflected_angle / 180 * np.pi))]
     n_ridge = 'p_si__real'
