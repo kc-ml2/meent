@@ -1,0 +1,11 @@
+function value=retoptimget(parm,nom,pparm,varargin);
+% function value=retoptimget(parm,nom,pparm,varargin);
+if ~iscell(nom);nom={nom};end;
+value=[];
+for ii=1:length(nom);
+s=struct('type','.','subs',nom{ii});
+try;value=subsref(parm,s);end;
+if ~isempty(value);break;end;
+end;
+s=struct('type','.','subs',nom{1});
+if isempty(value);value=subsref(pparm,s);end;

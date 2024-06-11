@@ -1,0 +1,9 @@
+orders = 2:5;
+results = zeros(length(orders),1);
+times = zeros(length(orders),1);
+
+for i = 1:length(orders)
+    tic
+    results(i) = get_Eff_2D_v1(10,pattern,1250,55);
+    times(i)=toc;
+end

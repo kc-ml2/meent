@@ -1,0 +1,9 @@
+name: meent-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - numpy=1.23.3
+  - scipy=1.9.1
+  - jax=0.3.21
+  - matplotlib=3.5.3
