@@ -1,10 +1,10 @@
-Meent: electrom
+Meent: electromagnetic simulation framework
 ===================================
 
-Meent
+Meent is a Python library for electromagnetic simulation using RCWA, designed for
+Machine Learning integration.
 
-`https://github.com/kc-ml2/meent <https://github.com/kc-ml2/meent>`_
-is link.
+.. `https://github.com/kc-ml2/meent <https://github.com/kc-ml2/meent>`_ is link.
 
 Check out the :doc:`usage` section for further information, including
 how to :ref:`installation` the project.
@@ -43,7 +43,7 @@ how to :ref:`installation` the project.
         :link-type: ref
         :class-card: getting-started
 
-    .. grid-item-card:: :material-regular:`library_books;2em` User Guides
+    .. grid-item-card:: :material-regular:`library_books;2em` Background Theories
       :columns: 12 6 6 4
       :link: user-guides
       :link-type: ref
@@ -59,7 +59,7 @@ how to :ref:`installation` the project.
 .. toctree::
     :hidden:
     :maxdepth: 2
-    :caption: Getting Starteddd
+    :caption: Getting Started
 
     getting-started
     tutorials/README.md
