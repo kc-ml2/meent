@@ -1,4 +1,4 @@
-Meent: electromagnetic simulation framework
+Meent: Electromagnetic simulation
 ===================================
 
 Meent is a Python library for electromagnetic simulation using RCWA, designed for
@@ -43,13 +43,13 @@ how to :ref:`installation` the project.
         :link-type: ref
         :class-card: getting-started
 
-    .. grid-item-card:: :material-regular:`library_books;2em` Background Theories
+    .. grid-item-card:: :material-regular:`menu_book;2em` Theories
       :columns: 12 6 6 4
       :link: user-guides
       :link-type: ref
       :class-card: user-guides
 
-    .. grid-item-card:: :material-regular:`laptop_chromebook;2em` Developer Docs
+    .. grid-item-card:: :material-regular:`computer;2em` Developer Docs
       :columns: 12 6 6 4
       :link: contributor-guide
       :link-type: ref
