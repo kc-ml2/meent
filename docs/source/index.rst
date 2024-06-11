@@ -43,13 +43,13 @@ how to :ref:`installation` the project.
         :link-type: ref
         :class-card: getting-started
 
-    .. grid-item-card:: :material-regular:`menu_book;2em` Theories
+    .. grid-item-card:: :material-regular:`import_contacts;2em` Theories
       :columns: 12 6 6 4
       :link: user-guides
       :link-type: ref
       :class-card: user-guides
 
-    .. grid-item-card:: :material-regular:`computer;2em` Developer Docs
+    .. grid-item-card:: :material-regular:`terminal;2em` Developer Docs
       :columns: 12 6 6 4
       :link: contributor-guide
       :link-type: ref
