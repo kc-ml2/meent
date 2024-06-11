@@ -32,7 +32,7 @@ extensions = [
     'myst_nb',
     "sphinx_remove_toctrees",
     'sphinx_copybutton',
-    'jax_extensions',
+    # 'jax_extensions',
     'sphinx_design',
     'sphinxext.rediraffe',
 ]
