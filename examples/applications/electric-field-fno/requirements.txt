@@ -10,3 +10,4 @@ hydra-core
 pytorch_lightning
 h5py
 jupyter
+huggingface-hub
