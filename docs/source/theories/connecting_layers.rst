@@ -1,17 +1,16 @@
 Connecting Layers
 =================
 
-Once the eigenmodes of each grating layer are identified, the transfer matrix method (TMM) can be utilized to determine the Rayleigh coefficients ($\mathbf R_s, \mathbf R_p, \mathbf T_s, \mathbf T_p$) and the diffraction efficiencies.
+Once the eigenmodes of each grating layer are identified, the transfer matrix method (TMM) can be utilized to determine the Rayleigh coefficients (:math:`\mathbf R_s, \mathbf R_p, \mathbf T_s, \mathbf T_p`) and the diffraction efficiencies.
 TMM effectively represents this process as a matrix multiplication, where the transfer matrix is constructed by considering the interaction between the eigenmodes of neighboring layers.
 This matrix accounts for the energy transfer and phase shift between the eigenmodes, and it is used to propagate the electromagnetic fields through the entire periodic structure.
 
-From the boundary conditions, the systems of equations consisting of the in-plane (tangential) field components $(\mathbf E_\mathtt s, \mathbf E_\mathtt p, \mathbf H_\mathtt s, \mathbf H_\mathtt p)$ can be described at each layer interface. We will first consider the case of a single grating layer cladded with the superstrate and substrate, then expand to multilayer structure. At the input boundary ($z=0$):
+From the boundary conditions, the systems of equations consisting of the in-plane (tangential) field components :math:`(\mathbf E_\mathtt s, \mathbf E_\mathtt p, \mathbf H_\mathtt s, \mathbf H_\mathtt p)` can be described at each layer interface. We will first consider the case of a single grating layer cladded with the superstrate and substrate, then expand to multilayer structure. At the input boundary (:math:`z=0`):
 
 .. math::
+    :label: eqn:z0
 
     \begin{align}
-        \label{eqn:z0}
-        \resizebox{.95\textwidth}{!}{$
         \begin{bmatrix}
             \sin\psi\ \boldsymbol{\delta}_{00}\\
             \cos\psi\ \cos\theta\ \boldsymbol\delta_{00} \\
@@ -44,10 +43,10 @@ From the boundary conditions, the systems of equations consisting of the in-plan
             \mathbf c_{g,2}^+ \\
             \mathbf c_{g,1}^- \\
             \mathbf c_{g,2}^- \\
-        \end{bmatrix},$}
+        \end{bmatrix},
     \end{align}
 
-and at the output boundary ($z=d$):
+and at the output boundary (:math:`z=d`):
 
 .. math::
 
@@ -81,7 +80,7 @@ and at the output boundary ($z=d$):
         \end{bmatrix},
     \end{align}
 
-Here, the variables used above are defined: $\mathbf X_{g,1}, \mathbf X_{g,2}$ are the diagonal matrices
+Here, the variables used above are defined: :math:`\mathbf X_{g,1}, \mathbf X_{g,2}` are the diagonal matrices
 
 .. math::
 
@@ -100,8 +99,8 @@ Here, the variables used above are defined: $\mathbf X_{g,1}, \mathbf X_{g,2}$ a
         \end{bmatrix},
     \end{align}
 
-where $d_g$ is the thickness of the grating layer, and
-$\mathbf Y_{\text{I}}$ and $\mathbf Z_{\text{I}}$ are
+where :math:`d_g` is the thickness of the grating layer, and
+:math:`\mathbf Y_{\text{I}}` and :math:`\mathbf Z_{\text{I}}` are
 
 .. math::
 
@@ -121,7 +120,7 @@ $\mathbf Y_{\text{I}}$ and $\mathbf Z_{\text{I}}$ are
         \end{bmatrix},
     \end{align}
 
-and $\mathbf Y_{\text{II}}$ and $\mathbf Z_{\text{II}}$ are
+and :math:`\mathbf Y_{\text{II}}` and :math:`\mathbf Z_{\text{II}}` are
 
 .. math::
 
@@ -141,7 +140,7 @@ and $\mathbf Y_{\text{II}}$ and $\mathbf Z_{\text{II}}$ are
         \end{bmatrix}.
     \end{align}
 
-Here, new set of $\mathbf W_g$ and $\mathbf V_g$ on SP basis $\{\hat s, \hat p\}$ are introduced which are recombined from the set of $\mathbf W_g$ and $\mathbf V_g$ from XY basis $\{\hat x, \hat y\}$:
+Here, new set of :math:`\mathbf W_g` and :math:`\mathbf V_g` on SP basis :math:`\{\hat s, \hat p\}` are introduced which are recombined from the set of :math:`\mathbf W_g` and :math:`\mathbf V_g` from XY basis :math:`\{\hat x, \hat y\}`:
 
 .. math::
 
@@ -155,7 +154,7 @@ Here, new set of $\mathbf W_g$ and $\mathbf V_g$ on SP basis $\{\hat s, \hat p\}
     \mathbf V_{g,ps}&=\mathbf F_c\mathbf V_{g,21}-\mathbf F_s\mathbf V_{g,11}, & \mathbf V_{g,pp}&=\mathbf F_c\mathbf V_{g,22}-\mathbf F_s\mathbf V_{g,12},
     \end{align}
 
-with $\mathbf F_c$ and $\mathbf F_s$ being diagonal matrices with the diagonal elements $\cos\varphi_{(n,m)}$ and $\sin\varphi_{(n,m)}$, respectively, where
+with :math:`\mathbf F_c` and :math:`\mathbf F_s` being diagonal matrices with the diagonal elements :math:`\cos\varphi_{(n,m)}` and :math:`\sin\varphi_{(n,m)}`, respectively, where
 
 .. math::
 
@@ -163,7 +162,7 @@ with $\mathbf F_c$ and $\mathbf F_s$ being diagonal matrices with the diagonal e
         \varphi_{(n,m)} = \tan^{-1}(k_{y, n}/k_{x, m}).
     \end{align}
 
-Equations \ref{eqn:z0} and \ref{eqn:zd} can be reduced to one set of equations by eliminating $\mathbf c^\pm_{1,2}$:
+Equations \ref{eqn:z0} and \ref{eqn:zd} can be reduced to one set of equations by eliminating :math:`\mathbf c^\pm_{1,2}`:
 
 .. math::
 
@@ -212,7 +211,6 @@ where
 .. math::
 
     \begin{align}
-        \resizebox{.95\textwidth}{!}{$
         \mathbb W
         =
         \begin{bmatrix}
@@ -242,7 +240,7 @@ where
         \begin{bmatrix}
         j\mathbf Y_{\text{II}} & \mathbf 0 \\
         \mathbf 0 & \mathbf I
-        \end{bmatrix}.$}
+        \end{bmatrix}.
     \end{align}
 
 This equation for a single layer grating can be simply extended to a multi-layer system as the following:
@@ -251,7 +249,6 @@ This equation for a single layer grating can be simply extended to a multi-layer
 
     \begin{align}
         \label{eqn:solve-multilayer}
-        \resizebox{.95\textwidth}{!}{$
         \begin{bmatrix}
             \sin\psi\ \boldsymbol\delta_{00} \\
             \cos\psi\ \cos\theta\ \boldsymbol\delta_{00}
@@ -288,10 +285,10 @@ This equation for a single layer grating can be simply extended to a multi-layer
         \end{bmatrix}
         \begin{bmatrix}
         \mathbf T_s \\ \mathbf T_p
-        \end{bmatrix},$}
+        \end{bmatrix},
         % \end{align*}
     \end{align}
-where $L$ is the number of layers and
+where :math:`L` is the number of layers and
 
 .. math::
 
@@ -310,7 +307,7 @@ where $L$ is the number of layers and
         \end{bmatrix}.
     \end{align}
 
-Since we have four matrix equations for four unknown coefficients ($\mathbf R_s, \mathbf R_p, \mathbf T_s, \mathbf T_p$), they can be derived and used for calculating diffraction efficiencies (also called the reflectance and transmittance).
+Since we have four matrix equations for four unknown coefficients (:math:`\mathbf R_s, \mathbf R_p, \mathbf T_s, \mathbf T_p`), they can be derived and used for calculating diffraction efficiencies (also called the reflectance and transmittance).
 
 The diffraction efficiency is the ratio of the power flux in propagating direction between incidence and diffracted wave of interest. It can be calculated by time-averaged Poynting vector \cite{liu2012s4, hugonin2021reticolo, rumpf-dissertation}:
 
@@ -320,7 +317,7 @@ The diffraction efficiency is the ratio of the power flux in propagating directi
         P &= \frac{1}{2} \operatorname{Re}{(E \times H^{*})},
     \end{align}
 
-where $^*$ is the complex conjugate.
+where :math:`^*` is the complex conjugate.
 Now we can find the total power of the incident wave as a sum of the power of TE wave and TM wave:
 
 .. math::
@@ -388,7 +385,7 @@ and the power in each transmitted diffraction mode is
     \end{split}
     \end{equation}
 
-Since the diffraction efficiency is the ratio between them $(P_{out}/P_{inc})$, we can get the efficiencies of reflected and transmitted waves:
+Since the diffraction efficiency is the ratio between them :math:`(P_{out}/P_{inc})`, we can get the efficiencies of reflected and transmitted waves:
 
 .. math::
 
@@ -396,3 +393,4 @@ Since the diffraction efficiency is the ratio between them $(P_{out}/P_{inc})$, 
         DE_{r,(n,m)} &= |R_{s,(n,m)}|^2 \operatorname{Re}{\bigg(\frac{k_{\text{I},z,(n,m)}}{k_0 \mathtt n_\text{I} \cos{\theta}}\bigg)} +  |R_{p,(n,m)}|^2 \operatorname{Re}{\bigg(\frac{k_{\text{I},z,(n,m)}/{\mathtt n_{\text{I}}}^2}{k_0 \mathtt n_\text{I} \cos{\theta}}\bigg)}, \\
         DE_{t,(n,m)} &= |T_{s,(n,m)}|^2 \operatorname{Re}{\bigg(\frac{k_{\text{II},z,(n,m)}}{k_0 \mathtt n_\text{I}\cos{\theta}}\bigg)} +  |T_{p,(n,m)}|^2  \operatorname{Re}{\bigg(\frac{k_{\text{II},z,(n,m)}/{\mathtt n_{\text{II}}}^2}{k_0 \mathtt n_\text{I} \cos{\theta}}\bigg)}.
     \end{align}
+

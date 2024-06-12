@@ -455,3 +455,4 @@ where :math::math:`\mathbf q_g` is the diagonal matrix with the eigenvalues. Thi
         \end{bmatrix}^{-1}
         \end{split}.
     \end{equation}
+

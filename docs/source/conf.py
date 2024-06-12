@@ -8,8 +8,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'meent'
-copyright = '2024, yongha'
-author = 'yongha'
+copyright = '2024, meent authors'
+author = 'meent authors'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -41,12 +41,14 @@ nb_execution_mode = "off"
 templates_path = ['_templates']
 exclude_patterns = []
 
+pygments_style = 'sphinx'
+
 # The suffix(es) of source filenames.
 # Note: important to list ipynb before md here: we have both md and ipynb
 # copies of each notebook, and myst will choose which to convert based on
 # the order in the source_suffix list. Notebooks which are not executed have
 # outputs stored in ipynb but not in md, so we must convert the ipynb.
-source_suffix = ['.rst', '.ipynb', '.md']
+# source_suffix = ['.rst', '.ipynb', '.md']
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -79,4 +81,3 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
 
-print('conf reading')

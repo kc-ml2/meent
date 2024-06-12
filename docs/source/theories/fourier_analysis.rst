@@ -55,3 +55,4 @@ The information that CFS needs are the points of discontinuity and the permittiv
 
 DFS and CFS have its own advantages and one can be chosen according to the purpose of the simulation. Basically, DFS is proper for Raster modeling since its operations are mainly on the pixels (array) and the input of the Raster modeling is the array. This is naturally connected to the pixel-wise operation (cell flipping) in metasurface freeform design.
 CFS is suitable for Vector modeling because it deals with the graph (discontinuous points and length) of the objects and Vector modeling takes that graph as an input. Hence it enables direct and precise optimization of the design parameters (such as the width of a rectangle) without grid that severely limits the resolution. We will address this in section \ref{sec:Derivatives}
+

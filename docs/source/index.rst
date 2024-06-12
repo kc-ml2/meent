@@ -56,6 +56,7 @@ how to installation the project.
    :maxdepth: 2
    :caption: Developer Docs
 
+   sequence/seq
    meent
 
 .. image:: /_static/meent-summary.png
