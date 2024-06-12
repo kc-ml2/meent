@@ -1,6 +1,20 @@
 (getting-started)=
 
-# Getting Started
+# Getting Started with Meent
+Welcome to Meent! 
+
+Meent uses RCWA for EM simulation and automatic-differentiation for backprogation.
+
+## What is Em simulation
+
+## Automatic differentiation
+
+## Multiple backends
+NumPy
+
+JAX
+
+PyTorch
 
 ## Installation
 Meent can be installed via `pip`.
@@ -41,3 +55,19 @@ Numpy is simple and light to use. Suggested as a baseline with small ~ medium sc
 JAX and PyTorch is recommended for cases having large scale or optimization part.  
 If you want parallelized computing with multiple devices(e.g., GPUs), JAX is ready for that.  
 But since JAX does jit compilation, it takes much time at the first run.
+
+
+### How to use
+You can simply select backend.
+```python
+import meent
+
+# backend 0 = NumPy
+# backend 1 = JAX
+# backend 2 = PyTorch
+
+backend = 1
+mee = meent.call_mee(backend=backend, ...)
+```
+
+All the methods in `mee` are same across backends.
