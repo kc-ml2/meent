@@ -48,7 +48,6 @@ how to installation the project.
    :maxdepth: 2
    :caption: Theories
 
-   arxiv-paper
    theories
 
 .. toctree::
@@ -57,7 +56,15 @@ how to installation the project.
    :caption: Developer Docs
 
    sequence/seq
+   benchmarks/benchmarks
    meent
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Applications
+
+   applications/applications
 
 .. image:: /_static/meent-summary.png
     :alt: Meent summary
