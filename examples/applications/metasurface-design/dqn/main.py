@@ -17,8 +17,6 @@ import deflector_gym
 
 from model import ShallowUQNet
 
-DATA_DIR = None
-LOG_DIR = None
 
 class MonkeyPatcher(gym.Env):
     def __init__(self, env):
@@ -141,13 +139,7 @@ if __name__ == '__main__':
         '--num_rollout_workers', type=int, default=8,
         help='random seed'
     )
-
     args = parser.parse_args()
-
-    DATA_DIR = args.data_dir
-    LOG_DIR = f"{args.data_dir}/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
-    os.makedirs(LOG_DIR, exist_ok=True)
 
 
     env_id = 'MeentIndex-v0'
@@ -171,9 +163,7 @@ if __name__ == '__main__':
     register_env(env_id, lambda c: make_env(env_config))
     ModelCatalog.register_custom_model(model_cls.__name__, model_cls)
     config.resources(num_cpus_per_worker=1, num_gpus=1)
-    # config.resources(num_cpus_per_worker=args.num_cpus_per_worker, num_gpus=1)
     config.rollouts(num_rollout_workers=1)
-    # config.rollouts(num_rollout_workers=args.num_rollout_workers)
     
     config.policies = None
     config.framework(
@@ -204,8 +194,7 @@ if __name__ == '__main__':
         # tune_config=tune.TuneConfig(), # for hparam search
         run_config=air.RunConfig(
             stop=stop,
-            local_dir=DATA_DIR,
-            # name=LOG_DIR,
+            local_dir=args.data_dir,
             checkpoint_config=air.CheckpointConfig(
                 num_to_keep=5,
                 checkpoint_score_attribute='episode_reward_max',

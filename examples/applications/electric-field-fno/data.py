@@ -170,5 +170,3 @@ if __name__ == "__main__":
             now = datetime.now().strftime('%M%S')
             torch.save(train_ds, f'{wavelength}-{deflected_angle}-{mfs}-{now}-train-ds.pt')
             torch.save(test_ds, f'{wavelength}-{deflected_angle}-{mfs}-{now}-test-ds.pt')
-
-    # f = nn.Upsample(scale_factor=1.5, mode='nearest')
