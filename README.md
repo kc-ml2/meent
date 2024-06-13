@@ -67,7 +67,7 @@ mee = meent.call_mee(backend=backend, ...)
 Jupyter notebooks are prepared in [tutorials](tutorials) to give a brief introduction.
 
 ## Examples
-Comprehensive examples of computational optics with Meent can be found in `meent/examples`.
+Comprehensive examples of computational optics with Meent can be found in `examples` folder.
 
 ## Citation
 To cite this repository:
