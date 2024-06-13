@@ -6,3 +6,15 @@ __pycache__\
 venv/
 build/
 dist/
+
+*logs*
+*runs*
+*.pt
+*.memmap
+*.ckpt
+*.mp4
+events.*
+venv
+*__pycache__*
+*.json
+*.csv

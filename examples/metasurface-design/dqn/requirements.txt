@@ -1,0 +1,6 @@
+ray[rllib]==2.1.0
+torch
+gym<0.25
+gymnasium
+tensorboard
+git+https://github.com/kc-ml2/deflector-gym.git

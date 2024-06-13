@@ -1,0 +1,13 @@
+torch
+# neuraloperator
+tensorboard
+matplotlib
+wandb
+torch_harmonics
+tqdm
+meent
+hydra-core
+pytorch_lightning
+h5py
+jupyter
+huggingface-hub
