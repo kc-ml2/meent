@@ -1,20 +1,13 @@
 Applications
 ============
 
-Beam Deflector Optimization
----------------------------
-beam_deflector
+`meent` is expected to be useful for solving inverse design and optimization
+problems in OCD and metasurface design. In this section, we present some
+exemplary cases where \texttt{meent} proves its capabilities.
+Leveraging the automatic differentiation function,
+we successfully carry out optimization for diffraction gratings and
+achieve inverse design of the geometric parameters.
 
-Color Router
-------------
-color_router
-
-Fourier Neural Operator
------------------------
-fno
-
-Model-based RL
------------------------
 modelbased_rl
 
 .. toctree::

@@ -55,6 +55,7 @@ how to installation the project.
    :maxdepth: 2
    :caption: Developer Docs
 
+   developer_docs
    sequence/seq
    benchmarks/benchmarks
    meent
