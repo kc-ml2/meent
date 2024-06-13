@@ -110,7 +110,7 @@ if __name__ == '__main__':
     )
     
     parser.add_argument(
-        '--data_dir', type=str, default='final',
+        '--data_dir', type=str, default='logs',
         help='absolute path to data directory'
     )
     parser.add_argument(

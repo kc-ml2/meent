@@ -16,3 +16,5 @@ dist/
 events.*
 venv
 *__pycache__*
+*.json
+*.csv
