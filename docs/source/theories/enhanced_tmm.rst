@@ -2,7 +2,7 @@ Enhanced Transmittance Matrix Method
 ====================================
 
 
-As addressed in \cite{Moharam:95-implementation, li1993multilayer, Popov:00}, solving Equation \ref{eqn:solve-multilayer} may suffer from the numerical instability coming from the inversion of almost singular matrix when :math:`\mathbb X_\ell` has a very small and possibly numerically zero value. \texttt{meent} adopted Enhanced Transmittance Matrix Method (ETM) \cite{Moharam:95-implementation} to overcome this by avoiding the inversion of :math:`\mathbb X_\ell`.
+As addressed in :cite:`Moharam:95-implementation, li1993multilayer, Popov:00`, solving Equation \ref{eqn:solve-multilayer} may suffer from the numerical instability coming from the inversion of almost singular matrix when :math:`\mathbb X_\ell` has a very small and possibly numerically zero value. \texttt{meent} adopted Enhanced Transmittance Matrix Method (ETM) :cite:`Moharam:95-implementation` to overcome this by avoiding the inversion of :math:`\mathbb X_\ell`.
 
 The technique is sequentially applied from the last layer to the first layer. In Equation \ref{eqn:solve-multilayer}, the set of modes at the bottom interface of the last layer :math:`(\ell = L)` is
 
@@ -215,3 +215,7 @@ where
     \mathbf T_{s,1} \\ \mathbf T_{p,1}
     \end{bmatrix}.
 
+----
+
+.. bibliography::
+   :filter: docname in docnames

@@ -1,8 +1,10 @@
 Eigenmodes Identification
 =========================
 
-Once the permittivity distribution is mapped to the Fourier space, the next step is to apply Maxwell's equations to identify the eigenmodes of each layer.
-In this section, we extend the mathematical formulation of the 1D conical incidence case described in \cite{Moharam:95-formulation} to the 2D grating case as illustrated in Figure 1.
+Once the permittivity distribution is mapped to the Fourier space, the next step is to apply Maxwell's equations
+to identify the eigenmodes of each layer.
+In this section, we extend the mathematical formulation of the 1D conical incidence case described in
+:cite:`Moharam:95-formulation` to the 2D grating case as illustrated in Figure 1.
 To ensure the consistency and clarity, we adopt the same notations and the sign convention of :math:`(+jwt)`.
 
 We consider the normalized excitation wave at the superstrate to take the following form:
@@ -17,7 +19,8 @@ We consider the normalized excitation wave at the superstrate to take the follow
     :label: eq:E-define
 
     \begin{align}
-        \mathbf E_{inc} = \mathbf u \cdot e^{-jk_0\mathtt n_{\text{I}}(\sin{\theta} \cdot \cos{\phi}\cdot x + \sin{\theta}\cdot \sin{\phi}\cdot y + \cos{\theta}\cdot z)},
+        \mathbf E_{inc} = \mathbf u \cdot e^{-jk_0\mathtt n_{\text{I}}(\sin{\theta} \cdot \cos{\phi}\cdot x +
+        \sin{\theta}\cdot \sin{\phi}\cdot y + \cos{\theta}\cdot z)},
     \end{align}
 
 where $\mathbf u$ is the normalized amplitudes of the wave in each direction:
@@ -31,20 +34,29 @@ where $\mathbf u$ is the normalized amplitudes of the wave in each direction:
         + (\cos{\psi}\cdot\sin{\theta})\hat{z},
     \end{align}
 
-and :math:`k_0 = 2\pi / \lambda_0` with :math:`\lambda_0` the wavelength of the light in free space, :math:`\mathtt n_{\text{I}}` is the refractive index of the superstrate, :math:`\theta` is the angle of incidence, :math:`\phi` is the rotation (azimuth) angle and :math:`\psi` is the angle between the electric field vector and the plane of incidence. % The :math:`\mathbf{u}` defines the polarization of the incident light.
+and :math:`k_0 = 2\pi / \lambda_0` with :math:`\lambda_0` the wavelength of the light in free space,
+:math:`\mathtt n_{\text{I}}` is the refractive index of the superstrate, :math:`\theta` is the angle of incidence,
+:math:`\phi` is the rotation (azimuth) angle and :math:`\psi` is the angle between the electric field vector and
+the plane of incidence. % The :math:`\mathbf{u}` defines the polarization of the incident light.
 
-The electric fields in the superstrate and substrate (we will designate these layers by \text{I} and \text{II} as in \cite{Moharam:95-formulation}) can be expressed as a sum of incident, reflected and transmitted waves as the Rayleigh expansion \cite{rayleigh, Electromagnetic-theory-of-gratings, rayleigh-expansion}:
+The electric fields in the superstrate and substrate (we will designate these layers by \text{I} and \text{II} as
+in :cite:`Moharam:95-formulation`) can be expressed as a sum of incident, reflected and transmitted waves
+as the Rayleigh expansion :cite:`rayleigh, Electromagnetic-theory-of-gratings, rayleigh-expansion`:
 
 .. math::
 
     \begin{align}
         \label{eqn:incidence}
-        \mathbf{E}_{\text{I}} &= \mathbf{E}_{inc} + \sum_{m=-M}^{M} \sum_{n=-N}^{N} \mathbf{R}_{n,m} e^{-j(k_{x,m} x + k_{y,n} y - k_{\text{I}, z,(n,m)}z)}, \\
+        \mathbf{E}_{\text{I}} &= \mathbf{E}_{inc} + \sum_{m=-M}^{M} \sum_{n=-N}^{N} \mathbf{R}_{n,m}
+        e^{-j(k_{x,m} x + k_{y,n} y - k_{\text{I}, z,(n,m)}z)}, \\
         \label{eqn:terminal}
-        \mathbf{E}_{\text{II}} &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \mathbf{T}_{n,m}e^{-j\{k_{x,m} x + k_{y,n} y + k_{\text{II}, z,(n,m)} (z-d)\}},
+        \mathbf{E}_{\text{II}} &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \mathbf{T}_{n,m}e^{-j\{k_{x,m} x + k_{y,n} y
+        + k_{\text{II}, z,(n,m)} (z-d)\}},
     \end{align}
 
-where :math:`M` and :math:`N` are the Fourier Truncation Order (FTO) which is related to the number of harmonics in use, and the in-plane components of the wavevector (:math:`k_{x,m}` and :math:`k_{y,n}`) are determined by the Bloch's theorem (this has many names and one of them is Floquet condition) \cite{floquet-bloch, photonic-crystal},
+where :math:`M` and :math:`N` are the Fourier Truncation Order (FTO) which is related to the number of harmonics in use,
+and the in-plane components of the wavevector (:math:`k_{x,m}` and :math:`k_{y,n}`) are determined by the Bloch's
+theorem (this has many names and one of them is Floquet condition) :cite:`floquet-bloch, photonic-crystal`,
 
 .. math::
 
@@ -53,42 +65,60 @@ where :math:`M` and :math:`N` are the Fourier Truncation Order (FTO) which is re
         k_{y,n} &= k_0 \Big(\mathtt n_{\text{I}} \sin{\theta}\sin{\phi} - n\frac{\lambda_0}{\Lambda_y}\Big),
     \end{align}
 
-where :math:`\Lambda_x` and :math:`\Lambda_y` are the period of the unit cell, and the out-of-plane wavevector is determined from the dispersion relation:
+where :math:`\Lambda_x` and :math:`\Lambda_y` are the period of the unit cell, and the out-of-plane wavevector
+is determined from the dispersion relation:
 
 .. math::
 
     \begin{align}
         k_{\ell,z,(n,m)} =
         \begin{cases}
-            +\ [(k_0\mathtt n_\ell)^2 - {k_{x,m}}^2 - {k_{y,n}}^2]^{1/2}&, \quad \text{if}\quad ({k_{x,m}}^2 + {k_{y,n}}^2) < (k_0\mathtt n_\ell)^2 \\
-            -j[{k_{x,m}}^2 + {k_{y,n}}^2 - (k_0\mathtt n_\ell)^2]^{1/2}&, \quad \text{if}\quad ({k_{x,m}}^2 + {k_{y,n}}^2) > (k_0\mathtt n_\ell)^2
+            +\ [(k_0\mathtt n_\ell)^2 - {k_{x,m}}^2 - {k_{y,n}}^2]^{1/2}&, \quad \text{if}\quad ({k_{x,m}}^2
+            + {k_{y,n}}^2) < (k_0\mathtt n_\ell)^2 \\
+            -j[{k_{x,m}}^2 + {k_{y,n}}^2 - (k_0\mathtt n_\ell)^2]^{1/2}&, \quad \text{if}\quad ({k_{x,m}}^2
+            + {k_{y,n}}^2) > (k_0\mathtt n_\ell)^2
         \end{cases}, \quad
         \ell = \text{I}, \text{II}.
     \end{align}
 
-Here, :math:`k_{\ell,z,(n,m)}` can be categorized into propagation mode and evanescent mode depending on whether it's real or imaginary. :math:`\mathbf R_{n,m} \text{ and } \mathbf T_{n,m}` are the Rayleigh coefficients (also called the reflection and transmission coefficients):  :math:`\mathbf{R}_{n,m}` is the normalized (3-dimensional) vector of electric field amplitude which is the (:math:`m^{th}` in X and :math:`n^{th}` in Y) mode of reflected waves in the superstrate and :math:`\mathbf{T}_{n,m}` is the normalized (3-dimensional) vector of electric field amplitude which is the (:math:`m^{th}` in X and :math:`n^{th}` in Y) mode of transmitted waves in the substrate.
+Here, :math:`k_{\ell,z,(n,m)}` can be categorized into propagation mode and evanescent mode depending on
+whether it's real or imaginary. :math:`\mathbf R_{n,m} \text{ and } \mathbf T_{n,m}` are the Rayleigh coefficients
+(also called the reflection and transmission coefficients):  :math:`\mathbf{R}_{n,m}` is the normalized (3-dimensional)
+vector of electric field amplitude which is the (:math:`m^{th}` in X and :math:`n^{th}` in Y) mode of reflected waves
+in the superstrate and :math:`\mathbf{T}_{n,m}` is the normalized (3-dimensional) vector of electric field amplitude
+which is the (:math:`m^{th}` in X and :math:`n^{th}` in Y) mode of transmitted waves in the substrate.
 
-Inside the grating layer, the electromagnetic field can be expressed as a superposition of plane waves by the Bloch's theorem:
+Inside the grating layer, the electromagnetic field can be expressed as a superposition of plane waves
+by the Bloch's theorem:
 
 .. math::
 
     \begin{align}
         \label{eqn:Eg-curly S}
-        \mathbf{E}_{g}(x,y,z) &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \boldsymbol{\mathfrak{S}}_{g,(n,m)} \cdot e^{-j(k_{x,m}x + k_{y,n}y + k_{g,z}z)}, \\
+        \mathbf{E}_{g}(x,y,z) &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \boldsymbol{\mathfrak{S}}_{g,(n,m)}
+        \cdot e^{-j(k_{x,m}x + k_{y,n}y + k_{g,z}z)}, \\
         \label{eqn:Hg-curly U}
-        \mathbf{H}_{g}(x,y,z) &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \boldsymbol{\mathfrak{U}}_{g,(n,m)} \cdot e^{-j(k_{x,m}x + k_{y,n}y + k_{g,z}z)},
+        \mathbf{H}_{g}(x,y,z) &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \boldsymbol{\mathfrak{U}}_{g,(n,m)}
+        \cdot e^{-j(k_{x,m}x + k_{y,n}y + k_{g,z}z)},
     \end{align}
 
-where :math:`k_{g,z}` is the wavevector in Z-direction (this is unique per layer hence the notation g was kept to distinguish) and :math:`\boldsymbol{\mathfrak{S}}_{g,(n,m)}` and :math:`\boldsymbol{\mathfrak{U}}_{g,(n,m)}` are the vectors of amplitudes in each direction at :math:`(m, n)^{th}` order:
+where :math:`k_{g,z}` is the wavevector in Z-direction (this is unique per layer hence the notation g was kept
+to distinguish) and :math:`\boldsymbol{\mathfrak{S}}_{g,(n,m)}` and :math:`\boldsymbol{\mathfrak{U}}_{g,(n,m)}`
+are the vectors of amplitudes in each direction at :math:`(m, n)^{th}` order:
 
 .. math::
 
     \begin{align}
-        \boldsymbol{\mathfrak{S}}_{g,(n,m)} &= \mathfrak{S}_{g,(n,m), x}\ \hat x + \mathfrak{S}_{g,(n,m), y}\ \hat y + \mathfrak{S}_{g,z}\ \hat z, \\
-        \boldsymbol{\mathfrak{U}}_{g,(n,m)} &= \mathfrak{U}_{g,(n,m), x}\ \hat x + \mathfrak{U}_{g,(n,m), y}\ \hat y + \mathfrak{U}_{g,z}\ \hat z.
+        \boldsymbol{\mathfrak{S}}_{g,(n,m)} &= \mathfrak{S}_{g,(n,m), x}\ \hat x + \mathfrak{S}_{g,(n,m), y}\ \hat y
+        + \mathfrak{S}_{g,z}\ \hat z, \\
+        \boldsymbol{\mathfrak{U}}_{g,(n,m)} &= \mathfrak{U}_{g,(n,m), x}\ \hat x + \mathfrak{U}_{g,(n,m), y}\ \hat y
+        + \mathfrak{U}_{g,z}\ \hat z.
     \end{align}
 
-It is also possible to detach wavevector term on :math:`z` from exponent and combine with :math:`\mathbf{\mathfrak{S}}_{g,(n,m)}` and :math:`\mathbf{\mathfrak{U}}_{g,(n,m)}` in Equations \ref{eqn:Eg-curly S} and \ref{eqn:Hg-curly U} to make :math:`\mathbf{S}_{g,(n,m)}(z)` and :math:`\mathbf{U}_{g,(n,m)}(z)` which are dependent on :math:`z` as shown below:
+It is also possible to detach wavevector term on :math:`z` from exponent and combine
+with :math:`\mathbf{\mathfrak{S}}_{g,(n,m)}` and :math:`\mathbf{\mathfrak{U}}_{g,(n,m)}`
+in Equations \ref{eqn:Eg-curly S} and \ref{eqn:Hg-curly U} to make :math:`\mathbf{S}_{g,(n,m)}(z)`
+and :math:`\mathbf{U}_{g,(n,m)}(z)` which are dependent on :math:`z` as shown below:
 
 .. math::
 
@@ -105,15 +135,23 @@ then Equations \ref{eqn:Eg-curly S} and \ref{eqn:Hg-curly U} become
 
     \begin{align}
         \label{eqn:Eg-Sg(z)}
-        \mathbf{E}_{g}(x,y,z) &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \mathbf{S}_{g,(n,m)}(z) \cdot e^{-j(k_{x,m}x + k_{y,n}y)}, \\
+        \mathbf{E}_{g}(x,y,z) &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \mathbf{S}_{g,(n,m)}(z)
+        \cdot e^{-j(k_{x,m}x + k_{y,n}y)}, \\
         \label{eqn:Hg-Ug(z)}
-        \mathbf{H}_{g}(x,y,z) &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \mathbf{U}_{g,(n,m)}(z) \cdot e^{-j(k_{x,m}x + k_{y,n}y)}.
+        \mathbf{H}_{g}(x,y,z) &= \sum_{m=-M}^{M} \sum_{n=-N}^{N} \mathbf{U}_{g,(n,m)}(z)
+        \cdot e^{-j(k_{x,m}x + k_{y,n}y)}.
     \end{align}
 
-Equations \ref{eqn:Eg-curly S} and \ref{eqn:Hg-curly U} are used in \cite{liu2012s4, yoon2021maxim, kim2023torcwa} and Equations \ref{eqn:Eg-Sg(z)} and \ref{eqn:Hg-Ug(z)} in \cite{Moharam:95-formulation, rumpf-dissertation}. Whichever is used, the result is the same: we will show the development using (:math:`\boldsymbol{\mathfrak{S}}_{g,(n,m)}`, :math:`\boldsymbol{\mathfrak{U}}_{g,(n,m)}`) with the eigendecomposition and then come back to (:math:`\mathbf{S}_{g,(n,m)}(z)` and :math:`\mathbf{U}_{g,(n,m)}(z)`) with the partial differential equations.
+Equations \ref{eqn:Eg-curly S} and \ref{eqn:Hg-curly U} are used in :cite:`liu2012s4, yoon2021maxim, kim2023torcwa`
+and Equations \ref{eqn:Eg-Sg(z)} and \ref{eqn:Hg-Ug(z)} in :cite:`Moharam:95-formulation, rumpf-dissertation`.
+Whichever is used, the result is the same: we will show the development using
+(:math:`\boldsymbol{\mathfrak{S}}_{g,(n,m)}`, :math:`\boldsymbol{\mathfrak{U}}_{g,(n,m)}`) with the eigendecomposition
+and then come back to (:math:`\mathbf{S}_{g,(n,m)}(z)` and :math:`\mathbf{U}_{g,(n,m)}(z)`)
+with the partial differential equations.
 
 
-The behavior of the electromagnetic fields can be described by the formulae, called the Maxwell's equations. Among them, we will use the third and fourth equations,
+The behavior of the electromagnetic fields can be described by the formulae, called the Maxwell's equations.
+Among them, we will use the third and fourth equations,
 
 .. math::
 
@@ -261,7 +299,7 @@ and
         r \in \{x, y\},
     \end{align}
 
-and :math:`\left[\!\!\left[ ~~ \right]\!\!\right]` is the convolution (a.k.a Toeplitz) matrix: :math:`\left[\!\!\left[\varepsilon_{r,g}\right]\!\!\right]` and :math:`\left[\!\!\left[\varepsilon_{r,g}^{-1}\right]\!\!\right]^{-1}` are convolution matrices composed of Fourier coefficients of permittivity and one-over-permittivity (by the inverse rule presented in \cite{Li:96} and \cite{Li:hal-00985928}).
+and :math:`\left[\!\!\left[ ~~ \right]\!\!\right]` is the convolution (a.k.a Toeplitz) matrix: :math:`\left[\!\!\left[\varepsilon_{r,g}\right]\!\!\right]` and :math:`\left[\!\!\left[\varepsilon_{r,g}^{-1}\right]\!\!\right]^{-1}` are convolution matrices composed of Fourier coefficients of permittivity and one-over-permittivity (by the inverse rule presented in :cite:`Li:96` and :cite:`Li:hal-00985928`).
 
 Equation \ref{eqn:curlyS-omega_LR} is a typical form of the eigendecomposition of a matrix. The vector [:math:`\boldsymbol{\mathfrak{S}}_{g,\vec x} \cdot e^{-j\tilde{k}_{g,z}\tilde{z}} \quad \boldsymbol{\mathfrak{S}}_{g,\vec y} \cdot e^{-j\tilde{k}_{g,z}\tilde{z}}]^T` is an eigenvector of :math:`\boldsymbol{{\Omega}}_{g,LR}^2` and :math:`j\tilde k_{g,z}` is the positive square root of the eigenvalues. This intuitively shows how the eigenvalues are connected to the Z-directional wavevectors.
 
@@ -289,7 +327,7 @@ It is also possible to use :math:`\mathbf S_{g,\vec x}(\tilde z)` and :math:`\ma
         \end{bmatrix}.
     \end{align}
 
-Hence it is just a matter of choice and we will use PDE form (:math:`\mathbf S_g` and :math:`\mathbf U_g`) for the seamless connection to the 1D conical case in the previous work \cite{Moharam:95-formulation}. Then Equations \ref{eqn:curlyS-omega_L}, \ref{eqn:curlyU-omega_R} and \ref{eqn:curlyS-omega_LR} become
+Hence it is just a matter of choice and we will use PDE form (:math:`\mathbf S_g` and :math:`\mathbf U_g`) for the seamless connection to the 1D conical case in the previous work :cite:`Moharam:95-formulation`. Then Equations \ref{eqn:curlyS-omega_L}, \ref{eqn:curlyU-omega_R} and \ref{eqn:curlyS-omega_LR} become
 
 .. math::
 
@@ -456,3 +494,7 @@ where :math::math:`\mathbf q_g` is the diagonal matrix with the eigenvalues. Thi
         \end{split}.
     \end{equation}
 
+----
+
+.. bibliography::
+   :filter: docname in docnames

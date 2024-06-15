@@ -32,6 +32,7 @@ extensions = [
     # 'jax_extensions',
     'sphinx_design',
     # 'sphinxext.rediraffe',
+    'sphinxcontrib.bibtex'
 ]
 
 myst_enable_extensions = ["colon_fence"]
@@ -42,6 +43,8 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 pygments_style = 'sphinx'
+
+bibtex_bibfiles = ['references.bib']
 
 # The suffix(es) of source filenames.
 # Note: important to list ipynb before md here: we have both md and ipynb

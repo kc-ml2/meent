@@ -309,7 +309,7 @@ where :math:`L` is the number of layers and
 
 Since we have four matrix equations for four unknown coefficients (:math:`\mathbf R_s, \mathbf R_p, \mathbf T_s, \mathbf T_p`), they can be derived and used for calculating diffraction efficiencies (also called the reflectance and transmittance).
 
-The diffraction efficiency is the ratio of the power flux in propagating direction between incidence and diffracted wave of interest. It can be calculated by time-averaged Poynting vector \cite{liu2012s4, hugonin2021reticolo, rumpf-dissertation}:
+The diffraction efficiency is the ratio of the power flux in propagating direction between incidence and diffracted wave of interest. It can be calculated by time-averaged Poynting vector :cite:`liu2012s4, hugonin2021reticolo, rumpf-dissertation`:
 
 .. math::
 
@@ -394,3 +394,7 @@ Since the diffraction efficiency is the ratio between them :math:`(P_{out}/P_{in
         DE_{t,(n,m)} &= |T_{s,(n,m)}|^2 \operatorname{Re}{\bigg(\frac{k_{\text{II},z,(n,m)}}{k_0 \mathtt n_\text{I}\cos{\theta}}\bigg)} +  |T_{p,(n,m)}|^2  \operatorname{Re}{\bigg(\frac{k_{\text{II},z,(n,m)}/{\mathtt n_{\text{II}}}^2}{k_0 \mathtt n_\text{I} \cos{\theta}}\bigg)}.
     \end{align}
 
+----
+
+.. bibliography::
+   :filter: docname in docnames
