@@ -5,7 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 5
 
    meent.on_numpy
    meent.on_jax

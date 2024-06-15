@@ -14,7 +14,7 @@ Machine Learning integration.
 Check out the usage section for further information, including
 how to installation the project.
 
-.. grid:: 3
+.. .. grid:: 3
 
     .. grid-item-card:: :material-regular:`rocket_launch;2em` Getting Started
         :columns: 12 6 6 4
@@ -33,31 +33,37 @@ how to installation the project.
       :link: contributor-guide
       :link-type: ref
       :class-card: developer-docs
+..
 
 .. toctree::
     :hidden:
     :maxdepth: 2
     :caption: Getting Started
 
-    getting-started
-    tutorials/README.md
+    getting_started
     tutorials
 
 .. toctree::
    :hidden:
    :maxdepth: 2
-   :caption: Theories
+   :caption: Background Theory
 
-   theories
+   theories/theory_em
+   theories/theory_ml
 
 .. toctree::
    :hidden:
    :maxdepth: 2
    :caption: Developer Docs
 
-   developer_docs
+ .. developer_docs
    sequence/seq
    benchmarks/benchmarks
+
+.. toctree::
+   :hidden:
+   :maxdepth: 5
+
    meent
 
 .. toctree::
@@ -71,10 +77,12 @@ how to installation the project.
     :alt: Meent summary
 
 
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+   :caption: Indices and tables
 
-Indices and tables
-==================
+   genindex
+   modindex
+   search
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
