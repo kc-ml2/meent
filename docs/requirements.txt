@@ -7,6 +7,7 @@ sphinx-copybutton>=0.5.0
 sphinx-remove-toctrees
 sphinx-design
 sphinxext-rediraffe
+sphinxcontrib-bibtex
 myst-nb>=1.0.0
 
 # Packages used for notebook execution
