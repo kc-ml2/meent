@@ -55,19 +55,6 @@ Meent provides three libraries as a backend:
 
   * A Python package that provides two high-level features: Tensor computation with strong GPU acceleration and Deep neural networks built on a tape-based autograd system
 
-
-.. table:: Truth table for "not"
-   :align: center
-   :widths: auto
-
-   =====  =====
-     A    not A
-   =====  =====
-   False  True
-   True   False
-   =====  =====
-
-
 When to use
 ~~~~~~~~~~~
 
