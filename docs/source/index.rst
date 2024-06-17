@@ -54,9 +54,8 @@ how to installation the project.
 .. toctree::
    :hidden:
    :maxdepth: 2
-   :caption: Developer Docs
+   :caption: User Guides
 
- .. developer_docs
    sequence/seq
    benchmarks/benchmarks
 

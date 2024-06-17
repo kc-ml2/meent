@@ -93,10 +93,10 @@ The simulation sequence for analyzing the given structure.
          ucell = (n2 - n1) * torch.sigmoid(ucell_latent * (1 + epoch * 0.02)) + n1
          mee.ucell = ucell
 
-Figure \ref{fig:benchmark optimization curve} shows the deflection
+Figure 1(a) shows the deflection
 efficiency change by iteration. Two solid lines are averaged value
 of all the samples at the same iteration step. Shaded area is marked
-with $\pm$ standard deviation from the average.
+with :math:`\pm` standard deviation from the average.
 The blue line (Before binarization) is the result of device with any
 real number between two refractive indices (silicon and air), which is
 non-practical, and the orange line (After binarization) is the final
@@ -112,28 +112,24 @@ after optimization. (b) Convergence test of the initial structure.
 (c) Learning curve of structure optimization for 110 epochs.
 Spatial blurring and binary push is applied on each epoch
 (d) The electric field distribution of the optimized structure
-in XZ plane.}
+in XZ plane.
 
 
-Here, we demonstrate optimization of a 2D diffraction metagrating as shown in Figure \ref{fig:2d_deflector_result}a.
+Here, we demonstrate optimization of a 2D diffraction metagrating as shown in Figure 2a.
 Similar to the previous 1D diffraction metagrating, the 2D diffraction metagrating also consists of silicon pillars
-located on top of a silicon dioxide substrate. TM polarized wave with $\lambda = 1000$ nm is normally incident
+located on top of a silicon dioxide substrate. TM polarized wave with :math:`\lambda = 1000~nm` is normally incident
 from the bottom of the substrate and the device is designed to deflect the incident light with deflection angle
-$\theta = 60^\circ$ in $X$-direction. The device has a rectangular unit cell of period
-$\lambda/\sin \theta \approx 1150$ nm and $\lambda/2 = 500nm$ for the x and y-axis, respectively.
-Moreover, the unit cell is gridded into $256 \times 128$ cells which is either filled by air or silicon.
-
-% We set FTO $N_x \neq N_y $ throughout this section as the device is gridded differently for the $x$ and $y$ directions.
-
+:math:`\theta = 60^\circ` in :math:`X`-direction. The device has a rectangular unit cell of period
+:math:`\lambda/\sin \theta \approx 1150~nm` and :math:`\lambda/2 = 500~nm` for the :math:`X` and :math:`Y`-axis, respectively.
+Moreover, the unit cell is gridded into :math:`256 \times 128` cells which is either filled by air or silicon.
 The convergence of RCWA simulation for different number of Fourier harmonics are plotted in
-Figure \ref{fig:2d_deflector_result}b. Considering the trade-off between simulation accuracy and time,
-we set $N_x = 13$ and $N_y = 10$.
+Figure 2b. Considering the trade-off between simulation accuracy and time,
+we set :math:`N_x = 13` and :math:`N_y = 10`.
 
-% , and proceed with the optimization using the same configuration as section \ref{sec:1d_grating}. However, in contrast to the previous optimization, the FoM for this case is the deflection efficiency of the (+1, 0) mode only, and the binary push is achieved using a dynamic thresholding sigmoid filter that scales with the epoch.
 
-After 110 epochs of optimization, the final structure achieves an efficiency of 92\% and successfully deflects
-the incoming beam at a 60$^\circ$ angle (Figure \ref{fig:2d_deflector_result}d). The optimized structure and
-the learning curve are presented in Figure \ref{fig:2d_deflector_result}a and Figure \ref{fig:2d_deflector_result}c,
+After 110 epochs of optimization, the final structure achieves an efficiency of 92 % and successfully deflects
+the incoming beam at a :math:`60^\circ` angle (Figure 2d). The optimized structure and
+the learning curve are presented in Figure 2a and Figure 2c,
 respectively.
 
 ----
