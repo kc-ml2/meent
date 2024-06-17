@@ -9,6 +9,7 @@ sphinx-design
 sphinxext-rediraffe
 sphinxcontrib-bibtex
 myst-nb>=1.0.0
+docutils
 
 # Packages used for notebook execution
 matplotlib

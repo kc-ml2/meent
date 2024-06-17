@@ -9,10 +9,10 @@ complex Figure of Merits (FoM).
 
 A meta color router is an optical component designed for next-generation image sensors. It is designed to route
 the incoming light to the subpixel region of corresponding color, as depicted in Figure \ref{fig:cf_schematic}.
-In this exemplary case, we consider an RGB meta color router featuring a pixel pitch of $0.5\mu m$ that consists of
+In this exemplary case, we consider an RGB meta color router featuring a pixel pitch of :math:`0.5 \mu m` that consists of
 vertically stacked 1D binary gratings. The constituent dielectrics are silicon dioxide and silicon nitride,
 with fixed refractive indices of 1.5 and 2.0, respectively.
-The meta device region (width of $1.5\mu m$ and height of $2\mu m$) is sliced into 8 layers with 64 cells per layer.
+The meta device region (width of :math:`1.5 \mu m` and height of :math:`2 \mu m`) is sliced into 8 layers with 64 cells per layer.
 
 The FoM for this meta color router is defined as the average of TE mode electric field intensity over the
 corresponding subpixel region, as given by Equation \eqref{eqn:cf_fom}.
@@ -20,13 +20,14 @@ corresponding subpixel region, as given by Equation \eqref{eqn:cf_fom}.
 .. math::
     \begin{align}
         \label{eqn:cf_fom}
-        FoM = \frac{1}{N} \sum_{\lambda_1}^{\lambda_N} \frac{\int_{x_1}^{x_2} |\vec{\mathbf{E}}(\lambda)|^2 dx}{\int_{0}^{P} |\vec{\mathbf{E}}(\lambda)|^2 dx}\times T(\lambda)
+        FoM = \frac{1}{N} \sum_{\lambda_1}^{\lambda_N} \frac{\int_{x_1}^{x_2} |\vec{\mathbf{E}}(\lambda)|^2 dx}
+        {\int_{0}^{P} |\vec{\mathbf{E}}(\lambda)|^2 dx}\times T(\lambda)
     \end{align}
 
 Here, :math:`\mathbf E` represents the electric field within the subpixel region, while :math:`T` represents
 transmittance. The parameter :math:`x \in (x1,x2)` determines the desired subpixel region corresponding to the
-incident beam wavelength. For simplicity, we define the wavelength ranges for R, G, and B as 600 nm - 700 nm,
-500 nm - 600 nm, and 400 nm - 500 nm, respectively. Throughout the optimization process, optical efficiencies
+incident beam wavelength. For simplicity, we define the wavelength ranges for R, G, and B as 600 :math:`nm` - 700 :math:`nm`,
+500 :math:`nm` - 600 :math:`nm`, and 400 :math:`nm` - 500 :math:`nm`, respectively. Throughout the optimization process, optical efficiencies
 are averaged across 9 wavelength points to ensure a finely tuned broadband response.
 
 The optimization procedure for the meta color router follows a similar approach to the previous examples,

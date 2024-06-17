@@ -13,7 +13,7 @@ Tutorials
 
 Installation
 ---------------
-Meent can be installed via `pip`.
+Meent can be installed via ``pip``.
 
 .. code-block:: python
 
@@ -42,13 +42,31 @@ Meent provides three libraries as a backend:
 
 .. image:: _static/backends.png
 
-* [NumPy](https://github.com/numpy/numpy)
+* ``NumPy`` https://github.com/numpy/numpy
+
   * The fundamental package for scientific computing with Python
   * Easy and lean to use
-* [JAX](https://github.com/google/jax)
+
+* ``JAX`` https://github.com/google/jax
+
   * Autograd and XLA, brought together for high-performance machine learning research.
-* [PyTorch](https://github.com/pytorch/pytorch)
+
+* ``PyTorch`` https://github.com/pytorch/pytorch
+
   * A Python package that provides two high-level features: Tensor computation with strong GPU acceleration and Deep neural networks built on a tape-based autograd system
+
+
+.. table:: Truth table for "not"
+   :align: center
+   :widths: auto
+
+   =====  =====
+     A    not A
+   =====  =====
+   False  True
+   True   False
+   =====  =====
+
 
 When to use
 ~~~~~~~~~~~
