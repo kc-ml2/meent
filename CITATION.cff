@@ -1,22 +1,31 @@
 cff-version: 1.2.0
-title: "Meent: An Electromagnetic Simulation Software"
-message: If you use this software, please cite it using the metadata from this file.
+title: "Meent: Electromagnetic Simulation Software"
 type: software
 authors:
   - given-names: Yongha
     family-names: Kim
+repository-code: 'https://github.com/kc-ml2/meent'
+year: 2022
+license: MIT
+preferred-citation:
+  type: misc
+  authors:
+  - given-names: Yongha
+    family-names: Kim
+  - given-names: Anthony W.
+    family-names: Jung
   - given-names: Sanmun
     family-names: Kim
   - given-names: Kevin
     family-names: Octavian
   - given-names: Doyoung
     family-names: Heo
-  - given-names: Anthony W.
-    family-names: Jung
   - given-names: Chaejin
     family-names: Park
   - given-names: Jeongmin
     family-names: Shin
+  - given-names: Sunghyun
+    family-names: Nam
   - given-names: Chanhyung
     family-names: Park
   - given-names: Juho
@@ -31,6 +40,8 @@ authors:
     family-names: Jang
   - given-names: Chan Y.
     family-names: Park
-repository-code: 'https://github.com/kc-ml2/meent'
-year: 2024
-license: MIT
+  title: "Meent: Differentiable Electromagnetic Simulator for Machine Learning"
+  year: 2024
+  eprint: 2406.12904
+  archivePrefix: arXiv
+  primaryClass: cs.LG
