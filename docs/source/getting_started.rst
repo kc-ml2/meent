@@ -7,10 +7,6 @@ Welcome to Meent!
 
 Meent uses RCWA for Electromagnetic (EM) simulation and automatic-differentiation for back-propagation.
 
-Tutorials
----------
-:doc:`tutorials` will help you go through the key features.
-
 Installation
 ---------------
 Meent can be installed via ``pip``.
@@ -21,7 +17,7 @@ Meent can be installed via ``pip``.
 
 How to use
 ----------
-You can simply select backend.
+Use ``call_mee()`` with backend option, to make `meent` instance containing the functionalities.
 
 .. code-block:: python
 
@@ -34,7 +30,11 @@ You can simply select backend.
     backend = 1
     mee = meent.call_mee(backend=backend, ...)
 
-All the methods in `mee` are same across backends.
+All the methods in ``mee`` are same across backends.
+
+Tutorials
+---------
+:doc:`tutorials` will help you go through the key features.
 
 Backends
 ---------

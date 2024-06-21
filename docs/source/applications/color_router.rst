@@ -1,8 +1,9 @@
 Color Router
 ------------
 
-.. image:: images/metacolorSchematic2.png
-**A schematic of a color router.** The incoming light is guided to subpixels of corresponding wavelength.
+.. figure:: images/metacolorSchematic2.png
+
+   Figure 1: **A schematic of a color router.** The incoming light is guided to subpixels of corresponding wavelength.
 
 In this example, we aim to demonstrate the optimization process of a meta color router, which involves a
 complex Figure of Merits (FoM).
@@ -34,10 +35,11 @@ The optimization procedure for the meta color router follows a similar approach 
 including random initialization, optimization via back-propagated gradients with or without binary push.
 The optimization curve and the final binarized device structure are shown in Figure \ref{fig:cf_curve}.
 
-.. image:: images/colorfilter.png
-**Optimization result of 1D grating meta color router.** (a) Optimization curve of greyscale device and
-binary-pushed device at each epoch. (b) Color sorting efficiency spectrum. (c) The electric field inside
-the final color router device.
+.. figure:: images/colorfilter.png
+
+    Figure 2: **Optimization result of 1D grating meta color router.** (a) Optimization curve of greyscale device and
+    binary-pushed device at each epoch. (b) Color sorting efficiency spectrum. (c) The electric field inside
+    the final color router device.
 
 
 It is important to highlight that optimizing based on local gradients is only feasible when an

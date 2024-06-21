@@ -10,7 +10,7 @@ Beam Deflector Optimization
 
 .. |pic2| image:: images/optim_b.png
    :width: 34%
-Figure 1. **Optimization result of 1D beam deflector.** (a) The deflection efficiencies are calculated for every iterations
+Figure 1: **Optimization result of 1D beam deflector.** (a) The deflection efficiencies are calculated for every iterations
 and this experiment is repeated 100 times with random starting points (b) Electric field distribution
 from the final structure}
 
@@ -93,7 +93,7 @@ The simulation sequence for analyzing the given structure.
          ucell = (n2 - n1) * torch.sigmoid(ucell_latent * (1 + epoch * 0.02)) + n1
          mee.ucell = ucell
 
-Figure 1(a) shows the deflection
+Figure 1a shows the deflection
 efficiency change by iteration. Two solid lines are averaged value
 of all the samples at the same iteration step. Shaded area is marked
 with :math:`\pm` standard deviation from the average.
@@ -105,14 +105,15 @@ device composed of silicon and air. The best result we found is 89.4 %.
 2D
 ~~~~~~~
 
-.. image:: images/2d_deflector.png
-Figure 2. **Optimization result of 2D beam deflector.**
-(a) The schematic of 2D beam deflector and the final structure
-after optimization. (b) Convergence test of the initial structure.
-(c) Learning curve of structure optimization for 110 epochs.
-Spatial blurring and binary push is applied on each epoch
-(d) The electric field distribution of the optimized structure
-in XZ plane.
+.. figure:: images/2d_deflector.png
+
+    Figure 2: **Optimization result of 2D beam deflector.**
+    (a) The schematic of 2D beam deflector and the final structure
+    after optimization. (b) Convergence test of the initial structure.
+    (c) Learning curve of structure optimization for 110 epochs.
+    Spatial blurring and binary push is applied on each epoch
+    (d) The electric field distribution of the optimized structure
+    in XZ plane.
 
 
 Here, we demonstrate optimization of a 2D diffraction metagrating as shown in Figure 2a.
