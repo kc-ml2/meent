@@ -73,26 +73,13 @@ Comprehensive examples of computational optics with Meent can be found in `examp
 To cite this repository:
 
 ```
-@software{Kim_Meent_Electromagnetic_simulation,
-  author = {Kim, Yongha and Kim, Sanmun and Lee, Jinmyoung and Jung, Anthony W. and Kim, Seolho},
-  license = {MIT},
-  title = {{Meent:Electromagnetic simulation & optimization package in Python}},
-  url = {https://github.com/kc-ml2/meent}
+@article{kim2024meent,
+    title={Meent: Differentiable Electromagnetic Simulator for Machine Learning},
+    author={Kim, Yongha and Jung, Anthony W. and Kim, Sanmun and Octavian, Kevin and Heo, Doyoung and Park, Chaejin and Shin, Jeongmin and Nam, Sunghyun and Park, Chanhyung and Park, Juho and Han, Sangjun and Lee, Jinmyoung and Kim, Seolho and Jang, Min Seok and Park, Chan Y.},
+    journal={arXiv preprint arXiv:2406.12904},
+    year={2024}
 }
 ```
-
-## Reference
-Will be updated.
-
-[1] https://opg.optica.org/josa/abstract.cfm?uri=josa-71-7-811, Rigorous coupled-wave analysis of planar-grating diffraction \
-[2] https://opg.optica.org/josaa/abstract.cfm?uri=josaa-12-5-1068 \
-[3] https://opg.optica.org/josaa/abstract.cfm?uri=josaa-12-5-1077 \
-[4] https://opg.optica.org/josaa/abstract.cfm?uri=josaa-13-5-1019 \
-[5] https://opg.optica.org/josaa/abstract.cfm?uri=josaa-13-4-779 \
-[6] https://opg.optica.org/josaa/abstract.cfm?uri=josaa-13-9-1870 \
-[7] https://empossible.net/emp5337/ \
-[8] https://github.com/zhaonat/Rigorous-Coupled-Wave-Analysis (see also our fork: https://github.com/yonghakim/zhaonat-rcwa) \
-[9] https://arxiv.org/abs/2101.00901
 
 [//]: # (### Contact)
 [//]: # ([📩 KC-ML2]&#40;mailto:contact@kc-ml2.com&#41;)
