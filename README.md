@@ -72,10 +72,14 @@ Comprehensive examples of computational optics with Meent can be found in `examp
 ## Citation
 To cite this repository:
 
-```
+```bibtex
 @article{kim2024meent,
     title={Meent: Differentiable Electromagnetic Simulator for Machine Learning},
-    author={Kim, Yongha and Jung, Anthony W. and Kim, Sanmun and Octavian, Kevin and Heo, Doyoung and Park, Chaejin and Shin, Jeongmin and Nam, Sunghyun and Park, Chanhyung and Park, Juho and Han, Sangjun and Lee, Jinmyoung and Kim, Seolho and Jang, Min Seok and Park, Chan Y.},
+    author={Kim, Yongha and Jung, Anthony W. and Kim, Sanmun and
+            Octavian, Kevin and Heo, Doyoung and Park, Chaejin and
+            Shin, Jeongmin and Nam, Sunghyun and Park, Chanhyung and
+            Park, Juho and Han, Sangjun and Lee, Jinmyoung and
+            Kim, Seolho and Jang, Min Seok and Park, Chan Y.},
     journal={arXiv preprint arXiv:2406.12904},
     year={2024}
 }
