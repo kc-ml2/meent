@@ -1,14 +1,21 @@
 Connecting Layers
 =================
 
-Once the eigenmodes of each grating layer are identified, the transfer matrix method (TMM) can be utilized to determine the Rayleigh coefficients (:math:`\mathbf R_s, \mathbf R_p, \mathbf T_s, \mathbf T_p`) and the diffraction efficiencies.
-TMM effectively represents this process as a matrix multiplication, where the transfer matrix is constructed by considering the interaction between the eigenmodes of neighboring layers.
-This matrix accounts for the energy transfer and phase shift between the eigenmodes, and it is used to propagate the electromagnetic fields through the entire periodic structure.
+Once the eigenmodes of each grating layer are identified, the transfer matrix method (TMM) can be utilized
+to determine the Rayleigh coefficients (:math:`\mathbf R_s, \mathbf R_p, \mathbf T_s, \mathbf T_p`)
+and the diffraction efficiencies.
+TMM effectively represents this process as a matrix multiplication, where the transfer matrix is constructed
+by considering the interaction between the eigenmodes of neighboring layers.
+This matrix accounts for the energy transfer and phase shift between the eigenmodes, and it is used to propagate
+the electromagnetic fields through the entire periodic structure.
 
-From the boundary conditions, the systems of equations consisting of the in-plane (tangential) field components :math:`(\mathbf E_\mathtt s, \mathbf E_\mathtt p, \mathbf H_\mathtt s, \mathbf H_\mathtt p)` can be described at each layer interface. We will first consider the case of a single grating layer cladded with the superstrate and substrate, then expand to multilayer structure. At the input boundary (:math:`z=0`):
+From the boundary conditions, the systems of equations consisting of the in-plane (tangential) field components
+:math:`(\mathbf E_\mathtt s, \mathbf E_\mathtt p, \mathbf H_\mathtt s, \mathbf H_\mathtt p)` can be described
+at each layer interface. We will first consider the case of a single grating layer cladded with the superstrate
+and substrate, then expand to multilayer structure. At the input boundary (:math:`z=0`):
 
 .. math::
-    :label: eqn:z0
+    :name: eqn:z0
 
     \begin{align}
         \begin{bmatrix}
@@ -49,9 +56,9 @@ From the boundary conditions, the systems of equations consisting of the in-plan
 and at the output boundary (:math:`z=d`):
 
 .. math::
+    :name: eqn:zd
 
     \begin{align}
-    \label{eqn:zd}
         \begin{bmatrix}
             {\mathbf W_{g,ss}\mathbf X_{g,1}} & {\mathbf W_{g,sp}\mathbf X_{g,2}} & {\mathbf W_{g,ss}} & {\mathbf W_{g,sp}}
             \\
@@ -140,7 +147,9 @@ and :math:`\mathbf Y_{\text{II}}` and :math:`\mathbf Z_{\text{II}}` are
         \end{bmatrix}.
     \end{align}
 
-Here, new set of :math:`\mathbf W_g` and :math:`\mathbf V_g` on SP basis :math:`\{\hat s, \hat p\}` are introduced which are recombined from the set of :math:`\mathbf W_g` and :math:`\mathbf V_g` from XY basis :math:`\{\hat x, \hat y\}`:
+Here, new set of :math:`\mathbf W_g` and :math:`\mathbf V_g` on SP basis :math:`\{\hat s, \hat p\}` are introduced
+which are recombined from the set of :math:`\mathbf W_g` and :math:`\mathbf V_g`
+from XY basis :math:`\{\hat x, \hat y\}`:
 
 .. math::
 
@@ -154,7 +163,8 @@ Here, new set of :math:`\mathbf W_g` and :math:`\mathbf V_g` on SP basis :math:`
     \mathbf V_{g,ps}&=\mathbf F_c\mathbf V_{g,21}-\mathbf F_s\mathbf V_{g,11}, & \mathbf V_{g,pp}&=\mathbf F_c\mathbf V_{g,22}-\mathbf F_s\mathbf V_{g,12},
     \end{align}
 
-with :math:`\mathbf F_c` and :math:`\mathbf F_s` being diagonal matrices with the diagonal elements :math:`\cos\varphi_{(n,m)}` and :math:`\sin\varphi_{(n,m)}`, respectively, where
+with :math:`\mathbf F_c` and :math:`\mathbf F_s` being diagonal matrices with the diagonal elements
+:math:`\cos\varphi_{(n,m)}` and :math:`\sin\varphi_{(n,m)}`, respectively, where
 
 .. math::
 
@@ -162,7 +172,8 @@ with :math:`\mathbf F_c` and :math:`\mathbf F_s` being diagonal matrices with th
         \varphi_{(n,m)} = \tan^{-1}(k_{y, n}/k_{x, m}).
     \end{align}
 
-Equations \ref{eqn:z0} and \ref{eqn:zd} can be reduced to one set of equations by eliminating :math:`\mathbf c^\pm_{1,2}`:
+Equations :ref:`(1) <eqn:z0>` and :ref:`(2) <eqn:zd>` can be reduced to one set of equations
+by eliminating :math:`\mathbf c^\pm_{1,2}`:
 
 .. math::
 
@@ -246,9 +257,9 @@ where
 This equation for a single layer grating can be simply extended to a multi-layer system as the following:
 
 .. math::
+    :name: eqn:solve-multilayer
 
     \begin{align}
-        \label{eqn:solve-multilayer}
         \begin{bmatrix}
             \sin\psi\ \boldsymbol\delta_{00} \\
             \cos\psi\ \cos\theta\ \boldsymbol\delta_{00}
@@ -288,6 +299,7 @@ This equation for a single layer grating can be simply extended to a multi-layer
         \end{bmatrix},
         % \end{align*}
     \end{align}
+
 where :math:`L` is the number of layers and
 
 .. math::
@@ -307,9 +319,13 @@ where :math:`L` is the number of layers and
         \end{bmatrix}.
     \end{align}
 
-Since we have four matrix equations for four unknown coefficients (:math:`\mathbf R_s, \mathbf R_p, \mathbf T_s, \mathbf T_p`), they can be derived and used for calculating diffraction efficiencies (also called the reflectance and transmittance).
+Since we have four matrix equations for four unknown coefficients
+(:math:`\mathbf R_s, \mathbf R_p, \mathbf T_s, \mathbf T_p`), they can be derived and used for calculating
+diffraction efficiencies (also called the reflectance and transmittance).
 
-The diffraction efficiency is the ratio of the power flux in propagating direction between incidence and diffracted wave of interest. It can be calculated by time-averaged Poynting vector :cite:`liu2012s4, hugonin2021reticolo, rumpf-dissertation`:
+The diffraction efficiency is the ratio of the power flux in propagating direction between incidence and
+diffracted wave of interest. It can be calculated by time-averaged Poynting vector
+:cite:`liu2012s4, hugonin2021reticolo, rumpf-dissertation`:
 
 .. math::
 
@@ -385,7 +401,8 @@ and the power in each transmitted diffraction mode is
     \end{split}
     \end{equation}
 
-Since the diffraction efficiency is the ratio between them :math:`(P_{out}/P_{inc})`, we can get the efficiencies of reflected and transmitted waves:
+Since the diffraction efficiency is the ratio between them :math:`(P_{out}/P_{inc})`, we can get the efficiencies
+of reflected and transmitted waves:
 
 .. math::
 
