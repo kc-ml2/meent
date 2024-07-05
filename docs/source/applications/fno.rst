@@ -1,6 +1,18 @@
 Fourier Neural Operator
------------------------
+=======================
 
+Target
+------
+
+Prediction of electric field distribution
+
+We will present the capability of Fourier neural operator (FNO) :cite:`li2020fourier` with
+UNet :cite:`ronneberger2015u` as a baseline.
+
+
+
+Demo Case
+---------
 
 .. figure:: images/metasurface2.png
 
@@ -10,56 +22,97 @@ Fourier Neural Operator
    (b) Abstract matrix representation :math:`{\small u\in {\{1, -1\}}^{k\times k}}`, the front view of metagrating.
    (c) Array representation of the grating pattern, :math:`{\small g\in {\{1, -1\}}^{k}}`.
 
-Fourier neural operator: prediction of electric field distribution
---------------------------------
 
-Throughout Sections \ref{sec:fno} and \ref{sec:mbrl}, analysis and design of metagrating beam deflector are performed.
+Here we will show FNO within beam deflector of 1 dimensional grating case where the incident light is transverse magnetic
+(TM) polarized.
 
-A metagrating is a specific type of metasurface that is arranged in a periodic pattern and is primarily used to
-direct light into specific angle :math:`\theta` as shown in Figure 1.
-At the grating layer, a material is placed on :math:`k` uniform *cells*, and has the constraint of
-minimum feature size (MFS). MFS refers to the smallest contiguous grating cells the device can have.
-Our figure of merits (FoMs) from the beam deflector include deflection efficiency :math:`\eta \in [0, 1]` and
+The deflector is arranged in a periodic pattern and used to control the direction of light into
+specific angle :math:`\theta` as shown in Figure 1.
+
+
+At the grating layer, a material is placed on :math:`k` uniform *cells*.
+
+Our figure of merit from the beam deflector include deflection efficiency :math:`\eta \in [0, 1]` and
 :math:`x`-component of electric field :math:`\mathbf{E}`.
 
 
-We provide two representative baselines of neural PDE solvers: (a) Image-to-image model, UNet :cite:`ronneberger2015u`
-and (b) operator learning model, Fourier neural operator (FNO) :cite:`li2020fourier`.
-The solvers learn to predict electric field, given a matrix representation of a metagrating.
+.. We provide two representative baselines of neural PDE solvers: (a) image-to-image model, UNet :cite:`ronneberger2015u`
+.. and (b) operator learning model, Fourier neural operator (FNO) :cite:`li2020fourier`.
 
+Neural PDE solvers
+------------------
 
-Problem setup
-~~~~~~~~~~~~~
+We provide two approaches of neural PDE solvers: UNet :cite:`ronneberger2015u` which is an image-to-image model,
+and Fourier neural operator (FNO) :cite:`li2020fourier`, an operator learning model.
 
-Our governing PDE that describes electric field distribution can be found by substituting left-hand side into
-right-hand side of Equation \ref{eqn:maxwell 3 and 4},
+These solvers learn to predict electric field, given a matrix representation of a metagrating.
+
+Our governing PDE that describes electric field distribution can be found from Maxwell's equations:
 
 .. math::
+    :name: eqn:maxwell 3
+
+    \begin{align}
+        \nabla \times \mathbf E &= -j\omega\mu_0\mathbf H,
+    \end{align}
+
+.. math::
+    :name: eqn:maxwell 4
+
+    \begin{align}
+        \nabla \times \mathbf H &= j\omega\varepsilon_0\varepsilon_r\mathbf E.
+    \end{align}
+
+By substituting Equation :ref:`(1) <eqn:maxwell 3>` into Equation :ref:`(2) <eqn:maxwell 4>`,
+the governing equation is given as
+
+.. math::
+    :name: eqn:pde
+
     \begin{equation}
-        \label{eq:pde}
         \nabla\times\nabla\times \mathbf{E} = \omega^2 \mu_0 \varepsilon_0 \varepsilon_r \mathbf{E}.
     \end{equation}
 
-The aim of the neural PDE solver is to predict the electric field from the Maxwell's equation in transverse magnetic
-(TM) polarization case.
-Here we consider only :math:`x`-component of the electric field, denoted as :math:`v`.
+In this problem, our focus is on the X-directional component of the electric field, denoted as :math:`v`,
+and this is what neural solvers learn to predict.
 
 
+To use FNO, we need the input and output data pair (u, v) where u is the zero-padded device structure and
+v is the field distribution as we just defined.
 
-Firstly, under the constraint of MFS, device patterns are sampled from uniform distribution,
-:math:`g=[e_1, ..., e_{k}]\sim \mathrm{Unif}(\{-1, 1\})`, and laid on matrix :math:`u` in Figure 1.
-The corresponding ground truth :math:`v` is then calculated with Meent by solving Equation \ref{eq:pde}.
-For each physical condition, we generated 10,000 pairs of :math:`(u,v)` as a training dataset.
-:math:`u` and :math:`v` have the same dimension, :math:`x\in\mathbb{R}^{k\times k}`,
-and both are discretized on regular grids.
-MFS was chosen as 4 which is more granular than 8 in the previous work :cite:`park2024sample`, which demonstrates
-that users can easily generate tailor-made datasets with Meent.
+These are founded by the device pattern.
+
+The device pattern, g, is sampled from uniform distribution,
+
+.. math::
+    g=[e_1, ..., e_{k}]\sim \mathrm{Unif}(\{-1, 1\}).
+
+:math:`u` can be made by zero-padding g to have :math:`k\times k` matrix size,
+and  :math:`v` is simulated with Meent by solving Equation :ref:`(3) <eqn:pde>` to have the same matrix dimension.
+
+
 
 Let :math:`\mathcal{O}` be an operator that maps a function :math:`u(x)` to a function :math:`v(x)` describing
 electric field, s.t. :math:`v(x)=\mathcal{O}(u)(x)`.
+
+
 An approximator of :math:`\mathcal{O}` represented by a neural network is updated using various losses,
 and since the solution space of a PDE is highly dependent on physical conditions, we assessed the robustness
 of baseline models across nine conditions and collectively report in Appendix \ref{appendix:pde-error}.
+
+
+Now we try to find O, the operator tha maps u to v.
+
+UNet is a baseline and FNO is benchmarked.
+
+For the training, 10k pair of data is generated for one experimental condition.
+
+(3) We generated 10,000 pairs of :math:`(u,v)` as a training dataset.
+
+And 9 cases were tested.
+
+
+
 
 
 \begin{figure}[ht]
@@ -87,7 +140,8 @@ of baseline models across nine conditions and collectively report in Appendix \r
 
 
 Fourier Neural Operator
-~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
+
 
 The effectiveness of FNO for solving Maxwell's equation in our metagrating beam deflector is exhibited in Figure 2a.
 We follow techniques from \cite{augenstein2023neural}, in which original FNO is adapted to light scattering problem
