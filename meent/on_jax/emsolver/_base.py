@@ -278,13 +278,15 @@ class _BaseRCWA:
             elif self.pol == 1:
                 E_conv_i = jnp.linalg.inv(E_conv)
                 B = Kx @ E_conv_i @ Kx - jnp.eye(E_conv.shape[0]).astype(self.type_complex)
-                o_E_conv_i = jnp.linalg.inv(o_E_conv)
-                eigenvalues, W = eig(o_E_conv_i @ B, type_complex=self.type_complex, perturbation=self.perturbation,
+                # o_E_conv_i = jnp.linalg.inv(o_E_conv)
+
+                eigenvalues, W = eig(E_conv @ B, type_complex=self.type_complex, perturbation=self.perturbation,
                                      device=self.device)
                 eigenvalues += 0j  # to get positive square root
                 q = eigenvalues ** 0.5
                 Q = jnp.diag(q)
-                V = o_E_conv @ W @ Q
+                # V = o_E_conv @ W @ Q
+                V = E_conv_i @ W @ Q
 
             else:
                 raise ValueError
@@ -345,11 +347,14 @@ class _BaseRCWA:
         for layer_index in range(count)[::-1]:
 
             E_conv = E_conv_all[layer_index]
-            o_E_conv = o_E_conv_all[layer_index]
+            # o_E_conv = o_E_conv_all[layer_index]
+            o_E_conv = None
+
             d = self.thickness[layer_index]
 
             E_conv_i = jnp.linalg.inv(E_conv)
-            o_E_conv_i = jnp.linalg.inv(o_E_conv)
+            # o_E_conv_i = jnp.linalg.inv(o_E_conv)
+            o_E_conv_i = None
 
             if self.algo == 'TMM':
                 big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2 \
@@ -418,11 +423,14 @@ class _BaseRCWA:
         # From the last layer
         for layer_index in range(count)[::-1]:
             E_conv = E_conv_all[layer_index]
-            o_E_conv = o_E_conv_all[layer_index]
+            # o_E_conv = o_E_conv_all[layer_index]
+            o_E_conv = None
+
             d = self.thickness[layer_index]
 
             E_conv_i = jnp.linalg.inv(E_conv)
-            o_E_conv_i = jnp.linalg.inv(o_E_conv)
+            # o_E_conv_i = jnp.linalg.inv(o_E_conv)
+            o_E_conv_i = None
 
             if self.algo == 'TMM':
                 W, V, q = transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv,
