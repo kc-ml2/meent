@@ -274,7 +274,8 @@ class _BaseRCWA:
         for layer_index in range(count)[::-1]:
 
             E_conv = E_conv_all[layer_index]
-            o_E_conv = o_E_conv_all[layer_index]
+            # o_E_conv = o_E_conv_all[layer_index]
+
             d = self.thickness[layer_index]
 
             if self.pol == 0:
@@ -289,13 +290,14 @@ class _BaseRCWA:
             elif self.pol == 1:
                 E_conv_i = torch.linalg.inv(E_conv)
                 B = Kx @ E_conv_i @ Kx - torch.eye(E_conv.shape[0], device=self.device, dtype=self.type_complex)
-                o_E_conv_i = torch.linalg.inv(o_E_conv)
+                # o_E_conv_i = torch.linalg.inv(o_E_conv)
 
                 Eig.perturbation = self.perturbation
-                eigenvalues, W = Eig.apply(o_E_conv_i @ B)
+                eigenvalues, W = Eig.apply(E_conv @ B)
                 q = eigenvalues ** 0.5
                 Q = torch.diag(q)
-                V = o_E_conv @ W @ Q
+                # V = o_E_conv @ W @ Q
+                V = E_conv_i @ W @ Q
 
             else:
                 raise ValueError
@@ -355,11 +357,14 @@ class _BaseRCWA:
         for layer_index in range(count)[::-1]:
 
             E_conv = E_conv_all[layer_index]
-            o_E_conv = o_E_conv_all[layer_index]
+            # o_E_conv = o_E_conv_all[layer_index]
+            o_E_conv = None
+
             d = self.thickness[layer_index]
 
             E_conv_i = torch.linalg.inv(E_conv)
-            o_E_conv_i = torch.linalg.inv(o_E_conv)
+            # o_E_conv_i = torch.linalg.inv(o_E_conv)
+            o_E_conv_i = None
 
             if self.algo == 'TMM':
                 big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2\
@@ -429,10 +434,14 @@ class _BaseRCWA:
         for layer_index in range(count)[::-1]:
 
             E_conv = E_conv_all[layer_index]
-            o_E_conv = o_E_conv_all[layer_index]
+            # o_E_conv = o_E_conv_all[layer_index]
+            o_E_conv = None
+
             d = self.thickness[layer_index]
+
             E_conv_i = torch.linalg.inv(E_conv)
-            o_E_conv_i = torch.linalg.inv(o_E_conv)
+            # o_E_conv_i = torch.linalg.inv(o_E_conv)
+            o_E_conv_i = None
 
             if self.algo == 'TMM':
                 W, V, q = transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv,
@@ -447,7 +456,7 @@ class _BaseRCWA:
                 self.layer_info_list.append(layer_info)
 
             elif self.algo == 'SMM':
-                W, V, LAMBDA = scattering_2d_wv(Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
+                W, V, LAMBDA = scattering_2d_wv(ff_xy, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
                 A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
             else:
                 raise ValueError
