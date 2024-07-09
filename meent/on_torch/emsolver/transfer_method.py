@@ -304,8 +304,8 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', ty
 
     S2_from_S = torch.cat(
         [
-            torch.cat([Ky ** 2 + B @ o_E_conv_i, Kx @ (E_conv_i @ Ky @ E_conv - Ky)], dim=1),
-            torch.cat([Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv], dim=1)
+            torch.cat([Ky ** 2 + B @ E_conv, Kx @ (E_conv_i @ Ky @ E_conv - Ky)], dim=1),
+            torch.cat([Ky @ (E_conv_i @ Kx @ E_conv - Kx), Kx ** 2 + D @ E_conv], dim=1)
         ])
 
     Eig.perturbation = perturbation
@@ -316,7 +316,7 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', ty
     U1_from_S = torch.cat(
         [
             torch.cat([-Kx @ Ky, Kx ** 2 - E_conv], dim=1),
-            torch.cat([o_E_conv_i - Ky ** 2, Ky @ Kx], dim=1)
+            torch.cat([E_conv - Ky ** 2, Ky @ Kx], dim=1)
         ]
     )
     V = U1_from_S @ W @ Q_i

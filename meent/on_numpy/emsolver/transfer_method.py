@@ -271,8 +271,8 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=np.
 
     S2_from_S = np.block(
         [
-            [Ky ** 2 + B @ o_E_conv_i, Kx @ (E_conv_i @ Ky @ E_conv - Ky)],
-            [Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
+            [Ky ** 2 + B @ E_conv, Kx @ (E_conv_i @ Ky @ E_conv - Ky)],
+            [Ky @ (E_conv_i @ Kx @ E_conv - Kx), Kx ** 2 + D @ E_conv]
         ])
 
     eigenvalues, W = np.linalg.eig(S2_from_S)
@@ -281,12 +281,14 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, type_complex=np.
 
     Q = np.diag(q)
     Q_i = np.linalg.inv(Q)
+
     U1_from_S = np.block(
         [
             [-Kx @ Ky, Kx ** 2 - E_conv],
-            [o_E_conv_i - Ky ** 2, Ky @ Kx]
+            [E_conv - Ky ** 2, Ky @ Kx]
         ]
     )
+
     V = U1_from_S @ W @ Q_i
 
     return W, V, q
