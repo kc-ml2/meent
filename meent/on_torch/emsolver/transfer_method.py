@@ -134,7 +134,8 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, o_E_conv_i, ff, d, varphi, bi
     B_i = torch.linalg.inv(B)
 
     to_decompose_W_1 = (ky/k0) ** 2 * I + A
-    to_decompose_W_2 = (ky/k0) ** 2 * I + B @ o_E_conv_i
+    # to_decompose_W_2 = (ky/k0) ** 2 * I + B @ o_E_conv_i
+    to_decompose_W_2 = (ky/k0) ** 2 * I + B @ E_conv
 
     Eig.perturbation = perturbation
     eigenvalues_1, W_1 = Eig.apply(to_decompose_W_1)
