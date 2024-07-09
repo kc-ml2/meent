@@ -299,8 +299,8 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', ty
 
     S2_from_S = jnp.block(
         [
-            [Ky ** 2 + B @ o_E_conv_i, Kx @ (E_conv_i @ Ky @ E_conv - Ky)],
-            [Ky @ (E_conv_i @ Kx @ o_E_conv_i - Kx), Kx ** 2 + D @ E_conv]
+            [Ky ** 2 + B @ E_conv, Kx @ (E_conv_i @ Ky @ E_conv - Ky)],
+            [Ky @ (E_conv_i @ Kx @ E_conv - Kx), Kx ** 2 + D @ E_conv]
         ])
 
     eigenvalues, W = eig(S2_from_S, type_complex=type_complex, perturbation=perturbation, device=device)
@@ -314,7 +314,7 @@ def transfer_2d_wv(ff_xy, Kx, E_conv_i, Ky, o_E_conv_i, E_conv, device='cpu', ty
     U1_from_S = jnp.block(
         [
             [-Kx @ Ky, Kx ** 2 - E_conv],
-            [o_E_conv_i - Ky ** 2, Ky @ Kx]
+            [E_conv - Ky ** 2, Ky @ Kx]
         ]
     )
     V = U1_from_S @ W @ Q_i
