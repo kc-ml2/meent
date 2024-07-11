@@ -67,7 +67,7 @@ class RCWANumpy(_BaseRCWA):
         else:
             raise ValueError
 
-    def _solve(self, wavelength, e_conv_all, o_e_conv_all):
+    def _solve_d(self, wavelength, e_conv_all, o_e_conv_all):
         self.kx_vector = self.get_kx_vector(wavelength)
 
         if self.grating_type == 0:
@@ -81,7 +81,21 @@ class RCWANumpy(_BaseRCWA):
 
         return de_ri, de_ti, layer_info_list, T1, self.kx_vector
 
-    def solve(self, wavelength, e_conv_all, o_e_conv_all):
+    def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all):
+        self.kx_vector = self.get_kx_vector(wavelength)
+
+        if self.grating_type == 0:
+            de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
+        elif self.grating_type == 1:
+            de_ri, de_ti, layer_info_list, T1 = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
+        elif self.grating_type == 2:
+            de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
+        else:
+            raise ValueError
+
+        return de_ri, de_ti, layer_info_list, T1, self.kx_vector
+
+    def solve_d(self, wavelength, e_conv_all, o_e_conv_all):
         de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(wavelength, e_conv_all, o_e_conv_all)
 
         self.layer_info_list = layer_info_list
@@ -90,7 +104,16 @@ class RCWANumpy(_BaseRCWA):
 
         return de_ri, de_ti
 
-    def conv_solve(self, **kwargs):
+    def solve(self, wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all):
+        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
+
+        self.layer_info_list = layer_info_list
+        self.T1 = T1
+        self.kx_vector = kx_vector
+
+        return de_ri, de_ti
+
+    def conv_solve_d(self, **kwargs):
         # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
 
         if self.fft_type == 0:
@@ -107,6 +130,30 @@ class RCWANumpy(_BaseRCWA):
             raise ValueError
 
         de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
+
+        self.layer_info_list = layer_info_list
+        self.T1 = T1
+        self.kx_vector = kx_vector
+
+        return de_ri, de_ti
+
+    def conv_solve(self, **kwargs):
+        # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
+
+        if self.fft_type == 0:
+            epx_conv_all, epy_conv_all, epz_i_conv_all = to_conv_mat_raster_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                                   type_complex=self.type_complex, improve_dft=self.improve_dft)
+        elif self.fft_type == 1:
+            epx_conv_all, epy_conv_all, epz_i_conv_all = to_conv_mat_raster_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
+                                                                     type_complex=self.type_complex)
+        elif self.fft_type == 2:
+            epx_conv_all, epy_conv_all, epz_i_conv_all = to_conv_mat_vector(self.ucell_info_list, self.fourier_order[0],
+                                                          self.fourier_order[1],
+                                                          type_complex=self.type_complex)
+        else:
+            raise ValueError
+
+        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
 
         self.layer_info_list = layer_info_list
         self.T1 = T1

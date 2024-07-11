@@ -121,8 +121,9 @@ def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d, varph
     B_i = np.linalg.inv(B)
 
     to_decompose_W_1 = (ky/k0) ** 2 * I + A
-    # to_decompose_W_2 = (ky/k0) ** 2 * I + B @ o_E_conv_i
-    to_decompose_W_2 = (ky/k0) ** 2 * I + B @ E_conv
+
+    to_decompose_W_2 = (ky/k0) ** 2 * I + B @ o_E_conv_i
+    # to_decompose_W_2 = (ky/k0) ** 2 * I + B @ E_conv
 
     eigenvalues_1, W_1 = np.linalg.eig(to_decompose_W_1)
     eigenvalues_2, W_2 = np.linalg.eig(to_decompose_W_2)

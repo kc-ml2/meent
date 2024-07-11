@@ -138,10 +138,10 @@ def to_conv_mat_vector(ucell_info_list, fourier_order_x, fourier_order_y, device
 #     return c.T
 #
 #
-# def to_conv_mat_continuous_vector_sinc(ucell_info_list, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
+# def to_conv_mat_continuous_vector_sinc(ucell_info_list, fto_x, fto_y, device=torch.device('cpu'),
 #                                   type_complex=torch.complex128):
-#     ff_x = 2 * fourier_order_x + 1
-#     ff_y = 2 * fourier_order_y + 1
+#     ff_x = 2 * fto_x + 1
+#     ff_y = 2 * fto_y + 1
 #
 #     e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).type(type_complex)
 #     o_e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).type(type_complex)
@@ -155,9 +155,9 @@ def to_conv_mat_vector(ucell_info_list, fourier_order_x, fourier_order_y, device
 #         # y_list = torch.tensor(y_list, dtype=type_complex) if type(y_list) != torch.Tensor else y_list
 #
 #         f_coeffs = fft_piecewise_constant_vector(ucell_layer, x_list, y_list,
-#                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
+#                                                  fto_x, fto_y, type_complex=type_complex)
 #         o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
-#                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
+#                                                  fto_x, fto_y, type_complex=type_complex)
 #
 #         import seaborn as sns
 #         import matplotlib.pyplot as plt

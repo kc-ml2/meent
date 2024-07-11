@@ -689,14 +689,14 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
     return field_cell
 
 
-# def field_dist_2d_lax(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+# def field_dist_2d_lax(wavelength, kx_vector, n_I, theta, phi, fto_x, fto_y, T1, layer_info_list, period,
 #                   resolution=(10, 10, 10),
 #                   type_complex=jnp.complex128):
 #
 #     k0 = 2 * jnp.pi / wavelength
-#     fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
-#     ff_x = fourier_order_x * 2 + 1
-#     ff_y = fourier_order_y * 2 + 1
+#     fourier_indices_y = jnp.arange(-fto_y, fto_y + 1)
+#     ff_x = fto_x * 2 + 1
+#     ff_y = fto_y * 2 + 1
 #     ff_xy = ff_x * ff_y
 #     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
 #             wavelength / period[1])).astype(type_complex)
@@ -809,14 +809,14 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #
 #
 #
-# def field_dist_2d_lax_heavy(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+# def field_dist_2d_lax_heavy(wavelength, kx_vector, n_I, theta, phi, fto_x, fto_y, T1, layer_info_list, period,
 #                   resolution=(10, 10, 10),
 #                   type_complex=jnp.complex128):
 #
 #     k0 = 2 * jnp.pi / wavelength
-#     fourier_indices_y = jnp.arange(-fourier_order_y, fourier_order_y + 1)
-#     ff_x = fourier_order_x * 2 + 1
-#     ff_y = fourier_order_y * 2 + 1
+#     fourier_indices_y = jnp.arange(-fto_y, fto_y + 1)
+#     ff_x = fto_x * 2 + 1
+#     ff_y = fto_y * 2 + 1
 #     ff_xy = ff_x * ff_y
 #     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
 #             wavelength / period[1])).astype(type_complex)

@@ -29,10 +29,10 @@ n_II = 1
 
 theta = 0 * pi / 180
 
-fourier_order = 170
+fourier_order = 30
 period = 0.7
 
-wls = np.linspace(0.5, 2.3, 400)
+wls = np.linspace(0.5, 2.3, 1)
 
 spectrum_r, spectrum_t = [], []
 
@@ -83,6 +83,7 @@ for wl in wls:
         X = np.diag(np.exp(-k0 * q * d))
 
         V = E_i @ W @ Q
+        V = E_conv @ W @ np.linalg.inv(Q)
 
         W_i = np.linalg.inv(W)
         V_i = np.linalg.inv(V)
@@ -102,6 +103,8 @@ for wl in wls:
 
     DEri = R*np.conj(R)*np.real(k_I_z/(k0*n_I*np.cos(theta)))
     DEti = T * np.conj(T) * np.real(k_II_z / n_II ** 2) / (k0 * np.cos(theta) / n_I)
+    print(DEri)
+    print(DEti)
 
     spectrum_r.append(DEri.sum())
     spectrum_t.append(DEti.sum())
