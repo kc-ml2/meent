@@ -198,18 +198,18 @@ class _BaseRCWA:
         return kx_vector
 
     def get_kx_ky_vector(self, wavelength):
-        k0 = 2 * np.pi / wavelength
+
         fto_x_range = np.arange(-self.fto[0], self.fto[0] + 1)
         fto_y_range = np.arange(-self.fto[1], self.fto[1] + 1)
 
         if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) + fto_x_range * (wavelength / self.period[0])
+            kx_vector = (self.n_I * np.sin(self.theta) + fto_x_range * (wavelength / self.period[0])
                               ).astype(self.type_complex)
         else:
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) + fto_x_range * (
+            kx_vector = (self.n_I * np.sin(self.theta) * np.cos(self.phi) + fto_x_range * (
                     wavelength / self.period[0])).astype(self.type_complex)
 
-        ky_vector = k0 * (self.n_I * np.sin(self.theta) * np.sin(self.phi) + fto_y_range * (
+        ky_vector = (self.n_I * np.sin(self.theta) * np.sin(self.phi) + fto_y_range * (
                 wavelength / self.period[1])).astype(self.type_complex)
 
         return kx_vector, ky_vector
@@ -218,19 +218,19 @@ class _BaseRCWA:
         self.layer_info_list = []
         self.T1 = None
 
-        ff = self.fto[0] * 2 + 1
+        ff_x = self.fto[0] * 2 + 1
+        ff_y = 1
 
-        delta_i0 = np.zeros(ff, dtype=self.type_complex)
+        delta_i0 = np.zeros(ff_x, dtype=self.type_complex)
         delta_i0[self.fto[0]] = 1
 
         k0 = 2 * np.pi / wavelength
-
-        kx_vector, _ = self.get_kx_ky_vector(wavelength)
+        kx, ky = self.get_kx_ky_vector(wavelength)
 
         if self.algo == 'TMM':
-            kx_vector, Kx, kz_top, kz_bot, f, YZ_I, g, inc_term, T \
-                = transfer_1d_1(ff, self.pol, k0, self.n_I, self.n_II, kx_vector,
-                                self.theta, delta_i0, self.fto, type_complex=self.type_complex)
+            kz_top, kz_bot, f, g, T \
+                = transfer_1d_1(ff_x, ff_y, kx, ky, self.pol, self.n_I, self.n_II,
+                                type_complex=self.type_complex)
         elif self.algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
                 = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, self.period,
@@ -238,9 +238,6 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        # From the last layer
-        # for E_conv, o_E_conv, d in zip(E_conv_all[::-1], o_E_conv_all[::-1], self.thickness[::-1]):
-        # count = min(len(epx_conv_all), len(self.thickness))
         assert len(epx_conv_all) == len(self.thickness)
 
         # From the last layer
@@ -275,7 +272,7 @@ class _BaseRCWA:
             #     raise ValueError
 
             if self.algo == 'TMM':
-                W, V, q = transfer_1d_2(self.pol, Kx, epx_conv, epy_conv, epz_conv_i, self.type_complex)
+                W, V, q = transfer_1d_2(self.pol, kx, epx_conv, epy_conv, epz_conv_i, self.type_complex)
 
                 X, f, g, T, a_i, b = transfer_1d_3(k0, W, V, q, d, f, g, T,
                                                    type_complex=self.type_complex)
@@ -289,8 +286,8 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.algo == 'TMM':
-            de_ri, de_ti, T1 = transfer_1d_4(g, YZ_I, f, delta_i0, inc_term, T, kz_top, k0, self.n_I, self.n_II,
-                                             self.theta, self.pol, kz_bot)
+            de_ri, de_ti, T1 = transfer_1d_4(f, g, T, kz_top, kz_bot, self.psi, self.theta, self.n_I, self.n_II,
+                                             self.pol, type_complex=self.type_complex)
             self.T1 = T1
 
         elif self.algo == 'SMM':
@@ -307,24 +304,21 @@ class _BaseRCWA:
         self.T1 = None
 
         ff_x = self.fto[0] * 2 + 1
+        ff_y = 1
 
         k0 = 2 * np.pi / wavelength
-        kx_vector, ky_vector = self.get_kx_ky_vector(wavelength)
+        kx, ky = self.get_kx_ky_vector(wavelength)
 
         if self.algo == 'TMM':
-            Kx, Ky, kz_top, kz_bot, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
-                = transfer_1d_conical_1(k0, ff_x, kx_vector, ky_vector, self.n_I, self.n_II,
-                                        type_complex=self.type_complex)
+            kz_top, kz_bot, varphi, big_F, big_G, big_T \
+                = transfer_1d_conical_1(ff_x, ff_y, kx, ky, self.n_I, self.n_II, type_complex=self.type_complex)
         elif self.algo == 'SMM':
             print('SMM for 1D conical is not implemented')
             return np.nan, np.nan
         else:
             raise ValueError
 
-        assert len(epx_conv_all) == len(self.thickness)
-
         # From the last layer
-        # for layer_index in range(count)[::-1]:
         for layer_index in range(len(self.thickness))[::-1]:
 
             epx_conv = epx_conv_all[layer_index]
@@ -334,10 +328,10 @@ class _BaseRCWA:
             d = self.thickness[layer_index]
 
             if self.algo == 'TMM':
-                W, V, q = transfer_1d_conical_2(Kx, Ky, epx_conv, epy_conv, epz_conv_i, type_complex=self.type_complex)
+                W, V, q = transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=self.type_complex)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
-                    = transfer_1d_conical_3(k0,W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex)
+                    = transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex)
 
                 layer_info = [epz_conv_i, W, V, q, d, big_X, big_A_i, big_B]  # TODO: change field recover code
                 self.layer_info_list.append(layer_info)
@@ -348,9 +342,8 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.algo == 'TMM':
-            de_ri, de_ti, big_T1 = transfer_1d_conical_4(k0, big_F, big_G, big_T, Z_I, Y_I, kz_top, kz_bot,
-                                                         self.psi, self.theta, self.n_I, self.n_II,
-                                                         type_complex=self.type_complex)
+            de_ri, de_ti, big_T1 = transfer_1d_conical_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
+                                                         self.n_I, self.n_II, type_complex=self.type_complex)
             self.T1 = big_T1
 
         elif self.algo == 'SMM':
@@ -369,13 +362,11 @@ class _BaseRCWA:
         ff_y = self.fto[1] * 2 + 1
 
         k0 = 2 * np.pi / wavelength
-        kx_vector, ky_vector = self.get_kx_ky_vector(wavelength)
+        kx, ky = self.get_kx_ky_vector(wavelength)
 
         if self.algo == 'TMM':
-            # Kx, Ky, kz_top, kz_bot, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T \
             kz_top, kz_bot, varphi, big_F, big_G, big_T \
-                = transfer_2d_1(k0, ff_x, ff_y, kx_vector, ky_vector, self.n_I, self.n_II,
-                                type_complex=self.type_complex)
+                = transfer_2d_1(ff_x, ff_y, kx, ky, self.n_I, self.n_II, type_complex=self.type_complex)
 
         elif self.algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
@@ -393,7 +384,7 @@ class _BaseRCWA:
             d = self.thickness[layer_index]
 
             if self.algo == 'TMM':
-                W, V, q = transfer_2d_2(k0, kx_vector, ky_vector, epx_conv, epy_conv, epz_conv_i, type_complex=self.type_complex)
+                W, V, q = transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=self.type_complex)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex)
@@ -408,7 +399,7 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.algo == 'TMM':
-            de_ri, de_ti, big_T1 = transfer_2d_4(k0, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
+            de_ri, de_ti, big_T1 = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
                                                  self.n_I, self.n_II, type_complex=self.type_complex)
             self.T1 = big_T1
 
