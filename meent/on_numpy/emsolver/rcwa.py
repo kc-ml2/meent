@@ -22,19 +22,19 @@ class RCWANumpy(_BaseRCWA):
                  backend=0,
                  grating_type=0,
                  pol=0.,
-                 fourier_order=(2, 0),
+                 fto=(2, 0),
                  ucell_materials=None,
                  algo='TMM',
                  perturbation=1E-20,
                  device='cpu',
                  type_complex=np.complex128,
                  fft_type=0,
-                 improve_dft=True,
+                 enhanced_dfs=True,
                  **kwargs,
                  ):
 
         super().__init__(grating_type=grating_type, n_I=n_I, n_II=n_II, theta=theta, phi=phi, pol=pol,
-                         fourier_order=fourier_order, period=period, wavelength=wavelength,
+                         fto=fto, period=period, wavelength=wavelength,
                          thickness=thickness, algo=algo, perturbation=perturbation,
                          device=device, type_complex=type_complex, )
 
@@ -44,7 +44,7 @@ class RCWANumpy(_BaseRCWA):
 
         self.backend = backend
         self.fft_type = fft_type
-        self.improve_dft = improve_dft
+        self.enhanced_dfs = enhanced_dfs
 
         self.layer_info_list = []
 
@@ -67,22 +67,7 @@ class RCWANumpy(_BaseRCWA):
         else:
             raise ValueError
 
-    def _solve_d(self, wavelength, e_conv_all, o_e_conv_all):
-        self.kx_vector = self.get_kx_vector(wavelength)
-
-        if self.grating_type == 0:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, e_conv_all, o_e_conv_all)
-        elif self.grating_type == 1:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d_conical(wavelength, e_conv_all, o_e_conv_all)
-        elif self.grating_type == 2:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, e_conv_all, o_e_conv_all)
-        else:
-            raise ValueError
-
-        return de_ri, de_ti, layer_info_list, T1, self.kx_vector
-
     def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all):
-        self.kx_vector = self.get_kx_vector(wavelength)
 
         if self.grating_type == 0:
             de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
@@ -93,47 +78,13 @@ class RCWANumpy(_BaseRCWA):
         else:
             raise ValueError
 
-        return de_ri, de_ti, layer_info_list, T1, self.kx_vector
-
-    def solve_d(self, wavelength, e_conv_all, o_e_conv_all):
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(wavelength, e_conv_all, o_e_conv_all)
-
-        self.layer_info_list = layer_info_list
-        self.T1 = T1
-        self.kx_vector = kx_vector
-
-        return de_ri, de_ti
+        return de_ri, de_ti, layer_info_list, T1
 
     def solve(self, wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all):
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
+        de_ri, de_ti, layer_info_list, T1 = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
 
         self.layer_info_list = layer_info_list
         self.T1 = T1
-        self.kx_vector = kx_vector
-
-        return de_ri, de_ti
-
-    def conv_solve_d(self, **kwargs):
-        # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
-
-        if self.fft_type == 0:
-            E_conv_all, o_E_conv_all = to_conv_mat_raster_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                                   type_complex=self.type_complex, improve_dft=self.improve_dft)
-        elif self.fft_type == 1:
-            E_conv_all, o_E_conv_all = to_conv_mat_raster_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                                     type_complex=self.type_complex)
-        elif self.fft_type == 2:
-            E_conv_all, o_E_conv_all = to_conv_mat_vector(self.ucell_info_list, self.fourier_order[0],
-                                                          self.fourier_order[1],
-                                                          type_complex=self.type_complex)
-        else:
-            raise ValueError
-
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
-
-        self.layer_info_list = layer_info_list
-        self.T1 = T1
-        self.kx_vector = kx_vector
 
         return de_ri, de_ti
 
@@ -141,23 +92,22 @@ class RCWANumpy(_BaseRCWA):
         # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
 
         if self.fft_type == 0:
-            epx_conv_all, epy_conv_all, epz_i_conv_all = to_conv_mat_raster_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                                   type_complex=self.type_complex, improve_dft=self.improve_dft)
+            epx_conv_all, epy_conv_all, epz_i_conv_all = to_conv_mat_raster_discrete(self.ucell, self.fto[0], self.fto[1],
+                                                                                     type_complex=self.type_complex, enhanced_dfs=self.enhanced_dfs)
         elif self.fft_type == 1:
-            epx_conv_all, epy_conv_all, epz_i_conv_all = to_conv_mat_raster_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
+            epx_conv_all, epy_conv_all, epz_i_conv_all = to_conv_mat_raster_continuous(self.ucell, self.fto[0], self.fto[1],
                                                                      type_complex=self.type_complex)
         elif self.fft_type == 2:
-            epx_conv_all, epy_conv_all, epz_i_conv_all = to_conv_mat_vector(self.ucell_info_list, self.fourier_order[0],
-                                                          self.fourier_order[1],
+            epx_conv_all, epy_conv_all, epz_i_conv_all = to_conv_mat_vector(self.ucell_info_list, self.fto[0],
+                                                          self.fto[1],
                                                           type_complex=self.type_complex)
         else:
             raise ValueError
 
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
+        de_ri, de_ti, layer_info_list, T1 = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_i_conv_all)
 
         self.layer_info_list = layer_info_list
         self.T1 = T1
-        self.kx_vector = kx_vector
 
         return de_ri, de_ti
 
@@ -197,16 +147,16 @@ class RCWANumpy(_BaseRCWA):
         elif self.grating_type == 2:
             if field_algo == 0:
                 field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-                                                   self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list, self.period,
+                                                   self.fto[0], self.fto[1], self.T1, self.layer_info_list, self.period,
                                                    res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             elif field_algo == 1:
                 field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                         self.phi, self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list,
+                                                         self.phi, self.fto[0], self.fto[1], self.T1, self.layer_info_list,
                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z,
                                                          type_complex=self.type_complex)
             elif field_algo == 2:
-                field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                          self.phi, self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list,
+                field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.n_I, self.theta,
+                                                          self.phi, self.fto[0], self.fto[1], self.T1, self.layer_info_list,
                                                           self.period, res_x=res_x, res_y=res_y, res_z=res_z,
                                                           type_complex=self.type_complex)
             else:

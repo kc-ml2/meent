@@ -362,15 +362,21 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx_vector, n_I, theta, phi,
     return field_cell
 
 
-def field_dist_2d_vectorized_kji(wavelength, kx_vector, n_I, theta, phi, fourier_order_x, fourier_order_y, T1, layer_info_list, period,
+def field_dist_2d_vectorized_kji(wavelength, n_I, theta, phi, fto, T1, layer_info_list, period,
                                  res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
 
-    fourier_indices_y = np.arange(-fourier_order_y, fourier_order_y + 1)
-    ff_x = fourier_order_x * 2 + 1
-    ff_y = fourier_order_y * 2 + 1
-    ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) + fourier_indices_y * (
+    fto_x_range = np.arange(-fto[0], fto[0] + 1)
+    fto_y_range = np.arange(-fto[1], fto[1] + 1)
+
+    ff_x = fto[0] * 2 + 1
+    ff_y = fto[1] * 2 + 1
+
+    kx_vector = k0 * (n_I * np.sin(theta) * np.cos(phi) + fto_x_range * (
+            wavelength / period[0])).astype(type_complex)
+
+    ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) + fto_y_range * (
             wavelength / period[1])).astype(type_complex)
 
     Kx = np.diag(np.tile(kx_vector, ff_y).flatten()) / k0

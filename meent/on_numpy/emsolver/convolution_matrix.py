@@ -88,9 +88,6 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None,
     ff_x = 2 * fto_x + 1
     ff_y = 2 * fto_y + 1
 
-    # e_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
-    # o_e_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
-
     epx_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
     epy_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
     epz_i_conv_all = np.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
@@ -100,11 +97,6 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None,
         ucell_layer, x_list, y_list = ucell_info
         # ucell_layer = ucell_layer ** 2
         eps_compressed = ucell_layer ** 2
-
-        # f_coeffs = fft_piecewise_constant(ucell_layer, x_list, y_list,
-        #                                   fto_x, fto_y, type_complex=type_complex)
-        # o_f_coeffs = fft_piecewise_constant(1 / ucell_layer, x_list, y_list,
-        #                                     fto_x, fto_y, type_complex=type_complex)
 
         epx_f = cfs2d(eps_compressed, x_list, y_list, fto_x, fto_y, 0, 1, type_complex)
         epy_f = cfs2d(eps_compressed, x_list, y_list, fto_x, fto_y, 1, 0, type_complex)
@@ -144,168 +136,118 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=None, type_complex
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
-        ff = 2 * fto_x + 1
+        ff_x = 2 * fto_x + 1
+        ff_y = 2 * fto_y + 1  # which is 1
 
-        # e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
-        # o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
-
-        epx_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
-        epy_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
-        epz_i_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
+        epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
+        epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
+        epz_conv_i_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
 
             eps_compressed, x, y = cell_compression(layer, type_complex=type_complex)
 
-            # f_coeffs = fft_piecewise_constant(cell, x, y, fto_x, fto_y, type_complex=type_complex)
-            # o_f_coeffs = fft_piecewise_constant(1 / cell, x, y, fto_x, fto_y, type_complex=type_complex)
+            epz_conv = cfs2d(eps_compressed, x, y, 1, 1, fto_x, fto_y, type_complex)
+            epy_conv = cfs2d(eps_compressed, x, y, 1, 0, fto_x, fto_y, type_complex)
+            epx_conv = cfs2d(eps_compressed, x, y, 0, 1, fto_x, fto_y, type_complex)
 
-            epx_f = cfs2d(eps_compressed, x, y, fto_x, fto_y, 0, 1, type_complex)
-            epy_f = cfs2d(eps_compressed, x, y, fto_x, fto_y, 1, 0, type_complex)
-            epz_f = cfs2d(eps_compressed, x, y, fto_x, fto_y, 1, 1, type_complex)
-
-            # center = np.array(f_coeffs.shape) // 2
-            center = np.array(epz_f.shape) // 2
-
-            conv_x = np.arange(-ff + 1, ff, 1, dtype=int)
-            conv_x = circulant(conv_x)
-
-            # e_conv = f_coeffs[center[0], center[1] + conv_idx]
-            # o_e_conv = o_f_coeffs[center[0], center[1] + conv_idx]
-            # e_conv_all[i] = e_conv
-            # o_e_conv_all[i] = o_e_conv
-
-            # XY to RC
-            epx_conv = epx_f[center[0], center[1] + conv_x]
-            epy_conv = epy_f[center[0], center[1] + conv_x]
-            epz_conv = epz_f[center[0], center[1] + conv_x]
+            # # center = np.array(f_coeffs.shape) // 2
+            # center = np.array(epz_f.shape) // 2
+            #
+            # conv_x = np.arange(-ff + 1, ff, 1, dtype=int)
+            # conv_x = circulant(conv_x)
+            #
+            # # XY to RC
+            # epx_conv = epx_f[center[0], center[1] + conv_x]
+            # epy_conv = epy_f[center[0], center[1] + conv_x]
+            # epz_conv = epz_f[center[0], center[1] + conv_x]
 
             epx_conv_all[i] = epx_conv
             epy_conv_all[i] = epy_conv
-            epz_i_conv_all[i] = np.linalg.inv(epz_conv)
+            epz_conv_i_all[i] = np.linalg.inv(epz_conv)
 
     else:  # 2D
         ff_x = 2 * fto_x + 1
         ff_y = 2 * fto_y + 1
 
-        # e_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
-        # o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
-
-        epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
-        epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
-        epz_i_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
+        epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
+        epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
+        epz_conv_i_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
 
         for i, layer in enumerate(ucell_pmt):
 
             eps_compressed, x, y = cell_compression(layer, type_complex=type_complex)
 
-            # f_coeffs = fft_piecewise_constant(cell, x, y, fto_x, fto_y, type_complex=type_complex)
-            # o_f_coeffs = fft_piecewise_constant(1 / cell, x, y, fto_x, fto_y, type_complex=type_complex)
-
-            epx_f = cfs2d(eps_compressed, x, y, fto_x, fto_y, 0, 1, type_complex)
-            epy_f = cfs2d(eps_compressed, x, y, fto_x, fto_y, 1, 0, type_complex)
-            epz_f = cfs2d(eps_compressed, x, y, fto_x, fto_y, 1, 1, type_complex)
-
-            # center = np.array(f_coeffs.shape) // 2
-            center = np.array(epz_f.shape) // 2
-
-            conv_y = np.arange(-ff_y + 1, ff_y, 1)
-            conv_y = circulant(conv_y)
-            conv_y = np.repeat(conv_y, ff_x, axis=1)
-            conv_y = np.repeat(conv_y, [ff_x] * ff_y, axis=0)
-
-            conv_x = np.arange(-ff_x + 1, ff_x, 1)
-            conv_x = circulant(conv_x)
-            conv_x = np.tile(conv_x, (ff_y, ff_y))
-
-            # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            # o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            # e_conv_all[i] = e_conv
-            # o_e_conv_all[i] = o_e_conv
-
-            # XY to RC
-            epx_conv = epx_f[center[0] + conv_y, center[1] + conv_x]
-            epy_conv = epy_f[center[0] + conv_y, center[1] + conv_x]
-            epz_conv = epz_f[center[0] + conv_y, center[1] + conv_x]
+            epz_conv = cfs2d(eps_compressed, x, y, 1, 1, fto_x, fto_y, type_complex)
+            epy_conv = cfs2d(eps_compressed, x, y, 1, 0, fto_x, fto_y, type_complex)
+            epx_conv = cfs2d(eps_compressed, x, y, 0, 1, fto_x, fto_y, type_complex)
 
             epx_conv_all[i] = epx_conv
             epy_conv_all[i] = epy_conv
-            epz_i_conv_all[i] = np.linalg.inv(epz_conv)
+            epz_conv_i_all[i] = np.linalg.inv(epz_conv)
 
-    # return e_conv_all, o_e_conv_all
-    return epx_conv_all, epy_conv_all, epz_i_conv_all
+    return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
 def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=np.complex128,
-                                improve_dft=True):
+                                enhanced_dfs=True):
     ucell_pmt = ucell ** 2
 
     if ucell_pmt.shape[1] == 1:  # 1D
-        ff = 2 * fto_x + 1
+        ff_x = 2 * fto_x + 1
+        ff_y = 2 * fto_y + 1  # which is 1
 
-        # e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
-        # o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
+        epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
+        epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
+        epz_conv_i_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
 
-        epx_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
-        epy_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
-        epz_i_conv_all = np.zeros((ucell_pmt.shape[0], ff, ff)).astype(type_complex)
-
-        if improve_dft:
-            minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]  # TODO: scale factor is 2? to avoid alias?
+        if enhanced_dfs:
+            minimum_pattern_size_x = (4 * fto_x + 1) * ucell_pmt.shape[2]
         else:
-            minimum_pattern_size = 4 * fto_x + 1  # TODO: align with other bds
+            minimum_pattern_size_x = (4 * fto_x + 1)  # TODO: align with other bds
 
         for i, layer in enumerate(ucell_pmt):
-            n = minimum_pattern_size // layer.shape[1]
+            n = minimum_pattern_size_x // layer.shape[1]
             layer = np.repeat(layer, n + 1, axis=1)
 
-            # f_coeffs = np.fft.fftshift(np.fft.fft(layer / layer.size).astype(type_complex))
-            # o_f_coeffs = np.fft.fftshift(np.fft.fft(1/layer / layer.size).astype(type_complex))
+            epz_conv = dfs2d(layer, 1, 1, fto_x, fto_y, type_complex)
+            epy_conv = dfs2d(layer, 1, 0, fto_x, fto_y, type_complex)
+            epx_conv = dfs2d(layer, 0, 1, fto_x, fto_y, type_complex)
 
-            # FFT scaling:
-            # https://kr.mathworks.com/matlabcentral/answers/15770-scaling-the-fft-and-the-ifft?s_tid=srchtitle
-
-            epx_f = dfs2d(layer, 0, 1, type_complex)  # inverse rule
-            epy_f = dfs2d(layer, 1, 0, type_complex)
-            epz_f = dfs2d(layer, 1, 1, type_complex)
-
-            # center = np.array(f_coeffs.shape) // 2
-            center = np.array(epz_f.shape) // 2
-
-            conv_x = np.arange(-ff + 1, ff, 1, dtype=int)
-            conv_x = circulant(conv_x)
-
-            # e_conv = f_coeffs[center[0], center[1] + conv_idx]
-            # o_e_conv = o_f_coeffs[center[0], center[1] + conv_idx]
-            # e_conv_all[i] = e_conv
-            # o_e_conv_all[i] = o_e_conv
-
-            # XY to RC
-            epx_conv = epx_f[center[0], center[1] + conv_x]
-            epy_conv = epy_f[center[0], center[1] + conv_x]
-            epz_conv = epz_f[center[0], center[1] + conv_x]
+            # # center = np.array(f_coeffs.shape) // 2
+            # center = np.array(epz_f.shape) // 2
+            #
+            # conv_x = np.arange(-ff + 1, ff, 1, dtype=int)
+            # conv_x = circulant(conv_x)
+            #
+            # # e_conv = f_coeffs[center[0], center[1] + conv_idx]
+            # # o_e_conv = o_f_coeffs[center[0], center[1] + conv_idx]
+            # # e_conv_all[i] = e_conv
+            # # o_e_conv_all[i] = o_e_conv
+            #
+            # # XY to RC
+            # epx_conv = epx_f[center[0], center[1] + conv_x]
+            # epy_conv = epy_f[center[0], center[1] + conv_x]
+            # epz_conv = epz_f[center[0], center[1] + conv_x]
 
             epx_conv_all[i] = epx_conv
             epy_conv_all[i] = epy_conv
-            epz_i_conv_all[i] = np.linalg.inv(epz_conv)
+            epz_conv_i_all[i] = np.linalg.inv(epz_conv)
 
     else:  # 2D
         ff_x = 2 * fto_x + 1
         ff_y = 2 * fto_y + 1
 
-        # e_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
-        # o_e_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y)).astype(type_complex)
+        epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
+        epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
+        epz_conv_i_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
 
-        epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
-        epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
-        epz_i_conv_all = np.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y)).astype(type_complex)
-
-        if improve_dft:
-            minimum_pattern_size_y = 2 * ff_y * ucell_pmt.shape[1]
-            minimum_pattern_size_x = 2 * ff_x * ucell_pmt.shape[2]
+        if enhanced_dfs:
+            minimum_pattern_size_y = (4 * fto_y + 1) * ucell_pmt.shape[1]
+            minimum_pattern_size_x = (4 * fto_x + 1) * ucell_pmt.shape[2]
         else:
-            minimum_pattern_size_y = 2 * ff_y
-            minimum_pattern_size_x = 2 * ff_x
+            minimum_pattern_size_y = 4 * fto_y + 1
+            minimum_pattern_size_x = 4 * fto_x + 1
             # e.g., 8 bytes * (40*500) * (40*500) / 1E6 = 3200 MB = 3.2 GB
 
         for i, layer in enumerate(ucell_pmt):
@@ -317,38 +259,17 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=n
                 n = minimum_pattern_size_x // layer.shape[1]
                 layer = np.repeat(layer, n + 1, axis=1)
 
-            # f_coeffs = np.fft.fftshift(np.fft.fft2(layer / layer.size).astype(type_complex))
-            # o_f_coeffs = np.fft.fftshift(np.fft.fft2(1/layer / layer.size).astype(type_complex))
-
-            epx_f = dfs2d(layer, 0, 1, type_complex)
-            epy_f = dfs2d(layer, 1, 0, type_complex)
-            epz_f = dfs2d(layer, 1, 1, type_complex)
-
-            center = np.array(epz_f.shape) // 2
-
-            conv_y = np.arange(-ff_y + 1, ff_y, 1)
-            conv_y = circulant(conv_y)
-            conv_y = np.repeat(conv_y, ff_x, axis=1)
-            conv_y = np.repeat(conv_y, [ff_x] * ff_y, axis=0)
-
-            conv_x = np.arange(-ff_x + 1, ff_x, 1)
-            conv_x = circulant(conv_x)
-            conv_x = np.tile(conv_x, (ff_y, ff_y))
-
-            # e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            # o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            # e_conv_all[i] = e_conv
-            # o_e_conv_all[i] = o_e_conv
-
-            epx_conv = epx_f[center[0] + conv_y, center[1] + conv_x]
-            epy_conv = epy_f[center[0] + conv_y, center[1] + conv_x]
-            epz_conv = epz_f[center[0] + conv_y, center[1] + conv_x]
+            epz_conv = dfs2d(layer, 1, 1, fto_x, fto_y, type_complex)
+            epy_conv = dfs2d(layer, 1, 0, fto_x, fto_y, type_complex)
+            epx_conv = dfs2d(layer, 0, 1, fto_x, fto_y, type_complex)
 
             epx_conv_all[i] = epx_conv
             epy_conv_all[i] = epy_conv
-            epz_i_conv_all[i] = np.linalg.inv(epz_conv)
+            epz_conv_i_all[i] = np.linalg.inv(epz_conv)
+            # a = np.linalg.inv(epz_conv)
+            # epz_i_conv_all[i] = a[0][0]
 
-    return epx_conv_all, epy_conv_all, epz_i_conv_all
+    return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
 def circulant(c):
