@@ -19,11 +19,11 @@ class MeeJax(ModelingJax, RCWAJax, OptimizerJax):
             'pol': self.pol,
             'fourier_order': self.fourier_order,
             'ucell_materials': self.ucell_materials,
-            'algo': self.algo,
+            'connecting_algo': self.algo,
             'perturbation': self.perturbation,
             'device': self.device,
             'type_complex': self.type_complex,
-            'fft_type': self.fft_type,
+            'fourier_type': self.fft_type,
         }
 
         return children, aux_data

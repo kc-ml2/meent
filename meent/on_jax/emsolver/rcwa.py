@@ -63,11 +63,11 @@ class RCWAJax(_BaseRCWA):
             'pol': self.pol,
             'fourier_order': self.fourier_order,
             'ucell_materials': self.ucell_materials,
-            'algo': self.algo,
+            'connecting_algo': self.algo,
             'perturbation': self.perturbation,
             'device': self.device,
             'type_complex': self.type_complex,
-            'fft_type': self.fft_type,
+            'fourier_type': self.fft_type,
         }
 
         return children, aux_data
@@ -153,7 +153,7 @@ class RCWAJax(_BaseRCWA):
     def conv_solve(self, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
         if self.fft_type == 1:
-            # print('CFT (fft_type=1) is not supported for jit-compilation. Using non-jit-compiled method.')
+            # print('CFT (fourier_type=1) is not supported for jit-compilation. Using non-jit-compiled method.')
             de_ri, de_ti, layer_info_list, T1, kx_vector = self._conv_solve()
 
         else:
@@ -258,7 +258,7 @@ class RCWAJax(_BaseRCWA):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
         if self.fft_type == 1:
-            print('CFT (fft_type=1) is not supported with JAX jit-compilation. Use conv_solve_field_no_jit.')
+            print('CFT (fourier_type=1) is not supported with JAX jit-compilation. Use conv_solve_field_no_jit.')
             return None, None, None
 
         de_ri, de_ti, _, _, _ = self._conv_solve()

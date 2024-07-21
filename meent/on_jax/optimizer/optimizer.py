@@ -10,7 +10,7 @@ class OptimizerJax:
         super().__init__()
 
     # def _tree_flatten(self):
-    #     children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
+    #     children = (self.n_top, self.n_bot, self.theta, self.phi, self.psi,
     #                 self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
     #     aux_data = {
     #         'backend': self.backend,
@@ -18,11 +18,11 @@ class OptimizerJax:
     #         'pol': self.pol,
     #         'fourier_order': self.fourier_order,
     #         'ucell_materials': self.ucell_materials,
-    #         'algo': self.algo,
+    #         'connecting_algo': self.connecting_algo,
     #         'perturbation': self.perturbation,
     #         'device': self.device,
     #         'type_complex': self.type_complex,
-    #         'fft_type': self.fft_type,
+    #         'fourier_type': self.fourier_type,
     #     }
     #
     #     return children, aux_data

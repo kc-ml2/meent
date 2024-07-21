@@ -236,7 +236,7 @@ class _BaseRCWA:
             kx_vector = k0 * (self.n_I * torch.sin(self.theta) * torch.cos(self.phi) + fourier_indices_x * (
                     wavelength / self.period[0])).type(self.type_complex)
 
-        # kx_vector = torch.where(kx_vector == 0, self.perturbation, kx_vector)
+        # kx = torch.where(kx == 0, self.perturbation, kx)
 
         return kx_vector
 

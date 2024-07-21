@@ -229,7 +229,7 @@ class _BaseRCWA:
             kx_vector = k0 * (self.n_I * jnp.sin(self.theta) * jnp.cos(self.phi) + fourier_indices * (
                     wavelength / self.period[0])).astype(self.type_complex)
 
-        # kx_vector = jnp.where(kx_vector == 0, self.perturbation, kx_vector)
+        # kx = jnp.where(kx == 0, self.perturbation, kx)
 
         return kx_vector
 

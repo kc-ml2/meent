@@ -7,9 +7,9 @@ from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transf
 
 
 class _BaseRCWA:
-    def __init__(self, grating_type, n_I=1., n_II=1., theta=0., phi=0., pol=0., fto=(2, 2),
-                 period=(100., 100.), wavelength=900.,
-                 thickness=(0., ), algo='TMM', perturbation=1E-20,
+    def __init__(self, n_top=1., n_bot=1., theta=0., phi=0., psi=None, pol=0., fto=(0, 0),
+                 period=(100., 100.), wavelength=1.,
+                 thickness=(0., ), connecting_algo='TMM', perturbation=1E-20,
                  type_complex=np.complex128, *args, **kwargs):
 
         self._device = 0
@@ -27,24 +27,21 @@ class _BaseRCWA:
         self._type_int = np.int64 if self.type_complex is not np.complex64 else np.int32
         self.perturbation = perturbation
 
-        self.grating_type = grating_type  # 1D=0, 1D_conical=1, 2D=2
-        self.n_I = n_I
-        self.n_II = n_II
+        self.n_top = n_top
+        self.n_bot = n_bot
 
-        # degree to radian due to JAX JIT
         self.theta = theta
         self.phi = phi
         self.pol = pol
-        self._psi = np.array((np.pi / 2 * (1 - pol)), dtype=self.type_float)
+        self.psi = psi
 
         self.fto = fto
         self.period = period
         self.wavelength = wavelength
         self.thickness = thickness
-        self.algo = algo
+        self.connecting_algo = connecting_algo
         self.layer_info_list = []
         self.T1 = None
-        # self.kx_vector = None  # only kx, not ky, because kx is always used while ky is 2D only.
 
     @property
     def device(self):
@@ -126,6 +123,13 @@ class _BaseRCWA:
     def psi(self):
         return self._psi
 
+    @psi.setter
+    def psi(self, psi):
+        if psi is not None:
+            self._psi = np.array(psi, dtype=self.type_float)
+            pol = -(2 * psi / np.pi - 1)
+            self._pol = pol
+
     @property
     def fto(self):
         return self._fourier_order
@@ -167,6 +171,8 @@ class _BaseRCWA:
         if type(period) in (int, float):
             self._period = np.array([period], dtype=self.type_float)
         elif type(period) in (list, tuple, np.ndarray):
+            if len(period) == 1:
+                period = [period[0], 1]
             self._period = np.array(period, dtype=self.type_float)
         else:
             raise ValueError
@@ -184,32 +190,15 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-    def get_kx_vector(self, wavelength):
-        k0 = 2 * np.pi / wavelength
-        fourier_indices_x = np.arange(-self.fto[0], self.fto[0] + 1)
-
-        if self.grating_type == 0:
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) + fourier_indices_x * (wavelength / self.period[0])
-                              ).astype(self.type_complex)
-        else:
-            kx_vector = k0 * (self.n_I * np.sin(self.theta) * np.cos(self.phi) + fourier_indices_x * (
-                    wavelength / self.period[0])).astype(self.type_complex)
-
-        return kx_vector
-
     def get_kx_ky_vector(self, wavelength):
 
         fto_x_range = np.arange(-self.fto[0], self.fto[0] + 1)
         fto_y_range = np.arange(-self.fto[1], self.fto[1] + 1)
 
-        if self.grating_type == 0:
-            kx_vector = (self.n_I * np.sin(self.theta) + fto_x_range * (wavelength / self.period[0])
-                              ).astype(self.type_complex)
-        else:
-            kx_vector = (self.n_I * np.sin(self.theta) * np.cos(self.phi) + fto_x_range * (
-                    wavelength / self.period[0])).astype(self.type_complex)
+        kx_vector = (self.n_top * np.sin(self.theta) * np.cos(self.phi) + fto_x_range * (
+                wavelength / self.period[0])).astype(self.type_complex)
 
-        ky_vector = (self.n_I * np.sin(self.theta) * np.sin(self.phi) + fto_y_range * (
+        ky_vector = (self.n_top * np.sin(self.theta) * np.sin(self.phi) + fto_y_range * (
                 wavelength / self.period[1])).astype(self.type_complex)
 
         return kx_vector, ky_vector
@@ -219,26 +208,19 @@ class _BaseRCWA:
         self.T1 = None
 
         ff_x = self.fto[0] * 2 + 1
-        ff_y = 1
-
-        delta_i0 = np.zeros(ff_x, dtype=self.type_complex)
-        delta_i0[self.fto[0]] = 1
 
         k0 = 2 * np.pi / wavelength
-        kx, ky = self.get_kx_ky_vector(wavelength)
+        kx, _ = self.get_kx_ky_vector(wavelength)
 
-        if self.algo == 'TMM':
-            kz_top, kz_bot, f, g, T \
-                = transfer_1d_1(ff_x, ff_y, kx, ky, self.pol, self.n_I, self.n_II,
-                                type_complex=self.type_complex)
-        elif self.algo == 'SMM':
+        if self.connecting_algo == 'TMM':
+            kz_top, kz_bot, F, G, T \
+                = transfer_1d_1(self.pol, ff_x, kx, self.n_top, self.n_bot, type_complex=self.type_complex)
+        elif self.connecting_algo == 'SMM':
             Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
-                = scattering_1d_1(k0, self.n_I, self.n_II, self.theta, self.phi, self.period,
+                = scattering_1d_1(k0, self.n_top, self.n_bot, self.theta, self.phi, self.period,
                                   self.pol, wl=wavelength)
         else:
             raise ValueError
-
-        assert len(epx_conv_all) == len(self.thickness)
 
         # From the last layer
         for layer_index in range(len(self.thickness))[::-1]:
@@ -271,28 +253,27 @@ class _BaseRCWA:
             # else:
             #     raise ValueError
 
-            if self.algo == 'TMM':
+            if self.connecting_algo == 'TMM':
                 W, V, q = transfer_1d_2(self.pol, kx, epx_conv, epy_conv, epz_conv_i, self.type_complex)
 
-                X, f, g, T, a_i, b = transfer_1d_3(k0, W, V, q, d, f, g, T,
-                                                   type_complex=self.type_complex)
+                X, F, G, T, A_i, B = transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=self.type_complex)
 
-                layer_info = [epz_conv_i, W, V, q, d, X, a_i, b]  # TODO: change field recover code
+                layer_info = [epz_conv_i, W, V, q, d, A_i, B]  # TODO: change field recover code
                 self.layer_info_list.append(layer_info)
 
-            elif self.algo == 'SMM':
+            elif self.connecting_algo == 'SMM':
                 A, B, S_dict, Sg = scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg)
             else:
                 raise ValueError
 
-        if self.algo == 'TMM':
-            de_ri, de_ti, T1 = transfer_1d_4(f, g, T, kz_top, kz_bot, self.psi, self.theta, self.n_I, self.n_II,
-                                             self.pol, type_complex=self.type_complex)
+        if self.connecting_algo == 'TMM':
+            de_ri, de_ti, T1 = transfer_1d_4(self.pol, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
+                                             type_complex=self.type_complex)
             self.T1 = T1
 
-        elif self.algo == 'SMM':
+        elif self.connecting_algo == 'SMM':
             de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, ff, Wr, self.fto, Kzr, Kzt,
-                                           self.n_I, self.n_II, self.theta, self.pol)
+                                           self.n_top, self.n_bot, self.theta, self.pol)
         else:
             raise ValueError
 
@@ -309,10 +290,10 @@ class _BaseRCWA:
         k0 = 2 * np.pi / wavelength
         kx, ky = self.get_kx_ky_vector(wavelength)
 
-        if self.algo == 'TMM':
+        if self.connecting_algo == 'TMM':
             kz_top, kz_bot, varphi, big_F, big_G, big_T \
-                = transfer_1d_conical_1(ff_x, ff_y, kx, ky, self.n_I, self.n_II, type_complex=self.type_complex)
-        elif self.algo == 'SMM':
+                = transfer_1d_conical_1(ff_x, ff_y, kx, ky, self.n_top, self.n_bot, type_complex=self.type_complex)
+        elif self.connecting_algo == 'SMM':
             print('SMM for 1D conical is not implemented')
             return np.nan, np.nan
         else:
@@ -327,26 +308,26 @@ class _BaseRCWA:
 
             d = self.thickness[layer_index]
 
-            if self.algo == 'TMM':
+            if self.connecting_algo == 'TMM':
                 W, V, q = transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=self.type_complex)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex)
 
-                layer_info = [epz_conv_i, W, V, q, d, big_X, big_A_i, big_B]  # TODO: change field recover code
+                layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]  # TODO: change field recover code
                 self.layer_info_list.append(layer_info)
 
-            elif self.algo == 'SMM':
+            elif self.connecting_algo == 'SMM':
                 raise ValueError
             else:
                 raise ValueError
 
-        if self.algo == 'TMM':
+        if self.connecting_algo == 'TMM':
             de_ri, de_ti, big_T1 = transfer_1d_conical_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
-                                                         self.n_I, self.n_II, type_complex=self.type_complex)
+                                                         self.n_top, self.n_bot, type_complex=self.type_complex)
             self.T1 = big_T1
 
-        elif self.algo == 'SMM':
+        elif self.connecting_algo == 'SMM':
             raise ValueError
         else:
             raise ValueError
@@ -364,13 +345,13 @@ class _BaseRCWA:
         k0 = 2 * np.pi / wavelength
         kx, ky = self.get_kx_ky_vector(wavelength)
 
-        if self.algo == 'TMM':
+        if self.connecting_algo == 'TMM':
             kz_top, kz_bot, varphi, big_F, big_G, big_T \
-                = transfer_2d_1(ff_x, ff_y, kx, ky, self.n_I, self.n_II, type_complex=self.type_complex)
+                = transfer_2d_1(ff_x, ff_y, kx, ky, self.n_top, self.n_bot, type_complex=self.type_complex)
 
-        elif self.algo == 'SMM':
+        elif self.connecting_algo == 'SMM':
             Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
-                = scattering_2d_1(self.n_I, self.n_II, self.theta, self.phi, k0, self.period, self.fto)
+                = scattering_2d_1(self.n_top, self.n_bot, self.theta, self.phi, k0, self.period, self.fto)
         else:
             raise ValueError
 
@@ -383,28 +364,28 @@ class _BaseRCWA:
 
             d = self.thickness[layer_index]
 
-            if self.algo == 'TMM':
+            if self.connecting_algo == 'TMM':
                 W, V, q = transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=self.type_complex)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex)
 
-                layer_info = [epz_conv_i, W, V, q, d, big_X, big_A_i, big_B]  # TODO: change field recover code
+                layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]  # TODO: change field recover code
                 self.layer_info_list.append(layer_info)
 
-            elif self.algo == 'SMM':
+            elif self.connecting_algo == 'SMM':
                 W, V, q = scattering_2d_wv(ff_xy, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
                 A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, q)
             else:
                 raise ValueError
 
-        if self.algo == 'TMM':
+        if self.connecting_algo == 'TMM':
             de_ri, de_ti, big_T1 = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
-                                                 self.n_I, self.n_II, type_complex=self.type_complex)
+                                                 self.n_top, self.n_bot, type_complex=self.type_complex)
             self.T1 = big_T1
 
-        elif self.algo == 'SMM':
-            de_ri, de_ti = scattering_2d_3(ff_xy, Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_I,
+        elif self.connecting_algo == 'SMM':
+            de_ri, de_ti = scattering_2d_3(ff_xy, Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_top,
                                            self.pol, self.theta, self.phi, self.fto)
         else:
             raise ValueError

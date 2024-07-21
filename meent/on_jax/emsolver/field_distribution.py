@@ -592,7 +592,7 @@ def field_dist_1d_conical_vanilla(wavelength, kx_vector, n_I, theta, phi, T1, la
 
             for j in range(res_y):
                 for i in range(res_x):
-                    # val = x_loop_1d_conical(period, res_x, kx_vector, Sx, Sy, Sz, Ux, Uy, Uz, i)
+                    # val = x_loop_1d_conical(period, res_x, kx, Sx, Sy, Sz, Ux, Uy, Uz, i)
                     x = i * period[0] / res_x
 
                     exp_K = jnp.exp(-1j * kx_vector.reshape((-1, 1)) * x)
@@ -689,7 +689,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
     return field_cell
 
 
-# def field_dist_2d_lax(wavelength, kx_vector, n_I, theta, phi, fto_x, fto_y, T1, layer_info_list, period,
+# def field_dist_2d_lax(wavelength, kx, n_top, theta, phi, fto_x, fto_y, T1, layer_info_list, period,
 #                   resolution=(10, 10, 10),
 #                   type_complex=jnp.complex128):
 #
@@ -698,10 +698,10 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #     ff_x = fto_x * 2 + 1
 #     ff_y = fto_y * 2 + 1
 #     ff_xy = ff_x * ff_y
-#     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
+#     ky_vector = k0 * (n_top * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
 #             wavelength / period[1])).astype(type_complex)
 #
-#     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+#     Kx = jnp.diag(jnp.tile(kx, ff_y).flatten()) / k0
 #     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 #
 #     resolution_x, resolution_y, resolution_z = resolution
@@ -718,7 +718,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
 #         i=j=k=0  # delete
 #
-#         args = [k, j, i, k0, resolution_z, resolution_y, resolution_x, idx_layer, d, kx_vector, ky_vector, q, period, c, Kx, Ky, E_conv_i, W_11, W_12, W_21, W_22, V_11, V_12, V_21]
+#         args = [k, j, i, k0, resolution_z, resolution_y, resolution_x, idx_layer, d, kx, ky_vector, q, period, c, Kx, Ky, E_conv_i, W_11, W_12, W_21, W_22, V_11, V_12, V_21]
 #
 #         res_size = 1 * 9 + ff_x + ff_y + 2*ff_xy + 2 + 2*2*ff_xy + 11 * ff_xy**2
 #         res = jnp.zeros(res_size, dtype=type_complex)
@@ -762,7 +762,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #             d = args[8]
 #
 #             b, e = 9, 9 + ff_x
-#             kx_vector = args[b:e]
+#             kx = args[b:e]
 #             b, e = e, e + ff_y
 #             ky_vector = args[b:e]
 #             b, e = e, e + 2 * ff_xy
@@ -799,7 +799,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #             y = j * period[1] / resolution_y
 #             Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22,
 #                                                V_11, V_12, V_21, V_22, d)
-#             val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
+#             val = x_loop_2d(period, resolution_x, kx, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
 #             field_cell = field_cell.at[(resolution_z * idx_layer + k).real.astype(int), j.real.astype(int), i.real.astype(int)].set(val)
 #
 #             return field_cell, val
@@ -809,7 +809,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #
 #
 #
-# def field_dist_2d_lax_heavy(wavelength, kx_vector, n_I, theta, phi, fto_x, fto_y, T1, layer_info_list, period,
+# def field_dist_2d_lax_heavy(wavelength, kx, n_top, theta, phi, fto_x, fto_y, T1, layer_info_list, period,
 #                   resolution=(10, 10, 10),
 #                   type_complex=jnp.complex128):
 #
@@ -818,10 +818,10 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #     ff_x = fto_x * 2 + 1
 #     ff_y = fto_y * 2 + 1
 #     ff_xy = ff_x * ff_y
-#     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
+#     ky_vector = k0 * (n_top * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
 #             wavelength / period[1])).astype(type_complex)
 #
-#     Kx = jnp.diag(jnp.tile(kx_vector, ff_y).flatten()) / k0
+#     Kx = jnp.diag(jnp.tile(kx, ff_y).flatten()) / k0
 #     Ky = jnp.diag(jnp.tile(ky_vector.reshape((-1, 1)), ff_x).flatten()) / k0
 #
 #     resolution_x, resolution_y, resolution_z = resolution
@@ -838,7 +838,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #         c = jnp.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
 #         i=j=k=0  # delete
 #
-#         args = [k, j, i, k0, resolution_z, resolution_y, resolution_x, idx_layer, d, kx_vector, ky_vector, q, period, c, Kx, Ky, E_conv_i, W_11, W_12, W_21, W_22, V_11, V_12, V_21]
+#         args = [k, j, i, k0, resolution_z, resolution_y, resolution_x, idx_layer, d, kx, ky_vector, q, period, c, Kx, Ky, E_conv_i, W_11, W_12, W_21, W_22, V_11, V_12, V_21]
 #
 #         res_size = 1 * 9 + ff_x + ff_y + 2*ff_xy + 2 + 2*2*ff_xy + 11 * ff_xy**2
 #         res = jnp.zeros(res_size, dtype=type_complex)
@@ -882,7 +882,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #             d = args[8]
 #
 #             b, e = 9, 9 + ff_x
-#             kx_vector = args[b:e]
+#             kx = args[b:e]
 #             b, e = e, e + ff_y
 #             ky_vector = args[b:e]
 #             b, e = e, e + 2 * ff_xy
@@ -919,7 +919,7 @@ def field_dist_2d_vanilla(wavelength, kx_vector, n_I, theta, phi, fourier_order_
 #             y = j * period[1] / resolution_y
 #             Sx, Sy, Ux, Uy, Sz, Uz = z_loop_2d(k, c, k0, Kx, Ky, resolution_z, E_conv_i, q, W_11, W_12, W_21, W_22,
 #                                                V_11, V_12, V_21, V_22, d)
-#             val = x_loop_2d(period, resolution_x, kx_vector, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
+#             val = x_loop_2d(period, resolution_x, kx, ky_vector, Sx, Sy, Sz, Ux, Uy, Uz, y, i)
 #             field_cell = field_cell.at[(resolution_z * idx_layer + k).real.astype(int), j.real.astype(int), i.real.astype(int)].set(val)
 #
 #             return field_cell, val

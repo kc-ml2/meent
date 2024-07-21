@@ -42,9 +42,9 @@ def compare_conv_mat_method(backend, type_complex, device):
                        ucell_thickness=thickness, device=device,
                        type_complex=type_complex, )
 
-        mee.fft_type = 0
+        mee.fourier_type = 0
         de_ri, de_ti = mee.conv_solve()
-        mee.fft_type = 1
+        mee.fourier_type = 1
         de_ri1, de_ti1 = mee.conv_solve()
 
         try:

@@ -168,7 +168,7 @@ class Reticolo:
     #
     #     abseff, effi_r, effi_t = self.eng.reticolo_res2(pattern, self.wavelength, self.deflected_angle,
     #                                                     self.fourier_order,
-    #                                                     self.n_I, self.n_II, self.thickness, self.theta, n_si, nout=3)
+    #                                                     self.n_top, self.n_bot, self.thickness, self.theta, n_si, nout=3)
     #     effi_r, effi_t = np.array(effi_r).flatten(), np.array(effi_t).flatten()
     #
     #     return abseff, effi_r, effi_t
@@ -179,15 +179,15 @@ if __name__ == '__main__':
     option = {
         'grating_type': 1,
         'pol': 1,
-        'n_I': 1,
-        'n_II': 1,
+        'n_top': 1,
+        'n_bot': 1,
         'theta': 1,
         'phi': 1,
         'wavelength': 1,
         'fourier_order': 1,
         'thickness': [1000, 300],
         'period': [1000],
-        'fft_type': 1,
+        'fourier_type': 1,
         'ucell': np.array(
             [
                 [[3.1, 1.1, 1.2, 1.6, 3.1]],

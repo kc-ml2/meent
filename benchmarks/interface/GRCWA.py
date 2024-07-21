@@ -77,15 +77,15 @@ if __name__ == '__main__':
     option = {
         'grating_type': 0,
         'pol': 1,
-        'n_I': 1,
-        'n_II': 1,
+        'n_top': 1,
+        'n_bot': 1,
         'theta': 1,
         'phi': 1,
         'wavelength': 1,
         'fourier_order': 1,
         'thickness': [1000, 300],
         'period': [1000],
-        'fft_type': 1,
+        'fourier_type': 1,
         'ucell': np.array(
             [
                 [[3.1, 1.1, 1.2, 1.6, 3.1]],

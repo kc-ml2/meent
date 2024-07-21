@@ -69,11 +69,11 @@ def transfer_1d_3(g, YZ_I, f, delta_i0, inc_term, T, k_I_z, k0, n_I, n_II, theta
     T = T @ T1
 
     # conj() is not allowed with grad x jit
-    # de_ri = jnp.real(R * jnp.conj(R) * k_I_z / (k0 * n_I * jnp.cos(theta)))
+    # de_ri = jnp.real(R * jnp.conj(R) * k_I_z / (k0 * n_top * jnp.cos(theta)))
     # if polarization == 0:
-    #     de_ti = T * jnp.conj(T) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta)))
+    #     de_ti = T * jnp.conj(T) * jnp.real(k_II_z / (k0 * n_top * jnp.cos(theta)))
     # elif polarization == 1:
-    #     de_ti = T * jnp.conj(T) * jnp.real(k_II_z / n_II ** 2) / (k0 * jnp.cos(theta) / n_I)
+    #     de_ti = T * jnp.conj(T) * jnp.real(k_II_z / n_bot ** 2) / (k0 * jnp.cos(theta) / n_top)
     # else:
     #     raise ValueError
 
@@ -92,7 +92,7 @@ def transfer_1d_conical_1(ff, k0, n_I, n_II, kx_vector, theta, phi, type_complex
     I = jnp.eye(ff).astype(type_complex)
     O = jnp.zeros((ff, ff)).astype(type_complex)
 
-    # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) - fourier_indices * (wavelength / period[0])
+    # kx = k0 * (n_top * jnp.sin(theta) * jnp.cos(phi) - fourier_indices * (wavelength / period[0])
     #                   ).astype(type_complex)
 
     ky = k0 * n_I * jnp.sin(theta) * jnp.sin(phi)
@@ -235,11 +235,11 @@ def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i
     T_p = big_T[ff:, :].flatten()
 
     # conj() is not allowed with grad x jit
-    # de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
-    #         + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
+    # de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_top * jnp.cos(theta))) \
+    #         + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_top ** 2) / (k0 * n_top * jnp.cos(theta)))
     #
-    # de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
-    #         + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))
+    # de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_top * jnp.cos(theta))) \
+    #         + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_bot ** 2) / (k0 * n_top * jnp.cos(theta)))
 
     de_ri = R_s * conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
             + R_p * conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))  # manual conjugate
@@ -255,7 +255,7 @@ def transfer_2d_1(ff_x, ff_y, ff_xy, k0, n_I, n_II, kx_vector, period, fourier_i
     I = jnp.eye(ff_xy).astype(type_complex)
     O = jnp.zeros((ff_xy, ff_xy), dtype=type_complex)
 
-    # kx_vector = k0 * (n_I * jnp.sin(theta) * jnp.cos(phi) + fourier_indices * (
+    # kx = k0 * (n_top * jnp.sin(theta) * jnp.cos(phi) + fourier_indices * (
     #         wavelength / period[0])).astype(type_complex)
 
     ky_vector = k0 * (n_I * jnp.sin(theta) * jnp.sin(phi) + fourier_indices_y * (
@@ -420,11 +420,11 @@ def transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff_xy, delt
     T_p = big_T[ff_xy:, :].flatten()
 
     # conj() is not allowed with grad x jit
-    # de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
-    #         + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))
+    # de_ri = R_s * jnp.conj(R_s) * jnp.real(k_I_z / (k0 * n_top * jnp.cos(theta))) \
+    #         + R_p * jnp.conj(R_p) * jnp.real((k_I_z / n_top ** 2) / (k0 * n_top * jnp.cos(theta)))
     #
-    # de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_I * jnp.cos(theta))) \
-    #         + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_II ** 2) / (k0 * n_I * jnp.cos(theta)))
+    # de_ti = T_s * jnp.conj(T_s) * jnp.real(k_II_z / (k0 * n_top * jnp.cos(theta))) \
+    #         + T_p * jnp.conj(T_p) * jnp.real((k_II_z / n_bot ** 2) / (k0 * n_top * jnp.cos(theta)))
 
     de_ri = R_s * conj(R_s) * jnp.real(k_I_z / (k0 * n_I * jnp.cos(theta))) \
             + R_p * conj(R_p) * jnp.real((k_I_z / n_I ** 2) / (k0 * n_I * jnp.cos(theta)))  # manual conjugate

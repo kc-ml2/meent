@@ -56,7 +56,7 @@ class TORCWA:
 
         for layer, thick in zip(self.ucell,self.thickness):
             sim.add_layer(thickness=thick, eps=layer)
-        # sim.add_output_layer(eps=self.n_II)  # This line makes error.
+        # sim.add_output_layer(eps=self.n_bot)  # This line makes error.
         sim.solve_global_smatrix()
 
         order =[
@@ -95,15 +95,15 @@ if __name__ == '__main__':
     option = {
         'grating_type': 1,
         'pol': 1,
-        'n_I': 1,
-        'n_II': 1,
+        'n_top': 1,
+        'n_bot': 1,
         'theta': 1,
         'phi': 1,
         'wavelength': 100,
         'fourier_order': 1,
         'thickness': [1000, 300],
         'period': [1000],
-        'fft_type': 1,
+        'fourier_type': 1,
         'ucell': np.array(
             [
                 [[3.1, 1.1, 1.2, 1.6, 3.1]*10],

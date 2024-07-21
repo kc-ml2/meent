@@ -20,7 +20,7 @@ def run_raster(rcwa_options, backend, fft_type):
     # ucell = ucell.numpy()
 
     rcwa_options['backend'] = backend
-    rcwa_options['fft_type'] = fft_type
+    rcwa_options['fourier_type'] = fft_type
     # 0: Discrete Fourier series; 1 is for Continuous FS which is used in vector modeling.
 
 

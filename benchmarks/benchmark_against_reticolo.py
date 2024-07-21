@@ -9,8 +9,8 @@ def consistency(backend):
     option = {}
     option['grating_type'] = 0  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
     option['pol'] = 0  # 0: TE, 1: TM
-    option['n_I'] = 1  # n_incidence
-    option['n_II'] = 1.5  # n_transmission
+    option['n_top'] = 1  # n_incidence
+    option['n_bot'] = 1.5  # n_transmission
     option['theta'] = 0 * np.pi / 180
     option['phi'] = 0 * np.pi / 180
     option['psi'] = 0 if option['pol'] else 90 * np.pi / 180
@@ -47,7 +47,7 @@ def consistency(backend):
     plt.plot(top_tran_info[center - plot_length:center + plot_length + 1], label='reticolo', marker=4)
 
     # Meent with CFT
-    mee.fft_type = 1
+    mee.fourier_type = 1
     de_ri, de_ti = mee.conv_solve()
     # print('meent_cont de_ri', de_ri)
     print('meent_cont; de_ri.sum(), de_ti.sum():', de_ri.sum(), de_ti.sum())
@@ -55,7 +55,7 @@ def consistency(backend):
     plt.plot(de_ti[center - plot_length:center + plot_length + 1], label='continuous', marker=6)
 
     # Meent with DFT
-    mee.fft_type = 0
+    mee.fourier_type = 0
     de_ri, de_ti = mee.conv_solve()
     # print('meent_disc de_ri', de_ri)
     print('meent_disc; de_ri.sum(), de_ti.sum():', de_ri.sum(), de_ti.sum())
