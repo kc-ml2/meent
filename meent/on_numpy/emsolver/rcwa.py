@@ -4,8 +4,8 @@ import numpy as np
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat_raster_continuous, to_conv_mat_raster_discrete, to_conv_mat_vector
 from .field_distribution import field_dist_1d_vectorized_ji, field_dist_1d_conical_vectorized_ji, field_dist_2d_vectorized_ji, field_plot, field_dist_1d_vanilla, \
-    field_dist_1d_vectorized_kji, field_dist_1d_conical_vanilla, field_dist_1d_conical_vectorized_kji, \
-    field_dist_2d_vectorized_kji, field_dist_2d_vanilla
+    field_dist_1d, field_dist_1d_conical_vanilla, field_dist_1d_conical, \
+    field_dist_2d, field_dist_2d_vanilla
 
 
 class RCWANumpy(_BaseRCWA):
@@ -141,7 +141,9 @@ class RCWANumpy(_BaseRCWA):
         return de_ri, de_ti
 
     def calculate_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
+
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
+
         if self._grating_type_assigned == 0:
             res_y = 1
             if field_algo == 0:
@@ -153,9 +155,9 @@ class RCWANumpy(_BaseRCWA):
                                                          self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
                                                          type_complex=self.type_complex)
             elif field_algo == 2:
-                field_cell = field_dist_1d_vectorized_kji(self.wavelength, kx, self.T1,
-                                                          self.layer_info_list, self.period, self.pol,
-                                                          res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+                field_cell = field_dist_1d(self.wavelength, kx, self.T1,
+                                           self.layer_info_list, self.period, self.pol,
+                                           res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             else:
                 raise ValueError
         elif self._grating_type_assigned == 1:
@@ -167,8 +169,8 @@ class RCWANumpy(_BaseRCWA):
                 field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
                                                                  res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             elif field_algo == 2:
-                field_cell = field_dist_1d_conical_vectorized_kji(self.wavelength,kx, ky, self.T1, self.layer_info_list, self.period,
-                                                                  res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+                field_cell = field_dist_1d_conical(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
+                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
             else:
                 raise ValueError
         elif self._grating_type_assigned == 2:
@@ -180,9 +182,9 @@ class RCWANumpy(_BaseRCWA):
                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z,
                                                          type_complex=self.type_complex)
             elif field_algo == 2:
-                field_cell = field_dist_2d_vectorized_kji(self.wavelength, kx, ky, self.T1, self.layer_info_list,
-                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z,
-                                                          type_complex=self.type_complex)
+                field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list,
+                                           self.period, res_x=res_x, res_y=res_y, res_z=res_z,
+                                           type_complex=self.type_complex)
             else:
                 raise ValueError
         else:

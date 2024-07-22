@@ -1,8 +1,8 @@
 import numpy as np
 
 
-def field_dist_1d_vectorized_kji(wavelength, kx, T1, layer_info_list, period,
-                                 pol, res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
+def field_dist_1d(wavelength, kx, T1, layer_info_list, period,
+                  pol, res_x=20, res_y=1, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     Kx = np.diag(kx)
@@ -89,8 +89,8 @@ def field_dist_1d_vectorized_kji(wavelength, kx, T1, layer_info_list, period,
     return field_cell
 
 
-def field_dist_1d_conical_vectorized_kji(wavelength, kx, ky, T1, layer_info_list, period,
-                                         res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
+def field_dist_1d_conical(wavelength, kx, ky, T1, layer_info_list, period,
+                          res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
     Kx = np.diag(kx)
@@ -170,8 +170,8 @@ def field_dist_1d_conical_vectorized_kji(wavelength, kx, ky, T1, layer_info_list
     return field_cell
 
 
-def field_dist_2d_vectorized_kji(wavelength, kx, ky, T1, layer_info_list, period,
-                                 res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
+def field_dist_2d(wavelength, kx, ky, T1, layer_info_list, period,
+                  res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
 

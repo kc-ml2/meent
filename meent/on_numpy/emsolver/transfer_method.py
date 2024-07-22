@@ -183,6 +183,7 @@ def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=n
     V_11 = A_i @ W_1 @ Q_1
     V_12 = Ky * A_i @ Kx @ W_2
     V_21 = Ky * B_i @ Kx @ epz_conv_i @ W_1
+    # V_21 = Ky * B_i @ Kx @ np.linalg.inv(epy_conv) @ W_1
     V_22 = B_i @ W_2 @ Q_2
 
     W = np.block([W_1, W_2])
@@ -268,8 +269,8 @@ def transfer_1d_conical_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_I, 
     big_G_21 = big_G[ff_xy:, :ff_xy]
     big_G_22 = big_G[ff_xy:, ff_xy:]
 
-    delta_i0 = np.zeros(ff_xy, dtype=type_complex)
-    delta_i0[ff_xy // 2] = 1
+    # delta_i0 = np.zeros(ff_xy, dtype=type_complex)
+    # delta_i0[ff_xy // 2] = 1
 
     delta_i0 = np.zeros((ff_xy, 1), dtype=type_complex)
     delta_i0[ff_xy // 2, 0] = 1
