@@ -3,9 +3,7 @@ import numpy as np
 
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat_raster_continuous, to_conv_mat_raster_discrete, to_conv_mat_vector
-from .field_distribution import field_dist_1d_vectorized_ji, field_dist_1d_conical_vectorized_ji, field_dist_2d_vectorized_ji, field_plot, field_dist_1d_vanilla, \
-    field_dist_1d, field_dist_1d_conical_vanilla, field_dist_1d_conical, \
-    field_dist_2d, field_dist_2d_vanilla
+from .field_distribution import field_plot, field_dist_1d, field_dist_2d
 
 
 class RCWANumpy(_BaseRCWA):
@@ -56,11 +54,8 @@ class RCWANumpy(_BaseRCWA):
 
         # grating type setting
         if self.grating_type is None:
-            if self.ucell.shape[1] == 1:
-                if (self.pol in (0, 1)) and (self.phi % (2*np.pi) == 0):
-                    self._grating_type_assigned = 0
-                else:
-                    self._grating_type_assigned = 1
+            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2*np.pi) == 0):
+                self._grating_type_assigned = 0
             else:
                 self._grating_type_assigned = 2
         else:
@@ -100,12 +95,12 @@ class RCWANumpy(_BaseRCWA):
 
         if self._grating_type_assigned == 0:
             de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        elif self._grating_type_assigned == 1:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        elif self._grating_type_assigned == 2:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        # elif self._grating_type_assigned == 1:
+        #     de_ri, de_ti, layer_info_list, T1 = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        # elif self._grating_type_assigned == 2:
+        #     de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
-            raise ValueError
+            de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         return de_ri, de_ti, layer_info_list, T1
 
@@ -121,17 +116,32 @@ class RCWANumpy(_BaseRCWA):
     def conv_solve(self, **kwargs):
         # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
 
-        if self._modeling_type_assigned == 0 and self.fourier_type in (0, 1):
-            epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_discrete(
-                self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex, enhanced_dfs=self.fourier_type)
-        elif self._modeling_type_assigned == 0 and self.fourier_type == 2:
-            epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_continuous(
-                self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex)
-        elif self._modeling_type_assigned == 1:
+        if self._modeling_type_assigned == 0:  # Raster
+
+            if self.fourier_type == 0:
+                enhance = False
+                epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_discrete(
+                    self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex,
+                    enhanced_dfs=enhance)
+
+            elif (self.fourier_type == 1) or (self.fourier_type is None):
+                enhance = True
+                epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_discrete(
+                    self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex,
+                    enhanced_dfs=enhance)
+
+            elif self.fourier_type == 2:
+                epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_continuous(
+                    self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex)
+            else:
+                raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
+
+        elif self._modeling_type_assigned == 1:  # Vector
             epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_vector(
                 self.ucell_info_list, self.fto[0], self.fto[1], type_complex=self.type_complex)
+
         else:
-            raise ValueError("Check 'modeling_type' and 'fourier_type'.")
+            raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
         de_ri, de_ti, layer_info_list, T1 = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
@@ -146,49 +156,66 @@ class RCWANumpy(_BaseRCWA):
 
         if self._grating_type_assigned == 0:
             res_y = 1
-            if field_algo == 0:
-                field_cell = field_dist_1d_vanilla(self.wavelength, kx,
-                                                   self.T1, self.layer_info_list, self.period, self.pol,
-                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            elif field_algo == 1:
-                field_cell = field_dist_1d_vectorized_ji(self.wavelength, kx, self.T1, self.layer_info_list,
-                                                         self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
-                                                         type_complex=self.type_complex)
-            elif field_algo == 2:
-                field_cell = field_dist_1d(self.wavelength, kx, self.T1,
-                                           self.layer_info_list, self.period, self.pol,
-                                           res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            else:
-                raise ValueError
+            field_cell = field_dist_1d(self.wavelength, self.n_top, self.theta, kx, self.T1,
+                                       self.layer_info_list, self.period, self.pol,
+                                       res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
         elif self._grating_type_assigned == 1:
             res_y = 1
-            if field_algo == 0:
-                field_cell = field_dist_1d_conical_vanilla(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                                           res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            elif field_algo == 1:
-                field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                                                 res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            elif field_algo == 2:
-                field_cell = field_dist_1d_conical(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            else:
-                raise ValueError
-        elif self._grating_type_assigned == 2:
-            if field_algo == 0:
-                field_cell = field_dist_2d_vanilla(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            elif field_algo == 1:
-                field_cell = field_dist_2d_vectorized_ji(self.wavelength, kx, ky, self.T1, self.layer_info_list,
-                                                         self.period, res_x=res_x, res_y=res_y, res_z=res_z,
-                                                         type_complex=self.type_complex)
-            elif field_algo == 2:
-                field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list,
-                                           self.period, res_x=res_x, res_y=res_y, res_z=res_z,
-                                           type_complex=self.type_complex)
-            else:
-                raise ValueError
+            field_cell = field_dist_2d(self.wavelength, self.n_top, self.theta, self.phi, kx, ky, self.T1, self.layer_info_list, self.period,
+                                       res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
         else:
-            raise ValueError
+            field_cell = field_dist_2d(self.wavelength, self.n_top, self.theta, self.phi, kx, ky, self.T1, self.layer_info_list, self.period,
+                                       res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        #
+        # if self._grating_type_assigned == 0:
+        #     res_y = 1
+        #     if field_algo == 0:
+        #         field_cell = field_dist_1d_vanilla(self.wavelength, kx,
+        #                                            self.T1, self.layer_info_list, self.period, self.pol,
+        #                                            res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        #     elif field_algo == 1:
+        #         field_cell = field_dist_1d_vectorized_ji(self.wavelength, kx, self.T1, self.layer_info_list,
+        #                                                  self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
+        #                                                  type_complex=self.type_complex)
+        #     elif field_algo == 2:
+        #         field_cell = field_dist_1d(self.wavelength, kx, self.T1,
+        #                                    self.layer_info_list, self.period, self.pol,
+        #                                    res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        #     else:
+        #         raise ValueError
+        # # elif self._grating_type_assigned == 1:
+        # #     res_y = 1
+        # #     if field_algo == 0:
+        # #         field_cell = field_dist_1d_conical_vanilla(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
+        # #                                                    res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        # #     elif field_algo == 1:
+        # #         field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
+        # #                                                          res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        # #     elif field_algo == 2:
+        # #         field_cell = field_dist_1d_conical(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
+        # #                                            res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        # #     else:
+        # #         raise ValueError
+        #
+        # # elif self._grating_type_assigned == 2:
+        #
+        # else:
+        #     if field_algo == 0:
+        #         field_cell = field_dist_2d_vanilla(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
+        #                                            res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        #     elif field_algo == 1:
+        #         field_cell = field_dist_2d_vectorized_ji(self.wavelength, kx, ky, self.T1, self.layer_info_list,
+        #                                                  self.period, res_x=res_x, res_y=res_y, res_z=res_z,
+        #                                                  type_complex=self.type_complex)
+        #     elif field_algo == 2:
+        #         field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list,
+        #                                    self.period, res_x=res_x, res_y=res_y, res_z=res_z,
+        #                                    type_complex=self.type_complex)
+        #     else:
+        #         raise ValueError
+        # else:
+        #     raise ValueError
+
         return field_cell
 
     def conv_solve_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):

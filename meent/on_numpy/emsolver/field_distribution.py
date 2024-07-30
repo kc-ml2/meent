@@ -1,11 +1,87 @@
 import numpy as np
 
 
-def field_dist_1d(wavelength, kx, T1, layer_info_list, period,
+def field_dist_1dd(wavelength, n_I, theta, kx_vector, T1, layer_info_list, period, pol, res_x=20, res_y=20, res_z=20,
+                          type_complex=np.complex128):
+    res_y = 1
+
+    k0 = 2 * np.pi / wavelength
+    Kx = np.diag(kx_vector)
+    fourier_centering = np.exp(-1j * k0 * n_I * np.sin(theta) * -period[0] / 2)
+
+    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 3), dtype=type_complex)
+
+    T_layer = T1
+
+    # From the first layer
+    for idx_layer, (E_conv_i, W, V, q, d, a_i, b) in enumerate(layer_info_list[::-1]):
+        # E_conv_i = np.linalg.inv(E_conv_i)
+
+        X = np.diag(np.exp(-k0 * q * d))
+        c1 = T_layer[:, None]
+        c2 = b @ a_i @ X @ T_layer[:, None]
+        Q = np.diag(q)
+
+        if pol == 0:
+            V = W @ Q
+            EKx = None
+        else:
+            V = E_conv_i @ W @ Q
+            EKx = E_conv_i @ Kx
+
+        z_1d = np.linspace(0, d, res_z).reshape((-1, 1, 1))
+        # z_1d = np.linspace(-d/2, d/2, res_z).reshape((-1, 1, 1))
+
+        for k in range(res_z):
+            z = k / res_z * d
+            z = z_1d[k]
+
+            if pol == 0:  # TE
+                Sy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
+                Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
+                f_here = (-1j) * Kx @ Sy
+
+                for j in range(res_y):
+                    for i in range(res_x):
+                        # x_1d = np.linspace(0, res_x, res_x)
+
+                        # TODO: delete +1. +1 is to match to reticolo
+                        x = (i+1) * period[0] / res_x
+                        # x = x_1d[i] * period[0] / res_x
+
+                        Ey = Sy.T @ np.exp(-1j * k0 * kx_vector.reshape((-1, 1)) * x) * fourier_centering
+                        Hx = 1j * Ux.T @ np.exp(-1j*k0 * kx_vector.reshape((-1, 1)) * x) * fourier_centering
+                        Hz = 1j * f_here.T @ np.exp(-1j*k0 * kx_vector.reshape((-1, 1)) * x) * fourier_centering
+
+                        field_cell[res_z * idx_layer + k, j, i-1] = [Ey[0, 0], Hx[0, 0], Hz[0, 0]]
+            else:  # TM
+                Uy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
+                Sx = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
+
+                f_here = (-1j) * EKx @ Uy  # there is a better option for convergence
+
+                for j in range(res_y):
+                    for i in range(res_x):
+                        x = i * period[0] / res_x
+
+                        Hy = Uy.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x) * fourier_centering
+                        Ex = 1j * Sx.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x) * fourier_centering
+                        Ez = f_here.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x) * fourier_centering
+
+                        field_cell[res_z * idx_layer + k, j, i] = [Hy[0, 0], Ex[0, 0], Ez[0, 0]]
+
+        T_layer = a_i @ X @ T_layer
+
+    return field_cell
+
+
+def field_dist_1d(wavelength, n_I, theta, kx, T1, layer_info_list, period,
                   pol, res_x=20, res_y=1, res_z=20, type_complex=np.complex128):
+    res_y = 1
 
     k0 = 2 * np.pi / wavelength
     Kx = np.diag(kx)
+    fourier_centering = np.exp(-1j * k0 * n_I * np.sin(theta) * -period[0] / 2)
 
     field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 3), dtype=type_complex)
 
@@ -19,69 +95,40 @@ def field_dist_1d(wavelength, kx, T1, layer_info_list, period,
         c2 = B @ A_i @ X @ T_layer[:, None]
         Q = np.diag(q)
 
-        z_1d = np.arange(res_z).reshape((-1, 1, 1)) / res_z * d
+        z_1d = np.linspace(0, res_z, res_z).reshape((-1, 1, 1)) / res_z * d
 
-        My = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
-        Mx = V @ (-diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
-        Mz = epz_conv_i @ Kx @ My if pol else Kx @ My
+        # tODO: merge My and Mx
 
-        x_1d = np.arange(res_x).reshape((1, -1, 1))
-        x_1d = -1j * x_1d * period[0] / res_x
+        if pol == 0:
+            My = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
+            Mx = V @ (diag_exp_batch(-k0 * Q * z_1d) @ -c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
+            Mz = -1j * Kx @ My
+        else:
+            My = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
+            Mx = V @ (diag_exp_batch(-k0 * Q * z_1d) @ -c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
+            Mz = -1j * epz_conv_i @ Kx @ My if pol else -1j * Kx @ My
+
+        x_1d = np.arange(1, res_x+1).reshape((1, -1, 1))
+        x_1d = x_1d * period[0] / res_x
         x_2d = np.tile(x_1d, (res_y, 1, 1))
-        x_2d = x_2d * kx
+        x_2d = x_2d * kx * k0
         x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
 
-        exp_K = np.exp(x_2d)
-        exp_K = exp_K.reshape((res_y, res_x, -1))
+        inv_fourier = np.exp(-1j * x_2d)
+        inv_fourier = inv_fourier.reshape((res_y, res_x, -1))
 
-        Fy = exp_K[:, :, None, :] @ My[:, None, None, :, :]
-        Fx = -1j * exp_K[:, :, None, :] @ Mx[:, None, None, :, :]
-        Fz = -1j * exp_K[:, :, None, :] @ Mz[:, None, None, :, :]
+        if pol == 0:
+            Fy = inv_fourier[:, :, None, :] @ My[:, None, None, :, :] * fourier_centering
+            Fx = 1j * inv_fourier[:, :, None, :] @ Mx[:, None, None, :, :] * fourier_centering
+            Fz = 1j * inv_fourier[:, :, None, :] @ Mz[:, None, None, :, :] * fourier_centering
+
+        else:
+            Fy = inv_fourier[:, :, None, :] @ My[:, None, None, :, :] * fourier_centering
+            Fx = -1j * inv_fourier[:, :, None, :] @ Mx[:, None, None, :, :] * fourier_centering
+            Fz = -1j * inv_fourier[:, :, None, :] @ Mz[:, None, None, :, :] * fourier_centering
 
         val = np.concatenate((Fy.squeeze(-1), Fx.squeeze(-1), Fz.squeeze(-1)), axis=-1)
-
-        #
-        #
-        # if pol == 0:
-        #     Sy = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
-        #     Ux = V @ (-diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
-        #     Uz = Kx @ Sy
-        #
-        #     x_1d = np.arange(res_x).reshape((1, -1, 1))
-        #     x_1d = -1j * x_1d * period[0] / res_x
-        #     x_2d = np.tile(x_1d, (res_y, 1, 1))
-        #     x_2d = x_2d * kx
-        #     x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
-        #
-        #     exp_K = np.exp(x_2d)
-        #     exp_K = exp_K.reshape((res_y, res_x, -1))
-        #
-        #     Ey = exp_K[:, :, None, :] @ Sy[:, None, None, :, :]
-        #     Hx = -1j * exp_K[:, :, None, :] @ Ux[:, None, None, :, :]
-        #     Hz = -1j * exp_K[:, :, None, :] @ Uz[:, None, None, :, :]
-        #
-        #     val = np.concatenate((Ey.squeeze(-1), Hx.squeeze(-1), Hz.squeeze(-1)), axis=-1)
-        #
-        # else:
-        #     Uy = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
-        #     Sx = V @ (-diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
-        #     Sz = epz_conv_i @ Kx @ Uy  # there is a better option for convergence
-        #
-        #     x_1d = np.arange(res_x).reshape((1, -1, 1))
-        #     x_1d = -1j * x_1d * period[0] / res_x
-        #     x_2d = np.tile(x_1d, (res_y, 1, 1))
-        #     x_2d = x_2d * kx
-        #     x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
-        #
-        #     exp_K = np.exp(x_2d)
-        #     exp_K = exp_K.reshape((res_y, res_x, -1))
-        #
-        #     Hy = exp_K[:, :, None, :] @ Uy[:, None, None, :, :]
-        #     Ex = 1j * exp_K[:, :, None, :] @ Sx[:, None, None, :, :]
-        #     Ez = -1j * exp_K[:, :, None, :] @ Sz[:, None, None, :, :]
-        #
-        #     val = np.concatenate((Hy.squeeze(-1), Ex.squeeze(-1), Ez.squeeze(-1)), axis=-1)
-
+        val = np.roll(val, 1, 2)
         field_cell[res_z * idx_layer:res_z * (idx_layer + 1)] = val
 
         T_layer = A_i @ X @ T_layer
@@ -89,110 +136,32 @@ def field_dist_1d(wavelength, kx, T1, layer_info_list, period,
     return field_cell
 
 
-def field_dist_1d_conical(wavelength, kx, ky, T1, layer_info_list, period,
-                          res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
-
-    k0 = 2 * np.pi / wavelength
-    Kx = np.diag(kx)
-
-    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
-
-    T_layer = T1
-
-    big_I = np.eye(len(T1)).astype(type_complex)
-
-    # From the first layer
-    for idx_layer, (epz_conv_i, W, V, q, d, big_A_i, big_B) in enumerate(layer_info_list[::-1]):
-
-        ff_x = len(W)
-
-        W_1 = W[:, :ff_x]
-        W_2 = W[:, ff_x:]
-
-        V_11 = V[:ff_x, :ff_x]
-        V_12 = V[:ff_x, ff_x:]
-        V_21 = V[ff_x:, :ff_x]
-        V_22 = V[ff_x:, ff_x:]
-
-        q_1 = q[:ff_x]
-        q_2 = q[ff_x:]
-        #
-        #
-        # X_1 = np.diag(np.exp(-k0 * q_1 * d))
-        # X_2 = np.diag(np.exp(-k0 * q_2 * d))
-
-        big_X = np.diag(np.exp(-k0 * q * d))
-
-        c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-        z_1d = np.arange(res_z).reshape((-1, 1, 1)) / res_z * d
-
-        ff = len(c) // 4
-
-        c1_plus = c[0 * ff:1 * ff]
-        c2_plus = c[1 * ff:2 * ff]
-        c1_minus = c[2 * ff:3 * ff]
-        c2_minus = c[3 * ff:4 * ff]
-
-        big_Q1 = np.diag(q_1)
-        big_Q2 = np.diag(q_2)
-
-        Sx = W_2 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-        Sy = V_11 @ (diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-             + V_12 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-        Ux = W_1 @ (-diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus)
-        Uy = V_21 @ (-diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-             + V_22 @ (-diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-        Sz = -1j * epz_conv_i @ (Kx @ Uy - ky * Ux)
-        Uz = -1j * (Kx @ Sy - ky * Sx)
-
-        x_1d = np.arange(res_x).reshape((1, -1, 1))
-        x_1d = -1j * x_1d * period[0] / res_x
-        x_2d = np.tile(x_1d, (res_y, 1, 1))
-        x_2d = x_2d * kx
-        x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
-
-        exp_K = np.exp(x_2d)
-        exp_K = exp_K.reshape((res_y, res_x, -1))
-
-        Ex = exp_K[:, :, None, :] @ Sx[:, None, None, :, :]
-        Ey = exp_K[:, :, None, :] @ Sy[:, None, None, :, :]
-        Ez = exp_K[:, :, None, :] @ Sz[:, None, None, :, :]
-
-        Hx = -1j * exp_K[:, :, None, :] @ Ux[:, None, None, :, :]
-        Hy = -1j * exp_K[:, :, None, :] @ Uy[:, None, None, :, :]
-        Hz = -1j * exp_K[:, :, None, :] @ Uz[:, None, None, :, :]
-
-        val = np.concatenate(
-            (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)), -1)
-        field_cell[res_z * idx_layer:res_z * (idx_layer + 1)] = val
-        T_layer = big_A_i @ big_X @ T_layer
-
-    return field_cell
-
-
-def field_dist_2d(wavelength, kx, ky, T1, layer_info_list, period,
+def field_dist_2d(wavelength, n_I, theta, phi, kx, ky, T1, layer_info_list, period,
                   res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
 
-    # fto_x_range = np.arange(-fto[0], fto[0] + 1)
-    # fto_y_range = np.arange(-fto[1], fto[1] + 1)
-
     ff_x = len(kx)
     ff_y = len(ky)
 
-    # kx = k0 * (n_I * np.sin(theta) * np.cos(phi) + fto_x_range * (
-    #         wavelength / period[0])).astype(type_complex)
+    Kx = np.diag(np.tile(kx, ff_y).flatten())
+    Ky = np.diag(np.tile(ky.reshape((-1, 1)), ff_x).flatten())
+
+    # if ff_x > 1:
+    #     fourier_centering_x = np.exp(-1j * k0 * n_I * np.sin(theta) * np.cos(phi) * -period[0] / 2)
+    # else:
+    #     fourier_centering_x = np.exp(-1j * k0 * n_I * np.sin(theta) * np.cos(phi) * -period[0])
     #
-    # ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) + fto_y_range * (
-    #         wavelength / period[1])).astype(type_complex)
+    # if ff_y > 1:
+    #     fourier_centering_y = np.exp(-1j * k0 * n_I * np.sin(theta) * np.sin(phi) * -period[1] / 2)
+    # else:
+    #     fourier_centering_y = np.exp(-1j * k0 * n_I * np.sin(theta) * np.sin(phi) * -period[1])
 
-    # kx = kx
-    # ky_vector = ky
+    fourier_centering_x = np.exp(-1j * k0 * n_I * np.sin(theta) * np.cos(phi) * -period[0] / 2)
+    fourier_centering_y = np.exp(-1j * k0 * n_I * np.sin(theta) * np.sin(phi) * -period[1] / 2)
 
-    Kx = np.diag(np.tile(kx, ff_y).flatten()) / k0
-    Ky = np.diag(np.tile(ky.reshape((-1, 1)), ff_x).flatten()) / k0
-
+    fourier_centering = fourier_centering_x * fourier_centering_y
+    # fourier_centering = 1
     field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
 
     T_layer = T1
@@ -200,20 +169,32 @@ def field_dist_2d(wavelength, kx, ky, T1, layer_info_list, period,
     big_I = np.eye((len(T1))).astype(type_complex)
 
     # From the first layer
-    for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_A_i, big_B, d)\
-            in enumerate(layer_info_list[::-1]):
+    for idx_layer, (epz_conv_i, W, V, q, d, big_A_i, big_B) in enumerate(layer_info_list[::-1]):
+
+        ff_xy = len(q) // 2
+
+        W_11 = W[:ff_xy, :ff_xy]
+        W_12 = W[:ff_xy, ff_xy:]
+        W_21 = W[ff_xy:, :ff_xy]
+        W_22 = W[ff_xy:, ff_xy:]
+
+        V_11 = V[:ff_xy, :ff_xy]
+        V_12 = V[:ff_xy, ff_xy:]
+        V_21 = V[ff_xy:, :ff_xy]
+        V_22 = V[ff_xy:, ff_xy:]
 
         big_X = np.diag(np.exp(-k0 * q * d))
 
         c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-        z_1d = np.arange(res_z).reshape((-1, 1, 1)) / res_z * d
+        z_1d = np.linspace(0, res_z, res_z).reshape((-1, 1, 1)) / res_z * d
+        # z_1d = np.arange(0, res_z, res_z).reshape((-1, 1, 1)) / res_z * d
 
-        ff = len(c) // 4
+        # ff = len(c) // 4
 
-        c1_plus = c[0 * ff:1 * ff]
-        c2_plus = c[1 * ff:2 * ff]
-        c1_minus = c[2 * ff:3 * ff]
-        c2_minus = c[3 * ff:4 * ff]
+        c1_plus = c[0 * ff_xy:1 * ff_xy]
+        c2_plus = c[1 * ff_xy:2 * ff_xy]
+        c1_minus = c[2 * ff_xy:3 * ff_xy]
+        c2_minus = c[3 * ff_xy:4 * ff_xy]
 
         q1 = q[:len(q) // 2]
         q2 = q[len(q) // 2:]
@@ -228,458 +209,47 @@ def field_dist_2d(wavelength, kx, ky, T1, layer_info_list, period,
               + V_12 @ (-diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
         Uy = V_21 @ (-diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
               + V_22 @ (-diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-        Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
+        Sz = -1j * epz_conv_i @ (Kx @ Uy - Ky @ Ux)
         Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
-        x_1d = np.arange(res_x).reshape((1, -1, 1))
-        y_1d = np.arange(res_y).reshape((-1, 1, 1))
-        x_1d = -1j * x_1d * period[0] / res_x
-        y_1d = -1j * y_1d * period[1] / res_y
+        x_1d = np.arange(1, res_x+1).reshape((1, -1, 1))
+        x_1d = x_1d * period[0] / res_x
+        x_1d = np.linspace(0, period[0], res_x).reshape((1, -1, 1))
+        # x_1d = np.arange(res_x).reshape((1, -1, 1)) * period[0] / res_x
+
+        # y_1d = np.arange(1, res_y+1).reshape((-1, 1, 1))
+        # y_1d = np.arange(res_y, 0, -1).reshape((-1, 1, 1))
+        # y_1d = np.arange(res_y-1, -1, -1).reshape((-1, 1, 1))
+
+        # y_1d = np.arange(res_y-1, -1, -1).reshape((-1, 1, 1))
+        # y_1d = np.arange(res_y).reshape((-1, 1, 1))
+        # y_1d = y_1d * period[1] / res_y
+        # y_1d = np.linspace(0, period[1], res_y).reshape((-1, 1, 1))
+        y_1d = np.linspace(period[1], 0, res_y).reshape((-1, 1, 1))  # TODO
+
         x_2d = np.tile(x_1d, (res_y, 1, 1))
-        y_2d = np.tile(y_1d, (1, res_x, 1))
-        x_2d = x_2d * kx
-        y_2d = y_2d * ky
+        x_2d = x_2d * kx * k0
         x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
+
+        y_2d = np.tile(y_1d, (1, res_x, 1))
+        y_2d = y_2d * ky * k0
         y_2d = y_2d.reshape((res_y, res_x, len(ky), 1))
 
-        exp_K = np.exp(x_2d) * np.exp(y_2d)
-        exp_K = exp_K.reshape((res_y, res_x, -1))
+        inv_fourier = np.exp(-1j * x_2d) * np.exp(-1j * y_2d)
+        inv_fourier = inv_fourier.reshape((res_y, res_x, -1))
 
-        Ex = exp_K[:, :, None, :] @ Sx[:, None, None, :, :]
-        Ey = exp_K[:, :, None, :] @ Sy[:, None, None, :, :]
-        Ez = exp_K[:, :, None, :] @ Sz[:, None, None, :, :]
-        Hx = -1j * exp_K[:, :, None, :] @ Ux[:, None, None, :, :]
-        Hy = -1j * exp_K[:, :, None, :] @ Uy[:, None, None, :, :]
-        Hz = -1j * exp_K[:, :, None, :] @ Uz[:, None, None, :, :]
+        Ex = inv_fourier[:, :, None, :] @ Sx[:, None, None, :, :] * fourier_centering
+        Ey = inv_fourier[:, :, None, :] @ Sy[:, None, None, :, :] * fourier_centering
+        Ez = inv_fourier[:, :, None, :] @ Sz[:, None, None, :, :] * fourier_centering
+        Hx = 1j * inv_fourier[:, :, None, :] @ Ux[:, None, None, :, :] * fourier_centering
+        Hy = 1j * inv_fourier[:, :, None, :] @ Uy[:, None, None, :, :] * fourier_centering
+        Hz = 1j * inv_fourier[:, :, None, :] @ Uz[:, None, None, :, :] * fourier_centering
 
         val = np.concatenate(
             (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)), -1)
+
         field_cell[res_z * idx_layer:res_z * (idx_layer + 1)] = val
 
-        T_layer = big_A_i @ big_X @ T_layer
-
-    return field_cell
-
-
-def field_dist_1d_vectorized_ji(wavelength, kx, T1, layer_info_list, period,
-                                pol, res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
-
-    k0 = 2 * np.pi / wavelength
-    Kx = np.diag(kx)
-
-    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 3), dtype=type_complex)
-
-    T_layer = T1
-
-    # From the first layer
-    for idx_layer, (epz_conv_i, W, V, q, d, X, A_i, B) in enumerate(layer_info_list[::-1]):
-
-        c1 = T_layer[:, None]
-        c2 = B @ A_i @ X @ T_layer[:, None]
-
-        Q = np.diag(q)
-
-        if pol == 0:
-            V = W @ Q
-            EKx = None
-
-        else:
-            V = epz_conv_i @ W @ Q
-            EKx = epz_conv_i @ Kx
-
-        for k in range(res_z):
-            z = k / res_z * d
-
-            if pol == 0:
-                Sy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                Uz = Kx @ Sy
-
-                x_1d = np.arange(res_x).reshape((1, -1, 1))
-                x_1d = -1j * x_1d * period[0] / res_x
-                x_2d = np.tile(x_1d, (res_y, 1, 1))
-                x_2d = x_2d * kx
-                x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
-
-                exp_K = np.exp(x_2d)
-                exp_K = exp_K.reshape((res_y, res_x, -1))
-
-                Ey = exp_K @ Sy
-                Hx = -1j * exp_K @ Ux
-                Hz = -1j * exp_K @ Uz
-
-                val = np.concatenate((Ey, Hx, Hz), axis=-1)
-
-            else:
-                Uy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                Sx = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                Sz = EKx @ Uy  # there is a better option for convergence
-
-                x_1d = np.arange(res_x).reshape((1, -1, 1))
-                x_1d = -1j * x_1d * period[0] / res_x
-                x_2d = np.tile(x_1d, (res_y, 1, 1))
-                x_2d = x_2d * kx
-                x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
-
-                exp_K = np.exp(x_2d)
-                exp_K = exp_K.reshape((res_y, res_x, -1))
-
-                Hy = exp_K @ Uy
-                Ex = 1j * exp_K @ Sx
-                Ez = -1j * exp_K @ Sz
-
-                val = np.concatenate((Hy, Ex, Ez), axis=-1)
-
-            field_cell[res_z * idx_layer + k] = val
-
-        T_layer = A_i @ X @ T_layer
-
-    return field_cell
-
-
-def field_dist_1d_conical_vectorized_ji(wavelength, kx, ky, T1, layer_info_list, period,
-                                        res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
-
-    k0 = 2 * np.pi / wavelength
-    # ky = k0 * n_I * np.sin(theta) * np.sin(phi)
-    Kx = np.diag(kx)
-
-    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
-
-    T_layer = T1
-
-    big_I = np.eye((len(T1))).astype(type_complex)
-
-    # From the first layer
-    for idx_layer, [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d] \
-            in enumerate(layer_info_list[::-1]):
-
-        c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-        cut = len(c) // 4
-
-        c1_plus = c[0*cut:1*cut]
-        c2_plus = c[1*cut:2*cut]
-        c1_minus = c[2*cut:3*cut]
-        c2_minus = c[3*cut:4*cut]
-
-        big_Q1 = np.diag(q_1)
-        big_Q2 = np.diag(q_2)
-
-        for k in range(res_z):
-            z = k / res_z * d
-
-            Sx = W_2 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Sy = V_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Ux = W_1 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus)
-            Uy = V_21 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_22 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
-            Uz = -1j * (Kx @ Sy - ky * Sx)
-
-            x_1d = np.arange(res_x).reshape((1, -1, 1))
-            x_1d = -1j * x_1d * period[0] / res_x
-            x_2d = np.tile(x_1d, (res_y, 1, 1))
-            x_2d = x_2d * kx
-            x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
-
-            exp_K = np.exp(x_2d)
-            exp_K = exp_K.reshape((res_y, res_x, -1))
-
-            Ex = exp_K @ Sx
-            Ey = exp_K @ Sy
-            Ez = exp_K @ Sz
-
-            Hx = -1j * exp_K @ Ux
-            Hy = -1j * exp_K @ Uy
-            Hz = -1j * exp_K @ Uz
-
-            val = np.concatenate((Ex, Ey, Ez, Hx, Hy, Hz), axis=-1)
-
-            field_cell[res_z * idx_layer + k] = val
-
-        T_layer = big_A_i @ big_X @ T_layer
-
-    return field_cell
-
-
-def field_dist_2d_vectorized_ji(wavelength, kx, ky, T1, layer_info_list, period,
-                                res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
-
-    k0 = 2 * np.pi / wavelength
-
-    ff_x = len(kx)
-    ff_y = len(ky)
-
-    # fourier_indices_y = np.arange(-fourier_order_y, fourier_order_y + 1)
-    # ff_x = fourier_order_x * 2 + 1
-    # ff_y = fourier_order_y * 2 + 1
-    # ky = k0 * (n_I * np.sin(theta) * np.sin(phi) + fourier_indices_y * (
-    #         wavelength / period[1])).astype(type_complex)
-
-    Kx = np.diag(np.tile(kx, ff_y).flatten()) / k0
-    Ky = np.diag(np.tile(ky.reshape((-1, 1)), ff_x).flatten()) / k0
-
-    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
-
-    T_layer = T1
-
-    big_I = np.eye((len(T1))).astype(type_complex)
-
-    # From the first layer
-    for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
-            in enumerate(layer_info_list[::-1]):
-
-        c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-
-        ff = len(c) // 4
-
-        c1_plus = c[0*ff:1*ff]
-        c2_plus = c[1*ff:2*ff]
-        c1_minus = c[2*ff:3*ff]
-        c2_minus = c[3*ff:4*ff]
-
-        q1 = q[:len(q)//2]
-        q2 = q[len(q)//2:]
-        big_Q1 = np.diag(q1)
-        big_Q2 = np.diag(q2)
-
-        for k in range(res_z):
-            z = k / res_z * d
-
-            Sx = W_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + W_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Sy = W_21 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + W_22 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Ux = V_11 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_12 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Uy = V_21 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_22 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
-            Uz = -1j * (Kx @ Sy - Ky @ Sx)
-
-            x_1d = np.arange(res_x).reshape((1, -1, 1))
-            y_1d = np.arange(res_y).reshape((-1, 1, 1))
-            x_1d = -1j * x_1d * period[0] / res_x
-            y_1d = -1j * y_1d * period[1] / res_y
-            x_2d = np.tile(x_1d, (res_y, 1, 1))
-            y_2d = np.tile(y_1d, (1, res_x, 1))
-            x_2d = x_2d * kx
-            y_2d = y_2d * ky
-            x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
-            y_2d = y_2d.reshape((res_y, res_x, len(ky), 1))
-
-            exp_K = np.exp(x_2d) * np.exp(y_2d)
-            exp_K = exp_K.reshape((res_y, res_x, -1))
-
-            Ex = exp_K @ Sx
-            Ey = exp_K @ Sy
-            Ez = exp_K @ Sz
-            Hx = -1j * exp_K @ Ux
-            Hy = -1j * exp_K @ Uy
-            Hz = -1j * exp_K @ Uz
-
-            val = np.concatenate((Ex, Ey, Ez, Hx, Hy, Hz), axis=-1)
-            field_cell[res_z * idx_layer + k] = val
-
-        T_layer = big_A_i @ big_X @ T_layer
-
-    return field_cell
-
-
-def field_dist_1d_vanilla(wavelength, kx, T1, layer_info_list, period, pol, res_x=20, res_y=20, res_z=20,
-                          type_complex=np.complex128):
-
-    k0 = 2 * np.pi / wavelength
-    Kx = np.diag(kx)
-
-    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 3), dtype=type_complex)
-
-    T_layer = T1
-
-    # From the first layer
-    for idx_layer, (epz_conv_i, W, V, q, d, X, A_i, B) in enumerate(layer_info_list[::-1]):
-        c1 = T_layer[:, None]
-        c2 = B @ A_i @ X @ T_layer[:, None]
-        Q = np.diag(q)
-
-        if pol == 0:
-            V = W @ Q
-            EKx = None
-        else:
-            V = epz_conv_i @ W @ Q
-            EKx = epz_conv_i @ Kx
-
-        for k in range(res_z):
-            z = k / res_z * d
-
-            if pol == 0:  # TE
-                Sy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                f_here = (-1j) * Kx @ Sy
-
-                for j in range(res_y):
-                    for i in range(res_x):
-                        x = i * period[0] / res_x
-
-                        Ey = Sy.T @ np.exp(-1j * kx.reshape((-1, 1)) * x)
-                        Hx = -1j * Ux.T @ np.exp(-1j * kx.reshape((-1, 1)) * x)
-                        Hz = f_here.T @ np.exp(-1j * kx.reshape((-1, 1)) * x)
-
-                        field_cell[res_z * idx_layer + k, j, i] = [Ey[0, 0], Hx[0, 0], Hz[0, 0]]
-            else:  # TM
-                Uy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                Sx = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-
-                f_here = (-1j) * EKx @ Uy  # there is a better option for convergence
-
-                for j in range(res_y):
-                    for i in range(res_x):
-                        x = i * period[0] / res_x
-
-                        Hy = Uy.T @ np.exp(-1j * kx.reshape((-1, 1)) * x)
-                        Ex = 1j * Sx.T @ np.exp(-1j * kx.reshape((-1, 1)) * x)
-                        Ez = f_here.T @ np.exp(-1j * kx.reshape((-1, 1)) * x)
-
-                        field_cell[res_z * idx_layer + k, j, i] = [Hy[0, 0], Ex[0, 0], Ez[0, 0]]
-
-        T_layer = A_i @ X @ T_layer
-
-    return field_cell
-
-
-def field_dist_1d_conical_vanilla(wavelength, kx, ky, n_I, theta, phi, T1, layer_info_list, period,
-                                  res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
-
-    k0 = 2 * np.pi / wavelength
-    # ky = k0 * n_I * np.sin(theta) * np.sin(phi)
-    Kx = np.diag(kx)
-
-    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
-
-    T_layer = T1
-    big_I = np.eye((len(T1)), dtype=type_complex)
-
-    # From the first layer
-    for idx_layer, [E_conv_i, q_1, q_2, W_1, W_2, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d] \
-            in enumerate(layer_info_list[::-1]):
-
-        c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-
-        cut = len(c) // 4
-
-        c1_plus = c[0*cut:1*cut]
-        c2_plus = c[1*cut:2*cut]
-        c1_minus = c[2*cut:3*cut]
-        c2_minus = c[3*cut:4*cut]
-
-        big_Q1 = np.diag(q_1)
-        big_Q2 = np.diag(q_2)
-
-        for k in range(res_z):
-            z = k / res_z * d
-
-            Sx = W_2 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Sy = V_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Ux = W_1 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus)
-            Uy = V_21 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_22 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Sz = -1j * E_conv_i @ (Kx @ Uy - ky * Ux)
-            Uz = -1j * (Kx @ Sy - ky * Sx)
-
-            for j in range(res_y):
-                for i in range(res_x):
-                    x = i * period[0] / res_x
-                    exp_K = np.exp(-1j * kx.reshape((-1, 1)) * x)
-                    # exp_K = exp_K.flatten()
-
-                    Ex = Sx.T @ exp_K
-                    Ey = Sy.T @ exp_K
-                    Ez = Sz.T @ exp_K
-                    Hx = -1j * Ux.T @ exp_K
-                    Hy = -1j * Uy.T @ exp_K
-                    Hz = -1j * Uz.T @ exp_K
-
-                    field_cell[res_z * idx_layer + k, j, i] = [Ex[0, 0], Ey[0, 0], Ez[0, 0], Hx[0, 0], Hy[0, 0], Hz[0, 0]]
-
-        T_layer = big_A_i @ big_X @ T_layer
-
-    return field_cell
-
-
-def field_dist_2d_vanilla(wavelength, kx, ky, T1, layer_info_list,
-                          period, res_x=20, res_y=20, res_z=20,
-                          type_complex=np.complex128):
-
-    k0 = 2 * np.pi / wavelength
-    ff_x = len(kx)
-    ff_y = len(ky)
-
-    # fourier_indices_y = np.arange(-fourier_order_y, fourier_order_y + 1)
-    # ff_x = fourier_order_x * 2 + 1
-    # ff_y = fourier_order_y * 2 + 1
-    #
-    # ky_vector = k0 * (n_I * np.sin(theta) * np.sin(phi) + fourier_indices_y * (
-    #         wavelength / period[1])).astype(type_complex)
-
-    Kx = np.diag(np.tile(kx, ff_y).flatten()) / k0
-    Ky = np.diag(np.tile(ky.reshape((-1, 1)), ff_x).flatten()) / k0
-
-    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
-
-    T_layer = T1
-    big_I = np.eye((len(T1)), dtype=type_complex)
-
-    # From the first layer
-    for idx_layer, (E_conv_i, q, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22, big_X, big_A_i, big_B, d)\
-            in enumerate(layer_info_list[::-1]):
-
-        c = np.block([[big_I], [big_B @ big_A_i @ big_X]]) @ T_layer
-
-        ff = len(c) // 4
-
-        c1_plus = c[0*ff:1*ff]
-        c2_plus = c[1*ff:2*ff]
-        c1_minus = c[2*ff:3*ff]
-        c2_minus = c[3*ff:4*ff]
-
-        q1 = q[:len(q)//2]
-        q2 = q[len(q)//2:]
-        big_Q1 = np.diag(q1)
-        big_Q2 = np.diag(q2)
-
-        for k in range(res_z):
-            z = k / res_z * d
-
-            Sx = W_11 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + W_12 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Sy = W_21 @ (diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + W_22 @ (diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Ux = V_11 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_12 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Uy = V_21 @ (-diag_exp(-k0 * big_Q1 * z) @ c1_plus + diag_exp(k0 * big_Q1 * (z - d)) @ c1_minus) \
-                 + V_22 @ (-diag_exp(-k0 * big_Q2 * z) @ c2_plus + diag_exp(k0 * big_Q2 * (z - d)) @ c2_minus)
-            Sz = -1j * E_conv_i @ (Kx @ Uy - Ky @ Ux)
-            Uz = -1j * (Kx @ Sy - Ky @ Sx)
-
-            for j in range(res_y):
-                y = j * period[1] / res_y
-
-                for i in range(res_x):
-                    x = i * period[0] / res_x
-
-                    exp_K = np.exp(-1j * kx.reshape((1, -1)) * x) * np.exp(-1j * ky.reshape((-1, 1)) * y)
-                    exp_K = exp_K.flatten()
-
-                    Ex = Sx.T @ exp_K
-                    Ey = Sy.T @ exp_K
-                    Ez = Sz.T @ exp_K
-                    Hx = -1j * Ux.T @ exp_K
-                    Hy = -1j * Uy.T @ exp_K
-                    Hz = -1j * Uz.T @ exp_K
-
-                    field_cell[res_z * idx_layer + k, j, i] = [Ex[0], Ey[0], Ez[0], Hx[0], Hy[0], Hz[0]]
         T_layer = big_A_i @ big_X @ T_layer
 
     return field_cell

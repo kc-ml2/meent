@@ -38,50 +38,6 @@ def cell_compression(cell, type_complex=np.complex128):
     return cell_comp, x, y
 
 
-# def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, type_complex=np.complex128):
-#
-#     period_x, period_y = x[-1], y[-1]
-#
-#     # X axis
-#     cell_next_x = np.roll(cell, -1, axis=1)
-#     cell_diff_x = cell_next_x - cell
-#     cell_diff_x = cell_diff_x.astype(type_complex)
-#
-#     cell = cell.astype(type_complex)
-#
-#     modes_x = np.arange(-2 * fourier_order_x, 2 * fourier_order_x + 1, 1)
-#
-#     f_coeffs_x = cell_diff_x @ np.exp(-1j * 2 * np.pi * x @ modes_x[None, :] / period_x, dtype=type_complex)
-#     c = f_coeffs_x.shape[1] // 2
-#
-#     x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], period_x)) - x
-#
-#     f_coeffs_x[:, c] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten() / period_x
-#     mask = np.ones(f_coeffs_x.shape[1], dtype=bool)
-#     mask[c] = False
-#     f_coeffs_x[:, mask] /= (1j * 2 * np.pi * modes_x[mask])
-#
-#     # Y axis
-#     f_coeffs_x_next_y = np.roll(f_coeffs_x, -1, axis=0)
-#     f_coeffs_x_diff_y = f_coeffs_x_next_y - f_coeffs_x
-#
-#     modes_y = np.arange(-2 * fourier_order_y, 2 * fourier_order_y + 1, 1)
-#
-#     f_coeffs_xy = f_coeffs_x_diff_y.T @ np.exp(-1j * 2 * np.pi * y @ modes_y[None, :] / period_y, dtype=type_complex)
-#     c = f_coeffs_xy.shape[1] // 2
-#
-#     y_next = np.vstack((np.roll(y, -1, axis=0)[:-1], period_y)) - y
-#
-#     f_coeffs_xy[:, c] = f_coeffs_x.T @ np.vstack((y[0], y_next[:-1])).flatten() / period_y
-#
-#     if c:
-#         mask = np.ones(f_coeffs_xy.shape[1], dtype=bool)
-#         mask[c] = False
-#         f_coeffs_xy[:, mask] /= (1j * 2 * np.pi * modes_y[mask])
-#
-#     return f_coeffs_xy.T
-
-
 def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None, type_complex=np.complex128):
 
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
@@ -125,46 +81,6 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=None, type_complex
         epy_conv_all[i] = epy_conv
         epz_conv_i_all[i] = np.linalg.inv(epz_conv)
 
-    # if ucell_pmt.shape[1] == 1:  # 1D
-    #     # ff_x = 2 * fto_x + 1
-    #     # ff_y = 2 * fto_y + 1  # which is 1
-    #     #
-    #     # epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #     # epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #     # epz_conv_i_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #
-    #     for i, layer in enumerate(ucell_pmt):
-    #
-    #         eps_matrix, x, y = cell_compression(layer, type_complex=type_complex)
-    #
-    #         epz_conv = cfs2d(eps_matrix, x, y, 1, 1, fto_x, fto_y, type_complex)
-    #         epy_conv = cfs2d(eps_matrix, x, y, 1, 0, fto_x, fto_y, type_complex)
-    #         epx_conv = cfs2d(eps_matrix, x, y, 0, 1, fto_x, fto_y, type_complex)
-    #
-    #         epx_conv_all[i] = epx_conv
-    #         epy_conv_all[i] = epy_conv
-    #         epz_conv_i_all[i] = np.linalg.inv(epz_conv)
-    #
-    # else:  # 2D
-    #     # ff_x = 2 * fto_x + 1
-    #     # ff_y = 2 * fto_y + 1
-    #     #
-    #     # epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #     # epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #     # epz_conv_i_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #
-    #     for i, layer in enumerate(ucell_pmt):
-    #
-    #         eps_matrix, x, y = cell_compression(layer, type_complex=type_complex)
-    #
-    #         epz_conv = cfs2d(eps_matrix, x, y, 1, 1, fto_x, fto_y, type_complex)
-    #         epy_conv = cfs2d(eps_matrix, x, y, 1, 0, fto_x, fto_y, type_complex)
-    #         epx_conv = cfs2d(eps_matrix, x, y, 0, 1, fto_x, fto_y, type_complex)
-    #
-    #         epx_conv_all[i] = epx_conv
-    #         epy_conv_all[i] = epy_conv
-    #         epz_conv_i_all[i] = np.linalg.inv(epz_conv)
-
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
@@ -181,7 +97,7 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=n
         minimum_pattern_size_y = (4 * fto_y + 1) * ucell.shape[1]
         minimum_pattern_size_x = (4 * fto_x + 1) * ucell.shape[2]
     else:
-        minimum_pattern_size_y = 4 * fto_y + 1
+        minimum_pattern_size_y = 4 * fto_y + 1  # TODO: align with other bds
         minimum_pattern_size_x = 4 * fto_x + 1
         # e.g., 8 bytes * (40*500) * (40*500) / 1E6 = 3200 MB = 3.2 GB
 
@@ -205,66 +121,6 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=n
         epz_conv_i_all[i] = np.linalg.inv(epz_conv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
-
-    # if ucell_pmt.shape[1] == 1:  # 1D
-    #     # ff_x = 2 * fto_x + 1
-    #     # ff_y = 2 * fto_y + 1  # which is 1
-    #
-    #     # epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #     # epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #     # epz_conv_i_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #
-    #     if enhanced_dfs:
-    #         minimum_pattern_size_x = (4 * fto_x + 1) * ucell_pmt.shape[2]
-    #     else:
-    #         minimum_pattern_size_x = (4 * fto_x + 1)  # TODO: align with other bds
-    #
-    #     for i, layer in enumerate(ucell_pmt):
-    #         n = minimum_pattern_size_x // layer.shape[1]
-    #         layer = np.repeat(layer, n + 1, axis=1)
-    #
-    #         epz_conv = dfs2d(layer, 1, 1, fto_x, fto_y, type_complex)
-    #         epy_conv = dfs2d(layer, 1, 0, fto_x, fto_y, type_complex)
-    #         epx_conv = dfs2d(layer, 0, 1, fto_x, fto_y, type_complex)
-    #
-    #         epx_conv_all[i] = epx_conv
-    #         epy_conv_all[i] = epy_conv
-    #         epz_conv_i_all[i] = np.linalg.inv(epz_conv)
-    #
-    # else:  # 2D
-    #     # ff_x = 2 * fto_x + 1
-    #     # ff_y = 2 * fto_y + 1
-    #
-    #     # epx_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #     # epy_conv_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #     # epz_conv_i_all = np.zeros((ucell_pmt.shape[0], ff_y * ff_x, ff_y * ff_x)).astype(type_complex)
-    #
-    #     if enhanced_dfs:
-    #         minimum_pattern_size_y = (4 * fto_y + 1) * ucell_pmt.shape[1]
-    #         minimum_pattern_size_x = (4 * fto_x + 1) * ucell_pmt.shape[2]
-    #     else:
-    #         minimum_pattern_size_y = 4 * fto_y + 1
-    #         minimum_pattern_size_x = 4 * fto_x + 1
-    #         # e.g., 8 bytes * (40*500) * (40*500) / 1E6 = 3200 MB = 3.2 GB
-    #
-    #     for i, layer in enumerate(ucell_pmt):
-    #         if layer.shape[0] < minimum_pattern_size_y:
-    #             n = minimum_pattern_size_y // layer.shape[0]
-    #             layer = np.repeat(layer, n + 1, axis=0)
-    #
-    #         if layer.shape[1] < minimum_pattern_size_x:
-    #             n = minimum_pattern_size_x // layer.shape[1]
-    #             layer = np.repeat(layer, n + 1, axis=1)
-    #
-    #         epz_conv = dfs2d(layer, 1, 1, fto_x, fto_y, type_complex)
-    #         epy_conv = dfs2d(layer, 1, 0, fto_x, fto_y, type_complex)
-    #         epx_conv = dfs2d(layer, 0, 1, fto_x, fto_y, type_complex)
-    #
-    #         epx_conv_all[i] = epx_conv
-    #         epy_conv_all[i] = epy_conv
-    #         epz_conv_i_all[i] = np.linalg.inv(epz_conv)
-    #
-    # return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
 def circulant(c):

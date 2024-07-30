@@ -87,7 +87,7 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=np.complex128):
     return X, F, G, T, A_i, B
 
 
-def transfer_1d_4(pol, F, G, T, kz_top, kz_bot, theta, n_I, n_II, type_complex=np.complex128):
+def transfer_1d_4(pol, k0, F, G, T, kz_top, kz_bot, theta, n_I, n_II, type_complex=np.complex128):
 
     ff_xy = len(kz_top)
 
@@ -97,7 +97,7 @@ def transfer_1d_4(pol, F, G, T, kz_top, kz_bot, theta, n_I, n_II, type_complex=n
     delta_i0[ff_xy // 2] = 1
 
     if pol == 0:  # TE
-
+        # TODO: check sign of H
         inc_term = 1j * n_I * np.cos(theta) * delta_i0
 
         T1 = np.linalg.inv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
@@ -160,11 +160,13 @@ def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=n
     Ky = np.diag(np.tile(ky.reshape((-1, 1)), ff_x).flatten())
 
     A = Kx ** 2 - epy_conv
+    # A = Kx ** 2 - np.linalg.inv(epz_conv_i)
     B = Kx @ epz_conv_i @ Kx - I
 
     # TODO: Rearrange W and V
     Omega2_RL = Ky ** 2 + A
     Omega2_LR = Ky ** 2 + B @ epx_conv
+    # Omega2_LR = Ky ** 2 + B @ np.linalg.inv(epz_conv_i)
 
     eigenvalues_1, W_1 = np.linalg.eig(Omega2_RL)
     eigenvalues_2, W_2 = np.linalg.eig(Omega2_LR)
@@ -467,9 +469,9 @@ def transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_I, n_II,
     final_B = np.block(
         [
             [-np.sin(psi) * delta_i0],
-            [-np.cos(psi) * np.cos(theta) * delta_i0],
+            [np.cos(psi) * np.cos(theta) * delta_i0],
             [-1j * np.sin(psi) * n_I * np.cos(theta) * delta_i0],
-            [1j * n_I * np.cos(psi) * delta_i0]
+            [-1j * n_I * np.cos(psi) * delta_i0]
         ]
     )
 
