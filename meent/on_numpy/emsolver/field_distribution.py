@@ -147,21 +147,12 @@ def field_dist_2d(wavelength, n_I, theta, phi, kx, ky, T1, layer_info_list, peri
     Kx = np.diag(np.tile(kx, ff_y).flatten())
     Ky = np.diag(np.tile(ky.reshape((-1, 1)), ff_x).flatten())
 
-    # if ff_x > 1:
-    #     fourier_centering_x = np.exp(-1j * k0 * n_I * np.sin(theta) * np.cos(phi) * -period[0] / 2)
-    # else:
-    #     fourier_centering_x = np.exp(-1j * k0 * n_I * np.sin(theta) * np.cos(phi) * -period[0])
+    # fourier_centering_x = np.exp(-1j * k0 * n_I * np.sin(theta) * np.cos(phi) * -period[0] / 2)
+    # fourier_centering_y = np.exp(-1j * k0 * n_I * np.sin(theta) * np.sin(phi) * -period[1] / 2)
     #
-    # if ff_y > 1:
-    #     fourier_centering_y = np.exp(-1j * k0 * n_I * np.sin(theta) * np.sin(phi) * -period[1] / 2)
-    # else:
-    #     fourier_centering_y = np.exp(-1j * k0 * n_I * np.sin(theta) * np.sin(phi) * -period[1])
-
-    fourier_centering_x = np.exp(-1j * k0 * n_I * np.sin(theta) * np.cos(phi) * -period[0] / 2)
-    fourier_centering_y = np.exp(-1j * k0 * n_I * np.sin(theta) * np.sin(phi) * -period[1] / 2)
-
-    fourier_centering = fourier_centering_x * fourier_centering_y
+    # fourier_centering = fourier_centering_x * fourier_centering_y
     # fourier_centering = 1
+
     field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
 
     T_layer = T1
@@ -226,6 +217,7 @@ def field_dist_2d(wavelength, n_I, theta, phi, kx, ky, T1, layer_info_list, peri
         # y_1d = y_1d * period[1] / res_y
         # y_1d = np.linspace(0, period[1], res_y).reshape((-1, 1, 1))
         y_1d = np.linspace(period[1], 0, res_y).reshape((-1, 1, 1))  # TODO
+        # y_1d = np.linspace(0, period[1], res_y)[::-1].reshape((-1, 1, 1))
 
         x_2d = np.tile(x_1d, (res_y, 1, 1))
         x_2d = x_2d * kx * k0
@@ -238,12 +230,19 @@ def field_dist_2d(wavelength, n_I, theta, phi, kx, ky, T1, layer_info_list, peri
         inv_fourier = np.exp(-1j * x_2d) * np.exp(-1j * y_2d)
         inv_fourier = inv_fourier.reshape((res_y, res_x, -1))
 
-        Ex = inv_fourier[:, :, None, :] @ Sx[:, None, None, :, :] * fourier_centering
-        Ey = inv_fourier[:, :, None, :] @ Sy[:, None, None, :, :] * fourier_centering
-        Ez = inv_fourier[:, :, None, :] @ Sz[:, None, None, :, :] * fourier_centering
-        Hx = 1j * inv_fourier[:, :, None, :] @ Ux[:, None, None, :, :] * fourier_centering
-        Hy = 1j * inv_fourier[:, :, None, :] @ Uy[:, None, None, :, :] * fourier_centering
-        Hz = 1j * inv_fourier[:, :, None, :] @ Uz[:, None, None, :, :] * fourier_centering
+        # Ex = inv_fourier[:, :, None, :] @ Sx[:, None, None, :, :] * fourier_centering
+        # Ey = inv_fourier[:, :, None, :] @ Sy[:, None, None, :, :] * fourier_centering
+        # Ez = inv_fourier[:, :, None, :] @ Sz[:, None, None, :, :] * fourier_centering
+        # Hx = 1j * inv_fourier[:, :, None, :] @ Ux[:, None, None, :, :] * fourier_centering
+        # Hy = 1j * inv_fourier[:, :, None, :] @ Uy[:, None, None, :, :] * fourier_centering
+        # Hz = 1j * inv_fourier[:, :, None, :] @ Uz[:, None, None, :, :] * fourier_centering
+
+        Ex = inv_fourier[:, :, None, :] @ Sx[:, None, None, :, :]
+        Ey = inv_fourier[:, :, None, :] @ Sy[:, None, None, :, :]
+        Ez = inv_fourier[:, :, None, :] @ Sz[:, None, None, :, :]
+        Hx = 1j * inv_fourier[:, :, None, :] @ Ux[:, None, None, :, :]
+        Hy = 1j * inv_fourier[:, :, None, :] @ Uy[:, None, None, :, :]
+        Hz = 1j * inv_fourier[:, :, None, :] @ Uz[:, None, None, :, :]
 
         val = np.concatenate(
             (Ex.squeeze(-1), Ey.squeeze(-1), Ez.squeeze(-1), Hx.squeeze(-1), Hy.squeeze(-1), Hz.squeeze(-1)), -1)

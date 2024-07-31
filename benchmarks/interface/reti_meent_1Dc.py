@@ -174,7 +174,7 @@ if __name__ == '__main__':
     option['n_bot'] = 2  # n_transmission
     option['theta'] = 40 * np.pi / 180
     option['phi'] = 20 * np.pi / 180
-    option['fto'] = [40, 0]
+    option['fto'] = [40, 1]
     option['period'] = [770/factor]
     option['wavelength'] = 777/factor
     option['thickness'] = [100/factor, 100/factor, 100/factor, 100/factor, 100/factor, 100/factor]  # final term is for h_substrate
@@ -187,10 +187,11 @@ if __name__ == '__main__':
         ])
 
     option['ucell'] = ucell
+    res_z = 11
 
-    res3_npts = 20
+    # res3_npts = 20
     reti = Reticolo()
-    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, matlab_plot_field=0, res3_npts=res3_npts)
+    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, matlab_plot_field=0, res3_npts=res_z)
     print('reti de_ri', np.array(reti_de_ri).flatten())
     print('reti de_ti', np.array(reti_de_ti).flatten())
 
@@ -198,13 +199,11 @@ if __name__ == '__main__':
     backend = 0
     nmee = meent.call_mee(backend=backend, perturbation=1E-30, **option)
     n_de_ri, n_de_ti = nmee.conv_solve()
-    n_field_cell = nmee.calculate_field(res_z=20, res_x=ucell.shape[-1])
+    n_field_cell = nmee.calculate_field(res_z=res_z, res_y=50, res_x=50)
 
-    # n_field_cell = np.roll(n_field_cell, -1, 2)
 
     print('nmeent de_ri', n_de_ri[n_de_ri > 1E-5])
     print('nmeent de_ti', n_de_ti[n_de_ti > 1E-5])
-
 
     if option['pol'] == 0:  # TE
         title = ['1D Ey', '1D Hx', '1D Hz', ]
@@ -212,26 +211,38 @@ if __name__ == '__main__':
         title = ['1D Hy', '1D Ex', '1D Ez', ]
 
     title = ['Ex', 'Ey', 'Ez', 'Hx', 'Hy', 'Hz']
-    for i in range(len(title)):
-        a0 = np.flipud(r_field_cell[res3_npts:-res3_npts, :, i])
-        b0 = n_field_cell[:, 0, :, i]
 
-        res = []
-        res.append(np.linalg.norm(a0.conj() - b0).round(3))
-        res.append(np.linalg.norm(abs(a0.conj())**2 - abs(b0)**2).round(3))
-        res.append(np.linalg.norm(a0.conj().real - b0.real).round(3))
-        res.append(np.linalg.norm(a0.conj().imag - b0.imag).round(3))
+    r_field_cell = np.moveaxis(r_field_cell, 2, 1)
+    r_field_cell = r_field_cell[res_z:-res_z]
+    r_field_cell = np.flip(r_field_cell, 0)
+    r_field_cell = r_field_cell.conj()
+    print(np.linalg.norm(r_field_cell - n_field_cell[:,:,:]))
+    title = ['Ex', 'Ey', 'Ez', 'Hx', 'Hy', 'Hz']
 
-        print(f'{title[i]}, {res}')
+    for i in range(6):
+        print(i, np.linalg.norm(r_field_cell[:, 0, :, i] - n_field_cell[:, 0, :, i]))
 
-        aa = np.angle(a0.conj())
-        bb = np.angle(b0)
-
-        print(aa[0][1:] - aa[0][:-1])
-        print(bb[0][1:] - bb[0][:-1])
-
-        print(aa[0] - bb[0])
-        print(1)
+    # for i in range(len(title)):
+    #     # a0 = np.flipud(r_field_cell[res_z:-res_z, :, i])
+    #     a0 = r_field_cell[:, :, i]
+    #     b0 = n_field_cell[:, 0, :, i]
+    #
+    #     res = []
+    #     res.append(np.linalg.norm(a0.conj() - b0).round(3))
+    #     res.append(np.linalg.norm(abs(a0.conj())**2 - abs(b0)**2).round(3))
+    #     res.append(np.linalg.norm(a0.conj().real - b0.real).round(3))
+    #     res.append(np.linalg.norm(a0.conj().imag - b0.imag).round(3))
+    #
+    #     print(f'{title[i]}, {res}')
+    #
+    #     aa = np.angle(a0.conj())
+    #     bb = np.angle(b0)
+    #
+    #     print(aa[0][1:] - aa[0][:-1])
+    #     print(bb[0][1:] - bb[0][:-1])
+    #
+    #     print(aa[0] - bb[0])
+    #     print(1)
 
     #
     # print('Ey, val diff', np.linalg.norm(a0.conj() - b0))
@@ -258,7 +269,8 @@ if __name__ == '__main__':
     fig, axes = plt.subplots(6, 6, figsize=(10, 5))
 
     for ix in range(len(title)):
-        r_data = np.flipud(r_field_cell[res3_npts:-res3_npts, :, ix]).conj()
+        # r_data = np.flipud(r_field_cell[res3_npts:-res3_npts, :, ix]).conj()
+        r_data = r_field_cell[:, 0, :, ix]
 
         im = axes[ix, 0].imshow(abs(r_data)**2, cmap='jet', aspect='auto')
         fig.colorbar(im, ax=axes[ix, 0], shrink=1)

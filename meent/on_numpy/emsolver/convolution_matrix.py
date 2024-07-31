@@ -4,6 +4,8 @@ from .fourier_analysis import dfs2d, cfs2d
 
 def cell_compression(cell, type_complex=np.complex128):
 
+    cell = np.flipud(cell)  # TODO
+
     if type_complex == np.complex128:
         type_float = np.float64
     else:
@@ -26,10 +28,22 @@ def cell_compression(cell, type_complex=np.complex128):
     cell_x = np.array(cell_x).T
     cell_x_next = np.roll(cell_x, -1, axis=0)
 
+    # for row in range(cell_x.shape[0]):
+    #     if not (cell_x[row, :] == cell_x_next[row, :]).all() or (row == cell_x.shape[0] - 1):
+    #         y.append(step_y * (row + 1))
+    #         cell_xy.append(cell_x[row, :])
+
     for row in range(cell_x.shape[0]):
         if not (cell_x[row, :] == cell_x_next[row, :]).all() or (row == cell_x.shape[0] - 1):
             y.append(step_y * (row + 1))
             cell_xy.append(cell_x[row, :])
+
+    # y_length = cell_x.shape[0]
+    # for row in range(y_length):
+    #     if not (cell_x[row, :] == cell_x_next[row, :]).all() or (row == cell_x.shape[0] - 1):
+    #         y.append(step_y * (row + 1))
+    #         y.append(step_y * (y_length-row + 1))
+    #         cell_xy.append(cell_x[row, :])
 
     x = np.array(x).reshape((-1, 1))
     y = np.array(y).reshape((-1, 1))

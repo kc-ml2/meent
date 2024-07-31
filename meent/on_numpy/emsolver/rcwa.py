@@ -151,7 +151,7 @@ class RCWANumpy(_BaseRCWA):
         return de_ri, de_ti
 
     def calculate_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
-
+        # TODO: change res_ to accept array of points.
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
 
         if self._grating_type_assigned == 0:

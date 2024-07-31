@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-import meent
+# import meent
 
 from meent.on_numpy.modeler.modeling import find_nk_index
 

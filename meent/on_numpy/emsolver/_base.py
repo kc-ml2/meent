@@ -101,7 +101,7 @@ class _BaseRCWA:
         self._pol = pol
         psi = np.pi / 2 * (1 - self.pol)
 
-        # TODO: directioin of ky_vector
+        # TODO: direction of ky_vector
         self._psi = np.array(psi, dtype=self.type_float)
 
     @property

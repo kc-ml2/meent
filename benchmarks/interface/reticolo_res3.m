@@ -41,8 +41,8 @@ else
     res = res2(aa, profile);
 end
 
-%res3(aa)
-x = textures(2){1}{1};
+x = linspace(-period(1)/2, period(1)/2, 50);
+
 %parm.res3.sens=1;
 %##parm.res3.gauss_x = 100
 if matlab_plot_field == 1
@@ -54,9 +54,16 @@ end
 if res3_npts ~= 0
     parm.res3.npts = res3_npts;
 end
+
 if grating_type == 0
     [e,z,o]=res3(x,aa,profile,1,parm);
 else
+    if grating_type == 1
+        y = period(1)/2;
+    else
+        y = linspace(period(1)/2, -period(1)/2, 50);
+    end
+
     if pol == 1
         einc = [0, 1];
     elseif pol == -1
@@ -64,7 +71,7 @@ else
     else
         disp('only TE or TM is allowed.');
     end
-    [e,z,o]=res3(x,aa,profile,einc, parm);
+    [e,z,o]=res3(x, y, aa,profile,einc, parm);
 end
 
 if grating_type == 0
