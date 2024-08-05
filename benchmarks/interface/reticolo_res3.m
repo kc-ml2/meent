@@ -41,7 +41,7 @@ else
     res = res2(aa, profile);
 end
 
-x = linspace(-period(1)/2, period(1)/2, 50);
+x = linspace(0, period(1), 50);
 
 %parm.res3.sens=1;
 %##parm.res3.gauss_x = 100
@@ -59,9 +59,9 @@ if grating_type == 0
     [e,z,o]=res3(x,aa,profile,1,parm);
 else
     if grating_type == 1
-        y = period(1)/2;
+        y=0;
     else
-        y = linspace(period(1)/2, -period(1)/2, 50);
+        y = linspace(period(1), 0, 50);
     end
 
     if pol == 1

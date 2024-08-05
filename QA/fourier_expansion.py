@@ -152,4 +152,4 @@ if __name__ == '__main__':
     aa = cfs2d(ucell, x, x, 1, 1, 1, 1)
 
     aaa = fft_piecewise_constant(ucell, x, x, 1, 1)
-    1
+

@@ -3,7 +3,6 @@ import numpy as np
 
 def transfer_1d_1(pol, ff_x, kx, n_I, n_II, type_complex=np.complex128):
 
-    # kx = k0 * (n_top * np.sin(theta) + fourier_indices * (wavelength / period[0])).astype(type_complex)
     ff_xy = ff_x * 1
 
     kz_top = (n_I ** 2 - kx ** 2) ** 0.5
@@ -11,8 +10,6 @@ def transfer_1d_1(pol, ff_x, kx, n_I, n_II, type_complex=np.complex128):
 
     kz_top = kz_top.conjugate()
     kz_bot = kz_bot.conjugate()
-
-    # Kx = np.diag(kx / k0)
 
     F = np.eye(ff_xy, dtype=type_complex)
 
@@ -30,7 +27,7 @@ def transfer_1d_1(pol, ff_x, kx, n_I, n_II, type_complex=np.complex128):
         raise ValueError
 
     T = np.eye(ff_xy, dtype=type_complex)
-    # TODO: F G T
+
     return kz_top, kz_bot, F, G, T
 
 
@@ -49,7 +46,6 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=np.compl
     elif pol == 1:
         B = Kx @ epz_conv_i @ Kx - np.eye(epy_conv.shape[0], dtype=type_complex)
 
-        # eigenvalues, W = np.linalg.eig(E_conv @ B)
         eigenvalues, W = np.linalg.eig(epx_conv @ B)
 
         eigenvalues += 0j  # to get positive square root
@@ -87,7 +83,7 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=np.complex128):
     return X, F, G, T, A_i, B
 
 
-def transfer_1d_4(pol, k0, F, G, T, kz_top, kz_bot, theta, n_I, n_II, type_complex=np.complex128):
+def transfer_1d_4(pol, F, G, T, kz_top, kz_bot, theta, n_I, n_II, type_complex=np.complex128):
 
     ff_xy = len(kz_top)
 
@@ -163,7 +159,6 @@ def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=n
     # A = Kx ** 2 - np.linalg.inv(epz_conv_i)
     B = Kx @ epz_conv_i @ Kx - I
 
-    # TODO: Rearrange W and V
     Omega2_RL = Ky ** 2 + A
     Omega2_LR = Ky ** 2 + B @ epx_conv
     # Omega2_LR = Ky ** 2 + B @ np.linalg.inv(epz_conv_i)

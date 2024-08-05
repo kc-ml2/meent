@@ -14,7 +14,7 @@ def consistency(backend):
     option['theta'] = 0 * np.pi / 180
     option['phi'] = 0 * np.pi / 180
     option['psi'] = 0 if option['pol'] else 90 * np.pi / 180
-    option['fourier_order'] = 40
+    option['fto'] = 40
     option['period'] = [1000]
     option['wavelength'] = 650
     option['thickness'] = [500, 200, 100, 60, 432, 500]  # final term is for h_substrate

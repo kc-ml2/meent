@@ -101,7 +101,6 @@ class _BaseRCWA:
         self._pol = pol
         psi = np.pi / 2 * (1 - self.pol)
 
-        # TODO: direction of ky_vector
         self._psi = np.array(psi, dtype=self.type_float)
 
     @property
@@ -195,10 +194,7 @@ class _BaseRCWA:
     def get_kx_ky_vector(self, wavelength):
 
         fto_x_range = np.arange(-self.fto[0], self.fto[0] + 1)
-
-        # TODO: reverse?
         fto_y_range = np.arange(-self.fto[1], self.fto[1] + 1)
-        # fto_y_range = np.arange(-self.fto[1], self.fto[1] + 1)[::-1]
 
         kx_vector = (self.n_top * np.sin(self.theta) * np.cos(self.phi) + fto_x_range * (
                 wavelength / self.period[0])).astype(self.type_complex)
@@ -250,7 +246,7 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            de_ri, de_ti, T1 = transfer_1d_4(self.pol, k0, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
+            de_ri, de_ti, T1 = transfer_1d_4(self.pol, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
                                              type_complex=self.type_complex)
             self.T1 = T1
 
@@ -298,7 +294,7 @@ class _BaseRCWA:
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex)
 
-                layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]  # TODO: change field recover code
+                layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]
                 self.layer_info_list.append(layer_info)
 
             elif self.connecting_algo == 'SMM':

@@ -105,8 +105,8 @@ function GeometryOut = FractureGeom(PatternIn,nLow,nHigh,XGrid,YGrid)
     % Acceptable refractive index tolerance in fracturing
 
     % Extract grid parameters
-    dX = XGrid(2)-XGrid(1);
-    dY = YGrid(2)-YGrid(1);
+    dX = abs(XGrid(2)-XGrid(1));
+    dY = abs(YGrid(2)-YGrid(1));
     [Nx, Ny] = size(PatternIn)
 
     Geometry = {nLow}; %Define background index

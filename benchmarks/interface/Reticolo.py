@@ -35,6 +35,26 @@ class Reticolo:
 
     def run_res2(self, grating_type, period, fto, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II,
                  *args, **kwargs):
+        """
+        Deprecated. Use run_res3.
+        Args:
+            grating_type:
+            period:
+            fto:
+            ucell:
+            thickness:
+            theta:
+            phi:
+            pol:
+            wavelength:
+            n_I:
+            n_II:
+            *args:
+            **kwargs:
+
+        Returns:
+
+        """
         theta *= (180 / np.pi)
         phi *= (180 / np.pi)
 
@@ -44,8 +64,9 @@ class Reticolo:
             fto = fto
             Nx = ucell.shape[2]
             period_x = period
+            # grid_x = np.linspace(0, period, Nx + 1)[1:]
+            # grid_x -= period_x / 2
             grid_x = np.linspace(0, period, Nx + 1)[1:]
-            grid_x -= period_x / 2
 
             # grid = np.linspace(0, period, Nx)
 
@@ -104,6 +125,8 @@ class Reticolo:
             period_x = period
             grid_x = np.linspace(0, period, Nx + 1)[1:]
             grid_x -= period_x / 2
+            grid_x = np.linspace(0, period, Nx + 1)[1:]
+            grid_x = np.arange(1, Nx+1) * (period/Nx)
 
             # grid = np.linspace(0, period, Nx)
 

@@ -1,87 +1,12 @@
 import numpy as np
 
 
-def field_dist_1dd(wavelength, n_I, theta, kx_vector, T1, layer_info_list, period, pol, res_x=20, res_y=20, res_z=20,
-                          type_complex=np.complex128):
-    res_y = 1
-
-    k0 = 2 * np.pi / wavelength
-    Kx = np.diag(kx_vector)
-    fourier_centering = np.exp(-1j * k0 * n_I * np.sin(theta) * -period[0] / 2)
-
-    field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 3), dtype=type_complex)
-
-    T_layer = T1
-
-    # From the first layer
-    for idx_layer, (E_conv_i, W, V, q, d, a_i, b) in enumerate(layer_info_list[::-1]):
-        # E_conv_i = np.linalg.inv(E_conv_i)
-
-        X = np.diag(np.exp(-k0 * q * d))
-        c1 = T_layer[:, None]
-        c2 = b @ a_i @ X @ T_layer[:, None]
-        Q = np.diag(q)
-
-        if pol == 0:
-            V = W @ Q
-            EKx = None
-        else:
-            V = E_conv_i @ W @ Q
-            EKx = E_conv_i @ Kx
-
-        z_1d = np.linspace(0, d, res_z).reshape((-1, 1, 1))
-        # z_1d = np.linspace(-d/2, d/2, res_z).reshape((-1, 1, 1))
-
-        for k in range(res_z):
-            z = k / res_z * d
-            z = z_1d[k]
-
-            if pol == 0:  # TE
-                Sy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                Ux = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                f_here = (-1j) * Kx @ Sy
-
-                for j in range(res_y):
-                    for i in range(res_x):
-                        # x_1d = np.linspace(0, res_x, res_x)
-
-                        # TODO: delete +1. +1 is to match to reticolo
-                        x = (i+1) * period[0] / res_x
-                        # x = x_1d[i] * period[0] / res_x
-
-                        Ey = Sy.T @ np.exp(-1j * k0 * kx_vector.reshape((-1, 1)) * x) * fourier_centering
-                        Hx = 1j * Ux.T @ np.exp(-1j*k0 * kx_vector.reshape((-1, 1)) * x) * fourier_centering
-                        Hz = 1j * f_here.T @ np.exp(-1j*k0 * kx_vector.reshape((-1, 1)) * x) * fourier_centering
-
-                        field_cell[res_z * idx_layer + k, j, i-1] = [Ey[0, 0], Hx[0, 0], Hz[0, 0]]
-            else:  # TM
-                Uy = W @ (diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-                Sx = V @ (-diag_exp(-k0 * Q * z) @ c1 + diag_exp(k0 * Q * (z - d)) @ c2)
-
-                f_here = (-1j) * EKx @ Uy  # there is a better option for convergence
-
-                for j in range(res_y):
-                    for i in range(res_x):
-                        x = i * period[0] / res_x
-
-                        Hy = Uy.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x) * fourier_centering
-                        Ex = 1j * Sx.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x) * fourier_centering
-                        Ez = f_here.T @ np.exp(-1j * kx_vector.reshape((-1, 1)) * x) * fourier_centering
-
-                        field_cell[res_z * idx_layer + k, j, i] = [Hy[0, 0], Ex[0, 0], Ez[0, 0]]
-
-        T_layer = a_i @ X @ T_layer
-
-    return field_cell
-
-
-def field_dist_1d(wavelength, n_I, theta, kx, T1, layer_info_list, period,
+def field_dist_1d(wavelength, kx, T1, layer_info_list, period,
                   pol, res_x=20, res_y=1, res_z=20, type_complex=np.complex128):
     res_y = 1
 
     k0 = 2 * np.pi / wavelength
     Kx = np.diag(kx)
-    fourier_centering = np.exp(-1j * k0 * n_I * np.sin(theta) * -period[0] / 2)
 
     field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 3), dtype=type_complex)
 
@@ -97,19 +22,19 @@ def field_dist_1d(wavelength, n_I, theta, kx, T1, layer_info_list, period,
 
         z_1d = np.linspace(0, res_z, res_z).reshape((-1, 1, 1)) / res_z * d
 
-        # tODO: merge My and Mx
+        My = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
+        Mx = V @ (diag_exp_batch(-k0 * Q * z_1d) @ -c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
 
         if pol == 0:
-            My = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
-            Mx = V @ (diag_exp_batch(-k0 * Q * z_1d) @ -c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
             Mz = -1j * Kx @ My
         else:
-            My = W @ (diag_exp_batch(-k0 * Q * z_1d) @ c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
-            Mx = V @ (diag_exp_batch(-k0 * Q * z_1d) @ -c1 + diag_exp_batch(k0 * Q * (z_1d - d)) @ c2)
             Mz = -1j * epz_conv_i @ Kx @ My if pol else -1j * Kx @ My
 
-        x_1d = np.arange(1, res_x+1).reshape((1, -1, 1))
-        x_1d = x_1d * period[0] / res_x
+        # x_1d = np.arange(1, res_x+1).reshape((1, -1, 1))
+        # x_1d = x_1d * period[0] / res_x
+
+        x_1d = np.linspace(0, period[0], res_x).reshape((1, -1, 1))
+
         x_2d = np.tile(x_1d, (res_y, 1, 1))
         x_2d = x_2d * kx * k0
         x_2d = x_2d.reshape((res_y, res_x, 1, len(kx)))
@@ -118,17 +43,16 @@ def field_dist_1d(wavelength, n_I, theta, kx, T1, layer_info_list, period,
         inv_fourier = inv_fourier.reshape((res_y, res_x, -1))
 
         if pol == 0:
-            Fy = inv_fourier[:, :, None, :] @ My[:, None, None, :, :] * fourier_centering
-            Fx = 1j * inv_fourier[:, :, None, :] @ Mx[:, None, None, :, :] * fourier_centering
-            Fz = 1j * inv_fourier[:, :, None, :] @ Mz[:, None, None, :, :] * fourier_centering
+            Fy = inv_fourier[:, :, None, :] @ My[:, None, None, :, :]
+            Fx = 1j * inv_fourier[:, :, None, :] @ Mx[:, None, None, :, :]
+            Fz = 1j * inv_fourier[:, :, None, :] @ Mz[:, None, None, :, :]
 
         else:
-            Fy = inv_fourier[:, :, None, :] @ My[:, None, None, :, :] * fourier_centering
-            Fx = -1j * inv_fourier[:, :, None, :] @ Mx[:, None, None, :, :] * fourier_centering
-            Fz = -1j * inv_fourier[:, :, None, :] @ Mz[:, None, None, :, :] * fourier_centering
+            Fy = inv_fourier[:, :, None, :] @ My[:, None, None, :, :]
+            Fx = -1j * inv_fourier[:, :, None, :] @ Mx[:, None, None, :, :]
+            Fz = -1j * inv_fourier[:, :, None, :] @ Mz[:, None, None, :, :]
 
         val = np.concatenate((Fy.squeeze(-1), Fx.squeeze(-1), Fz.squeeze(-1)), axis=-1)
-        val = np.roll(val, 1, 2)
         field_cell[res_z * idx_layer:res_z * (idx_layer + 1)] = val
 
         T_layer = A_i @ X @ T_layer
@@ -136,7 +60,7 @@ def field_dist_1d(wavelength, n_I, theta, kx, T1, layer_info_list, period,
     return field_cell
 
 
-def field_dist_2d(wavelength, n_I, theta, phi, kx, ky, T1, layer_info_list, period,
+def field_dist_2d(wavelength, kx, ky, T1, layer_info_list, period,
                   res_x=20, res_y=20, res_z=20, type_complex=np.complex128):
 
     k0 = 2 * np.pi / wavelength
@@ -146,12 +70,6 @@ def field_dist_2d(wavelength, n_I, theta, phi, kx, ky, T1, layer_info_list, peri
 
     Kx = np.diag(np.tile(kx, ff_y).flatten())
     Ky = np.diag(np.tile(ky.reshape((-1, 1)), ff_x).flatten())
-
-    # fourier_centering_x = np.exp(-1j * k0 * n_I * np.sin(theta) * np.cos(phi) * -period[0] / 2)
-    # fourier_centering_y = np.exp(-1j * k0 * n_I * np.sin(theta) * np.sin(phi) * -period[1] / 2)
-    #
-    # fourier_centering = fourier_centering_x * fourier_centering_y
-    # fourier_centering = 1
 
     field_cell = np.zeros((res_z * len(layer_info_list), res_y, res_x, 6), dtype=type_complex)
 
@@ -180,8 +98,6 @@ def field_dist_2d(wavelength, n_I, theta, phi, kx, ky, T1, layer_info_list, peri
         z_1d = np.linspace(0, res_z, res_z).reshape((-1, 1, 1)) / res_z * d
         # z_1d = np.arange(0, res_z, res_z).reshape((-1, 1, 1)) / res_z * d
 
-        # ff = len(c) // 4
-
         c1_plus = c[0 * ff_xy:1 * ff_xy]
         c2_plus = c[1 * ff_xy:2 * ff_xy]
         c1_minus = c[2 * ff_xy:3 * ff_xy]
@@ -203,21 +119,11 @@ def field_dist_2d(wavelength, n_I, theta, phi, kx, ky, T1, layer_info_list, peri
         Sz = -1j * epz_conv_i @ (Kx @ Uy - Ky @ Ux)
         Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
-        x_1d = np.arange(1, res_x+1).reshape((1, -1, 1))
-        x_1d = x_1d * period[0] / res_x
-        x_1d = np.linspace(0, period[0], res_x).reshape((1, -1, 1))
         # x_1d = np.arange(res_x).reshape((1, -1, 1)) * period[0] / res_x
+        x_1d = np.linspace(0, period[0], res_x).reshape((1, -1, 1))
 
-        # y_1d = np.arange(1, res_y+1).reshape((-1, 1, 1))
-        # y_1d = np.arange(res_y, 0, -1).reshape((-1, 1, 1))
-        # y_1d = np.arange(res_y-1, -1, -1).reshape((-1, 1, 1))
-
-        # y_1d = np.arange(res_y-1, -1, -1).reshape((-1, 1, 1))
-        # y_1d = np.arange(res_y).reshape((-1, 1, 1))
-        # y_1d = y_1d * period[1] / res_y
-        # y_1d = np.linspace(0, period[1], res_y).reshape((-1, 1, 1))
-        y_1d = np.linspace(period[1], 0, res_y).reshape((-1, 1, 1))  # TODO
-        # y_1d = np.linspace(0, period[1], res_y)[::-1].reshape((-1, 1, 1))
+        # y_1d = np.arange(res_y-1, -1, -1).reshape((-1, 1, 1)) * period[1] / res_y
+        y_1d = np.linspace(0, period[1], res_y)[::-1].reshape((-1, 1, 1))
 
         x_2d = np.tile(x_1d, (res_y, 1, 1))
         x_2d = x_2d * kx * k0
@@ -229,13 +135,6 @@ def field_dist_2d(wavelength, n_I, theta, phi, kx, ky, T1, layer_info_list, peri
 
         inv_fourier = np.exp(-1j * x_2d) * np.exp(-1j * y_2d)
         inv_fourier = inv_fourier.reshape((res_y, res_x, -1))
-
-        # Ex = inv_fourier[:, :, None, :] @ Sx[:, None, None, :, :] * fourier_centering
-        # Ey = inv_fourier[:, :, None, :] @ Sy[:, None, None, :, :] * fourier_centering
-        # Ez = inv_fourier[:, :, None, :] @ Sz[:, None, None, :, :] * fourier_centering
-        # Hx = 1j * inv_fourier[:, :, None, :] @ Ux[:, None, None, :, :] * fourier_centering
-        # Hy = 1j * inv_fourier[:, :, None, :] @ Uy[:, None, None, :, :] * fourier_centering
-        # Hz = 1j * inv_fourier[:, :, None, :] @ Uz[:, None, None, :, :] * fourier_centering
 
         Ex = inv_fourier[:, :, None, :] @ Sx[:, None, None, :, :]
         Ey = inv_fourier[:, :, None, :] @ Sy[:, None, None, :, :]

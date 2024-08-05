@@ -536,7 +536,6 @@ class ModelingNumpy:
                         top_left[0] = top_left[0] + perturbation
 
                     else:
-                        # top_left[0] = top_left[0] - (top_left[0] * perturbation)  # TODO: plus or minus?
                         top_left[0] = top_left[0] + (top_left[0] * perturbation)  # TODO: change; save how many perturbations were applied in a variable
                     row_list.insert(index, top_left[0])
                     break
@@ -668,7 +667,7 @@ class ModelingNumpy:
         for i_mat, material in enumerate(mat_list):
             mask = np.nonzero(ucell_mask == i_mat)
 
-            if type(material) == str:
+            if type(material) is str:
                 if not self.mat_table:
                     self.mat_table = read_material_table()
                 assign_value = find_nk_index(material, self.mat_table, wl)
@@ -678,20 +677,7 @@ class ModelingNumpy:
 
         return res
 
-    def modeling_vector_instruction(self, rcwa_options, instructions):
-
-        # wavelength = rcwa_options['wavelength']
-
-        # # Thickness update
-        # t = rcwa_options['thickness']
-        # for i in range(len(t)):
-        #     if f'l{i + 1}_thickness' in fitting_parameter_name:
-        #         t[i] = fitting_parameter_value[fitting_parameter_name[f'l{i + 1}_thickness']].reshape((1, 1))
-        # mee.thickness = t
-
-        # mat_table = read_material_table()
-
-        # TODO: refractive index support string for nI and nII
+    def modeling_vector_instruction(self, instructions):
 
         # Modeling
         layer_info_list = []

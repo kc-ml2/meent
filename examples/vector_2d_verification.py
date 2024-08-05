@@ -8,7 +8,7 @@ def run_vector(rcwa_options, backend):
 
     rcwa_options['backend'] = backend
     mee = meent.call_mee(**rcwa_options)
-    mee.modeling_vector_instruction(rcwa_options, instructions)
+    mee.modeling_vector_instruction(instructions)
 
     de_ri, de_ti = mee.conv_solve()
 
