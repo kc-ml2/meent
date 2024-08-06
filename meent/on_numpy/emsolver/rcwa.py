@@ -24,7 +24,7 @@ class RCWANumpy(_BaseRCWA):
                  pol=0.,
                  fto=(0, 0),
                  ucell_materials=None,
-                 stitching_algo='TMM',
+                 connecting_algo='TMM',
                  perturbation=1E-20,
                  device='cpu',
                  type_complex=np.complex128,
@@ -35,7 +35,7 @@ class RCWANumpy(_BaseRCWA):
 
         super().__init__(n_top=n_top, n_bot=n_bot, theta=theta, phi=phi, psi=psi, pol=pol,
                          fto=fto, period=period, wavelength=wavelength,
-                         thickness=thickness, stitching_algo=stitching_algo, perturbation=perturbation,
+                         thickness=thickness, connecting_algo=connecting_algo, perturbation=perturbation,
                          device=device, type_complex=type_complex, )
 
         self.ucell = ucell
@@ -49,9 +49,6 @@ class RCWANumpy(_BaseRCWA):
         self._grating_type_assigned = None
         self.fourier_type = fourier_type
         self.enhanced_dfs = enhanced_dfs
-
-        # self.layer_info_list = []
-        # self._layer_info_list = []
 
         # grating type setting
         if self.grating_type is None:
@@ -170,8 +167,7 @@ class RCWANumpy(_BaseRCWA):
 
         if self._grating_type_assigned == 0:
             res_y = 1
-            field_cell = field_dist_1d(self.wavelength, kx, self.T1,
-                                       self.layer_info_list, self.period, self.pol,
+            field_cell = field_dist_1d(self.wavelength, kx, self.T1, self.layer_info_list, self.period, self.pol,
                                        res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
         elif self._grating_type_assigned == 1:
             res_y = 1
@@ -183,7 +179,7 @@ class RCWANumpy(_BaseRCWA):
 
         return field_cell
 
-    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
+    def conv_solve_field(self, res_x=20, res_y=20, res_z=20):
         de_ri, de_ti = self.conv_solve()
         field_cell = self.calculate_field(res_x, res_y, res_z)
         return de_ri, de_ti, field_cell

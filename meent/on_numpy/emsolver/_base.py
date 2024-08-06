@@ -2,15 +2,15 @@ import numpy as np
 
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
-from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_4, transfer_1d_conical_1, transfer_1d_conical_2, \
-    transfer_1d_conical_3, transfer_1d_conical_4, transfer_2d_1, transfer_2d_2, transfer_2d_3, transfer_2d_4
+from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_4,
+                              transfer_2d_1, transfer_2d_2, transfer_2d_3, transfer_2d_4)
 
 
 class _BaseRCWA:
     def __init__(self, n_top=1., n_bot=1., theta=0., phi=0., psi=None, pol=0., fto=(0, 0),
                  period=(100., 100.), wavelength=1.,
                  thickness=(0., ), connecting_algo='TMM', perturbation=1E-20,
-                 type_complex=np.complex128, *args, **kwargs):
+                 type_complex=np.complex128, *args, **kwargs):  # TODO: delete args and kwargs?
 
         self._device = 0
 
@@ -100,7 +100,6 @@ class _BaseRCWA:
 
         self._pol = pol
         psi = np.pi / 2 * (1 - self.pol)
-
         self._psi = np.array(psi, dtype=self.type_float)
 
     @property
@@ -133,33 +132,33 @@ class _BaseRCWA:
 
     @property
     def fto(self):
-        return self._fourier_order
+        return self._fto
 
     @fto.setter
-    def fto(self, fourier_order):
+    def fto(self, fto):
 
-        if type(fourier_order) in (list, tuple):
-            if len(fourier_order) == 1:
-                self._fourier_order = [int(fourier_order[0]), 0]
-            elif len(fourier_order) == 2:
-                self._fourier_order = [int(v) for v in fourier_order]
+        if type(fto) in (list, tuple):
+            if len(fto) == 1:
+                self._fto = [int(fto[0]), 0]
+            elif len(fto) == 2:
+                self._fto = [int(v) for v in fto]
             else:
                 raise ValueError
-        elif isinstance(fourier_order, np.ndarray):
-            self._fourier_order = fourier_order.tolist()
-            if type(self._fourier_order) is list:
-                if len(self._fourier_order) == 1:
-                    self._fourier_order = [int(self._fourier_order[0]), 0]
-                elif len(self._fourier_order) == 2:
-                    self._fourier_order = [int(v) for v in self._fourier_order]
+        elif isinstance(fto, np.ndarray):
+            self._fto = fto.tolist()
+            if type(self._fto) is list:
+                if len(self._fto) == 1:
+                    self._fto = [int(self._fto[0]), 0]
+                elif len(self._fto) == 2:
+                    self._fto = [int(v) for v in self._fto]
                 else:
                     raise ValueError
-            elif type(self._fourier_order) in (int, float):
-                self._fourier_order = [int(self._fourier_order), 0]
+            elif type(self._fto) in (int, float):
+                self._fto = [int(self._fto), 0]
             else:
                 raise ValueError
-        elif type(fourier_order) in (int, float):
-            self._fourier_order = [int(fourier_order), 0]
+        elif type(fto) in (int, float):
+            self._fto = [int(fto), 0]
         else:
             raise ValueError
 
@@ -170,7 +169,7 @@ class _BaseRCWA:
     @period.setter
     def period(self, period):
         if type(period) in (int, float):
-            self._period = np.array([period], dtype=self.type_float)
+            self._period = np.array([period, period], dtype=self.type_float)
         elif type(period) in (list, tuple, np.ndarray):
             if len(period) == 1:
                 period = [period[0], period[0]]
@@ -196,13 +195,13 @@ class _BaseRCWA:
         fto_x_range = np.arange(-self.fto[0], self.fto[0] + 1)
         fto_y_range = np.arange(-self.fto[1], self.fto[1] + 1)
 
-        kx_vector = (self.n_top * np.sin(self.theta) * np.cos(self.phi) + fto_x_range * (
+        kx = (self.n_top * np.sin(self.theta) * np.cos(self.phi) + fto_x_range * (
                 wavelength / self.period[0])).astype(self.type_complex)
 
-        ky_vector = (self.n_top * np.sin(self.theta) * np.sin(self.phi) + fto_y_range * (
+        ky = (self.n_top * np.sin(self.theta) * np.sin(self.phi) + fto_y_range * (
                 wavelength / self.period[1])).astype(self.type_complex)
 
-        return kx_vector, ky_vector
+        return kx, ky
 
     def solve_1d(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
         self.layer_info_list = []

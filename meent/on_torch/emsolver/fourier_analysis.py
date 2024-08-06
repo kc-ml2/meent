@@ -1,67 +1,73 @@
-import numpy as np
+import torch
+# import numpy as np
 
 
-def _cfs(x, cell, fto, period, type_complex=np.complex128):
+def _cfs(x, cell, fto, period, device=torch.device('cpu'), type_complex=torch.complex128):
 
-    cell_next = np.roll(cell, -1, axis=1)
+    cell_next = torch.roll(cell, -1, dims=1)
     cell_diff = cell_next - cell
+    cell_diff = cell_diff.type(type_complex)
 
-    modes = np.arange(-2 * fto, 2 * fto + 1, 1)
+    modes = torch.arange(-2 * fto, 2 * fto + 1, 1, device=device).type(type_complex)
 
     center = 2 * fto
-    nc = np.ones(len(modes), dtype=bool)
+    # nc = np.ones(len(modes), dtype=bool)
+    nc = torch.ones(len(modes), device=device).type(torch.bool)
+
     nc[center] = False
 
-    x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], period)) - x
+    # x_next = np.vstack((np.roll(x, -1, axis=0)[:-1], period)) - x
+    x_next = torch.vstack((torch.roll(x, -1, dims=0)[:-1], torch.tensor([period], device=device))) - x
 
-    f = cell_diff @ np.exp(-1j * 2 * np.pi * x @ modes[None, :] / period, dtype=type_complex)
+    # f = cell_diff @ np.exp(-1j * 2 * np.pi * x @ modes[None, :] / period, dtype=type_complex)
+    f = cell_diff @ torch.exp(-1j * 2 * torch.pi * x @ modes[None, :] / period).type(type_complex)
 
-    f[:, nc] /= (1j * 2 * np.pi * modes[nc])
-    f[:, center] = (cell @ np.vstack((x[0], x_next[:-1]))).flatten() / period
+    f[:, nc] /= (1j * 2 * torch.pi * modes[nc])
+    f[:, center] = (cell @ torch.vstack((x[0], x_next[:-1]))).flatten() / period
 
     return f
 
 
-def cfs2d(cell, x, y, conti_x, conti_y, fto_x, fto_y, type_complex=np.complex128):
-    cell = cell.astype(type_complex)
+def cfs2d(cell, x, y, conti_x, conti_y, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128):
+    cell = cell.type(type_complex)
 
     ff_x = 2 * fto_x + 1
     ff_y = 2 * fto_y + 1
 
-    period_x, period_y = x[-1], y[-1]  # TODO: needed? for vector modeling?
+    period_x, period_y = x[-1], y[-1]
 
     cell = cell.T
 
     if conti_y == 0:  # discontinuous in Y (Row): inverse rule is applied.
         cell = 1 / cell
 
-    cfs1d = _cfs(y, cell, fto_y, period_y, type_complex=type_complex)
+    cfs1d = _cfs(y, cell, fto_y, period_y, device=device, type_complex=type_complex)
 
-    conv_index_1 = circulant(fto_y) + (2 * fto_y)
-    conv_index_2 = circulant(fto_x) + (2 * fto_x)
+    conv_index_1 = circulant(fto_y, device=device) + (2 * fto_y)
+    conv_index_2 = circulant(fto_x, device=device) + (2 * fto_x)
 
     conv1d = cfs1d[:, conv_index_1]
 
     if conti_x ^ conti_y:
-        conv1d = np.linalg.inv(conv1d)
+        conv1d = torch.linalg.inv(conv1d)
 
     conv1d = conv1d.reshape((-1, ff_y ** 2))
 
-    cfs2d = _cfs(x, conv1d.T, fto_x, period_x, type_complex=type_complex)
+    cfs2d = _cfs(x, conv1d.T, fto_x, period_x, device=device, type_complex=type_complex)
 
     conv2d = cfs2d[:, conv_index_2]
     conv2d = conv2d.reshape((ff_y, ff_y, ff_x, ff_x))
-    conv2d = np.moveaxis(conv2d, 1, 2)
+    conv2d = torch.moveaxis(conv2d, 1, 2)
     conv2d = conv2d.reshape((ff_y*ff_x, ff_y*ff_x))
 
     if conti_x == 0:  # discontinuous in X (Column): inverse rule is applied.
-        conv2d = np.linalg.inv(conv2d)
+        conv2d = torch.linalg.inv(conv2d)
 
     return conv2d
 
 
-def dfs2d(cell, conti_x, conti_y, fto_x, fto_y, type_complex=np.complex128):
-    cell = cell.astype(type_complex)
+def dfs2d(cell, conti_x, conti_y, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128):
+    cell = cell.type(type_complex)
 
     ff_x = 2 * fto_x + 1
     ff_y = 2 * fto_y + 1
@@ -71,27 +77,27 @@ def dfs2d(cell, conti_x, conti_y, fto_x, fto_y, type_complex=np.complex128):
     if conti_y == 0:  # discontinuous in Y (Row): inverse rule is applied.
         cell = 1 / cell
 
-    dfs1d = np.fft.fft(cell / cell.shape[1])
+    dfs1d = torch.fft.fft(cell / cell.shape[1])
 
-    conv_index_1 = circulant(fto_y)
-    conv_index_2 = circulant(fto_x)
+    conv_index_1 = circulant(fto_y, device=device)
+    conv_index_2 = circulant(fto_x, device=device)
 
     conv1d = dfs1d[:, conv_index_1]
 
     if conti_x ^ conti_y:
-        conv1d = np.linalg.inv(conv1d)
+        conv1d = torch.linalg.inv(conv1d)
 
     conv1d = conv1d.reshape((-1, ff_y ** 2))
 
-    dfs2d = np.fft.fft(conv1d.T / conv1d.T.shape[1])
+    dfs2d = torch.fft.fft(conv1d.T / conv1d.T.shape[1])
 
     conv2d = dfs2d[:, conv_index_2]
     conv2d = conv2d.reshape((ff_y, ff_y, ff_x, ff_x))
-    conv2d = np.moveaxis(conv2d, 1, 2)
+    conv2d = torch.moveaxis(conv2d, 1, 2)
     conv2d = conv2d.reshape((ff_y*ff_x, ff_y*ff_x))
 
     if conti_x == 0:  # discontinuous in X (Column): inverse rule is applied.
-        conv2d = np.linalg.inv(conv2d)
+        conv2d = torch.linalg.inv(conv2d)
 
     return conv2d
 
@@ -511,23 +517,22 @@ def dfs2d(cell, conti_x, conti_y, fto_x, fto_y, type_complex=np.complex128):
 #
 
 
-def circulant(fto):
+def circulant(fto, device=torch.device('cpu')):
     """
     Return circular matrix of indices.
     Args:
         fto: Fourier order, or number of harmonics, in use.
+        device:
 
     Returns: circular matrix of indices.
 
     """
     ff = 2 * fto + 1
-
     stride = 2 * fto
-
-    circ = np.zeros((ff, ff), dtype=int)
-
+    # circ = torch.zeros((ff, ff), device=device, dtype=int)
+    circ = torch.zeros((ff, ff), device=device).type(torch.int)
     for r in range(stride + 1):
-        idx = np.arange(-r, -r + ff, 1, dtype=int)
+        idx = torch.arange(-r, -r + ff, 1, device=device)
         circ[r] = idx
 
     return circ

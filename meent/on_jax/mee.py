@@ -11,19 +11,22 @@ class MeeJax(ModelingJax, RCWAJax, OptimizerJax):
         OptimizerJax.__init__(self, *args, **kwargs)
 
     def _tree_flatten(self):
-        children = (self.n_I, self.n_II, self.theta, self.phi,
+        # TODO: check again and find all tree flatten
+        children = (self.n_top, self.n_bot, self.theta, self.phi, self.psi,
                     self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
         aux_data = {
             'backend': self.backend,
             'grating_type': self.grating_type,
+            'modeling_type': self.modeling_type,
             'pol': self.pol,
-            'fourier_order': self.fourier_order,
+            'fto': self.fto,
             'ucell_materials': self.ucell_materials,
-            'connecting_algo': self.algo,
+            'connecting_algo': self.connecting_algo,
             'perturbation': self.perturbation,
             'device': self.device,
             'type_complex': self.type_complex,
-            'fourier_type': self.fft_type,
+            'fourier_type': self.fourier_type,
+            'enhanced_dfs': self.enhanced_dfs,
         }
 
         return children, aux_data

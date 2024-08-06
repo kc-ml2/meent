@@ -40,7 +40,7 @@ def run_test(n_I, n_II, theta, phi, grating_type, pol):
     res.plot(title='TMM')
 
     # t0 = time.time()
-    # res = RCWA(grating_type, n_top, n_bot, theta, phi, psi, fourier_order, period, wavelength,
+    # res = RCWA(grating_type, n_top, n_bot, theta, phi, psi, fto, period, wavelength,
     #                     pol, patterns, thickness, connecting_algo='SMM')
     #
     # res.loop_wavelength_fill_factor()

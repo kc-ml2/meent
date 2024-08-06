@@ -5,7 +5,7 @@ from .fourier_analysis import dfs2d, cfs2d
 def cell_compression(cell, type_complex=np.complex128):
 
     cell = np.flipud(cell)
-    # This is needed because the comp. algo begins from 0 to period (RC coord. system).
+    # This is needed because the comp. connecting_algo begins from 0 to period (RC coord. system).
     # On the other hand, the field data is from period to 0 (XY coord. system).
     # Will be flipped again during field reconstruction.
 
@@ -127,16 +127,3 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=n
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 
-
-def circulant(c):
-
-    center = c.shape[0] // 2
-    circ = np.zeros((center + 1, center + 1), dtype=int)
-
-    for r in range(center+1):
-        idx = np.arange(r, r - center - 1, -1, dtype=int)
-
-        assign_value = c[center - idx]
-        circ[r] = assign_value
-
-    return circ

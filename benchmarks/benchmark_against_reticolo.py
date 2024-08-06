@@ -39,6 +39,10 @@ def consistency(backend):
     # Reticolo
     reti = Reticolo()
     top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell_reti = reti.run_res3(**option)
+
+    # top_refl_info = np.array([top_refl_info])
+    # top_tran_info = np.array([top_tran_info])
+
     center = top_tran_info.shape[0] // 2
     plot_length = min(center, 2)
 
@@ -69,7 +73,70 @@ def consistency(backend):
     mee.field_plot(field_cell_meent)
 
 
+def consistency_jax(backend):
+    option = {}
+    option['grating_type'] = 0  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
+    option['pol'] = 0  # 0: TE, 1: TM
+    option['n_top'] = 1  # n_incidence
+    option['n_bot'] = 1.5  # n_transmission
+    option['theta'] = 0 * np.pi / 180
+    option['phi'] = 0 * np.pi / 180
+    option['psi'] = 0 if option['pol'] else 90 * np.pi / 180
+    option['fto'] = 0
+    option['period'] = [1000]
+    option['wavelength'] = 650
+    option['thickness'] = [500, 200, 100, 60, 432, 500]  # final term is for h_substrate
+
+    n_1 = 1
+    n_2 = 3
+
+    ucell = np.array(
+        [
+            [[1, 1, 1, 1, 1, 0, 0, 1, 1, 1,]],
+            [[1, 0, 0, 1, 0, 0, 0, 1, 1, 1,]],
+            [[1, 1, 0, 1, 1, 1, 1, 1, 0, 1,]],
+            [[1, 1, 1, 0, 1, 0, 0, 1, 1, 1,]],
+            [[0, 0, 1, 0, 1, 0, 0, 1, 1, 1,]],
+            [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0,]],
+        ]) * (n_2 - n_1) + n_1
+
+    option['ucell'] = ucell
+
+    mee = call_mee(backend=backend, **option)
+
+    # # Reticolo
+    # reti = Reticolo()
+    # top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell_reti = reti.run_res3(**option)
+    #
+    # top_refl_info = np.array([top_refl_info])
+    # top_tran_info = np.array([top_tran_info])
+    #
+    # center = top_tran_info.shape[0] // 2
+    # plot_length = min(center, 2)
+    #
+    # # print('reti de_ri', top_refl_info)
+    # print('reticolo  ; de_ri.sum(), de_ti.sum():', top_refl_info.sum(), top_tran_info.sum())
+    # plt.plot(top_tran_info[center - plot_length:center + plot_length + 1], label='reticolo', marker=4)
+
+    # Meent with CFT
+    mee.fourier_type = 1
+    de_ri, de_ti = mee.conv_solve()
+    # print('meent_cont de_ri', de_ri)
+    print('meent_cont; de_ri.sum(), de_ti.sum():', de_ri.sum(), de_ti.sum())
+
+    # Meent with DFT
+    mee.enhanced_dfs = False
+    mee.fourier_type = 0
+    de_ri, de_ti = mee.conv_solve()
+    # print('meent_disc de_ri', de_ri)
+    print('meent_disc; de_ri.sum(), de_ti.sum():', de_ri.sum(), de_ti.sum())
+
+    field_cell_meent = mee.calculate_field()
+    mee.field_plot(field_cell_meent)
+
+
 if __name__ == '__main__':
+
     try:
         print('NumpyMeent')
         consistency(0)

@@ -249,10 +249,10 @@ def initial_conditions(K_inc_vector, theta, normal_vector, pte, ptm, P, Q):
     :param K_inc_vector: whether it's normalized or not is not important...
     :param theta: angle of incience
     :param normal_vector: pointing into z direction
-    :param pte: te polarization amplitude
-    :param ptm: tm polarization amplitude
+    :param pte: te pol amplitude
+    :param ptm: tm pol amplitude
     :return:
-    calculates the incident E field, cinc, and the polarization fro the initial condition vectors
+    calculates the incident E field, cinc, and the pol fro the initial condition vectors
     """
     # ate -> unit vector holding the out of plane direction of TE
     # atm -> unit vector holding the out of plane direction of TM

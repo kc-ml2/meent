@@ -16,7 +16,7 @@ else  # TM
 end
 
 if grating_type == 0
-    parm = res0(pol); % TE polarization. For TM : parm=res0(-1)
+    parm = res0(pol); % TE pol. For TM : parm=res0(-1)
 else
     parm = res0;
 end

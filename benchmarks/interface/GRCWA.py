@@ -82,7 +82,7 @@ if __name__ == '__main__':
         'theta': 1,
         'phi': 1,
         'wavelength': 1,
-        'fourier_order': 1,
+        'fto': 1,
         'thickness': [1000, 300],
         'period': [1000],
         'fourier_type': 1,

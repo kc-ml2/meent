@@ -16,7 +16,7 @@ class OptimizerJax:
     #         'backend': self.backend,
     #         'grating_type': self.grating_type,
     #         'pol': self.pol,
-    #         'fourier_order': self.fourier_order,
+    #         'fto': self.fto,
     #         'ucell_materials': self.ucell_materials,
     #         'connecting_algo': self.connecting_algo,
     #         'perturbation': self.perturbation,

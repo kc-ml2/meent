@@ -23,7 +23,7 @@ class ModelingJax:
             'backend': self.backend,
             'grating_type': self.grating_type,
             'pol': self.pol,
-            'fourier_order': self.fourier_order,
+            'fto': self.fourier_order,
             'ucell_materials': self.ucell_materials,
             'connecting_algo': self.algo,
             'perturbation': self.perturbation,

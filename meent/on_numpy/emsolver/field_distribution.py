@@ -3,7 +3,6 @@ import numpy as np
 
 def field_dist_1d(wavelength, kx, T1, layer_info_list, period,
                   pol, res_x=20, res_y=1, res_z=20, type_complex=np.complex128):
-    res_y = 1
 
     k0 = 2 * np.pi / wavelength
     Kx = np.diag(kx)
@@ -14,9 +13,9 @@ def field_dist_1d(wavelength, kx, T1, layer_info_list, period,
 
     # From the first layer
     for idx_layer, (epz_conv_i, W, V, q, d, A_i, B) in enumerate(layer_info_list[::-1]):
-        c1 = T_layer[:, None]
-        X = np.diag(np.exp(-k0 * q * d))
 
+        X = np.diag(np.exp(-k0 * q * d))
+        c1 = T_layer[:, None]
         c2 = B @ A_i @ X @ T_layer[:, None]
         Q = np.diag(q)
 
@@ -67,6 +66,7 @@ def field_dist_2d(wavelength, kx, ky, T1, layer_info_list, period,
 
     ff_x = len(kx)
     ff_y = len(ky)
+    ff_xy = ff_x * ff_y
 
     Kx = np.diag(np.tile(kx, ff_y).flatten())
     Ky = np.diag(np.tile(ky.reshape((-1, 1)), ff_x).flatten())
@@ -79,8 +79,6 @@ def field_dist_2d(wavelength, kx, ky, T1, layer_info_list, period,
 
     # From the first layer
     for idx_layer, (epz_conv_i, W, V, q, d, big_A_i, big_B) in enumerate(layer_info_list[::-1]):
-
-        ff_xy = len(q) // 2
 
         W_11 = W[:ff_xy, :ff_xy]
         W_12 = W[:ff_xy, ff_xy:]
@@ -112,10 +110,10 @@ def field_dist_2d(wavelength, kx, ky, T1, layer_info_list, period,
               + W_12 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
         Sy = W_21 @ (diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
               + W_22 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-        Ux = V_11 @ (-diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + V_12 @ (-diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
-        Uy = V_21 @ (-diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
-              + V_22 @ (-diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Ux = -V_11 @ (diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              - V_12 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
+        Uy = -V_21 @ (diag_exp_batch(-k0 * big_Q1 * z_1d) @ c1_plus + diag_exp_batch(k0 * big_Q1 * (z_1d - d)) @ c1_minus) \
+              - V_22 @ (diag_exp_batch(-k0 * big_Q2 * z_1d) @ c2_plus + diag_exp_batch(k0 * big_Q2 * (z_1d - d)) @ c2_minus)
         Sz = -1j * epz_conv_i @ (Kx @ Uy - Ky @ Ux)
         Uz = -1j * (Kx @ Sy - Ky @ Sx)
 
