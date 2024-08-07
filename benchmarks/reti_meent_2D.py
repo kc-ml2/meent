@@ -26,7 +26,6 @@ def test2d_1(plot_figure=False):
 
     factor = 1
     option = {}
-    option['grating_type'] = 2  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
     option['pol'] = 1  # 0: TE, 1: TM
     option['n_top'] = 1  # n_incidence
     option['n_bot'] = 1  # n_transmission
@@ -161,7 +160,6 @@ def test2d_2(plot_figure=False):
 
     factor = 1
     option = {}
-    option['grating_type'] = 2  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
     option['pol'] = 1  # 0: TE, 1: TM
     option['n_top'] = 1  # n_incidence
     option['n_bot'] = 1  # n_transmission
@@ -377,7 +375,6 @@ def test2d_3(plot_figure=False):
 
     factor = 1
     option = {}
-    option['grating_type'] = 2  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
     option['pol'] = 1  # 0: TE, 1: TM
     option['n_top'] = 1  # n_incidence
     option['n_bot'] = 1  # n_transmission
@@ -535,7 +532,6 @@ def test2d_4(plot_figure=False):
 
     factor = 1
     option = {}
-    option['grating_type'] = 2  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
     option['pol'] = 0  # 0: TE, 1: TM
     option['n_top'] = 1  # n_incidence
     option['n_bot'] = 1  # n_transmission
@@ -682,7 +678,6 @@ def test2d_5(plot_figure=False):
 
     factor = 1
     option = {}
-    option['grating_type'] = 2  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
     option['pol'] = 0  # 0: TE, 1: TM
     option['n_top'] = 1  # n_incidence
     option['n_bot'] = 1  # n_transmission
@@ -836,7 +831,6 @@ def test2d_6(plot_figure=False):
 
     factor = 1
     option = {}
-    option['grating_type'] = 2  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
     option['pol'] = 0  # 0: TE, 1: TM
     option['n_top'] = 1  # n_incidence
     option['n_bot'] = 1  # n_transmission
@@ -848,11 +842,7 @@ def test2d_6(plot_figure=False):
     option['thickness'] = [220 / factor, ]  # final term is for h_substrate
     option['fourier_type'] = 1
 
-    # Numpy
-    backend = 0
-    mee = meent.call_mee(backend=backend, **option)
-
-    instructions = [
+    ucell = [
         # layer 1
         [1,
          [
@@ -868,33 +858,11 @@ def test2d_6(plot_figure=False):
          ],
     ]
 
-    # instructions = [
-    #     # layer 1
-    #     [1,
-    #      [
-    #          # obj 1
-    #          ['ellipse', 75, 225, 101.5, 81.5, si, 20 * np.pi / 180, 40, 40],
-    #          # obj 2
-    #          ['rectangle', 225, 75, 98.5, 81.5, si, 0, 0, 0],
-    #      ],
-    #      ],
-    #     # layer 2
-    #     [si3n4,
-    #      [
-    #          # obj 1
-    #          ['rectangle', 50, 150, 31, 300, si, 0, 0, 0],
-    #          # obj 2
-    #          ['rectangle', 200, 150, 49.5, 300, si, 0, 0, 0],
-    #      ],
-    #      ],
-    #     # layer 3
-    #     [si,
-    #      []
-    #      ],
-    # ]
+    option['ucell'] = ucell
 
-    mee.modeling_vector_instruction(instructions)
-
+    # Numpy
+    backend = 0
+    mee = meent.call_mee(backend=backend, **option)
     n_de_ri, n_de_ti = mee.conv_solve()
     n_field_cell = mee.calculate_field(res_z=res_z, res_y=50, res_x=50)
     # print('nmeent de_ri', n_de_ri)

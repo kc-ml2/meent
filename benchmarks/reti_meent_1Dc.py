@@ -17,7 +17,6 @@ except:
 def test1dc_1(plot_figure=False):
     factor = 100
     option = {}
-    option['grating_type'] = 1  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
     option['pol'] = 0  # 0: TE, 1: TM
     option['n_top'] = 2.2  # n_incidence
     option['n_bot'] = 2  # n_transmission
@@ -26,8 +25,7 @@ def test1dc_1(plot_figure=False):
     option['fto'] = [40, 1]
     option['period'] = [770 / factor]
     option['wavelength'] = 777 / factor
-    # option['thickness'] = [100/factor, 100/factor, 100/factor, 100/factor, 100/factor, 100/factor]  # final term is for h_substrate
-    option['thickness'] = [100 / factor, ]  # final term is for h_substrate
+    option['thickness'] = [100 / factor, ]
     option['fourier_type'] = 1
 
     ucell = np.array(
@@ -100,7 +98,6 @@ def test1dc_1(plot_figure=False):
 def test1dc_2(plot_figure=False):
     factor = 10
     option = {}
-    option['grating_type'] = 1  # 0 : just 1D grating, 1 : 1D rotating grating, 2 : 2D grating
     option['pol'] = 1  # 0: TE, 1: TM
     option['n_top'] = 1  # n_incidence
     option['n_bot'] = 2  # n_transmission

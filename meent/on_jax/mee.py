@@ -13,11 +13,9 @@ class MeeJax(ModelingJax, RCWAJax, OptimizerJax):
     def _tree_flatten(self):
         # TODO: check again and find all tree flatten
         children = (self.n_top, self.n_bot, self.theta, self.phi, self.psi,
-                    self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
+                    self.period, self.wavelength, self.ucell, self.thickness)
         aux_data = {
             'backend': self.backend,
-            'grating_type': self.grating_type,
-            'modeling_type': self.modeling_type,
             'pol': self.pol,
             'fto': self.fto,
             'ucell_materials': self.ucell_materials,

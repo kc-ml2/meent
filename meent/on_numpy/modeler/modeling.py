@@ -659,16 +659,16 @@ class ModelingNumpy:
         return ucell_layer, x_list, y_list
 
     def draw(self, layer_info_list):
-        ucell_info_list = []
-        self.film_layer = np.zeros(len(layer_info_list))
+        ucell_vector = []
+        self.film_layer = np.zeros(len(layer_info_list))  # TODO: eig for homo layer
 
         for i, layer_info in enumerate(layer_info_list):
             ucell_layer, x_list, y_list = self.vector_per_layer_numeric(layer_info)
-            ucell_info_list.append([ucell_layer, x_list, y_list])
+            ucell_vector.append([ucell_layer, x_list, y_list])
             if len(x_list) == len(y_list) == 1:
                 self.film_layer[i] = 1
-        self.ucell_info_list = ucell_info_list
-        return ucell_info_list
+        # self.ucell_info_list = ucell_vector
+        return ucell_vector
 
     def put_refractive_index_in_ucell(self, ucell, mat_list, wl, type_complex=np.complex128):
         res = np.zeros(ucell.shape, dtype=type_complex)
@@ -699,9 +699,9 @@ class ModelingNumpy:
 
             layer_info_list.append([base_refractive_index, obj_list_per_layer])
 
-        ucell_info_list = self.draw(layer_info_list)
+        ucell_vector = self.draw(layer_info_list)
 
-        return ucell_info_list
+        return ucell_vector
 
 
 def find_nk_index(material, mat_table, wl):

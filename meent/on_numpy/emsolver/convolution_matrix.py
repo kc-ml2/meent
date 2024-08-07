@@ -102,7 +102,7 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=n
         minimum_pattern_size_y = (4 * fto_y + 1) * ucell.shape[1]
         minimum_pattern_size_x = (4 * fto_x + 1) * ucell.shape[2]
     else:
-        minimum_pattern_size_y = 4 * fto_y + 1  # TODO: align with other bds
+        minimum_pattern_size_y = 4 * fto_y + 1
         minimum_pattern_size_x = 4 * fto_x + 1
         # e.g., 8 bytes * (40*500) * (40*500) / 1E6 = 3200 MB = 3.2 GB
 

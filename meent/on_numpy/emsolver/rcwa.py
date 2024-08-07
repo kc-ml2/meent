@@ -1,4 +1,3 @@
-import time
 import numpy as np
 
 from ._base import _BaseRCWA
@@ -16,11 +15,8 @@ class RCWANumpy(_BaseRCWA):
                  period=(100., 100.),
                  wavelength=900.,
                  ucell=None,
-                 ucell_info_list=None,
                  thickness=(0., ),
                  backend=0,
-                 grating_type=None,  # TODO: remove
-                 modeling_type=None,
                  pol=0.,
                  fto=(0, 0),
                  ucell_materials=None,
@@ -28,9 +24,9 @@ class RCWANumpy(_BaseRCWA):
                  perturbation=1E-20,
                  device='cpu',
                  type_complex=np.complex128,
-                 fourier_type=None,  # 0 DFS, 1 EFS, 2 CFS
+                 fourier_type=0,  # 0 DFS, 1 CFS
                  enhanced_dfs=True,
-                 **kwargs,
+                 # **kwargs,
                  ):
 
         super().__init__(n_top=n_top, n_bot=n_bot, theta=theta, phi=phi, psi=psi, pol=pol,
@@ -40,36 +36,12 @@ class RCWANumpy(_BaseRCWA):
 
         self.ucell = ucell
         self.ucell_materials = ucell_materials
-        self.ucell_info_list = ucell_info_list
 
         self.backend = backend
-        self.modeling_type = modeling_type
-        self._modeling_type_assigned = None
-        self.grating_type = grating_type
-        self._grating_type_assigned = None
         self.fourier_type = fourier_type
         self.enhanced_dfs = enhanced_dfs
-
-        # grating type setting
-        if self.grating_type is None:
-            if (type(self.ucell) is np.ndarray and self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2*np.pi) == 0):
-                self._grating_type_assigned = 0
-            else:
-                self._grating_type_assigned = 1  # TODO
-        else:
-            self._grating_type_assigned = self.grating_type
-
-        # modeling type setting
-        if self.modeling_type is None:
-            if self.ucell_info_list is None:
-                self._modeling_type_assigned = 0
-            elif self.ucell is None:
-                self._modeling_type_assigned = 1
-                self._grating_type_assigned = 1
-            else:
-                raise ValueError('Define "modeling_type" in "call_mee" function.')
-        else:
-            self._modeling_type_assigned = self.modeling_type
+        self.modeling_type_assigned = None
+        self.grating_type_assigned = None
 
     @property
     def ucell(self):
@@ -78,7 +50,7 @@ class RCWANumpy(_BaseRCWA):
     @ucell.setter
     def ucell(self, ucell):
 
-        if isinstance(ucell, np.ndarray):
+        if isinstance(ucell, np.ndarray):  # Raster
             if ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
                 dtype = self.type_float
             elif ucell.dtype in (np.complex128, np.complex64):
@@ -86,29 +58,43 @@ class RCWANumpy(_BaseRCWA):
             else:
                 raise ValueError
             self._ucell = np.array(ucell, dtype=dtype)
+            self._ucell = ucell.astype(dtype)
+
+        elif type(ucell) is list:  # Vector
+            self._ucell = ucell
         elif ucell is None:
             self._ucell = ucell
         else:
             raise ValueError
 
-        if self._ucell is not None:
-            self._modeling_type_assigned = 0  # Raster type
+    @property
+    def modeling_type_assigned(self):
+        return self._modeling_type_assigned
 
-            if self._ucell.shape[1] == 1:  # TODO
-                self._grating_type_assigned = 0
+    @modeling_type_assigned.setter
+    def modeling_type_assigned(self, modeling_type_assigned):
+        self._modeling_type_assigned = modeling_type_assigned
+
+    def _assign_modeling_type(self):
+
+        if isinstance(self.ucell, np.ndarray):  # Raster
+            self.modeling_type_assigned = 0
+            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0) and (self.fto[1] == 0):  # TODO: other bds
+                self._grating_type_assigned = 0  # 1D TE and TM only
             else:
-                self._grating_type_assigned = 1
+                self._grating_type_assigned = 1  # else
+
+        elif isinstance(self.ucell, list):  # Vector
+            self.modeling_type_assigned = 1
+            self.grating_type_assigned = 1
 
     @property
-    def ucell_info_list(self):
-        return self._ucell_info_list
+    def grating_type_assigned(self):
+        return self._grating_type_assigned
 
-    @ucell_info_list.setter
-    def ucell_info_list(self, ucell_info_list):
-        self._ucell_info_list = ucell_info_list
-        if ucell_info_list is not None:
-            self._modeling_type_assigned = 1  # Vector type
-            self._grating_type_assigned = 1
+    @grating_type_assigned.setter
+    def grating_type_assigned(self, grating_type_assigned):
+        self._grating_type_assigned = grating_type_assigned
 
     def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
@@ -130,6 +116,7 @@ class RCWANumpy(_BaseRCWA):
 
     def conv_solve(self, **kwargs):
         # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
+        self._assign_modeling_type()
 
         if self._modeling_type_assigned == 0:  # Raster
 
@@ -138,18 +125,6 @@ class RCWANumpy(_BaseRCWA):
                     self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex,
                     enhanced_dfs=self.enhanced_dfs)
 
-            # if self.fourier_type == 0:
-            #     enhance = False
-            #     epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_discrete(
-            #         self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex,
-            #         enhanced_dfs=enhance)
-            #
-            # elif (self.fourier_type == 1) or (self.fourier_type is None):
-            #     enhance = True
-            #     epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_discrete(
-            #         self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex,
-            #         enhanced_dfs=enhance)
-
             elif self.fourier_type == 1:
                 epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_continuous(
                     self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex)
@@ -157,12 +132,13 @@ class RCWANumpy(_BaseRCWA):
                 raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
         elif self._modeling_type_assigned == 1:  # Vector
+            ucell_vector = self.modeling_vector_instruction(self.ucell)
             epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_vector(
-                self.ucell_info_list, self.fto[0], self.fto[1], type_complex=self.type_complex)
+                ucell_vector, self.fto[0], self.fto[1], type_complex=self.type_complex)
 
         else:
             raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
-
+        # print(epz_conv_i_all)
         de_ri, de_ti, layer_info_list, T1 = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         self.layer_info_list = layer_info_list

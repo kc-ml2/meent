@@ -17,13 +17,13 @@ class ModelingJax:
         # self.mat_table = None
 
     # def _tree_flatten(self):  # TODO
-    #     children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
+    #     children = (self.n_top, self.n_bot, self.theta, self.phi, self.psi,
     #                 self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
     #     aux_data = {
     #         'backend': self.backend,
     #         'grating_type': self.grating_type,
     #         'pol': self.pol,
-    #         'fto': self.fourier_order,
+    #         'fto': self.fto,
     #         'ucell_materials': self.ucell_materials,
     #         'connecting_algo': self.algo,
     #         'perturbation': self.perturbation,

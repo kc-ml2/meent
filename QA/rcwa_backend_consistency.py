@@ -93,11 +93,7 @@ if __name__ == '__main__':
                'enhanced_dfs': True,
                'ucell': np.random.rand(5, 20, 20)*3+1, }
 
-    option5 = {'pol': 0, 'n_top': 2, 'n_bot': 1, 'theta': 12 * np.pi / 180, 'phi': 0 * np.pi / 180, 'fto': 0,
-               'period': [770], 'wavelength': 777, 'thickness': [100], 'fourier_type': 0,
-               'ucell': np.array([[[3, 3, 3, 3, 3, 1, 1, 1, 1, 1]], ])}
-
-    instructions5 = [
+    ucell5 = [
         # layer 1
         [1,[
              ['rectangle', 0+240, 120+240, 160, 80, 4, 0, 0, 0],  # obj 1
@@ -107,11 +103,11 @@ if __name__ == '__main__':
          ], ],
     ]
 
-    option6 = {'pol': 0, 'n_top': 2, 'n_bot': 1, 'theta': 12 * np.pi / 180, 'phi': 0 * np.pi / 180, 'fto': [5,5],
-               'period': [770], 'wavelength': 777, 'thickness': [100, 333], 'fourier_type': 0,
-               'ucell': np.array([[[3, 3, 3, 3, 3, 1, 1, 1, 1, 1]], ])}
+    option5 = {'pol': 0, 'n_top': 2, 'n_bot': 1, 'theta': 12 * np.pi / 180, 'phi': 0 * np.pi / 180, 'fto': 0,
+               'period': [770], 'wavelength': 777, 'thickness': [100], 'fourier_type': 0,
+               'ucell': ucell5}
 
-    instructions6 = [
+    ucell6 = [
         # layer 1
         [3 - 1j, [
              ['rectangle', 0+1000, 410+1000, 160, 80, 4, 0, 0, 0],  # obj 1
@@ -127,10 +123,14 @@ if __name__ == '__main__':
              ['rectangle', -120+240, 0+240, 80, 160, 4, 2, 5, 5],  # obj 4
          ], ],
     ]
+    option6 = {'pol': 0, 'n_top': 2, 'n_bot': 1, 'theta': 12 * np.pi / 180, 'phi': 0 * np.pi / 180, 'fto': [5,5],
+               'period': [770], 'wavelength': 777, 'thickness': [100, 333], 'fourier_type': 0,
+               'ucell': ucell6}
+
     consistency_check(option1)
     consistency_check(option2)
     consistency_check(option3)
     consistency_check(option4)
 
-    consistency_check_vector(option5, instructions5)
-    consistency_check_vector(option6, instructions6)
+    consistency_check(option5)
+    consistency_check(option6)
