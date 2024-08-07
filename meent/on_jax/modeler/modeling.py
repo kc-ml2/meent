@@ -16,27 +16,27 @@ class ModelingJax:
         # self.y_list = None
         # self.mat_table = None
 
-    def _tree_flatten(self):  # TODO
-        children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
-                    self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
-        aux_data = {
-            'backend': self.backend,
-            'grating_type': self.grating_type,
-            'pol': self.pol,
-            'fto': self.fourier_order,
-            'ucell_materials': self.ucell_materials,
-            'connecting_algo': self.algo,
-            'perturbation': self.perturbation,
-            'device': self.device,
-            'type_complex': self.type_complex,
-            'fourier_type': self.fft_type,
-        }
-
-        return children, aux_data
-
-    @classmethod
-    def _tree_unflatten(cls, aux_data, children):
-        return cls(*children, **aux_data)
+    # def _tree_flatten(self):  # TODO
+    #     children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
+    #                 self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
+    #     aux_data = {
+    #         'backend': self.backend,
+    #         'grating_type': self.grating_type,
+    #         'pol': self.pol,
+    #         'fto': self.fourier_order,
+    #         'ucell_materials': self.ucell_materials,
+    #         'connecting_algo': self.algo,
+    #         'perturbation': self.perturbation,
+    #         'device': self.device,
+    #         'type_complex': self.type_complex,
+    #         'fourier_type': self.fft_type,
+    #     }
+    #
+    #     return children, aux_data
+    #
+    # @classmethod
+    # def _tree_unflatten(cls, aux_data, children):
+    #     return cls(*children, **aux_data)
 
     @staticmethod
     def rectangle_no_approximation(cx, cy, lx, ly, base):
@@ -67,10 +67,16 @@ class ModelingJax:
             angle = angle.reshape(1)
 
         if lx.dtype not in (jnp.complex64, jnp.complex128):
-            lx = lx.astype(self.type_complex)  # TODO
-        if ly.dtype not in (jnp.complex64, jnp.complex128):
-            ly = ly.astype(self.type_complex)
+            if self.type_complex is jnp.complex128:
+                lx = lx.astype(jnp.float64)
+            else:
+                lx = lx.astype(jnp.float32)
 
+        if ly.dtype not in (jnp.complex64, jnp.complex128):
+            if self.type_complex is jnp.complex128:
+                ly = ly.astype(jnp.float64)
+            else:
+                ly = ly.astype(jnp.float32)
         # n_split_triangle, n_split_parallelogram = n_split_triangle + 2, n_split_parallelogram + 2
 
         # if angle is None:
@@ -108,7 +114,6 @@ class ModelingJax:
         RD = RD.at[:].add([[cx], [cy]])
         DL = DL.at[:].add([[cx], [cy]])
         LU = LU.at[:].add([[cx], [cy]])
-
 
         if 0 <= angle < jnp.pi / 2:
             angle_inside = (jnp.pi / 2) - angle
@@ -353,82 +358,8 @@ class ModelingJax:
             obj_list1 = [[[y_cp_next_arr[i], x_cp_mean_arr[i]], [yyy[i], x_mean_arr[i]], n_index] for i in
                          range(len(xxx) - 1)]
 
-        # obj_list1 = []
-        #
-        # for i in range(len(xxx)):
-        #     if i == len(xxx) - 1:
-        #         break
-        #     x, y = xxx[i], yyy[i]
-        #     x_cp, y_cp = xxx_cp[i], yyy_cp[i]
-        #
-        #     x_next, y_next = xxx[i + 1], yyy[i + 1]
-        #     x_cp_next, y_cp_next = xxx_cp[i + 1], yyy_cp[i + 1]
-        #
-        #     x_mean = (x + x_next) / 2
-        #     x_cp_mean = (x_cp + x_cp_next) / 2
-        #     obj_list1.append([[y_cp_next, x_cp_mean], [y, x_mean], n_index])
-
         return obj_list1
 
-    # def vector(self, layer_info):
-    #     period, pmtvy_base, obj_list = layer_info
-    #
-    #     # Griding
-    #     row_list = []
-    #     col_list = []
-    #
-    #     for obj in obj_list:
-    #         top_left, bottom_right, pmty = obj
-    #         row_list.extend([top_left[0], bottom_right[0]])
-    #         col_list.extend([top_left[1], bottom_right[1]])
-    #
-    #     row_list = list(set(row_list))
-    #     col_list = list(set(col_list))
-    #
-    #     row_list.sort()
-    #     col_list.sort()
-    #
-    #     if not row_list or row_list[-1] != period[0]:
-    #         row_list.append(period[0])
-    #     if not col_list or col_list[-1] != period[1]:
-    #         col_list.append(period[1])
-    #
-    #     if row_list and row_list[0] == 0:
-    #         row_list = row_list[1:]
-    #     if col_list and col_list[0] == 0:
-    #         col_list = col_list[1:]
-    #
-    #     ucell_layer = jnp.ones((len(row_list), len(col_list))) * pmtvy_base
-    #
-    #     for obj in obj_list:
-    #         top_left, bottom_right, pmty = obj
-    #         if top_left[0] == 0:
-    #             row_begin = 0
-    #         else:
-    #             row_begin = row_list.index(top_left[0]) + 1
-    #         row_end = row_list.index(bottom_right[0]) + 1
-    #
-    #         if top_left[1] == 0:
-    #             col_begin = 0
-    #         else:
-    #             col_begin = col_list.index(top_left[1]) + 1
-    #         col_end = col_list.index(bottom_right[1]) + 1
-    #
-    #         ucell_layer[row_begin:row_end, col_begin:col_end] = pmty
-    #
-    #     x_list = jnp.array(col_list).reshape((-1, 1)) / period[0]
-    #     y_list = jnp.array(row_list).reshape((-1, 1)) / period[1]
-    #
-    #     return ucell_layer, x_list, y_list
-
-    # def draw_old(self, layer_info_list):
-    #     ucell_info_list = []
-    #
-    #     for layer_info in layer_info_list:
-    #         ucell_layer, x_list, y_list = self.vector(layer_info)
-    #         ucell_info_list.append([ucell_layer, x_list, y_list])
-    #
-    #     return ucell_info_list
     def ellipse(self, cx, cy, lx, ly, n_index, angle=0, n_split_w=2, n_split_h=2, angle_margin=1E-5, debug=False):
 
         if type(lx) in (int, float):
@@ -447,10 +378,16 @@ class ModelingJax:
             angle = angle.reshape(1)
 
         if lx.dtype not in (jnp.complex64, jnp.complex128):
-            lx = lx.astype(self.type_complex)  # TODO
-        if ly.dtype not in (jnp.complex64, jnp.complex128):
-            ly = ly.astype(self.type_complex)
+            if self.type_complex is jnp.complex128:
+                lx = lx.astype(jnp.float64)
+            else:
+                lx = lx.astype(jnp.float32)
 
+        if ly.dtype not in (jnp.complex64, jnp.complex128):
+            if self.type_complex is jnp.complex128:
+                ly = ly.astype(jnp.float64)
+            else:
+                ly = ly.astype(jnp.float32)
         angle = angle % (2 * jnp.pi)
 
         points_x_origin = lx / 2 * jnp.cos(jnp.linspace(jnp.pi / 2, 0, n_split_w))
@@ -585,16 +522,14 @@ class ModelingJax:
 
             # top_left[0]
             for _ in range(100):
-                index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, top_left[0].real)
                 if len(row_list) > index and top_left[0] == row_list[index]:
                     perturbation += perturbation_unit
                     if top_left[0] == 0:
                         top_left[0] = top_left[0] + perturbation
 
-                        # top_left = top_left.at[0].add(perturbation)
-
                     else:
-                        # top_left[0] = top_left[0] - (top_left[0] * perturbation)  # TODO: plus or minus?
                         top_left[0] = top_left[0] + (top_left[0] * perturbation)
                         # top_left = top_left.add[0].add(top_left[0] * perturbation)
                         # TODO: change; save how many perturbations were applied in a variable
@@ -606,22 +541,18 @@ class ModelingJax:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, top_left[0].real)
                 row_list.insert(index, top_left[0])
 
             # bottom_right[0]
             for _ in range(100):
-                index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, bottom_right[0].real)
                 if len(row_list) > index and bottom_right[0] == row_list[index]:
                     perturbation += perturbation_unit
-                    # if bottom_right[0] == 0:
-                    #     bottom_right[0] = bottom_right[0] + perturbation
-                    # else:
-                    #     # bottom_right[0] = bottom_right[0] + (bottom_right[0] * perturbation)
-                    #     bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
 
-                    # bottom_right[0] = bottom_right[0] + (bottom_right[0] * perturbation)
-
+                    # TODO: confirm assign makes right value
                     bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
                     # bottom_right = bottom_right.at[0].add(-bottom_right[0] * perturbation)
                     row_list.insert(index, bottom_right[0])
@@ -632,20 +563,21 @@ class ModelingJax:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, bottom_right[0].real)
                 row_list.insert(index, bottom_right[0])
 
             # top_left[1]
             for _ in range(100):
-                index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, top_left[1].real)
                 if len(col_list) > index and top_left[1] == col_list[index]:
                     perturbation += perturbation_unit
 
                     if top_left[1] == 0:
-                        # top_left[1] = top_left[1] + perturbation
-                        top_left = top_left.at[1].add(perturbation)
+                        # top_left = top_left.at[1].add(perturbation)
+                        top_left[1] = top_left[1] + perturbation  # tODO
                     else:
-                        # top_left[1] = top_left[1] - (top_left[1] * perturbation)
                         top_left[1] = top_left[1] + (top_left[1] * perturbation)
                         # top_left = top_left.at[1].add(top_left[1] * perturbation)
                     col_list.insert(index, top_left[1])
@@ -655,12 +587,14 @@ class ModelingJax:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, top_left[1].real)
                 col_list.insert(index, top_left[1])
 
             # bottom_right[1]
             for _ in range(100):
-                index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, bottom_right[1].real)
                 if len(col_list) > index and bottom_right[1] == col_list[index]:
                     perturbation += perturbation_unit
                     # if bottom_right[1] == 0:
@@ -671,6 +605,7 @@ class ModelingJax:
 
                     # bottom_right[1] = bottom_right[1] + (bottom_right[1] * perturbation)
 
+                    # TODO: confirm assign makes right value
                     bottom_right[1] = bottom_right[1] - (bottom_right[1] * perturbation)
                     # bottom_right = bottom_right.at[1].add(-bottom_right[1] * perturbation)
                     col_list.insert(index, bottom_right[1])
@@ -680,7 +615,8 @@ class ModelingJax:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, bottom_right[1].real)
                 col_list.insert(index, bottom_right[1])
 
         if not row_list or row_list[-1] != self.period[1]:
@@ -710,7 +646,6 @@ class ModelingJax:
                 col_begin = col_list.index(top_left[1]) + 1
             col_end = col_list.index(bottom_right[1]) + 1
 
-            # ucell_layer[row_begin:row_end, col_begin:col_end] = pmty
             ucell_layer = ucell_layer.at[row_begin:row_end, col_begin:col_end].set(pmty)
 
         x_list = jnp.concatenate(col_list).reshape((-1, 1))
@@ -731,7 +666,7 @@ class ModelingJax:
         self.ucell_info_list = ucell_info_list
         return ucell_info_list
 
-    def modeling_vector_instruction(self, rcwa_options, instructions):
+    def modeling_vector_instruction(self, instructions):
 
         # wavelength = rcwa_options['wavelength']
 
@@ -760,98 +695,6 @@ class ModelingJax:
         ucell_info_list = self.draw(layer_info_list)
 
         return ucell_info_list
-
-    # def vector(self, layer_info):
-    #     period, pmtvy_base, obj_list = layer_info
-    #
-    #     # Griding
-    #     row_list = []
-    #     col_list = []
-    #
-    #     for obj in obj_list:
-    #         top_left, bottom_right, pmty = obj
-    #         row_list.extend([top_left[0], bottom_right[0]])
-    #         col_list.extend([top_left[1], bottom_right[1]])
-    #
-    #     row_list = list(set(row_list))
-    #     col_list = list(set(col_list))
-    #
-    #     row_list.sort()
-    #     col_list.sort()
-    #
-    #     if not row_list or row_list[-1] != period[0]:
-    #         row_list.append(period[0])
-    #     if not col_list or col_list[-1] != period[1]:
-    #         col_list.append(period[1])
-    #
-    #     if row_list and row_list[0] == 0:
-    #         row_list = row_list[1:]
-    #     if col_list and col_list[0] == 0:
-    #         col_list = col_list[1:]
-    #
-    #     ucell_layer = jnp.ones((len(row_list), len(col_list))) * pmtvy_base
-    #
-    #     for obj in obj_list:
-    #         top_left, bottom_right, pmty = obj
-    #         if top_left[0] == 0:
-    #             row_begin = 0
-    #         else:
-    #             row_begin = row_list.index(top_left[0]) + 1
-    #         row_end = row_list.index(bottom_right[0]) + 1
-    #
-    #         if top_left[1] == 0:
-    #             col_begin = 0
-    #         else:
-    #             col_begin = col_list.index(top_left[1]) + 1
-    #         col_end = col_list.index(bottom_right[1]) + 1
-    #
-    #         ucell_layer = ucell_layer.at[row_begin:row_end, col_begin:col_end].set(pmty)
-    #
-    #     x_list = jnp.array(col_list).reshape((-1, 1)) / period[0]
-    #     y_list = jnp.array(row_list).reshape((-1, 1)) / period[1]
-    #
-    #     return ucell_layer, x_list, y_list
-    #
-    # def draw(self, layer_info_list):
-    #     ucell_info_list = []
-    #
-    #     for layer_info in layer_info_list:
-    #         ucell_layer, x_list, y_list = self.vector(layer_info)
-    #         ucell_info_list.append([ucell_layer, x_list, y_list])
-    #
-    #     return ucell_info_list
-    #
-    # def put_refractive_index_in_ucell(self, ucell, mat_list, wl, type_complex=jnp.complex128):
-    #     res = jnp.zeros(ucell.shape, dtype=type_complex)
-    #     ucell_mask = jnp.array(ucell, dtype=type_complex)
-    #     for i_mat, material in enumerate(mat_list):
-    #         mask = jnp.nonzero(ucell_mask == i_mat)
-    #
-    #         if type(material) == str:
-    #             if not self.mat_table:
-    #                 self.mat_table = read_material_table()
-    #             assign_value = find_nk_index(material, self.mat_table, wl)
-    #         else:
-    #             assign_value = type_complex(material)
-    #         res = res.at[mask].set(assign_value)
-    #
-    #     return res
-
-
-# def put_permittivity_in_ucell_object(ucell_size, mat_list, obj_list, mat_table, wl,
-#                                      type_complex=jnp.complex128):
-#     """
-#     under development
-#     """
-#     res = jnp.zeros(ucell_size, dtype=type_complex)
-#
-#     for material, obj_index in zip(mat_list, obj_list):
-#         if type(material) == str:
-#             res[obj_index] = find_nk_index(material, mat_table, wl, type_complex=type_complex) ** 2
-#         else:
-#             res[obj_index] = material ** 2
-#
-#     return res
 
 
 def find_nk_index(material, mat_table, wl):

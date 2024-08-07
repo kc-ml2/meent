@@ -38,6 +38,8 @@ class ModelingTorch:
         self.mat_table = None
         self.ucell_info_list = None
         self.period = period
+        self.type_complex = torch.complex128
+        # self.type_float = torch.float64
 
         self.film_layer = None
 
@@ -56,6 +58,11 @@ class ModelingTorch:
 
     def rectangle(self, cx, cy, lx, ly, n_index, angle=0, n_split_triangle=2, n_split_parallelogram=2, angle_margin=1E-5):
 
+        # if self.type_complex == torch.complex128:
+        #     self.type_float = torch.float64
+        # else:
+        #     self.type_float = torch.float32
+
         if type(lx) in (int, float):
             lx = torch.tensor(lx).reshape(1)
         elif type(lx) is torch.Tensor:
@@ -71,10 +78,21 @@ class ModelingTorch:
         elif type(angle) is torch.Tensor:
             angle = angle.reshape(1)
 
-        if lx.type not in (torch.complex64, torch.complex128):
-            lx = lx.type(self.type_complex)  # TODO
-        if ly.type not in (torch.complex64, torch.complex128):
-            ly = ly.type(self.type_complex)
+        lx = lx.type(self.type_float)
+        ly = ly.type(self.type_float)
+        angle = angle.type(self.type_float)
+
+        # if lx.dtype not in (torch.complex64, torch.complex128):
+        #     if self.type_complex is torch.complex128:
+        #         lx = lx.type(torch.float64)
+        #     else:
+        #         lx = lx.type(torch.float32)
+        #
+        # if ly.dtype not in (torch.complex64, torch.complex128):
+        #     if self.type_complex is torch.complex128:
+        #         ly = ly.type(torch.float64)
+        #     else:
+        #         ly = ly.type(torch.float32)
 
         # n_split_triangle, n_split_parallelogram = n_split_triangle + 2, n_split_parallelogram + 2
 
@@ -96,7 +114,7 @@ class ModelingTorch:
             pass
 
         # Yes rotation
-        rotate = torch.ones((2, 2), dtype=self.type_complex)
+        rotate = torch.ones((2, 2), dtype=self.type_float)
         rotate[0, 0] = torch.cos(angle)
         rotate[0, 1] = -torch.sin(angle)
         rotate[1, 0] = torch.sin(angle)
@@ -181,34 +199,6 @@ class ModelingTorch:
 
             length = length_top12 / torch.sin(angle_inside)
             top3_cp = [top3[0] - length, top3[1]]
-
-            # for i in range(n_split_triangle + 1):
-            #     x = top1[0] - (top1[0] - top2[0]) / n_split_triangle * i
-            #     y = top1[1] - (top1[1] - top2[1]) / n_split_parallelogram * i
-            #     xxx.append(x)
-            #     yyy.append(y)
-            #
-            #     xxx_cp.append(x + length / n_split_triangle * i)
-            #     yyy_cp.append(y)
-            #
-            # for i in range(n_split_parallelogram + 1):
-            #
-            #     x = top2[0] + (top3_cp[0] - top2[0]) / n_split_triangle * i
-            #     y = top2[1] - (top2[1] - top3_cp[1]) / n_split_parallelogram * i
-            #     xxx.append(x)
-            #     yyy.append(y)
-            #
-            #     xxx_cp.append(x + length)
-            #     yyy_cp.append(y)
-            #
-            # for i in range(n_split_triangle + 1):
-            #     x = top3_cp[0] + (top4[0] - top3_cp[0]) / n_split_triangle * i
-            #     y = top3_cp[1] - (top3_cp[1] - top4[1]) / n_split_parallelogram * i
-            #     xxx.append(x)
-            #     yyy.append(y)
-            #
-            #     xxx_cp.append(x + length / n_split_triangle * (n_split_triangle - i))
-            #     yyy_cp.append(y)
 
             # 1: Upper triangle
             xxx1 = top1[0] - (top1[0] - top2[0]) / n_split_triangle * torch.arange(n_split_triangle+1).reshape((-1, 1))
@@ -492,10 +482,22 @@ class ModelingTorch:
         elif type(angle) is torch.Tensor:
             angle = angle.reshape(1)
 
-        if lx.type not in (torch.complex64, torch.complex128):
-            lx = lx.type(self.type_complex)  # TODO
-        if ly.type not in (torch.complex64, torch.complex128):
-            ly = ly.type(self.type_complex)
+        # if lx.dtype not in (torch.complex64, torch.complex128):
+        #     if self.type_complex is torch.complex128:
+        #         lx = lx.type(torch.float64)
+        #     else:
+        #         lx = lx.type(torch.float32)
+        #
+        # if ly.dtype not in (torch.complex64, torch.complex128):
+        #     if self.type_complex is torch.complex128:
+        #         ly = ly.type(torch.float64)
+        #     else:
+        #         ly = ly.type(torch.float32)
+
+
+        lx = lx.type(self.type_float)
+        ly = ly.type(self.type_float)
+        angle = angle.type(self.type_float)
 
         angle = angle % (2 * torch.pi)
 
@@ -571,8 +573,11 @@ class ModelingTorch:
             ax, ay = arr[:, i]
             bx, by = arr_roll[:, i]
 
-            LL = [min(ay.real, by.real)+0j, min(ax.real, bx.real)+0j]
-            UR = [max(ay.real, by.real)+0j, max(ax.real, bx.real)+0j]
+            # LL = [min(ay.real, by.real)+0j, min(ax.real, bx.real)+0j]
+            # UR = [max(ay.real, by.real)+0j, max(ax.real, bx.real)+0j]
+
+            LL = [min(ay.real, by.real), min(ax.real, bx.real)]
+            UR = [max(ay.real, by.real), max(ax.real, bx.real)]
 
             res.append([LL, UR, n_index])
 
@@ -605,7 +610,8 @@ class ModelingTorch:
 
             # top_left[0]
             for _ in range(100):
-                index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, top_left[0].real)
                 if len(row_list) > index and top_left[0] == row_list[index]:
                     perturbation += perturbation_unit
                     if top_left[0] == 0:
@@ -621,12 +627,14 @@ class ModelingTorch:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, top_left[0].real)
                 row_list.insert(index, top_left[0])
 
             # bottom_right[0]
             for _ in range(100):
-                index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, bottom_right[0].real)
                 if len(row_list) > index and bottom_right[0] == row_list[index]:
                     perturbation += perturbation_unit
                     # if bottom_right[0] == 0:
@@ -645,12 +653,14 @@ class ModelingTorch:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, bottom_right[0].real)
                 row_list.insert(index, bottom_right[0])
 
             # top_left[1]
             for _ in range(100):
-                index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, top_left[1].real)
                 if len(col_list) > index and top_left[1] == col_list[index]:
                     perturbation += perturbation_unit
 
@@ -666,12 +676,14 @@ class ModelingTorch:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, top_left[1].real)
                 col_list.insert(index, top_left[1])
 
             # bottom_right[1]
             for _ in range(100):
-                index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, bottom_right[1].real)
                 if len(col_list) > index and bottom_right[1] == col_list[index]:
                     perturbation += perturbation_unit
                     # if bottom_right[1] == 0:
@@ -689,7 +701,8 @@ class ModelingTorch:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, bottom_right[1].real)
                 col_list.insert(index, bottom_right[1])
 
         if not row_list or row_list[-1] != self.period[1]:
@@ -757,7 +770,7 @@ class ModelingTorch:
         return res
 
     # Optimization + Material table
-    def modeling_vector_instruction(self, rcwa_options, instructions):
+    def modeling_vector_instruction(self, instructions):
 
         # wavelength = rcwa_options['wavelength']
 
@@ -769,8 +782,6 @@ class ModelingTorch:
         # mee.thickness = t
 
         # mat_table = read_material_table()
-
-        # TODO: refractive index support string for nI and nII
 
         # Modeling
         layer_info_list = []

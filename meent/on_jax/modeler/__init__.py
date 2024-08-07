@@ -5,10 +5,10 @@ except:
     pass
 
 
-from jax import tree_util
-
-from .modeling import ModelingJax
-
-tree_util.register_pytree_node(ModelingJax,
-                               ModelingJax._tree_flatten,
-                               ModelingJax._tree_unflatten)
+# from jax import tree_util
+#
+# from .modeling import ModelingJax
+#
+# tree_util.register_pytree_node(ModelingJax,
+#                                ModelingJax._tree_flatten,
+#                                ModelingJax._tree_unflatten)

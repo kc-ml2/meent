@@ -357,8 +357,8 @@ def transfer_2d_1(ff_x, ff_y, kx, ky, n_top, n_bot, device=torch.device('cpu'), 
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.flatten().conjugate()
-    kz_bot = kz_bot.flatten().conjugate()
+    kz_top = torch.conj(kz_top).flatten()
+    kz_bot = torch.conj(kz_bot).flatten()
 
     varphi = torch.arctan(ky.reshape((-1, 1)) / kx).flatten()
 
@@ -627,9 +627,9 @@ def transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
     final_B = torch.cat(
         [
             torch.cat([-torch.sin(psi) * delta_i0], dim=1),
-            torch.cat([-torch.cos(psi) * torch.cos(theta) * delta_i0], dim=1),
+            torch.cat([torch.cos(psi) * torch.cos(theta) * delta_i0], dim=1),
             torch.cat([-1j * torch.sin(psi) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([1j * n_top * torch.cos(psi) * delta_i0], dim=1),
+            torch.cat([-1j * n_top * torch.cos(psi) * delta_i0], dim=1),
         ]
     )
 

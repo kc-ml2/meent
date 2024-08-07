@@ -19,7 +19,7 @@ class RCWANumpy(_BaseRCWA):
                  ucell_info_list=None,
                  thickness=(0., ),
                  backend=0,
-                 grating_type=None,
+                 grating_type=None,  # TODO: remove
                  modeling_type=None,
                  pol=0.,
                  fto=(0, 0),
@@ -52,10 +52,10 @@ class RCWANumpy(_BaseRCWA):
 
         # grating type setting
         if self.grating_type is None:
-            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2*np.pi) == 0):
+            if (type(self.ucell) is np.ndarray and self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2*np.pi) == 0):
                 self._grating_type_assigned = 0
             else:
-                self._grating_type_assigned = 2
+                self._grating_type_assigned = 1  # TODO
         else:
             self._grating_type_assigned = self.grating_type
 
@@ -65,6 +65,7 @@ class RCWANumpy(_BaseRCWA):
                 self._modeling_type_assigned = 0
             elif self.ucell is None:
                 self._modeling_type_assigned = 1
+                self._grating_type_assigned = 1
             else:
                 raise ValueError('Define "modeling_type" in "call_mee" function.')
         else:
@@ -76,7 +77,6 @@ class RCWANumpy(_BaseRCWA):
 
     @ucell.setter
     def ucell(self, ucell):
-        self._modeling_type_assigned = 0  # Raster type
 
         if isinstance(ucell, np.ndarray):
             if ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
@@ -91,15 +91,24 @@ class RCWANumpy(_BaseRCWA):
         else:
             raise ValueError
 
+        if self._ucell is not None:
+            self._modeling_type_assigned = 0  # Raster type
+
+            if self._ucell.shape[1] == 1:  # TODO
+                self._grating_type_assigned = 0
+            else:
+                self._grating_type_assigned = 1
+
     @property
     def ucell_info_list(self):
         return self._ucell_info_list
 
     @ucell_info_list.setter
     def ucell_info_list(self, ucell_info_list):
-
-        self._modeling_type_assigned = 1  # Vector type
         self._ucell_info_list = ucell_info_list
+        if ucell_info_list is not None:
+            self._modeling_type_assigned = 1  # Vector type
+            self._grating_type_assigned = 1
 
     def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
@@ -168,10 +177,6 @@ class RCWANumpy(_BaseRCWA):
         if self._grating_type_assigned == 0:
             res_y = 1
             field_cell = field_dist_1d(self.wavelength, kx, self.T1, self.layer_info_list, self.period, self.pol,
-                                       res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-        elif self._grating_type_assigned == 1:
-            res_y = 1
-            field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
                                        res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
         else:
             field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,

@@ -10,6 +10,17 @@ from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, trans
                               transfer_2d_1, transfer_2d_2, transfer_2d_3, transfer_2d_4)
 
 
+def jax_device_set(func):
+    @functools.wraps(func)
+    def wrap(*args, **kwargs):
+        self, *_ = args
+        with jax.default_device(self.device[0]):
+            res = func(*args, **kwargs)
+            return res
+
+    return wrap
+
+
 class _BaseRCWA:
 
     def __init__(self, n_top=1., n_bot=1., theta=0., phi=0., psi=None, pol=0., fto=(2, 0),
@@ -214,15 +225,15 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-    @staticmethod
-    def jax_device_set(func):
-        @functools.wraps(func)
-        def wrap(*args, **kwargs):
-            self, *_ = args
-            with jax.default_device(self.device[0]):
-                res = func(*args, **kwargs)
-                return res
-        return wrap
+    # @staticmethod
+    # def jax_device_set(func):
+    #     @functools.wraps(func)
+    #     def wrap(*args, **kwargs):
+    #         self, *_ = args
+    #         with jax.default_device(self.device[0]):
+    #             res = func(*args, **kwargs)
+    #             return res
+    #     return wrap
 
     @jax_device_set
     def get_kx_ky_vector(self, wavelength):

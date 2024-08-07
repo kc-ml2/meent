@@ -54,8 +54,8 @@ def test2d_1(plot_figure=False):
 
     option['ucell'] = ucell
 
-    print('reti de_ri', np.array(reti_de_ri))
-    print('reti de_ti', np.array(reti_de_ti))
+    print('reti de_ri', np.array(reti_de_ri).flatten())
+    print('reti de_ti', np.array(reti_de_ti).flatten())
 
     res_z = 11
 
@@ -271,10 +271,8 @@ def test2d_2(plot_figure=False):
 
     # reti = Reticolo()
     # reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, res3_npts=res3_npts)
-    print('reti de_ri', np.array(reti_de_ri))
-    print('reti de_ti', np.array(reti_de_ti))
-    # print('reti de_ri', np.array(reti_de_ri).flatten())
-    # print('reti de_ti', np.array(reti_de_ti).flatten())
+    print('reti de_ri', np.array(reti_de_ri).flatten())
+    print('reti de_ti', np.array(reti_de_ti).flatten())
 
     res_z = 11
 
@@ -431,10 +429,8 @@ def test2d_3(plot_figure=False):
 
     # reti = Reticolo()
     # reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, res3_npts=res3_npts)
-    print('reti de_ri', np.array(reti_de_ri))
-    print('reti de_ti', np.array(reti_de_ti))
-    # print('reti de_ri', np.array(reti_de_ri).flatten())
-    # print('reti de_ti', np.array(reti_de_ti).flatten())
+    print('reti de_ri', np.array(reti_de_ri).flatten())
+    print('reti de_ti', np.array(reti_de_ti).flatten())
 
     res_z = 11
 
@@ -577,10 +573,10 @@ def test2d_4(plot_figure=False):
 
     # reti = Reticolo()
     # reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, res3_npts=res3_npts)
-    print('reti de_ri', np.array(reti_de_ri))
-    print('reti de_ti', np.array(reti_de_ti))
-    # print('reti de_ri', np.array(reti_de_ri).flatten())
-    # print('reti de_ti', np.array(reti_de_ti).flatten())
+    # print('reti de_ri', np.array(reti_de_ri))
+    # print('reti de_ti', np.array(reti_de_ti))
+    print('reti de_ri', np.array(reti_de_ri).flatten())
+    print('reti de_ti', np.array(reti_de_ti).flatten())
 
     res_z = 11
 
@@ -724,10 +720,10 @@ def test2d_5(plot_figure=False):
 
     # reti = Reticolo()
     # reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, res3_npts=res3_npts)
-    print('reti de_ri', np.array(reti_de_ri))
-    print('reti de_ti', np.array(reti_de_ti))
-    # print('reti de_ri', np.array(reti_de_ri).flatten())
-    # print('reti de_ti', np.array(reti_de_ti).flatten())
+    # print('reti de_ri', np.array(reti_de_ri))
+    # print('reti de_ti', np.array(reti_de_ti))
+    print('reti de_ri', np.array(reti_de_ri).flatten())
+    print('reti de_ti', np.array(reti_de_ti).flatten())
 
     res_z = 11
 
@@ -828,8 +824,11 @@ def test2d_6(plot_figure=False):
     [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell] = reti.eng.reti_2d(6, nout=5)
     reti_de_ri, reti_de_ti, c, d, r_field_cell = top_refl_info.efficiency, top_tran_info.efficiency, bottom_refl_info.efficiency, \
         bottom_tran_info.efficiency, field_cell
-    print('reti de_ri', np.array(reti_de_ri))
-    print('reti de_ti', np.array(reti_de_ti))
+    # print('reti de_ri', np.array(reti_de_ri))
+    # print('reti de_ti', np.array(reti_de_ti))
+    print('reti de_ri', np.array(reti_de_ri).flatten())
+    print('reti de_ti', np.array(reti_de_ti).flatten())
+
     r_field_cell = np.moveaxis(r_field_cell, 2, 1)
     r_field_cell = r_field_cell[res_z:-res_z]
     r_field_cell = np.flip(r_field_cell, 0)

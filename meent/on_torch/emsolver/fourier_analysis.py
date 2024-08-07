@@ -82,10 +82,12 @@ def dfs2d(cell, conti_x, conti_y, fto_x, fto_y, device=torch.device('cpu'), type
     conv_index_1 = circulant(fto_y, device=device)
     conv_index_2 = circulant(fto_x, device=device)
 
-    conv1d = dfs1d[:, conv_index_1]
+    conv1d_pre = dfs1d[:, conv_index_1]
 
     if conti_x ^ conti_y:
-        conv1d = torch.linalg.inv(conv1d)
+        conv1d = torch.linalg.inv(conv1d_pre)
+    else:
+        conv1d = conv1d_pre
 
     conv1d = conv1d.reshape((-1, ff_y ** 2))
 

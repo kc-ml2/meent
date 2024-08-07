@@ -6,7 +6,7 @@ import jax
 import numpy as np
 import jax.numpy as jnp
 
-from ._base import _BaseRCWA
+from ._base import _BaseRCWA, jax_device_set
 from .convolution_matrix import to_conv_mat_raster_discrete, to_conv_mat_raster_continuous, to_conv_mat_vector
 from .field_distribution import field_dist_1d, field_dist_2d,  field_plot
 
@@ -57,10 +57,11 @@ class RCWAJax(_BaseRCWA):
 
         # grating type setting
         if self.grating_type is None:
-            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0):
+            # TODO: JAX jit
+            if (isinstance(self._ucell, jnp.ndarray) and self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0):
                 self._grating_type_assigned = 0
             else:
-                self._grating_type_assigned = 2
+                self._grating_type_assigned = 1
         else:
             self._grating_type_assigned = self.grating_type
 
@@ -70,6 +71,7 @@ class RCWAJax(_BaseRCWA):
                 self._modeling_type_assigned = 0
             elif self.ucell is None:
                 self._modeling_type_assigned = 1
+                self._grating_type_assigned = 1
             else:
                 raise ValueError('Define "modeling_type" in "call_mee" function.')
         else:
@@ -130,6 +132,14 @@ class RCWAJax(_BaseRCWA):
         else:
             raise ValueError
 
+        if self._ucell is not None:
+            self._modeling_type_assigned = 0  # Raster type
+
+            if self._ucell.shape[1] == 1:
+                self._grating_type_assigned = 0
+            else:
+                self._grating_type_assigned = 1
+
     @property
     def ucell_info_list(self):
         return self._ucell_info_list
@@ -137,8 +147,9 @@ class RCWAJax(_BaseRCWA):
     @ucell_info_list.setter
     def ucell_info_list(self, ucell_info_list):
         self._ucell_info_list = ucell_info_list
-        if ucell_info_list is not None:  # TODO: apply for numpy
+        if ucell_info_list is not None:
             self._modeling_type_assigned = 1  # Vector type
+            self._grating_type_assigned = 1
 
     def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
@@ -149,21 +160,8 @@ class RCWAJax(_BaseRCWA):
 
         return de_ri, de_ti, layer_info_list, T1
 
-    def _solve_old(self, wavelength, e_conv_all, o_e_conv_all):
-        self.kx_vector = self.get_kx_vector(wavelength)
-
-        if self.grating_type == 0:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, e_conv_all, o_e_conv_all)
-        elif self.grating_type == 1:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d_conical(wavelength, e_conv_all, o_e_conv_all)
-        elif self.grating_type == 2:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, e_conv_all, o_e_conv_all)
-        else:
-            raise ValueError
-
-        return de_ri, de_ti, layer_info_list, T1, self.kx_vector
-
-    @_BaseRCWA.jax_device_set
+    # @_BaseRCWA.jax_device_set
+    @jax_device_set
     def solve(self, wavelength, e_conv_all, o_e_conv_all):
         de_ri, de_ti, layer_info_list, T1, kx_vector = jax.jit(self._solve)(wavelength, e_conv_all, o_e_conv_all)
 
@@ -172,24 +170,6 @@ class RCWAJax(_BaseRCWA):
         # self.kx = kx
 
         return de_ri, de_ti
-
-    def _conv_solve_old(self):
-
-        if self.fft_type == 0:
-            E_conv_all, o_E_conv_all = to_conv_mat_raster_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                                   type_complex=self.type_complex, enhanced_dfs=self.improve_dft)
-        elif self.fft_type == 1:
-            E_conv_all, o_E_conv_all = to_conv_mat_raster_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                                     type_complex=self.type_complex)
-        elif self.fft_type == 2:
-            E_conv_all, o_E_conv_all = to_conv_mat_vector(self.ucell_info_list,
-                                                          self.fourier_order[0], self.fourier_order[1],
-                                                          type_complex=self.type_complex)
-        else:
-            raise ValueError
-
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
-        return de_ri, de_ti, layer_info_list, T1, kx_vector
 
     def _conv_solve(self, **kwargs):
 
@@ -236,7 +216,9 @@ class RCWAJax(_BaseRCWA):
     def _conv_solve_jit(self):
         return self._conv_solve()
 
-    @_BaseRCWA.jax_device_set
+    # TODO
+    # @_BaseRCWA.jax_device_set
+    @jax_device_set
     def conv_solve(self, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
         if self.fourier_type == 1:
@@ -252,7 +234,9 @@ class RCWAJax(_BaseRCWA):
 
         return de_ri, de_ti
 
-    @_BaseRCWA.jax_device_set
+    # TODO
+    # @_BaseRCWA.jax_device_set
+    @jax_device_set
     def calculate_field(self, res_x=20, res_y=20, res_z=20):
 
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
@@ -261,106 +245,17 @@ class RCWAJax(_BaseRCWA):
             res_y = 1
             field_cell = field_dist_1d(self.wavelength, kx, self.T1, self.layer_info_list, self.period, self.pol,
                                        res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-
-        elif self._grating_type_assigned == 1:
-            res_y = 1
-            field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                       res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
         else:
             field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
                                        res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-
-        return field_cell
-
-    @_BaseRCWA.jax_device_set
-    def calculate_field_old(self, res_x=20, res_y=20, res_z=20, field_algo=2):
-
-        if self.grating_type == 0:
-            res_y = 1
-            if field_algo == 0:
-                field_cell = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
-                                                   self.T1, self.layer_info_list, self.period, self.pol,
-                                                   res_x=res_x, res_y=res_y, res_z=res_z,
-                                                   type_complex=self.type_complex)
-            elif field_algo == 1:
-                field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.T1, self.layer_info_list,
-                                                         self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
-                                                         type_complex=self.type_complex, type_float=self.type_float)
-            elif field_algo == 2:
-                field_cell = field_dist_1d(self.wavelength, self.kx_vector, self.T1,
-                                           self.layer_info_list, self.period, self.pol,
-                                           res_x=res_x, res_y=res_y, res_z=res_z,
-                                           type_complex=self.type_complex, type_float=self.type_float)
-            else:
-                raise ValueError
-
-        elif self.grating_type == 1:
-            res_y = 1
-            if field_algo == 0:
-                field_cell = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_top, self.theta,
-                                                           self.phi, self.T1, self.layer_info_list, self.period,
-                                                           res_x=res_x, res_y=res_y, res_z=res_z,
-                                                           type_complex=self.type_complex)
-            elif field_algo == 1:
-                field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_top, self.theta,
-                                                                 self.phi, self.T1, self.layer_info_list, self.period,
-                                                                 res_x=res_x, res_y=res_y, res_z=res_z,
-                                                                 type_complex=self.type_complex, type_float=self.type_float)
-            elif field_algo == 2:
-                field_cell = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_top, self.theta,
-                                                                  self.phi, self.T1, self.layer_info_list, self.period,
-                                                                  res_x=res_x, res_y=res_y, res_z=res_z,
-                                                                  type_complex=self.type_complex, type_float=self.type_float)
-            else:
-                raise ValueError
-
-        elif self.grating_type == 2:
-
-            if field_algo == 0:
-                field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_top, self.theta, self.phi,
-                                                   *self.fourier_order, self.T1, self.layer_info_list, self.period,
-                                                   res_x=res_x, res_y=res_y, res_z=res_z,
-                                                   type_complex=self.type_complex)
-            elif field_algo == 1:
-                field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_top, self.theta,
-                                                         self.phi, *self.fourier_order, self.T1, self.layer_info_list,
-                                                         self.period, res_x=res_x, res_y=res_y, res_z=res_z,
-                                                         type_complex=self.type_complex, type_float=self.type_float)
-            elif field_algo == 2:
-                field_cell = field_dist_2d(self.wavelength, self.kx_vector, self.n_top, self.theta,
-                                           self.phi, *self.fourier_order, self.T1, self.layer_info_list,
-                                           self.period, res_x=res_x, res_y=res_y, res_z=res_z,
-                                           type_complex=self.type_complex, type_float=self.type_float)
-            else:
-                raise ValueError
-        else:
-            raise ValueError
 
         return field_cell
 
     def field_plot(self, field_cell):
         field_plot(field_cell, self.pol)
 
-    @_BaseRCWA.jax_device_set
-    def calculate_field_all(self, res_x=20, res_y=20, res_z=20):
-        t0 = time.time()
-        field_cell0 = self.calculate_field(res_x=res_x, res_y=res_y, res_z=res_z)
-        print('no vector', time.time() - t0)
-        t0 = time.time()
-        field_cell1 = self.calculate_field(res_x=res_x, res_y=res_y, res_z=res_z)
-        print('ji vector', time.time() - t0)
-        t0 = time.time()
-        field_cell2 = self.calculate_field(res_x=res_x, res_y=res_y, res_z=res_z)
-        print('kji vector', time.time() - t0)
-
-        print('gap(1-0): ', jnp.linalg.norm(field_cell1 - field_cell0))
-        print('gap(2-1): ', jnp.linalg.norm(field_cell2 - field_cell1))
-        print('gap(0-2): ', jnp.linalg.norm(field_cell0 - field_cell2))
-
-        return field_cell0, field_cell1, field_cell2
-
     @partial(jax.jit, static_argnums=(1, 2, 3, 4))
-    @_BaseRCWA.jax_device_set
+    @jax_device_set
     def conv_solve_field(self, res_x=20, res_y=20, res_z=20, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
@@ -372,7 +267,8 @@ class RCWAJax(_BaseRCWA):
         field_cell = self.calculate_field(res_x, res_y, res_z)
         return de_ri, de_ti, field_cell
 
-    @_BaseRCWA.jax_device_set
+    # TODO
+    @jax_device_set
     def conv_solve_field_no_jit(self, res_x=20, res_y=20, res_z=20):
         de_ri, de_ti, _, _ = self._conv_solve()
         field_cell = self.calculate_field(res_x, res_y, res_z)

@@ -44,10 +44,16 @@ class ModelingNumpy:
             angle = angle.reshape(1)
 
         if lx.dtype not in (np.complex64, np.complex128):
-            lx = lx.astype(self.type_complex)  # TODO
-        if ly.dtype not in (np.complex64, np.complex128):
-            ly = ly.astype(self.type_complex)
+            if self.type_complex is np.complex128:
+                lx = lx.astype(np.float64)
+            else:
+                lx = lx.astype(np.float32)
 
+        if ly.dtype not in (np.complex64, np.complex128):
+            if self.type_complex is np.complex128:
+                ly = ly.astype(np.float64)
+            else:
+                ly = ly.astype(np.float32)
         # n_split_triangle, n_split_parallelogram = n_split_triangle + 2, n_split_parallelogram + 2
 
         # if angle is None:
@@ -529,7 +535,10 @@ class ModelingNumpy:
 
             # top_left[0]
             for _ in range(100):
-                index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+
+                # tODO: confirm bisect change
+                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(row_list, top_left[0].real)
                 if len(row_list) > index and top_left[0] == row_list[index]:
                     perturbation += perturbation_unit
                     if top_left[0] == 0:
@@ -544,21 +553,16 @@ class ModelingNumpy:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, top_left[0].real)
                 row_list.insert(index, top_left[0])
 
             # bottom_right[0]
             for _ in range(100):
-                index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(row_list, bottom_right[0].real)
                 if len(row_list) > index and bottom_right[0] == row_list[index]:
                     perturbation += perturbation_unit
-                    # if bottom_right[0] == 0:
-                    #     bottom_right[0] = bottom_right[0] + perturbation
-                    # else:
-                    #     # bottom_right[0] = bottom_right[0] + (bottom_right[0] * perturbation)
-                    #     bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
-
-                    # bottom_right[0] = bottom_right[0] + (bottom_right[0] * perturbation)
                     bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
                     row_list.insert(index, bottom_right[0])
                     break
@@ -568,12 +572,14 @@ class ModelingNumpy:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, bottom_right[0].real)
                 row_list.insert(index, bottom_right[0])
 
             # top_left[1]
             for _ in range(100):
-                index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(col_list, top_left[1].real)
                 if len(col_list) > index and top_left[1] == col_list[index]:
                     perturbation += perturbation_unit
 
@@ -589,12 +595,14 @@ class ModelingNumpy:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, top_left[1].real)
                 col_list.insert(index, top_left[1])
 
             # bottom_right[1]
             for _ in range(100):
-                index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(col_list, bottom_right[1].real)
                 if len(col_list) > index and bottom_right[1] == col_list[index]:
                     perturbation += perturbation_unit
                     # if bottom_right[1] == 0:
@@ -612,7 +620,8 @@ class ModelingNumpy:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(col_list, bottom_right[1].real)
                 col_list.insert(index, bottom_right[1])
 
         if not row_list or row_list[-1] != self.period[1]:

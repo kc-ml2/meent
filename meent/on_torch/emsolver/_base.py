@@ -2,12 +2,8 @@ import torch
 
 import numpy as np
 
-from .primitives import Eig
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
-
-# from .transfer_method import transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_conical_1, transfer_1d_conical_2, \
-#     transfer_1d_conical_3, transfer_2d_1, transfer_2d_wv, transfer_2d_2, transfer_2d_3
 
 from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_4,
                               transfer_2d_1, transfer_2d_2, transfer_2d_3, transfer_2d_4)
@@ -507,7 +503,8 @@ class _BaseRCWA:
             #     de_ri, de_ti, big_T1, self.rayleigh_r, self.rayleigh_t = transfer_2d_3(center, big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, ff_xy,
             #                                                                            delta_i0, k_I_z, k0, self.n_top, self.n_bot, k_II_z, device=self.device,
             #                                                                            type_complex=self.type_complex)
-            de_ri, de_ti, big_T1 = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
+            # TODO: AA and BB
+            de_ri, de_ti, big_T1, AA, BB = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
                                                  self.n_top, self.n_bot, device=self.device,
                                                  type_complex=self.type_complex)
             self.T1 = big_T1

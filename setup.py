@@ -22,7 +22,7 @@ setup(
         'scipy>=1.9.1',
     ],
     extras_require=extras,
-    python_requires='>=3.10',
+    python_requires='>=3.8',
     long_description_content_type="text/markdown",
     package_data={
         'meent': ['nk_data/filmetrics/*.txt', 'nk_data/matlab/*.mat'],
