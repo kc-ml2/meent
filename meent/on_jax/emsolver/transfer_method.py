@@ -226,7 +226,8 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.compl
             [Ky @ (epz_conv_i @ Kx @ epx_conv - Kx), Kx ** 2 + D @ epy_conv]
         ])
 
-    eigenvalues, W = jnp.linalg.eig(Omega2_LR)
+    # eigenvalues, W = jnp.linalg.eig(Omega2_LR)
+    eigenvalues, W = eig(Omega2_LR)
     eigenvalues += 0j  # to get positive square root
     q = eigenvalues ** 0.5
 

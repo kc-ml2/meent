@@ -1,9 +1,9 @@
 import random
-import os
 import numpy as np
 import torch
 
 import constants
+
 
 # 160, 192
 # 40, 48
@@ -21,7 +21,7 @@ def carve_pattern(
     if isinstance(pattern, np.ndarray): 
         canvas = np.full((B, C, width, width), fill_value)
     elif isinstance(pattern, torch.Tensor):
-        canvas =  torch.full((B, C, width, width), fill_value)
+        canvas = torch.full((B, C, width, width), fill_value)
 
     if isinstance(pattern, np.ndarray):
         pattern = pattern.repeat(height, 2)
@@ -30,13 +30,14 @@ def carve_pattern(
 
     canvas[:, :, upper_idx:lower_idx, :] = pattern
     
-    return canvas # (1, 1, n, n)
+    return canvas  # (1, 1, n, n)
 
 
-def to_blob(n_times, patterns): # expects Tensor input
+def to_blob(n_times, patterns):  # expects Tensor input
     return torch.stack(
         [np.repeat(i, n_times) for i in patterns]
     )
+
 
 def seed_all(seed):
     random.seed(seed)

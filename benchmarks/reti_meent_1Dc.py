@@ -37,18 +37,18 @@ def test1dc_1(plot_figure=False):
 
     res_z = 11
     reti = Reticolo()
-    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, matlab_plot_field=0, res3_npts=res_z)
+    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, grating_type=1, matlab_plot_field=0, res3_npts=res_z)
     print('reti de_ri', np.array(reti_de_ri).flatten())
     print('reti de_ti', np.array(reti_de_ti).flatten())
 
     # Numpy
     backend = 0
-    nmee = meent.call_mee(backend=backend, perturbation=1E-30, **option)
-    n_de_ri, n_de_ti = nmee.conv_solve()
-    n_field_cell = nmee.calculate_field(res_z=res_z, res_y=1, res_x=50)
+    mee = meent.call_mee(backend=backend, perturbation=1E-30, **option)
+    n_de_ri, n_de_ti = mee.conv_solve()
+    n_field_cell = mee.calculate_field(res_z=res_z, res_y=1, res_x=50)
 
-    print('nmeent de_ri', n_de_ri[n_de_ri > 1E-5])
-    print('nmeent de_ti', n_de_ti[n_de_ti > 1E-5])
+    print('meent de_ri', n_de_ri[n_de_ri > 1E-5])
+    print('meent de_ti', n_de_ti[n_de_ti > 1E-5])
 
     r_field_cell = np.moveaxis(r_field_cell, 2, 1)
     r_field_cell = r_field_cell[res_z:-res_z]
@@ -118,18 +118,18 @@ def test1dc_2(plot_figure=False):
 
     res_z = 11
     reti = Reticolo()
-    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, matlab_plot_field=0, res3_npts=res_z)
+    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, grating_type=1, matlab_plot_field=0, res3_npts=res_z)
     print('reti de_ri', np.array(reti_de_ri).flatten())
     print('reti de_ti', np.array(reti_de_ti).flatten())
 
     # Numpy
     backend = 0
-    nmee = meent.call_mee(backend=backend, perturbation=1E-30, **option)
-    n_de_ri, n_de_ti = nmee.conv_solve()
-    n_field_cell = nmee.calculate_field(res_z=res_z, res_y=1, res_x=50)
+    mee = meent.call_mee(backend=backend, perturbation=1E-30, **option)
+    n_de_ri, n_de_ti = mee.conv_solve()
+    n_field_cell = mee.calculate_field(res_z=res_z, res_y=1, res_x=50)
 
-    print('nmeent de_ri', n_de_ri[n_de_ri > 1E-5])
-    print('nmeent de_ti', n_de_ti[n_de_ti > 1E-5])
+    print('meent de_ri', n_de_ri[n_de_ri > 1E-5])
+    print('meent de_ti', n_de_ti[n_de_ti > 1E-5])
 
     r_field_cell = np.moveaxis(r_field_cell, 2, 1)
     r_field_cell = r_field_cell[res_z:-res_z]

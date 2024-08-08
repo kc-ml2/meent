@@ -55,21 +55,22 @@ class RCWAJax(_BaseRCWA):
     @ucell.setter
     def ucell(self, ucell):
 
-        if isinstance(ucell, (jnp.ndarray, np.ndarray)):  # Raster
+        if isinstance(ucell, jnp.ndarray):  # Raster
             if ucell.dtype in (jnp.float64, jnp.float32, jnp.int64, jnp.int32):
                 dtype = self.type_float
                 self._ucell = ucell.astype(dtype)
             elif ucell.dtype in (jnp.complex128, jnp.complex64):
                 dtype = self.type_complex
                 self._ucell = ucell.astype(dtype)
-            elif ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
+
+        elif isinstance(ucell, np.ndarray):  # Raster
+            if ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
                 dtype = self.type_float
                 self._ucell = jnp.array(ucell, dtype=dtype)
             elif ucell.dtype in (np.complex128, np.complex64):
                 dtype = self.type_complex
                 self._ucell = jnp.array(ucell, dtype=dtype)
-            else:
-                raise ValueError
+
         elif type(ucell) is list:  # Vector
             self._ucell = ucell
         elif ucell is None:
@@ -86,8 +87,7 @@ class RCWAJax(_BaseRCWA):
         self._modeling_type_assigned = modeling_type_assigned
 
     def _assign_modeling_type(self):
-
-        if isinstance(self.ucell, np.ndarray):  # Raster
+        if isinstance(self.ucell, (np.ndarray, jnp.ndarray)):  # Raster
             self.modeling_type_assigned = 0
             if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0):
                 self._grating_type_assigned = 0  # 1D TE and TM only

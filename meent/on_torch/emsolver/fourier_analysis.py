@@ -30,6 +30,8 @@ def _cfs(x, cell, fto, period, device=torch.device('cpu'), type_complex=torch.co
 
 def cfs2d(cell, x, y, conti_x, conti_y, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128):
     cell = cell.type(type_complex)
+    x = x.type(type_complex)
+    y = y.type(type_complex)
 
     ff_x = 2 * fto_x + 1
     ff_y = 2 * fto_y + 1

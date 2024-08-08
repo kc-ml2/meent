@@ -60,24 +60,21 @@ def test2d_1(plot_figure=False):
 
     # Numpy
     backend = 0
-    nmee = meent.call_mee(backend=backend, **option)
-    n_de_ri, n_de_ti = nmee.conv_solve()
-    n_field_cell = nmee.calculate_field(res_z=res_z, res_y=50, res_x=50)
-    # print('nmeent de_ri', n_de_ri)
-    # print('nmeent de_ti', n_de_ti)
-    print('nmeent de_ri', n_de_ri[n_de_ri > 1E-5])
-    print('nmeent de_ti', n_de_ti[n_de_ti > 1E-5])
+    mee = meent.call_mee(backend=backend, **option)
+    n_de_ri, n_de_ti = mee.conv_solve()
+    n_field_cell = mee.calculate_field(res_z=res_z, res_y=50, res_x=50)
+    # print('meent de_ri', n_de_ri)
+    # print('meent de_ti', n_de_ti)
+    print('meent de_ri', n_de_ri[n_de_ri > 1E-5])
+    print('meent de_ti', n_de_ti[n_de_ti > 1E-5])
 
     r_field_cell = np.moveaxis(r_field_cell, 2, 1)
     r_field_cell = r_field_cell[res_z:-res_z]
     r_field_cell = np.flip(r_field_cell, 0)
     r_field_cell = r_field_cell.conj()
 
-    title = ['Ex', 'Ey', 'Ez', 'Hx', 'Hy', 'Hz']
-
     for i in range(6):
         print(i, np.linalg.norm(r_field_cell[:, :, :, i] - n_field_cell[:, :, :, i]))
-
 
     if plot_figure:
         title = ['Ex', 'Ey', 'Ez', 'Hx', 'Hy', 'Hz']
@@ -172,56 +169,6 @@ def test2d_2(plot_figure=False):
     option['fourier_type'] = 1
 
     ucell = np.array(
-        [
-            [
-                [0, 1, 0, 0, 1, 0],
-                [1, 0, 0, 0, 0, 1],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 0],
-            ]]
-    ) * (3) + 1
-
-    ucell = np.array(
-        [
-            [[0, 0, 0, 0, 0, 0, ],
-             [0, 0, 1, 1, 0, 0],
-             [0, 1, 0, 0, 1, 0],
-             [0, 1, 0, 0, 1, 0],
-             [0, 0, 1, 1, 0, 0],
-             [0, 0, 0, 0, 0, 0]]]
-    ) * (3) + 1
-    ucell = np.array(
-        [[
-            [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-            [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-            # [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-            # [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-            # [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-            # [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-            # [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-            # [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-            # [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-            # [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-        ]])
-
-    # ucell = np.array(
-    #     [[
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #     ]])
-
-
-    ucell = np.array(
         [[
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -235,36 +182,6 @@ def test2d_2(plot_figure=False):
             [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
         ]])
 
-    # ucell = np.array(
-    #     [[
-    #         [4, 4, 6, 6, 1, 1, 1, 1, 1, 1],
-    #         [4, 4, 6, 6, 1, 1, 1, 1, 1, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #     ]])
-
-    # ucell = np.array(
-    #     [[
-    #         [1, 1, 3, 1, 1, 1, 1, 1, 3, 1],
-    #         [4, 1, 3, 1, 1, 1, 1, 1, 1, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #         [8, 1, 1, 1, 1, 1, 1, 1, 5, 1],
-    #         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #         [3, 3, 3, 3, 3, 1, 1, 1, 1, 1],
-    #     ]])
-
-
-    # ucell = np.repeat(ucell, 10, axis=2)
     option['ucell'] = ucell
 
     # reti = Reticolo()
@@ -276,20 +193,18 @@ def test2d_2(plot_figure=False):
 
     # Numpy
     backend = 0
-    nmee = meent.call_mee(backend=backend, **option)
-    n_de_ri, n_de_ti = nmee.conv_solve()
-    n_field_cell = nmee.calculate_field(res_z=res_z, res_y=50, res_x=50)
-    # print('nmeent de_ri', n_de_ri)
-    # print('nmeent de_ti', n_de_ti)
-    print('nmeent de_ri', n_de_ri[n_de_ri > 1E-5])
-    print('nmeent de_ti', n_de_ti[n_de_ti > 1E-5])
+    mee = meent.call_mee(backend=backend, **option)
+    n_de_ri, n_de_ti = mee.conv_solve()
+    n_field_cell = mee.calculate_field(res_z=res_z, res_y=50, res_x=50)
+    # print('meent de_ri', n_de_ri)
+    # print('meent de_ti', n_de_ti)
+    print('meent de_ri', n_de_ri[n_de_ri > 1E-5])
+    print('meent de_ti', n_de_ti[n_de_ti > 1E-5])
 
     r_field_cell = np.moveaxis(r_field_cell, 2, 1)
     r_field_cell = r_field_cell[res_z:-res_z]
     r_field_cell = np.flip(r_field_cell, 0)
     r_field_cell = r_field_cell.conj()
-
-    title = ['Ex', 'Ey', 'Ez', 'Hx', 'Hy', 'Hz']
 
     for i in range(6):
         print(i, np.linalg.norm(r_field_cell[:, :, :, i] - n_field_cell[:, :, :, i]))
@@ -387,28 +302,6 @@ def test2d_3(plot_figure=False):
     option['fourier_type'] = 1
 
     ucell = np.array(
-        [
-            [
-                [0, 1, 0, 0, 1, 0],
-                [1, 0, 0, 0, 0, 1],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 0],
-            ]]
-    ) * (3) + 1
-
-    ucell = np.array(
-        [
-            [[0, 0, 0, 0, 0, 0, ],
-             [0, 0, 1, 1, 0, 0],
-             [0, 1, 0, 0, 1, 0],
-             [0, 1, 0, 0, 1, 0],
-             [0, 0, 1, 1, 0, 0],
-             [0, 0, 0, 0, 0, 0]]]
-    ) * (3) + 1
-
-    ucell = np.array(
         [[
             [4, 4, 4, 4, 4, 1, 1, 1, 1, 1],
             [4, 4, 4, 4, 4, 1, 1, 1, 1, 1],
@@ -433,20 +326,18 @@ def test2d_3(plot_figure=False):
 
     # Numpy
     backend = 0
-    nmee = meent.call_mee(backend=backend, **option)
-    n_de_ri, n_de_ti = nmee.conv_solve()
-    n_field_cell = nmee.calculate_field(res_z=res_z, res_y=50, res_x=50)
-    # print('nmeent de_ri', n_de_ri)
-    # print('nmeent de_ti', n_de_ti)
-    print('nmeent de_ri', n_de_ri[n_de_ri > 1E-5])
-    print('nmeent de_ti', n_de_ti[n_de_ti > 1E-5])
+    mee = meent.call_mee(backend=backend, **option)
+    n_de_ri, n_de_ti = mee.conv_solve()
+    n_field_cell = mee.calculate_field(res_z=res_z, res_y=50, res_x=50)
+    # print('meent de_ri', n_de_ri)
+    # print('meent de_ti', n_de_ti)
+    print('meent de_ri', n_de_ri[n_de_ri > 1E-5])
+    print('meent de_ti', n_de_ti[n_de_ti > 1E-5])
 
     r_field_cell = np.moveaxis(r_field_cell, 2, 1)
     r_field_cell = r_field_cell[res_z:-res_z]
     r_field_cell = np.flip(r_field_cell, 0)
     r_field_cell = r_field_cell.conj()
-
-    title = ['Ex', 'Ey', 'Ez', 'Hx', 'Hy', 'Hz']
 
     for i in range(6):
         print(i, np.linalg.norm(r_field_cell[:, :, :, i] - n_field_cell[:, :, :, i]))
@@ -545,18 +436,6 @@ def test2d_4(plot_figure=False):
 
     ucell = np.array(
         [
-            [
-                [0, 1, 0, 0, 1, 0],
-                [1, 0, 0, 0, 0, 1],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 0],
-            ]]
-    ) * (3) + 1
-
-    ucell = np.array(
-        [
             [[0, 0, 0, 0, 0, 0, ],
              [0, 0, 1, 1, 0, 0],
              [0, 1, 0, 0, 1, 0],
@@ -578,24 +457,21 @@ def test2d_4(plot_figure=False):
 
     # Numpy
     backend = 0
-    nmee = meent.call_mee(backend=backend, **option)
-    n_de_ri, n_de_ti = nmee.conv_solve()
-    n_field_cell = nmee.calculate_field(res_z=res_z, res_y=50, res_x=50)
-    # print('nmeent de_ri', n_de_ri)
-    # print('nmeent de_ti', n_de_ti)
-    print('nmeent de_ri', n_de_ri[n_de_ri > 1E-5])
-    print('nmeent de_ti', n_de_ti[n_de_ti > 1E-5])
+    mee = meent.call_mee(backend=backend, **option)
+    n_de_ri, n_de_ti = mee.conv_solve()
+    n_field_cell = mee.calculate_field(res_z=res_z, res_y=50, res_x=50)
+    # print('meent de_ri', n_de_ri)
+    # print('meent de_ti', n_de_ti)
+    print('meent de_ri', n_de_ri[n_de_ri > 1E-5])
+    print('meent de_ti', n_de_ti[n_de_ti > 1E-5])
 
     r_field_cell = np.moveaxis(r_field_cell, 2, 1)
     r_field_cell = r_field_cell[res_z:-res_z]
     r_field_cell = np.flip(r_field_cell, 0)
     r_field_cell = r_field_cell.conj()
 
-    title = ['Ex', 'Ey', 'Ez', 'Hx', 'Hy', 'Hz']
-
     for i in range(6):
         print(i, np.linalg.norm(r_field_cell[:, :, :, i] - n_field_cell[:, :, :, i]))
-
 
     if plot_figure:
         title = ['Ex', 'Ey', 'Ez', 'Hx', 'Hy', 'Hz']
@@ -691,18 +567,6 @@ def test2d_5(plot_figure=False):
 
     ucell = np.array(
         [
-            [
-                [0, 1, 0, 0, 1, 0],
-                [1, 0, 0, 0, 0, 1],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [1, 0, 0, 0, 0, 1],
-                [0, 1, 0, 0, 1, 0],
-            ]]
-    ) * (3) + 1
-
-    ucell = np.array(
-        [
             [[0, 0, 0, 0, 0, 0, ],
              [0, 0, 1, 1, 0, 0],
              [0, 1, 0, 0, 1, 0],
@@ -724,13 +588,13 @@ def test2d_5(plot_figure=False):
 
     # Numpy
     backend = 0
-    nmee = meent.call_mee(backend=backend, **option)
-    n_de_ri, n_de_ti = nmee.conv_solve()
-    n_field_cell = nmee.calculate_field(res_z=res_z, res_y=50, res_x=50)
-    # print('nmeent de_ri', n_de_ri)
-    # print('nmeent de_ti', n_de_ti)
-    print('nmeent de_ri', n_de_ri[n_de_ri > 1E-5])
-    print('nmeent de_ti', n_de_ti[n_de_ti > 1E-5])
+    mee = meent.call_mee(backend=backend, **option)
+    n_de_ri, n_de_ti = mee.conv_solve()
+    n_field_cell = mee.calculate_field(res_z=res_z, res_y=50, res_x=50)
+    # print('meent de_ri', n_de_ri)
+    # print('meent de_ti', n_de_ti)
+    print('meent de_ri', n_de_ri[n_de_ri > 1E-5])
+    print('meent de_ti', n_de_ti[n_de_ti > 1E-5])
 
     r_field_cell = np.moveaxis(r_field_cell, 2, 1)
     r_field_cell = r_field_cell[res_z:-res_z]
@@ -865,10 +729,10 @@ def test2d_6(plot_figure=False):
     mee = meent.call_mee(backend=backend, **option)
     n_de_ri, n_de_ti = mee.conv_solve()
     n_field_cell = mee.calculate_field(res_z=res_z, res_y=50, res_x=50)
-    # print('nmeent de_ri', n_de_ri)
-    # print('nmeent de_ti', n_de_ti)
-    print('nmeent de_ri', n_de_ri[n_de_ri > 1E-5])
-    print('nmeent de_ti', n_de_ti[n_de_ti > 1E-5])
+    # print('meent de_ri', n_de_ri)
+    # print('meent de_ti', n_de_ti)
+    print('meent de_ri', n_de_ri[n_de_ri > 1E-5])
+    print('meent de_ti', n_de_ti[n_de_ti > 1E-5])
 
     for i in range(6):
         print(i, np.linalg.norm(r_field_cell[:, :, :, i] - n_field_cell[:, :, :, i]))

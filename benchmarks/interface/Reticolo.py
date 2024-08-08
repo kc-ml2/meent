@@ -33,29 +33,9 @@ class Reticolo:
         m_path = os.path.dirname(__file__)
         self.eng.addpath(self.eng.genpath(m_path))
 
-    def run_res2(self, grating_type, period, fto, ucell, thickness, theta, phi, pol, wavelength, n_I, n_II,
+    def run_res2(self, grating_type, period, fto, ucell, thickness, theta, phi, pol, wavelength, n_top, n_bot,
                  *args, **kwargs):
-        """
-        Deprecated. Use run_res3.
-        Args:
-            grating_type:
-            period:
-            fto:
-            ucell:
-            thickness:
-            theta:
-            phi:
-            pol:
-            wavelength:
-            n_I:
-            n_II:
-            *args:
-            **kwargs:
 
-        Returns:
-
-        """
-        theta *= (180 / np.pi)
         phi *= (180 / np.pi)
 
         if grating_type in (0, 1):
@@ -67,6 +47,7 @@ class Reticolo:
             # grid_x = np.linspace(0, period, Nx + 1)[1:]
             # grid_x -= period_x / 2
             grid_x = np.linspace(0, period, Nx + 1)[1:]
+            grid_x = np.arange(1, Nx+1) * (period/Nx)
 
             # grid = np.linspace(0, period, Nx)
 
@@ -75,38 +56,39 @@ class Reticolo:
                 ucell_layer = [grid_x, ucell[z, 0]]
                 ucell_new.append(ucell_layer)
 
-            textures = [n_I, *ucell_new, n_II]
+            textures = [n_top, *ucell_new, n_bot]
 
         else:
+            raise ValueError
 
-            Nx = ucell.shape[2]
-            Ny = ucell.shape[1]
-            period_x = period[0]
-            period_y = period[1]
-
-            unit_x = period_x / Nx
-            unit_y = period_y / Ny
-
-            grid_x = np.linspace(0, period[0], Nx + 1)[1:]
-            grid_y = np.linspace(0, period[1], Ny + 1)[1:]
-
-            grid_x -= period_x / 2
-            grid_y -= period_y / 2
-
-            ucell_new = []
-            for z in range(ucell.shape[0]):
-                ucell_layer = [10]
-                for y, yval in enumerate(grid_y):
-                    for x, xval in enumerate(grid_x):
-                        obj = [xval, yval, unit_x, unit_y, ucell[z, y, x], 1]
-                        ucell_layer.append(obj)
-                ucell_new.append(ucell_layer)
-            textures = [n_I, *ucell_new, n_II]
+            # Nx = ucell.shape[2]
+            # Ny = ucell.shape[1]
+            # period_x = period[0]
+            # period_y = period[1]
+            #
+            # unit_x = period_x / Nx
+            # unit_y = period_y / Ny
+            #
+            # grid_x = np.linspace(0, period[0], Nx + 1)[1:]
+            # grid_y = np.linspace(0, period[1], Ny + 1)[1:]
+            #
+            # grid_x -= period_x / 2
+            # grid_y -= period_y / 2
+            #
+            # ucell_new = []
+            # for z in range(ucell.shape[0]):
+            #     ucell_layer = [10]
+            #     for y, yval in enumerate(grid_y):
+            #         for x, xval in enumerate(grid_x):
+            #             obj = [xval, yval, unit_x, unit_y, ucell[z, y, x], 1]
+            #             ucell_layer.append(obj)
+            #     ucell_new.append(ucell_layer)
+            # textures = [n_top, *ucell_new, n_bot]
 
         profile = np.array([[0, *thickness, 0], range(1, len(thickness) + 3)])
 
         top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info = \
-            self._run(pol, theta, phi, period, n_I, fto, textures, profile, wavelength, grating_type,
+            self._run(pol, theta, phi, period, n_top, fto, textures, profile, wavelength, grating_type,
                       cal_field=False)
 
         return top_refl_info.efficiency, top_tran_info.efficiency, bottom_refl_info.efficiency, bottom_tran_info.efficiency
@@ -138,30 +120,31 @@ class Reticolo:
             textures = [n_top, *ucell_new, n_bot]
 
         else:
+            raise ValueError
 
-            Nx = ucell.shape[2]
-            Ny = ucell.shape[1]
-            period_x = period[0]
-            period_y = period[1]
-
-            unit_x = period_x / Nx
-            unit_y = period_y / Ny
-
-            grid_x = np.linspace(0, period[0], Nx + 1)[1:]
-            grid_y = np.linspace(0, period[1], Ny + 1)[1:]
-
-            grid_x -= period_x / 2
-            grid_y -= period_y / 2
-
-            ucell_new = []
-            for z in range(ucell.shape[0]):
-                ucell_layer = [10]
-                for y, yval in enumerate(grid_y):
-                    for x, xval in enumerate(grid_x):
-                        obj = [xval, yval, unit_x, unit_y, ucell[z, y, x], 1]
-                        ucell_layer.append(obj)
-                ucell_new.append(ucell_layer)
-            textures = [n_top, *ucell_new, n_bot]
+            # Nx = ucell.shape[2]
+            # Ny = ucell.shape[1]
+            # period_x = period[0]
+            # period_y = period[1]
+            #
+            # unit_x = period_x / Nx
+            # unit_y = period_y / Ny
+            #
+            # grid_x = np.linspace(0, period[0], Nx + 1)[1:]
+            # grid_y = np.linspace(0, period[1], Ny + 1)[1:]
+            #
+            # grid_x -= period_x / 2
+            # grid_y -= period_y / 2
+            #
+            # ucell_new = []
+            # for z in range(ucell.shape[0]):
+            #     ucell_layer = [10]
+            #     for y, yval in enumerate(grid_y):
+            #         for x, xval in enumerate(grid_x):
+            #             obj = [xval, yval, unit_x, unit_y, ucell[z, y, x], 1]
+            #             ucell_layer.append(obj)
+            #     ucell_new.append(ucell_layer)
+            # textures = [n_top, *ucell_new, n_bot]
 
         profile = np.array([[0, *thickness, 0], range(1, len(thickness) + 3)])
 

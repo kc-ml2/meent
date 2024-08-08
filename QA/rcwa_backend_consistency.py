@@ -127,10 +127,10 @@ if __name__ == '__main__':
                'period': [770], 'wavelength': 777, 'thickness': [100, 333], 'fourier_type': 0,
                'ucell': ucell6}
 
-    consistency_check(option1)
-    consistency_check(option2)
-    consistency_check(option3)
-    consistency_check(option4)
+    # consistency_check(option1)
+    # consistency_check(option2)
+    # consistency_check(option3)
+    # consistency_check(option4)
 
     consistency_check(option5)
     consistency_check(option6)

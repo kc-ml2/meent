@@ -38,7 +38,7 @@ def test1d_1(plot_figure=False):
 
     res_z = 11
     reti = Reticolo()
-    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, matlab_plot_field=0, res3_npts=res_z)
+    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, grating_type=0, matlab_plot_field=0, res3_npts=res_z)
     print('reti de_ri', np.array(reti_de_ri).flatten())
     print('reti de_ti', np.array(reti_de_ti).flatten())
 
@@ -124,7 +124,7 @@ def test1d_2(plot_figure=False):
 
     res_z = 11
     reti = Reticolo()
-    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, matlab_plot_field=0, res3_npts=res_z)
+    reti_de_ri, reti_de_ti, c, d, r_field_cell = reti.run_res3(**option, grating_type=0, matlab_plot_field=0, res3_npts=res_z)
     print('reti de_ri', np.array(reti_de_ri).flatten())
     print('reti de_ti', np.array(reti_de_ti).flatten())
 
