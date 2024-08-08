@@ -1,35 +1,24 @@
-from typing import Tuple
 import random
-from glob import glob
-from collections import defaultdict
-from datetime import datetime
-import multiprocessing as mp
-from functools import cache
-from pathlib import Path
-
-import h5py
-import numpy as np
-from tqdm import tqdm
-import matplotlib.pyplot as plt
-
 import torch
-from torch.utils.data import DataLoader, random_split
+import matplotlib.pyplot as plt
+import numpy as np
+
+from datetime import datetime
+from glob import glob
+from neuralop.datasets.tensor_dataset import TensorDataset
+from threadpoolctl import ThreadpoolController
 from torch.utils.data.dataset import Dataset
-
-
-import pytorch_lightning as pl
+from tqdm import tqdm
 
 import meent
-# from meent.on_numpy.emsolver.convolution_matrix import to_conv_mat_continuous
 from meent.on_numpy.modeler.modeling import find_nk_index, read_material_table
-
-from neuralop.datasets.tensor_dataset import TensorDataset
-
-from threadpoolctl import ThreadpoolController
-controller = ThreadpoolController()
 
 import constants
 import utils
+
+
+controller = ThreadpoolController()
+
 
 class LazyDataset(Dataset):
     def __init__(self, path):
@@ -50,22 +39,20 @@ class LazyDataset(Dataset):
 @controller.wrap(limits=4)
 def get_field(
         pattern_input, 
-        wavelength=1100, #900
-        deflected_angle=60, #50
-        fourier_order=40,
+        wavelength=1100,  # 900
+        deflected_angle=60,  # 50
+        fto=40,
         field_res=(256, 1, 32)
     ):
     period = [abs(wavelength / np.sin(deflected_angle / 180 * np.pi))]
     n_ridge = 'p_si__real'
     n_groove = 1
-    wavelength = np.array([wavelength])
-    grating_type = 0
     thickness = [325] * 8
 
     if type(n_ridge) == str:
         mat_table = read_material_table()
         n_ridge = find_nk_index(n_ridge, mat_table, wavelength)
-    ucell = np.array([[pattern_input]])
+    ucell = pattern_input.numpy().reshape((1, 1, -1))
     ucell = (ucell + 1) / 2
     ucell = ucell * (n_ridge - n_groove) + n_groove
     ucell_new = np.ones((len(thickness), 1, ucell.shape[-1]))
@@ -73,8 +60,8 @@ def get_field(
     ucell_new[2] = ucell
 
     mee = meent.call_mee(
-        mode=0, wavelength=wavelength, period=period, grating_type=0, n_I=1.45, n_II=1.,
-        theta=0, phi=0, psi=0, fourier_order=fourier_order, pol=1,
+        backend=0, wavelength=wavelength, period=period, n_top=1.45, n_bot=1.,
+        theta=0, phi=0, psi=0, fto=fto, pol=1,
         thickness=thickness,
         ucell=ucell_new
     )
@@ -83,7 +70,7 @@ def get_field(
         res_x=field_res[0], res_y=field_res[1], res_z=field_res[2],
     )
 
-    field_ex= np.flipud(field_cell[:, 0, :, 1])
+    field_ex = np.flipud(field_cell[:, 0, :, 1])
 
     return field_ex
 

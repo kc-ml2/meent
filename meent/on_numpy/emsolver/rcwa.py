@@ -1,52 +1,47 @@
-import time
 import numpy as np
 
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat_raster_continuous, to_conv_mat_raster_discrete, to_conv_mat_vector
-from .field_distribution import field_dist_1d_vectorized_ji, field_dist_1d_conical_vectorized_ji, field_dist_2d_vectorized_ji, field_plot, field_dist_1d_vanilla, \
-    field_dist_1d_vectorized_kji, field_dist_1d_conical_vanilla, field_dist_1d_conical_vectorized_kji, \
-    field_dist_2d_vectorized_kji, field_dist_2d_vanilla
+from .field_distribution import field_plot, field_dist_1d, field_dist_2d
 
 
 class RCWANumpy(_BaseRCWA):
     def __init__(self,
-                 n_I=1.,
-                 n_II=1.,
+                 n_top=1.,
+                 n_bot=1.,
                  theta=0.,
                  phi=0.,
+                 psi=None,
                  period=(100., 100.),
                  wavelength=900.,
                  ucell=None,
-                 ucell_info_list=None,
                  thickness=(0., ),
                  backend=0,
-                 grating_type=0,
                  pol=0.,
-                 fourier_order=(2, 0),
+                 fto=(0, 0),
                  ucell_materials=None,
-                 algo='TMM',
+                 connecting_algo='TMM',
                  perturbation=1E-20,
                  device='cpu',
                  type_complex=np.complex128,
-                 fft_type=0,
-                 improve_dft=True,
-                 **kwargs,
+                 fourier_type=0,  # 0 DFS, 1 CFS
+                 enhanced_dfs=True,
+                 # **kwargs,
                  ):
 
-        super().__init__(grating_type=grating_type, n_I=n_I, n_II=n_II, theta=theta, phi=phi, pol=pol,
-                         fourier_order=fourier_order, period=period, wavelength=wavelength,
-                         thickness=thickness, algo=algo, perturbation=perturbation,
+        super().__init__(n_top=n_top, n_bot=n_bot, theta=theta, phi=phi, psi=psi, pol=pol,
+                         fto=fto, period=period, wavelength=wavelength,
+                         thickness=thickness, connecting_algo=connecting_algo, perturbation=perturbation,
                          device=device, type_complex=type_complex, )
 
         self.ucell = ucell
         self.ucell_materials = ucell_materials
-        self.ucell_info_list = ucell_info_list
 
         self.backend = backend
-        self.fft_type = fft_type
-        self.improve_dft = improve_dft
-
-        self.layer_info_list = []
+        self.fourier_type = fourier_type
+        self.enhanced_dfs = enhanced_dfs
+        self.modeling_type_assigned = None
+        self.grating_type_assigned = None
 
     @property
     def ucell(self):
@@ -54,7 +49,8 @@ class RCWANumpy(_BaseRCWA):
 
     @ucell.setter
     def ucell(self, ucell):
-        if isinstance(ucell, np.ndarray):
+
+        if isinstance(ucell, np.ndarray):  # Raster
             if ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
                 dtype = self.type_float
             elif ucell.dtype in (np.complex128, np.complex64):
@@ -62,133 +58,112 @@ class RCWANumpy(_BaseRCWA):
             else:
                 raise ValueError
             self._ucell = np.array(ucell, dtype=dtype)
+            self._ucell = ucell.astype(dtype)
+
+        elif type(ucell) is list:  # Vector
+            self._ucell = ucell
         elif ucell is None:
             self._ucell = ucell
         else:
             raise ValueError
 
-    def _solve(self, wavelength, e_conv_all, o_e_conv_all):
-        self.kx_vector = self.get_kx_vector(wavelength)
+    @property
+    def modeling_type_assigned(self):
+        return self._modeling_type_assigned
 
-        if self.grating_type == 0:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, e_conv_all, o_e_conv_all)
-        elif self.grating_type == 1:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d_conical(wavelength, e_conv_all, o_e_conv_all)
-        elif self.grating_type == 2:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, e_conv_all, o_e_conv_all)
+    @modeling_type_assigned.setter
+    def modeling_type_assigned(self, modeling_type_assigned):
+        self._modeling_type_assigned = modeling_type_assigned
+
+    def _assign_modeling_type(self):
+
+        if isinstance(self.ucell, np.ndarray):  # Raster
+            self.modeling_type_assigned = 0
+            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0) and (self.fto[1] == 0):
+                self._grating_type_assigned = 0  # 1D TE and TM only
+            else:
+                self._grating_type_assigned = 1  # else
+
+        elif isinstance(self.ucell, list):  # Vector
+            self.modeling_type_assigned = 1
+            self.grating_type_assigned = 1
+
+    @property
+    def grating_type_assigned(self):
+        return self._grating_type_assigned
+
+    @grating_type_assigned.setter
+    def grating_type_assigned(self, grating_type_assigned):
+        self._grating_type_assigned = grating_type_assigned
+
+    def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+
+        if self._grating_type_assigned == 0:
+            de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
-            raise ValueError
+            de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-        return de_ri, de_ti, layer_info_list, T1, self.kx_vector
+        return de_ri, de_ti, layer_info_list, T1
 
-    def solve(self, wavelength, e_conv_all, o_e_conv_all):
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(wavelength, e_conv_all, o_e_conv_all)
+    def solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+
+        de_ri, de_ti, layer_info_list, T1 = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         self.layer_info_list = layer_info_list
         self.T1 = T1
-        self.kx_vector = kx_vector
 
         return de_ri, de_ti
 
     def conv_solve(self, **kwargs):
         # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
+        self._assign_modeling_type()
 
-        if self.fft_type == 0:
-            E_conv_all, o_E_conv_all = to_conv_mat_raster_discrete(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                                   type_complex=self.type_complex, improve_dft=self.improve_dft)
-        elif self.fft_type == 1:
-            E_conv_all, o_E_conv_all = to_conv_mat_raster_continuous(self.ucell, self.fourier_order[0], self.fourier_order[1],
-                                                                     type_complex=self.type_complex)
-        elif self.fft_type == 2:
-            E_conv_all, o_E_conv_all = to_conv_mat_vector(self.ucell_info_list, self.fourier_order[0],
-                                                          self.fourier_order[1],
-                                                          type_complex=self.type_complex)
+        if self._modeling_type_assigned == 0:  # Raster
+
+            if self.fourier_type == 0:
+                epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_discrete(
+                    self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex,
+                    enhanced_dfs=self.enhanced_dfs)
+
+            elif self.fourier_type == 1:
+                epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_continuous(
+                    self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex)
+            else:
+                raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
+
+        elif self._modeling_type_assigned == 1:  # Vector
+            ucell_vector = self.modeling_vector_instruction(self.ucell)
+            epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_vector(
+                ucell_vector, self.fto[0], self.fto[1], type_complex=self.type_complex)
+
         else:
-            raise ValueError
-
-        de_ri, de_ti, layer_info_list, T1, kx_vector = self._solve(self.wavelength, E_conv_all, o_E_conv_all)
+            raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
+        # print(epz_conv_i_all)
+        de_ri, de_ti, layer_info_list, T1 = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         self.layer_info_list = layer_info_list
         self.T1 = T1
-        self.kx_vector = kx_vector
 
         return de_ri, de_ti
 
-    def calculate_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
-        if self.grating_type == 0:
+    def calculate_field(self, res_x=20, res_y=20, res_z=20):
+        # TODO: change res_ to accept array of points.
+        kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
+
+        if self._grating_type_assigned == 0:
             res_y = 1
-            if field_algo == 0:
-                field_cell = field_dist_1d_vanilla(self.wavelength, self.kx_vector,
-                                                   self.T1, self.layer_info_list, self.period, self.pol,
-                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            elif field_algo == 1:
-                field_cell = field_dist_1d_vectorized_ji(self.wavelength, self.kx_vector, self.T1, self.layer_info_list,
-                                                         self.period, self.pol, res_x=res_x, res_y=res_y, res_z=res_z,
-                                                         type_complex=self.type_complex)
-            elif field_algo == 2:
-                field_cell = field_dist_1d_vectorized_kji(self.wavelength, self.kx_vector, self.T1,
-                                                          self.layer_info_list, self.period, self.pol,
-                                                          res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            else:
-                raise ValueError
-        elif self.grating_type == 1:
-            res_y = 1
-            if field_algo == 0:
-                field_cell = field_dist_1d_conical_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                           self.phi, self.T1, self.layer_info_list, self.period,
-                                                           res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            elif field_algo == 1:
-                field_cell = field_dist_1d_conical_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                                 self.phi, self.T1, self.layer_info_list, self.period,
-                                                                 res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            elif field_algo == 2:
-                field_cell = field_dist_1d_conical_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                                  self.phi, self.T1, self.layer_info_list, self.period,
-                                                                  res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            else:
-                raise ValueError
-        elif self.grating_type == 2:
-            if field_algo == 0:
-                field_cell = field_dist_2d_vanilla(self.wavelength, self.kx_vector, self.n_I, self.theta, self.phi,
-                                                   self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list, self.period,
-                                                   res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
-            elif field_algo == 1:
-                field_cell = field_dist_2d_vectorized_ji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                         self.phi, self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list,
-                                                         self.period, res_x=res_x, res_y=res_y, res_z=res_z,
-                                                         type_complex=self.type_complex)
-            elif field_algo == 2:
-                field_cell = field_dist_2d_vectorized_kji(self.wavelength, self.kx_vector, self.n_I, self.theta,
-                                                          self.phi, self.fourier_order[0], self.fourier_order[1], self.T1, self.layer_info_list,
-                                                          self.period, res_x=res_x, res_y=res_y, res_z=res_z,
-                                                          type_complex=self.type_complex)
-            else:
-                raise ValueError
+            field_cell = field_dist_1d(self.wavelength, kx, self.T1, self.layer_info_list, self.period, self.pol,
+                                       res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
         else:
-            raise ValueError
+            field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
+                                       res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+
         return field_cell
 
-    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, field_algo=2):
+    def conv_solve_field(self, res_x=20, res_y=20, res_z=20):
         de_ri, de_ti = self.conv_solve()
-        field_cell = self.calculate_field(res_x, res_y, res_z, field_algo=field_algo)
+        field_cell = self.calculate_field(res_x, res_y, res_z)
         return de_ri, de_ti, field_cell
 
     def field_plot(self, field_cell):
         field_plot(field_cell, self.pol)
-
-    def calculate_field_all(self, res_x=20, res_y=20, res_z=20):
-        t0 = time.time()
-        field_cell0 = self.calculate_field(res_x=res_x, res_y=res_y, res_z=res_z, field_algo=0)
-        print('no vector', time.time() - t0)
-        t0 = time.time()
-        field_cell1 = self.calculate_field(res_x=res_x, res_y=res_y, res_z=res_z, field_algo=1)
-        print('ji vector', time.time() - t0)
-        t0 = time.time()
-        field_cell2 = self.calculate_field(res_x=res_x, res_y=res_y, res_z=res_z, field_algo=2)
-        print('kji vector', time.time() - t0)
-
-        print('gap(1-0): ', np.linalg.norm(field_cell1 - field_cell0))
-        print('gap(2-1): ', np.linalg.norm(field_cell2 - field_cell1))
-        print('gap(0-2): ', np.linalg.norm(field_cell0 - field_cell2))
-
-        return field_cell0, field_cell1, field_cell2

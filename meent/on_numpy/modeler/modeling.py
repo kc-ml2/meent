@@ -44,10 +44,16 @@ class ModelingNumpy:
             angle = angle.reshape(1)
 
         if lx.dtype not in (np.complex64, np.complex128):
-            lx = lx.astype(self.type_complex)  # TODO
-        if ly.dtype not in (np.complex64, np.complex128):
-            ly = ly.astype(self.type_complex)
+            if self.type_complex is np.complex128:
+                lx = lx.astype(np.float64)
+            else:
+                lx = lx.astype(np.float32)
 
+        if ly.dtype not in (np.complex64, np.complex128):
+            if self.type_complex is np.complex128:
+                ly = ly.astype(np.float64)
+            else:
+                ly = ly.astype(np.float32)
         # n_split_triangle, n_split_parallelogram = n_split_triangle + 2, n_split_parallelogram + 2
 
         # if angle is None:
@@ -529,14 +535,15 @@ class ModelingNumpy:
 
             # top_left[0]
             for _ in range(100):
-                index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+
+                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(row_list, top_left[0].real)
                 if len(row_list) > index and top_left[0] == row_list[index]:
                     perturbation += perturbation_unit
                     if top_left[0] == 0:
                         top_left[0] = top_left[0] + perturbation
 
                     else:
-                        # top_left[0] = top_left[0] - (top_left[0] * perturbation)  # TODO: plus or minus?
                         top_left[0] = top_left[0] + (top_left[0] * perturbation)  # TODO: change; save how many perturbations were applied in a variable
                     row_list.insert(index, top_left[0])
                     break
@@ -545,21 +552,16 @@ class ModelingNumpy:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, top_left[0].real)
                 row_list.insert(index, top_left[0])
 
             # bottom_right[0]
             for _ in range(100):
-                index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(row_list, bottom_right[0].real)
                 if len(row_list) > index and bottom_right[0] == row_list[index]:
                     perturbation += perturbation_unit
-                    # if bottom_right[0] == 0:
-                    #     bottom_right[0] = bottom_right[0] + perturbation
-                    # else:
-                    #     # bottom_right[0] = bottom_right[0] + (bottom_right[0] * perturbation)
-                    #     bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
-
-                    # bottom_right[0] = bottom_right[0] + (bottom_right[0] * perturbation)
                     bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
                     row_list.insert(index, bottom_right[0])
                     break
@@ -569,12 +571,14 @@ class ModelingNumpy:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
+                index = bisect_left(row_list, bottom_right[0].real)
                 row_list.insert(index, bottom_right[0])
 
             # top_left[1]
             for _ in range(100):
-                index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(col_list, top_left[1].real)
                 if len(col_list) > index and top_left[1] == col_list[index]:
                     perturbation += perturbation_unit
 
@@ -590,12 +594,14 @@ class ModelingNumpy:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
+                index = bisect_left(col_list, top_left[1].real)
                 col_list.insert(index, top_left[1])
 
             # bottom_right[1]
             for _ in range(100):
-                index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(col_list, bottom_right[1].real)
                 if len(col_list) > index and bottom_right[1] == col_list[index]:
                     perturbation += perturbation_unit
                     # if bottom_right[1] == 0:
@@ -613,7 +619,8 @@ class ModelingNumpy:
                     break
             else:
                 print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
+                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)  # python >=3.10
+                index = bisect_left(col_list, bottom_right[1].real)
                 col_list.insert(index, bottom_right[1])
 
         if not row_list or row_list[-1] != self.period[1]:
@@ -651,16 +658,16 @@ class ModelingNumpy:
         return ucell_layer, x_list, y_list
 
     def draw(self, layer_info_list):
-        ucell_info_list = []
-        self.film_layer = np.zeros(len(layer_info_list))
+        ucell_vector = []
+        self.film_layer = np.zeros(len(layer_info_list))  # TODO: eig for homo layer
 
         for i, layer_info in enumerate(layer_info_list):
             ucell_layer, x_list, y_list = self.vector_per_layer_numeric(layer_info)
-            ucell_info_list.append([ucell_layer, x_list, y_list])
+            ucell_vector.append([ucell_layer, x_list, y_list])
             if len(x_list) == len(y_list) == 1:
                 self.film_layer[i] = 1
-        self.ucell_info_list = ucell_info_list
-        return ucell_info_list
+        # self.ucell_info_list = ucell_vector
+        return ucell_vector
 
     def put_refractive_index_in_ucell(self, ucell, mat_list, wl, type_complex=np.complex128):
         res = np.zeros(ucell.shape, dtype=type_complex)
@@ -668,7 +675,7 @@ class ModelingNumpy:
         for i_mat, material in enumerate(mat_list):
             mask = np.nonzero(ucell_mask == i_mat)
 
-            if type(material) == str:
+            if type(material) is str:
                 if not self.mat_table:
                     self.mat_table = read_material_table()
                 assign_value = find_nk_index(material, self.mat_table, wl)
@@ -678,20 +685,7 @@ class ModelingNumpy:
 
         return res
 
-    def modeling_vector_instruction(self, rcwa_options, instructions):
-
-        # wavelength = rcwa_options['wavelength']
-
-        # # Thickness update
-        # t = rcwa_options['thickness']
-        # for i in range(len(t)):
-        #     if f'l{i + 1}_thickness' in fitting_parameter_name:
-        #         t[i] = fitting_parameter_value[fitting_parameter_name[f'l{i + 1}_thickness']].reshape((1, 1))
-        # mee.thickness = t
-
-        # mat_table = read_material_table()
-
-        # TODO: refractive index support string for nI and nII
+    def modeling_vector_instruction(self, instructions):
 
         # Modeling
         layer_info_list = []
@@ -704,9 +698,9 @@ class ModelingNumpy:
 
             layer_info_list.append([base_refractive_index, obj_list_per_layer])
 
-        ucell_info_list = self.draw(layer_info_list)
+        ucell_vector = self.draw(layer_info_list)
 
-        return ucell_info_list
+        return ucell_vector
 
 
 def find_nk_index(material, mat_table, wl):

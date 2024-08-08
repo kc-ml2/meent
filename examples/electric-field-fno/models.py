@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from neuralop.models import TFNO, FNO
 
+
 class Deconv1(nn.Module):
     def __init__(self):
         super().__init__()
@@ -32,6 +33,7 @@ class Deconv1(nn.Module):
         x = F.gelu(self.deconv3(x))
 
         return x
+
     
 class NO1(nn.Module):
     def __init__(self):
@@ -78,6 +80,7 @@ class NO2(nn.Module):
 
         return x
 
+
 class NO3(nn.Module):
     def __init__(self, **config):
         super().__init__()
@@ -104,6 +107,7 @@ class NO4(nn.Module):
         x = self.fno(empty)
 
         return x
+
     
 class CarstenNO(nn.Module):
     def __init__(self, **config):
@@ -190,6 +194,7 @@ class OutConv(nn.Module):
 
     def forward(self, x):
         return self.conv(x)
+
 
 class UNet(nn.Module):
     def __init__(self, n_channels=1, bilinear=False):

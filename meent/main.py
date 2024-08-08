@@ -78,7 +78,7 @@ def call_mee(backend=0, *args, **kwargs):
 #     spectrum_r = np.zeros(wavelength_array.shape[0])
 #     spectrum_t = np.zeros(wavelength_array.shape[0])
 #     emsolver = call_solver(backend, *args, **kwargs)
-#     spectrum_r, spectrum_t = init_spectrum_array(emsolver.grating_type, wavelength_array, emsolver.fourier_order)
+#     spectrum_r, spectrum_t = init_spectrum_array(emsolver.grating_type, wavelength_array, emsolver.fto)
 #
 #     for i, wavelength in enumerate(wavelength_array):
 #
@@ -104,13 +104,13 @@ def call_mee(backend=0, *args, **kwargs):
 #     return spectrum_r, spectrum_t
 #
 #
-# def init_spectrum_array(grating_type, wavelength_array, fourier_order):
+# def init_spectrum_array(grating_type, wavelength_array, fto):
 #     if grating_type in (0, 1):
-#         spectrum_r = np.zeros((len(wavelength_array), 2 * fourier_order + 1))
-#         spectrum_t = np.zeros((len(wavelength_array), 2 * fourier_order + 1))
+#         spectrum_r = np.zeros((len(wavelength_array), 2 * fto + 1))
+#         spectrum_t = np.zeros((len(wavelength_array), 2 * fto + 1))
 #     elif grating_type == 2:
-#         spectrum_r = np.zeros((len(wavelength_array), 2 * fourier_order + 1, 2 * fourier_order + 1))
-#         spectrum_t = np.zeros((len(wavelength_array), 2 * fourier_order + 1, 2 * fourier_order + 1))
+#         spectrum_r = np.zeros((len(wavelength_array), 2 * fto + 1, 2 * fto + 1))
+#         spectrum_t = np.zeros((len(wavelength_array), 2 * fto + 1, 2 * fto + 1))
 #     else:
 #         raise ValueError
 #     return spectrum_r, spectrum_t

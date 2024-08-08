@@ -1,5 +1,12 @@
 import jax
-import optax
+
+try:
+    import optax
+except TypeError as e:
+    import warnings
+
+    warnings.warn('Importing optax failed. You can run RCWA but not optimization in JaxMeent. '
+                  'One possible reason is python version: optax support python>=3.9.')
 
 from tqdm import tqdm
 
@@ -9,37 +16,8 @@ class OptimizerJax:
     def __init__(self, *args, **kwargs):
         super().__init__()
 
-    # def _tree_flatten(self):
-    #     children = (self.n_I, self.n_II, self.theta, self.phi, self.psi,
-    #                 self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
-    #     aux_data = {
-    #         'backend': self.backend,
-    #         'grating_type': self.grating_type,
-    #         'pol': self.pol,
-    #         'fourier_order': self.fourier_order,
-    #         'ucell_materials': self.ucell_materials,
-    #         'algo': self.algo,
-    #         'perturbation': self.perturbation,
-    #         'device': self.device,
-    #         'type_complex': self.type_complex,
-    #         'fft_type': self.fft_type,
-    #     }
-    #
-    #     return children, aux_data
-
-    # def _tree_flatten(self):
-    #     children = ()
-    #     aux_data = {}
-    #
-    #     return children, aux_data
-    #
-    # @classmethod
-    # def _tree_unflatten(cls, aux_data, children):
-    #     return cls(*children, **aux_data)
-
     @staticmethod
     def _grad(params, forward, loss_fn):
-
         def forward_pass(params, forward, loss):
             result = forward(**params)
             loss_value = loss(result)
@@ -73,4 +51,3 @@ class OptimizerJax:
         [setattr(self, poi, params[poi]) for poi in pois]
 
         return params
-

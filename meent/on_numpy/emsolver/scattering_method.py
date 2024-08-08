@@ -78,7 +78,7 @@ def scattering_2d_1(n_I, n_II, theta, phi, k0, period, fourier_order):
     ky_inc = n_I * np.sin(theta) * np.sin(phi)
     kz_inc = np.sqrt(n_I ** 2 * 1 - kx_inc ** 2 - ky_inc ** 2)
 
-    Kx, Ky = K_matrix_cubic_2D(kx_inc, ky_inc, k0, period[0], period[1], fourier_order, fourier_order)
+    Kx, Ky = K_matrix_cubic_2D(kx_inc, ky_inc, k0, period[0], period[1], fourier_order[0], fourier_order[1])
 
     # specify gap media (this is an LHI so no eigenvalue problem should be solved
     e_h = 1
@@ -111,8 +111,8 @@ def scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA):
     return A, B, Sl_dict, Sg_matrix, Sg
 
 
-def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, pol, theta,
-                    phi, fourier_order, ff):
+def scattering_2d_3(ff, Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, pol, theta,
+                    phi, fourier_order):
     normal_vector = np.array([0, 0, 1])  # positive z points down;
     # amplitude of the te vs tm modes (which are decoupled)
 
@@ -125,9 +125,9 @@ def scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, n_I, pol, 
     else:
         raise ValueError
 
-    M = N = fourier_order
+    M, N = fourier_order
     NM = ff ** 2
-
+    NM = ff
     # get At, Bt
     # since transmission is the same as gap, order does not matter
     At, Bt = A_B_matrices_half_space(Vt, Vg)
@@ -168,6 +168,7 @@ def scattering_2d_wv(ff, Kx, Ky, E_conv, oneover_E_conv, oneover_E_conv_i, E_i, 
     # -------------------------
     # W and V from SMM method.
     NM = ff ** 2
+    NM = ff
     if mu_conv is None:
         mu_conv = np.identity(NM)
 

@@ -1,7 +1,13 @@
 import torch
+from .fourier_analysis import dfs2d, cfs2d
 
 
 def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.complex128):
+
+    cell = torch.flipud(cell)
+    # This is needed because the comp. connecting_algo begins from 0 to period (RC coord. system).
+    # On the other hand, the field data is from period to 0 (XY coord. system).
+    # Will be flipped again during field reconstruction.
 
     if type_complex == torch.complex128:
         type_float = torch.float64
@@ -82,263 +88,88 @@ def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, device=
     return f_coeffs_xy.T
 
 
-def to_conv_mat_vector(ucell_info_list, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
+def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu'),
                        type_complex=torch.complex128):
-    ff_x = 2 * fourier_order_x + 1
-    ff_y = 2 * fourier_order_y + 1
 
-    e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y), device=device).type(type_complex)
-    o_e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y), device=device).type(type_complex)
+    ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
-    # 2D
-    for i, (cell, x_list, y_list) in enumerate(ucell_info_list):
+    epx_conv_all = torch.zeros((len(ucell_info_list), ff_xy, ff_xy), device=device).type(type_complex)
+    epy_conv_all = torch.zeros((len(ucell_info_list), ff_xy, ff_xy), device=device).type(type_complex)
+    epz_conv_i_all = torch.zeros((len(ucell_info_list), ff_xy, ff_xy), device=device).type(type_complex)
 
-        f_coeffs = fft_piecewise_constant(cell**2, x_list, y_list,
-                                          fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
-        o_f_coeffs = fft_piecewise_constant(1 / cell**2, x_list, y_list,
-                                            fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
+    for i, ucell_info in enumerate(ucell_info_list):
+        ucell_layer, x_list, y_list = ucell_info
+        eps_matrix = ucell_layer ** 2
 
-        center = torch.tensor(f_coeffs.shape, device=device) // 2
+        epz_conv = cfs2d(eps_matrix, x_list, y_list, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        epy_conv = cfs2d(eps_matrix, x_list, y_list, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
+        epx_conv = cfs2d(eps_matrix, x_list, y_list, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
 
-        conv_idx_y = torch.arange(-ff_y + 1, ff_y, 1, device=device)
-        conv_idx_y = circulant(conv_idx_y, device=device)
-        conv_i = conv_idx_y.repeat_interleave(ff_x, dim=1)
-        conv_i = conv_i.repeat_interleave(ff_x, dim=0)
+        epx_conv_all[i] = epx_conv
+        epy_conv_all[i] = epy_conv
+        epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
 
-        conv_idx_x = torch.arange(-ff_x + 1, ff_x, 1, device=device)
-        conv_idx_x = circulant(conv_idx_x, device=device)
-        conv_j = conv_idx_x.repeat(ff_y, ff_y)
-
-        e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-        o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
-
-        e_conv_all[i] = e_conv
-        o_e_conv_all[i] = o_e_conv
-    return e_conv_all, o_e_conv_all
+    return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
-# TODO: Fourier analysis - Analytic
-# def fs_rectangle(cx, cy, lx, ly, pmtvy, fourier_order, period):
-#     Px, Py = period
-#     fourier_x, fourier_y = fourier_order
-#     Nx_vector = torch.arange(-2 * fourier_x, 2 * fourier_x + 1, 1).type(torch.complex128)
-#     Ny_vector = torch.arange(-2 * fourier_y, 2 * fourier_y + 1, 1).type(torch.complex128)
-#
-#     # Nx_vector = torch.arange(-fourier_x, fourier_x + 1, 1).type(torch.complex128) * torch.cos(torch.tensor(torch.pi/4))
-#     # Ny_vector = torch.arange(-fourier_y, fourier_y + 1, 1).type(torch.complex128) * torch.sin(torch.tensor(torch.pi/4))
-#
-#     # c = n_index * lx * ly / Px / Py * torch.sinc(torch.pi * ly / Py * Ny_vector.reshape((-1, 1))) @ torch.sinc(torch.pi * lx / Px * Nx_vector.reshape((1, -1)))
-#     c = pmtvy * lx * ly / Px / Py * torch.sinc(ly / Py * Ny_vector.reshape((-1, 1))) @ torch.sinc(
-#         lx / Px * Nx_vector.reshape((1, -1)))
-#
-#     # c = c * (torch.exp(-1j * 2 * torch.pi * cy / Py * Ny_vector.reshape((-1, 1))) @ torch.exp(-1j * 2 * torch.pi * cx / Px * Nx_vector.reshape((1, -1))))
-#     c = c * (torch.exp(-1j * 2 * torch.pi * cy / Py * Ny_vector.reshape((-1, 1))) @ torch.exp(
-#         -1j * 2 * torch.pi * cx / Px * Nx_vector.reshape((1, -1))))
-#
-#     return c.T
-#
-#
-# def to_conv_mat_continuous_vector_sinc(ucell_info_list, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
-#                                   type_complex=torch.complex128):
-#     ff_x = 2 * fourier_order_x + 1
-#     ff_y = 2 * fourier_order_y + 1
-#
-#     e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).type(type_complex)
-#     o_e_conv_all = torch.zeros((len(ucell_info_list), ff_x * ff_y, ff_x * ff_y)).type(type_complex)
-#
-#     # 2D
-#     for i, ucell_info in enumerate(ucell_info_list):
-#         ucell_layer, x_list, y_list = ucell_info
-#         ucell_layer = ucell_layer ** 2
-#         # ucell_layer = torch.tensor(ucell_layer, dtype=type_complex) if type(ucell_layer) != torch.Tensor else ucell_layer
-#         # x_list = torch.tensor(x_list, dtype=type_complex) if type(x_list) != torch.Tensor else x_list
-#         # y_list = torch.tensor(y_list, dtype=type_complex) if type(y_list) != torch.Tensor else y_list
-#
-#         f_coeffs = fft_piecewise_constant_vector(ucell_layer, x_list, y_list,
-#                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
-#         o_f_coeffs = fft_piecewise_constant_vector(1/ucell_layer, x_list, y_list,
-#                                                  fourier_order_x, fourier_order_y, type_complex=type_complex)
-#
-#         import seaborn as sns
-#         import matplotlib.pyplot as plt
-#         sns.heatmap(f_coeffs.detach().real)
-#         plt.show()
-#         sns.heatmap(o_f_coeffs.detach().real)
-#         plt.show()
-#
-#         sns.heatmap(f_coeffs.detach().imag)
-#         plt.show()
-#         sns.heatmap(o_f_coeffs.detach().imag)
-#         plt.show()
-#
-#         # f_coeffs = fs_rectangle()
-#
-#
-#         center = torch.tensor(f_coeffs.shape, device=device) // 2
-#         # center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
-#         # center = torch.tensor(center, device=device)
-#
-#         conv_idx_y = torch.arange(-ff_y + 1, ff_y, 1, device=device)
-#         conv_idx_y = circulant(conv_idx_y, device=device)
-#         conv_i = conv_idx_y.repeat_interleave(ff_x, dim=1)
-#         conv_i = conv_i.repeat_interleave(ff_x, dim=0)
-#
-#         conv_idx_x = torch.arange(-ff_x + 1, ff_x, 1, device=device)
-#         conv_idx_x = circulant(conv_idx_x, device=device)
-#         conv_j = conv_idx_x.repeat(ff_y, ff_y)
-#
-#         e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-#         o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
-#
-#         e_conv_all[i] = e_conv
-#         o_e_conv_all[i] = o_e_conv
-#     return e_conv_all, o_e_conv_all
-
-
-def to_conv_mat_raster_continuous(ucell, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
+def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'),
                                   type_complex=torch.complex128):
-    ucell_pmt = ucell ** 2
+    ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
-    if ucell_pmt.shape[1] == 1:  # 1D
-        ff = 2 * fourier_order_x + 1
+    epx_conv_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device, dtype=type_complex)
+    epy_conv_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device, dtype=type_complex)
+    epz_conv_i_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device, dtype=type_complex)
 
-        e_conv_all = torch.zeros((ucell_pmt.shape[0], ff, ff), device=device).type(type_complex)
-        o_e_conv_all = torch.zeros((ucell_pmt.shape[0], ff, ff), device=device).type(type_complex)
+    for i, layer in enumerate(ucell):
+        n_compressed, x_list, y_list = cell_compression(layer, device=device, type_complex=type_complex)
+        eps_matrix = n_compressed ** 2
 
-        for i, layer in enumerate(ucell_pmt):
+        epz_conv = cfs2d(eps_matrix, x_list, y_list, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        epy_conv = cfs2d(eps_matrix, x_list, y_list, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
+        epx_conv = cfs2d(eps_matrix, x_list, y_list, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
 
-            cell, x, y = cell_compression(layer, device=device, type_complex=type_complex)
+        epx_conv_all[i] = epx_conv
+        epy_conv_all[i] = epy_conv
+        epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
 
-            f_coeffs = fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
-            o_f_coeffs = fft_piecewise_constant(1 / cell, x, y, fourier_order_x, fourier_order_y, device=device, type_complex=type_complex)
-
-            center = torch.tensor(f_coeffs.shape, device=device) // 2
-            conv_idx = torch.arange(-ff + 1, ff, 1, device=device)
-            conv_idx = circulant(conv_idx, device=device)
-            e_conv = f_coeffs[center[0], center[1] + conv_idx]
-            o_e_conv = o_f_coeffs[center[0], center[1] + conv_idx]
-            e_conv_all[i] = e_conv
-            o_e_conv_all[i] = o_e_conv
-
-    else:  # 2D
-        ff_x = 2 * fourier_order_x + 1
-        ff_y = 2 * fourier_order_y + 1
-
-        e_conv_all = torch.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y), device=device).type(type_complex)
-        o_e_conv_all = torch.zeros((ucell_pmt.shape[0], ff_x * ff_y,  ff_x * ff_y), device=device).type(type_complex)
-
-        for i, layer in enumerate(ucell_pmt):
-
-            cell, x, y = cell_compression(layer, device=device, type_complex=type_complex)
-
-            f_coeffs = fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, device=device,
-                                              type_complex=type_complex)
-            o_f_coeffs = fft_piecewise_constant(1 / cell, x, y, fourier_order_x, fourier_order_y, device=device,
-                                                type_complex=type_complex)
-
-            center = torch.tensor(f_coeffs.shape, device=device) // 2
-
-            conv_idx_y = torch.arange(-ff_y + 1, ff_y, 1, device=device)
-            conv_idx_y = circulant(conv_idx_y, device=device)
-            conv_i = conv_idx_y.repeat_interleave(ff_x, dim=1)
-            conv_i = conv_i.repeat_interleave(ff_x, dim=0)
-
-            conv_idx_x = torch.arange(-ff_x + 1, ff_x, 1, device=device)
-            conv_idx_x = circulant(conv_idx_x, device=device)
-            conv_j = conv_idx_x.repeat(ff_y, ff_y)
-
-            e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            e_conv_all[i] = e_conv
-            o_e_conv_all[i] = o_e_conv
-    return e_conv_all, o_e_conv_all
+    return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
-def to_conv_mat_raster_discrete(ucell, fourier_order_x, fourier_order_y, device=torch.device('cpu'), type_complex=torch.complex128,
-                                improve_dft=True):
-    ucell_pmt = ucell ** 2
+def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=torch.complex128,
+                                enhanced_dfs=True):
 
-    if ucell_pmt.shape[1] == 1:  # 1D
-        ff = 2 * fourier_order_x + 1
-        e_conv_all = torch.zeros((ucell_pmt.shape[0], ff, ff), device=device).type(type_complex)
-        o_e_conv_all = torch.zeros((ucell_pmt.shape[0], ff, ff), device=device).type(type_complex)
-        if improve_dft:
-            minimum_pattern_size = 2 * ff * ucell_pmt.shape[2]
-        else:
-            minimum_pattern_size = 2 * ff
+    ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
-        for i, layer in enumerate(ucell_pmt):
-            n = minimum_pattern_size // layer.shape[1]
-            layer = layer.repeat_interleave(n + 1, axis=1)
-            f_coeffs = torch.fft.fftshift(torch.fft.fft(layer / layer.numel()).type(type_complex))
-            o_f_coeffs = torch.fft.fftshift(torch.fft.fft(1/layer / layer.numel()).type(type_complex))
-            center = torch.tensor(f_coeffs.shape, device=device) // 2
-            # center = torch.div(torch.tensor(f_coeffs.shape, device=device), 2, rounding_mode='trunc')
-            # center = torch.tensor(center, device=device)
-            conv_idx = torch.arange(-ff + 1, ff, 1, device=device)
-            conv_idx = circulant(conv_idx, device=device)
-            e_conv = f_coeffs[center[0], center[1] + conv_idx]
-            o_e_conv = o_f_coeffs[center[0], center[1] + conv_idx]
-            e_conv_all[i] = e_conv
-            o_e_conv_all[i] = o_e_conv
+    epx_conv_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device).type(type_complex)
+    epy_conv_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device).type(type_complex)
+    epz_conv_i_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device).type(type_complex)
 
-    else:  # 2D
-        ff_x = 2 * fourier_order_x + 1
-        ff_y = 2 * fourier_order_y + 1
-
-        e_conv_all = torch.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y), device=device).type(type_complex)
-        o_e_conv_all = torch.zeros((ucell_pmt.shape[0], ff_x * ff_y, ff_x * ff_y), device=device).type(type_complex)
-
-        if improve_dft:
-            minimum_pattern_size_y = 2 * ff_y * ucell_pmt.shape[1]
-            minimum_pattern_size_x = 2 * ff_x * ucell_pmt.shape[2]
-        else:
-            minimum_pattern_size_y = 2 * ff_y
-            minimum_pattern_size_x = 2 * ff_x
+    if enhanced_dfs:
+        minimum_pattern_size_y = (4 * fto_y + 1) * ucell.shape[1]
+        minimum_pattern_size_x = (4 * fto_x + 1) * ucell.shape[2]
+    else:
+        minimum_pattern_size_y = 4 * fto_y + 1
+        minimum_pattern_size_x = 4 * fto_x + 1
         # e.g., 8 bytes * (40*500) * (40*500) / 1E6 = 3200 MB = 3.2 GB
 
-        for i, layer in enumerate(ucell_pmt):
-            if layer.shape[0] < minimum_pattern_size_y:
-                # n = torch.div(minimum_pattern_size_y, layer.shape[0], rounding_mode='trunc')
-                n = minimum_pattern_size_y // layer.shape[0]
-                n = torch.tensor(n, device=device)
+    for i, layer in enumerate(ucell):
+        if layer.shape[0] < minimum_pattern_size_y:
+            n = minimum_pattern_size_y // layer.shape[0]
+            n = torch.tensor(n, device=device)
+            layer = layer.repeat_interleave(n + 1, axis=0)
+        if layer.shape[1] < minimum_pattern_size_x:
+            n = minimum_pattern_size_x // layer.shape[1]
+            n = torch.tensor(n, device=device)
+            layer = layer.repeat_interleave(n + 1, axis=1)
 
-                layer = layer.repeat_interleave(n + 1, axis=0)
-            if layer.shape[1] < minimum_pattern_size_x:
-                # n = torch.div(minimum_pattern_size_x, layer.shape[1], rounding_mode='trunc')
-                n = minimum_pattern_size_x // layer.shape[1]
-                n = torch.tensor(n, device=device)
-                layer = layer.repeat_interleave(n + 1, axis=1)
+        eps_matrix = layer ** 2
 
-            f_coeffs = torch.fft.fftshift(torch.fft.fft2(layer / layer.numel()))
-            o_f_coeffs = torch.fft.fftshift(torch.fft.fft2(1/layer / layer.numel()))
-            center = torch.tensor(f_coeffs.shape, device=device) // 2
+        epz_conv = dfs2d(eps_matrix, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        epy_conv = dfs2d(eps_matrix, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
+        epx_conv = dfs2d(eps_matrix, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
 
-            conv_idx_y = torch.arange(-ff_y + 1, ff_y, 1, device=device)
-            conv_idx_y = circulant(conv_idx_y, device=device)
-            conv_i = conv_idx_y.repeat_interleave(ff_x, dim=1)
-            conv_i = conv_i.repeat_interleave(ff_x, dim=0)
+        epx_conv_all[i] = epx_conv
+        epy_conv_all[i] = epy_conv
+        epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
 
-            conv_idx_x = torch.arange(-ff_x + 1, ff_x, 1, device=device)
-            conv_idx_x = circulant(conv_idx_x, device=device)
-            conv_j = conv_idx_x.repeat(ff_y, ff_y)
-
-            e_conv = f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            o_e_conv = o_f_coeffs[center[0] + conv_i, center[1] + conv_j]
-            e_conv_all[i] = e_conv
-            o_e_conv_all[i] = o_e_conv
-    return e_conv_all, o_e_conv_all
-
-
-def circulant(c, device=torch.device('cpu')):
-
-    center = c.shape[0] // 2
-    circ = torch.zeros((center + 1, center + 1), device=device).type(torch.long)
-
-    for r in range(center+1):
-        idx = torch.arange(r, r - center - 1, -1, device=device)
-
-        assign_value = c[center - idx]
-        circ[r] = assign_value
-
-    return circ
+    return epx_conv_all, epy_conv_all, epz_conv_i_all

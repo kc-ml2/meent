@@ -75,9 +75,58 @@ def plot_topview(plot_option, layer_info_list, period, save_path='', fig_file=''
         raise ValueError
 
 
+def forward():
+    pass
+
+
 def modelling_ref_index(wavelength, rcwa_options, modeling_options, params_name, params_value, instructions):
 
-    mee = meent.call_mee(fft_type=2, wavelength=wavelength, **rcwa_options)
+    mee = meent.call_mee(wavelength=wavelength, **rcwa_options)
+
+    t = mee.thickness
+
+    for i in range(len(t)):
+        if f'l{i+1}_thickness' in params_name:
+            t[i] = params_value[params_name[f'l{i+1}_thickness']].reshape((1, 1))
+    mee.thickness = t
+
+    mat_table = read_material_table()
+
+    ucell = []
+    for i, layer in enumerate(instructions):
+        obj_list_per_layer = []
+        for j, _ in enumerate(layer):
+            instructions_new = []
+            instructions_target = instructions[i][j]
+            for k, inst in enumerate(instructions_target):
+                if k == 0:
+                    instructions_new.append(inst)
+                elif inst in params_name:
+                    instructions_new.append(params_value[params_name[inst]])
+                elif inst in modeling_options:
+                    if inst[-7:] == 'n_index' and type(modeling_options[inst]) is str:
+                        a = find_nk_index(modeling_options[inst], mat_table, wavelength).conj()  # TODO: confirm conj.
+                    else:
+                        a = modeling_options[inst]
+                    instructions_new.append(a)
+                else:
+                    raise ValueError
+            obj_list_per_layer.append(instructions_new)
+
+        a = modeling_options[f'l{i+1}_n_base']
+        if type(a) is str:
+            a = find_nk_index(a, mat_table, wavelength).conj()
+
+        ucell.append([a, obj_list_per_layer])
+    mee.ucell = ucell
+    # mee.draw(layer_info_list)
+
+    return mee, ucell
+
+
+def modelling_ref_index_old(wavelength, rcwa_options, modeling_options, params_name, params_value, instructions):
+
+    mee = meent.call_mee(wavelength=wavelength, **rcwa_options)
 
     t = mee.thickness
 
@@ -131,8 +180,8 @@ def reflectance_mode_00(mee, wavelength):
     return reflectance
 
 
-def generate_spectrum(rcwa_options, modeling_options, params_name, params_value, instructions):
-    wavelength_list = rcwa_options['wavelength_list']
+def generate_spectrum(rcwa_options, modeling_options, params_name, params_value, instructions, wavelength_list):
+    # wavelength_list = rcwa_options['wavelength_list']
     spectrum = torch.zeros(len(wavelength_list))
 
     for i, wl in enumerate(wavelength_list):
@@ -142,7 +191,7 @@ def generate_spectrum(rcwa_options, modeling_options, params_name, params_value,
     return spectrum, layer_info_list
 
 
-def gradient_descent(rcwa_options, modeling_options, params_interest, params_gt, instructions, optimizer_option,
+def gradient_descent(rcwa_options, modeling_options, params_interest, params_gt, instructions, optimizer_option, wavelength_list,
                      n_iters=3, n_steps=3, show_spectrum=0, show_topview=0, algo_name=''):
 
     gt_name = {k: i for i, (k, v) in enumerate(params_gt.items())}
@@ -162,7 +211,7 @@ def gradient_descent(rcwa_options, modeling_options, params_interest, params_gt,
 
     os.mkdir(temp_path_loss)
 
-    spectrum_gt, layer_info_list_gt = generate_spectrum(rcwa_options, modeling_options, gt_name, gt_value, instructions)
+    spectrum_gt, layer_info_list_gt = generate_spectrum(rcwa_options, modeling_options, gt_name, gt_value, instructions, wavelength_list)
     
     for ix_iter in range(n_iters):
         pois_name_index, pois_sampled = sampling(params_interest)
@@ -174,7 +223,7 @@ def gradient_descent(rcwa_options, modeling_options, params_interest, params_gt,
         for ix_step in range(n_steps):
             opt.zero_grad()
 
-            spectrum, layer_info_list = generate_spectrum(rcwa_options, modeling_options, pois_name_index, pois_sampled, instructions)
+            spectrum, layer_info_list = generate_spectrum(rcwa_options, modeling_options, pois_name_index, pois_sampled, instructions, wavelength_list)
 
             fig_file = str(time.time())
             if show_spectrum:
@@ -220,8 +269,10 @@ def sampling(pois_dist):
 
 
 def run(optimizer, n_iters=10, n_steps=50, show_spectrum=0, show_topview=0, algo_name=''):
-    rcwa_options = dict(backend=2, grating_type=2, thickness=[0, 0, 100000], period=[300, 300], fourier_order=[3, 3],
-                        n_I=1, n_II=1, wavelength_list=range(200, 1001, 10))
+    rcwa_options = dict(backend=2, thickness=[0, 0, 100000], period=[300, 300], fto=[3, 3],
+                        n_top=1, n_bot=1)
+
+    wavelength_list = range(200, 1001, 10)
 
     modeling_options = dict(
         l1_n_base='sio2',
@@ -284,7 +335,7 @@ def run(optimizer, n_iters=10, n_steps=50, show_spectrum=0, show_topview=0, algo
         l1_thickness=torch.tensor([205]), l2_thickness=torch.tensor([305]),
     )
 
-    gradient_descent(rcwa_options, modeling_options, params_interest, params_gt, instructions, optimizer,
+    gradient_descent(rcwa_options, modeling_options, params_interest, params_gt, instructions, optimizer, wavelength_list,
                          n_iters=n_iters, n_steps=n_steps, show_spectrum=show_spectrum, show_topview=show_topview, algo_name=algo_name)
 
     return
@@ -318,7 +369,7 @@ if __name__ == '__main__':
     for i, optimizer in enumerate(optimizers[algo:algo+1]):
         file_name = f'{optimizer}_{n_iters}_{n_steps}'
         t0 = time.time()
-        res = run(optimizer, n_iters=n_iters, n_steps=n_steps, show_spectrum=0, show_topview=0, algo_name=algo)
+        run(optimizer, n_iters=n_iters, n_steps=n_steps, show_spectrum=0, show_topview=0, algo_name=algo)
 
         t1 = time.time()
         print(i, ' run, time: ', t1-t0)

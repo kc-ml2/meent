@@ -1,24 +1,14 @@
-import sys
-from pathlib import Path
-from glob import glob
-import numpy as np
-
+import hydra
 import torch
+
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset
-from torch.utils.tensorboard import SummaryWriter
 
 from neuralop import Trainer
-from neuralop.training.callbacks import BasicLoggerCallback, CheckpointCallback, Callback
 from neuralop import LpLoss, H1Loss
 from neuralop.utils import count_model_params
-from neuralop.datasets.tensor_dataset import TensorDataset
-
-import hydra
 
 import models
 from utils import seed_all
-from data import FieldData, LazyDataset
 from callbacks import TensorboardCallback, CustomCheckpointCallback
 from losses import (
     StructuralSimilarityIndexMeasure,
@@ -38,7 +28,7 @@ def load_data(data_dir):
     test_ds = torch.load(data_dir)
         
     train_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
-    test_loader = DataLoader(test_ds, batch_size=32)#, shuffle=True)
+    test_loader = DataLoader(test_ds, batch_size=32)  # , shuffle=True)
 
     return train_loader, test_loader
 

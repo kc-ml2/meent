@@ -1,4 +1,4 @@
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info] = reticolo_res2(_pol, theta, phi, period, n_inc, nn, _textures, _profile, wavelength, grating_type, field);
+function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info] = reticolo_res2(_pol, theta, phi, period, n_inc, nn, _textures, _profile, wavelength, grating_type);
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -15,7 +15,7 @@ else  # TM
 end
 
 if grating_type == 0
-    parm = res0(pol); % TE polarization. For TM : parm=res0(-1)
+    parm = res0(pol); % TE pol. For TM : parm=res0(-1)
 else
     parm = res0;
 end
