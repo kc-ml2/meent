@@ -89,8 +89,17 @@ class RCWAJax(_BaseRCWA):
     def _assign_modeling_type(self):
         if isinstance(self.ucell, (np.ndarray, jnp.ndarray)):  # Raster
             self.modeling_type_assigned = 0
-            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0):
-                self._grating_type_assigned = 0  # 1D TE and TM only
+            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)):
+
+                def false_fun(): return 0  # 1D TE and TM only
+                def true_fun(): return 1
+
+                gear = jax.lax.cond(self.phi % (2 * np.pi), true_fun, false_fun)
+
+                self._grating_type_assigned = gear
+
+            # if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0):
+            #     self._grating_type_assigned = 0  # 1D TE and TM only
             else:
                 self._grating_type_assigned = 1  # else
 
@@ -108,10 +117,23 @@ class RCWAJax(_BaseRCWA):
 
     def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
-        if self._grating_type_assigned == 0:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        else:
-            de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        # def false_fun(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+        #     de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        #     return de_ri, de_ti, layer_info_list, T1
+        #
+        # def true_fun(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+        #     de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        #     return de_ri, de_ti, layer_info_list, T1
+        #
+        # de_ri, de_ti, layer_info_list, T1 = jax.lax.cond(self._grating_type_assigned, true_fun, false_fun, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+
+        # if self._grating_type_assigned == 0:
+        #     de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        # else:
+        #     de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+
+        # In JAXMeent, 1D TE TM are turned off for jit compilation.
+        de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         return de_ri, de_ti, layer_info_list, T1
 
@@ -190,7 +212,7 @@ class RCWAJax(_BaseRCWA):
     def field_plot(self, field_cell):
         field_plot(field_cell, self.pol)
 
-    @partial(jax.jit, static_argnums=(1, 2, 3, 4))
+    @partial(jax.jit, static_argnums=(1, 2, 3))
     @jax_device_set
     def conv_solve_field(self, res_x=20, res_y=20, res_z=20, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
