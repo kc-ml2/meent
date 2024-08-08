@@ -79,7 +79,7 @@ class RCWANumpy(_BaseRCWA):
 
         if isinstance(self.ucell, np.ndarray):  # Raster
             self.modeling_type_assigned = 0
-            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0) and (self.fto[1] == 0):  # TODO: other bds
+            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0) and (self.fto[1] == 0):
                 self._grating_type_assigned = 0  # 1D TE and TM only
             else:
                 self._grating_type_assigned = 1  # else

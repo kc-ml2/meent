@@ -536,7 +536,6 @@ class ModelingNumpy:
             # top_left[0]
             for _ in range(100):
 
-                # tODO: confirm bisect change
                 # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)  # python >=3.10
                 index = bisect_left(row_list, top_left[0].real)
                 if len(row_list) > index and top_left[0] == row_list[index]:

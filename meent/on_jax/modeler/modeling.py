@@ -10,33 +10,6 @@ from pathlib import Path
 class ModelingJax:
     def __init__(self, *args, **kwargs):
         pass
-        # self.ucell = None
-        # self.ucell_vector = None
-        # self.x_list = None
-        # self.y_list = None
-        # self.mat_table = None
-
-    # def _tree_flatten(self):  # TODO
-    #     children = (self.n_top, self.n_bot, self.theta, self.phi, self.psi,
-    #                 self.period, self.wavelength, self.ucell, self.ucell_info_list, self.thickness)
-    #     aux_data = {
-    #         'backend': self.backend,
-    #         'grating_type': self.grating_type,
-    #         'pol': self.pol,
-    #         'fto': self.fto,
-    #         'ucell_materials': self.ucell_materials,
-    #         'connecting_algo': self.algo,
-    #         'perturbation': self.perturbation,
-    #         'device': self.device,
-    #         'type_complex': self.type_complex,
-    #         'fourier_type': self.fft_type,
-    #     }
-    #
-    #     return children, aux_data
-    #
-    # @classmethod
-    # def _tree_unflatten(cls, aux_data, children):
-    #     return cls(*children, **aux_data)
 
     @staticmethod
     def rectangle_no_approximation(cx, cy, lx, ly, base):
@@ -499,8 +472,6 @@ class ModelingJax:
 
     def vector_per_layer_numeric(self, layer_info, x64=True):
 
-        # TODO: activate and apply 'x64' option thru this function and connect to meent class.
-        # TODO: make it clear: perturbation algorithm. For all backends.
         if x64:
             datatype = jnp.complex128
             perturbation = 0
@@ -532,7 +503,6 @@ class ModelingJax:
                     else:
                         top_left[0] = top_left[0] + (top_left[0] * perturbation)
                         # top_left = top_left.add[0].add(top_left[0] * perturbation)
-                        # TODO: change; save how many perturbations were applied in a variable
 
                     row_list.insert(index, top_left[0])
                     break
@@ -552,7 +522,6 @@ class ModelingJax:
                 if len(row_list) > index and bottom_right[0] == row_list[index]:
                     perturbation += perturbation_unit
 
-                    # TODO: confirm assign makes right value
                     bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
                     # bottom_right = bottom_right.at[0].add(-bottom_right[0] * perturbation)
                     row_list.insert(index, bottom_right[0])
@@ -576,7 +545,7 @@ class ModelingJax:
 
                     if top_left[1] == 0:
                         # top_left = top_left.at[1].add(perturbation)
-                        top_left[1] = top_left[1] + perturbation  # tODO
+                        top_left[1] = top_left[1] + perturbation  # TODO: no jit at all?
                     else:
                         top_left[1] = top_left[1] + (top_left[1] * perturbation)
                         # top_left = top_left.at[1].add(top_left[1] * perturbation)
