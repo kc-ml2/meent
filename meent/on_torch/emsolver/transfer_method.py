@@ -133,7 +133,7 @@ def transfer_1d_4(pol, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, device=torc
     else:
         raise ValueError
 
-    return de_ri.real, de_ti.real, T1
+    return de_ri.real, de_ti.real, T1, [R], [T]
 
 
 def transfer_2d_1(ff_x, ff_y, kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex=torch.complex128):
@@ -278,8 +278,6 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.devi
 
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 
-    # return big_X, big_F, big_G, big_T, big_A_i, big_B, W_11, W_12, W_21, W_22, V_11, V_12, V_21, V_22
-
 
 def transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
                   device=torch.device('cpu'), type_complex=torch.complex128):
@@ -340,4 +338,4 @@ def transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
     de_ti = T_s * torch.conj(T_s) * torch.real(kz_bot / (n_top * torch.cos(theta))) \
             + T_p * torch.conj(T_p) * torch.real((kz_bot / n_bot ** 2) / (n_top * torch.cos(theta)))
 
-    return de_ri.real, de_ti.real, big_T1, (R_s, R_p), (T_s, T_p)
+    return de_ri.real, de_ti.real, big_T1, [R_s, R_p], [T_s, T_p]

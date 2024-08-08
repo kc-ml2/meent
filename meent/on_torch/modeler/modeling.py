@@ -363,7 +363,6 @@ class ModelingTorch:
 
     def vector_per_layer_numeric(self, layer_info, x64=True):
 
-        # TODO: activate and apply 'x64' option thru this function and connect to meent class.
         if x64:
             datatype = torch.complex128
             perturbation = 0
@@ -393,7 +392,7 @@ class ModelingTorch:
                         top_left[0] = top_left[0] + perturbation
 
                     else:
-                        top_left[0] = top_left[0] + (top_left[0] * perturbation)  # TODO: change; save how many perturbations were applied in a variable
+                        top_left[0] = top_left[0] + (top_left[0] * perturbation)
                     row_list.insert(index, top_left[0])
                     break
                 else:
@@ -476,7 +475,6 @@ class ModelingTorch:
 
         # ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype, requires_grad=True) * pmtvy_base
         ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype) * pmtvy_base
-        # TODO: requires_grad?
 
         for obj in obj_list:
             top_left, bottom_right, pmty = obj

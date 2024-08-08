@@ -93,12 +93,11 @@ def transfer_1d_4(pol, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_comple
     delta_i0[ff_xy // 2] = 1
 
     if pol == 0:  # TE
-        # TODO: check sign of H
         inc_term = 1j * n_top * np.cos(theta) * delta_i0
         T1 = np.linalg.inv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
 
     elif pol == 1:  # TM
-        inc_term = 1j * delta_i0 * np.cos(theta) / n_top  # tODO: inc term?
+        inc_term = 1j * delta_i0 * np.cos(theta) / n_top
         T1 = np.linalg.inv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
 
     # T1 = np.linalg.inv(G + 1j * YZ_I @ F) @ (1j * YZ_I @ delta_i0 + inc_term)

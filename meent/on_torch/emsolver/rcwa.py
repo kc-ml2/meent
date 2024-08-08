@@ -108,18 +108,18 @@ class RCWATorch(_BaseRCWA):
     def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
         if self._grating_type_assigned == 0:
-            de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
-            de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-        return de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1
+        return de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1
 
     def solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
-        de_ri, de_ti, rayleigh_r, rayleigh_t, layer_info_list, T1 = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        # TODO: rayleigh
-        self.rayleigh_r = rayleigh_r
-        self.rayleigh_t = rayleigh_t
+        de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+
+        self.rayleigh_R = rayleigh_R
+        self.rayleigh_T = rayleigh_T
         self.layer_info_list = layer_info_list
         self.T1 = T1
 
