@@ -3,7 +3,7 @@ Geometry
 
 In order to simulate real-world phenomena, it is important to faithfully replicate them within a computational environment. In this context, geometries, or device structures, must be transferred and modeled to facilitate the execution of virtual experiments through simulation.
 
-.. figure:: images/geometry-modeling.png
+.. figure:: images/geometry.png
     :align: center
 
     Figure 1: **Characteristics of each modeling type.**
