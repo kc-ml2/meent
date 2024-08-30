@@ -40,7 +40,7 @@ dependencies = [
   "opencv-python==4.8.0.*",
   "torch>=2.0,!=2.2.0",
   "huggingface-hub",
-  "git+https://github.com/kc-ml2/deflector-gym.git",
+  "deflector-gym @ git+https://github.com/kc-ml2/deflector-gym.git#egg=deflector-gym",
 ]
 dynamic = ["version"]
 
