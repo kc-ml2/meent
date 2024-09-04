@@ -53,7 +53,7 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('
         q = eigenvalues ** 0.5
 
         Q = torch.diag(q)
-        V = torch.linalg.inv(epx_conv) @ W @ Q
+        V = torch.linalg.pinv(epx_conv) @ W @ Q
 
     else:
         raise ValueError
@@ -65,13 +65,13 @@ def transfer_1d_2_(k0, q, d, W, V, f, g, fourier_order, T, device=torch.device('
 
     X = torch.diag(torch.exp(-k0 * q * d))
 
-    W_i = torch.linalg.inv(W)
-    V_i = torch.linalg.inv(V)
+    W_i = torch.linalg.pinv(W)
+    V_i = torch.linalg.pinv(V)
 
     a = 0.5 * (W_i @ f + V_i @ g)
     b = 0.5 * (W_i @ f - V_i @ g)
 
-    a_i = torch.linalg.inv(a)
+    a_i = torch.linalg.pinv(a)
 
     f = W @ (torch.eye(2 * fourier_order[0] + 1, device=device, dtype=type_complex) + X @ b @ a_i @ X)
     g = V @ (torch.eye(2 * fourier_order[0] + 1, device=device, dtype=type_complex) - X @ b @ a_i @ X)
@@ -88,13 +88,13 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_comp
 
     X = torch.diag(torch.exp(-k0 * q * d))
 
-    W_i = torch.linalg.inv(W)
-    V_i = torch.linalg.inv(V)
+    W_i = torch.linalg.pinv(W)
+    V_i = torch.linalg.pinv(V)
 
     A = 0.5 * (W_i @ F + V_i @ G)
     B = 0.5 * (W_i @ F - V_i @ G)
 
-    A_i = torch.linalg.inv(A)
+    A_i = torch.linalg.pinv(A)
 
     F = W @ (I + X @ B @ A_i @ X)
     G = V @ (I - X @ B @ A_i @ X)
@@ -114,13 +114,13 @@ def transfer_1d_4(pol, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, device=torc
 
     if pol == 0:  # TE
         inc_term = 1j * n_top * torch.cos(theta) * delta_i0
-        T1 = torch.linalg.inv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
+        T1 = torch.linalg.pinv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
 
     elif pol == 1:  # TM
         inc_term = 1j * delta_i0 * torch.cos(theta) / n_top
-        T1 = torch.linalg.inv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
+        T1 = torch.linalg.pinv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
 
-    # T1 = np.linalg.inv(G + 1j * YZ_I @ F) @ (1j * YZ_I @ delta_i0 + inc_term)
+    # T1 = np.linalg.pinv(G + 1j * YZ_I @ F) @ (1j * YZ_I @ delta_i0 + inc_term)
     R = F @ T1 - delta_i0
     T = T @ T1
 
@@ -202,7 +202,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=torch.device('c
     q = eigenvalues ** 0.5
 
     Q = torch.diag(q)
-    Q_i = torch.linalg.inv(Q)
+    Q_i = torch.linalg.pinv(Q)
     Omega_R = torch.cat(
         [
             torch.cat([-Kx @ Ky, Kx ** 2 - epy_conv], dim=1),
@@ -263,13 +263,13 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.devi
         torch.cat([V_ss, V_sp],  dim=1),
         torch.cat([V_ps, V_pp], dim=1)])
 
-    big_W_i = torch.linalg.inv(big_W)
-    big_V_i = torch.linalg.inv(big_V)
+    big_W_i = torch.linalg.pinv(big_W)
+    big_V_i = torch.linalg.pinv(big_V)
 
     big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
     big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
 
-    big_A_i = torch.linalg.inv(big_A)
+    big_A_i = torch.linalg.pinv(big_A)
 
     big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
     big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
@@ -321,7 +321,7 @@ def transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
         ]
     )
 
-    final_RT = torch.linalg.inv(final_A) @ final_B
+    final_RT = torch.linalg.pinv(final_A) @ final_B
 
     R_s = final_RT[:ff_xy, :].flatten()  # TODO: why flatten?
     R_p = final_RT[ff_xy:2 * ff_xy, :].flatten()
@@ -332,10 +332,20 @@ def transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
     T_s = big_T[:ff_xy, :].flatten()
     T_p = big_T[ff_xy:, :].flatten()
 
-    de_ri = R_s * torch.conj(R_s) * torch.real(kz_top / (n_top * torch.cos(theta))) \
-            + R_p * torch.conj(R_p) * torch.real((kz_top / n_top ** 2) / (n_top * torch.cos(theta)))
+    # de_ri = R_s * torch.conj(R_s) * torch.real(kz_top / (n_top * torch.cos(theta))) \
+    #         + R_p * torch.conj(R_p) * torch.real((kz_top / n_top ** 2) / (n_top * torch.cos(theta)))
+    #
+    # de_ti = T_s * torch.conj(T_s) * torch.real(kz_bot / (n_top * torch.cos(theta))) \
+    #         + T_p * torch.conj(T_p) * torch.real((kz_bot / n_bot ** 2) / (n_top * torch.cos(theta)))
+    #
+    # return de_ri.real, de_ti.real, big_T1, [R_s, R_p], [T_s, T_p]
 
-    de_ti = T_s * torch.conj(T_s) * torch.real(kz_bot / (n_top * torch.cos(theta))) \
-            + T_p * torch.conj(T_p) * torch.real((kz_bot / n_bot ** 2) / (n_top * torch.cos(theta)))
+    de_ri_s = R_s * torch.conj(R_s) * torch.real(kz_top / (n_top * torch.cos(theta)))
+    de_ri_p = R_p * torch.conj(R_p) * torch.real(kz_top / n_top ** 2 / (n_top * torch.cos(theta)))
 
-    return de_ri.real, de_ti.real, big_T1, [R_s, R_p], [T_s, T_p]
+    de_ti_s = T_s * torch.conj(T_s) * torch.real(kz_bot / (n_top * torch.cos(theta)))
+    de_ti_p = T_p * torch.conj(T_p) * torch.real(kz_bot / n_bot ** 2 / (n_top * torch.cos(theta)))
+
+
+    # return de_ri.real, de_ti.real, big_T1
+    return de_ri_s.real, de_ri_p.real, de_ti_s.real, de_ti_p.real, big_T1, R_s, R_p, T_s, T_p

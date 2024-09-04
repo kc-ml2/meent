@@ -85,17 +85,18 @@ class RCWATorch(_BaseRCWA):
         self._modeling_type_assigned = modeling_type_assigned
 
     def _assign_modeling_type(self):
-
-        if isinstance(self.ucell, torch.Tensor):  # Raster
-            self.modeling_type_assigned = 0
-            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0) and (self.fto[1] == 0):
-                self._grating_type_assigned = 0  # 1D TE and TM only
-            else:
-                self._grating_type_assigned = 1  # else
-
-        elif isinstance(self.ucell, list):  # Vector
-            self.modeling_type_assigned = 1
-            self.grating_type_assigned = 1
+        self.modeling_type_assigned = 0
+        self._grating_type_assigned = 1  # else
+        # if isinstance(self.ucell, torch.Tensor):  # Raster
+        #     self.modeling_type_assigned = 0
+        #     if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0) and (self.fto[1] == 0):
+        #         self._grating_type_assigned = 0  # 1D TE and TM only
+        #     else:
+        #         self._grating_type_assigned = 1  # else
+        #
+        # elif isinstance(self.ucell, list):  # Vector
+        #     self.modeling_type_assigned = 1
+        #     self.grating_type_assigned = 1
 
     @property
     def grating_type_assigned(self):
@@ -108,22 +109,32 @@ class RCWATorch(_BaseRCWA):
     def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
         if self._grating_type_assigned == 0:
-            de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        else:
-            de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            # de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p  = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-        return de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1
+        else:
+            # de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+
+
+        # return de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1
+        return de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p
 
     def solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
-        de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        # de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-        self.rayleigh_R = rayleigh_R
-        self.rayleigh_T = rayleigh_T
+        # self.rayleigh_R = rayleigh_R
+        # self.rayleigh_T = rayleigh_T
+        # self.layer_info_list = layer_info_list
+        # self.T1 = T1
+        #
+        # return de_ri, de_ti
         self.layer_info_list = layer_info_list
         self.T1 = T1
 
-        return de_ri, de_ti
+        return de_ri_s, de_ri_p, de_ti_s, de_ti_p, R_s, R_p, T_s, T_p
 
     def conv_solve(self, **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
@@ -150,12 +161,19 @@ class RCWATorch(_BaseRCWA):
         else:
             raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
-        de_ri, de_ti,  rayleigh_r, rayleigh_t, layer_info_list, T1 = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        # de_ri, de_ti,  rayleigh_r, rayleigh_t, layer_info_list, T1 = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        #
+        # self.layer_info_list = layer_info_list
+        # self.T1 = T1
+        #
+        # return de_ri, de_ti
+        de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         self.layer_info_list = layer_info_list
         self.T1 = T1
 
-        return de_ri, de_ti
+        return de_ri_s, de_ri_p, de_ti_s, de_ti_p, R_s, R_p, T_s, T_p
+
 
     def calculate_field(self, res_x=20, res_y=20, res_z=20):
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)

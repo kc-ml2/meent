@@ -110,7 +110,7 @@ class _BaseRCWA:
 
         self._pol = pol
         psi = torch.pi / 2 * (1 - self.pol)
-        self._psi = torch.tensor(psi, device=self.device, dtype=self.type_float)
+        self._psi = torch.tensor(psi, device=self.device, dtype=self.type_complex)
 
     @property
     def theta(self):
@@ -118,7 +118,7 @@ class _BaseRCWA:
 
     @theta.setter
     def theta(self, theta):
-        self._theta = torch.tensor(theta, device=self.device, dtype=self.type_float)
+        self._theta = torch.tensor(theta, device=self.device, dtype=self.type_complex)
         self._theta = torch.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
 
     @property
@@ -127,7 +127,7 @@ class _BaseRCWA:
 
     @phi.setter
     def phi(self, phi):
-        self._phi = torch.tensor(phi, device=self.device, dtype=self.type_float)
+        self._phi = torch.tensor(phi, device=self.device, dtype=self.type_complex)
 
     @property
     def psi(self):
@@ -136,7 +136,7 @@ class _BaseRCWA:
     @psi.setter
     def psi(self, psi):
         if psi is not None:
-            self._psi = torch.tensor(psi, dtype=self.type_float)
+            self._psi = torch.tensor(psi, dtype=self.type_complex)
             pol = -(2 * psi / torch.pi - 1)
             self._pol = pol
 
@@ -337,12 +337,18 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            de_ri, de_ti, big_T1, [R_s, R_p], [T_s, T_p], = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
-                                                 self.n_top, self.n_bot, device=self.device,
-                                                 type_complex=self.type_complex)
+            # de_ri, de_ti, big_T1, [R_s, R_p], [T_s, T_p], = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
+            #                                      self.n_top, self.n_bot, device=self.device,
+            #                                      type_complex=self.type_complex)
+            # self.T1 = big_T1
+            # self.rayleigh_R = [R_s, R_p]
+            # self.rayleigh_T = [T_s, T_p]
+
+            de_ri_s, de_ri_p, de_ti_s, de_ti_p, big_T1, R_s, R_p, T_s, T_p = transfer_2d_4(big_F, big_G, big_T, kz_top,
+                                                                                           kz_bot, self.psi, self.theta,
+                                                                                           self.n_top, self.n_bot,
+                                                                                           type_complex=self.type_complex)
             self.T1 = big_T1
-            self.rayleigh_R = [R_s, R_p]
-            self.rayleigh_T = [T_s, T_p]
 
         elif self.connecting_algo == 'SMM':
             de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_top,
@@ -350,7 +356,8 @@ class _BaseRCWA:
         else:
             raise ValueError
 
-        de_ri = de_ri.reshape((ff_y, ff_x)).T
-        de_ti = de_ti.reshape((ff_y, ff_x)).T
-
-        return de_ri, de_ti, self.rayleigh_R, self.rayleigh_T, self.layer_info_list, self.T1
+        # de_ri = de_ri.reshape((ff_y, ff_x)).T
+        # de_ti = de_ti.reshape((ff_y, ff_x)).T
+        #
+        # return de_ri, de_ti, self.rayleigh_R, self.rayleigh_T, self.layer_info_list, self.T1
+        return de_ri_s, de_ri_p, de_ti_s, de_ti_p, self.layer_info_list, self.T1, R_s, R_p, T_s, T_p
