@@ -500,7 +500,7 @@ def transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
 
     big_T1 = final_RT[2 * ff_xy:, :]
 
-    big_T_TETM = big_T.copy()
+    big_T_tetm = big_T.copy()
 
     big_T = big_T @ big_T1
 
@@ -526,7 +526,7 @@ def transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
     ##############
 
     # TE TM incidence
-    final_B_TM = np.block(
+    final_B_tm = np.block(
         [
             [-np.sin(0) * delta_i0],
             [np.cos(0) * np.cos(theta) * delta_i0],
@@ -534,109 +534,106 @@ def transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
             [-1j * n_top * np.cos(0) * delta_i0]
         ]
     )
-    final_B_TE = np.block(
+    final_B_te = np.block(
         [
-            [-np.sin(np.pi/2) * delta_i0],
-            [np.cos(np.pi/2) * np.cos(theta) * delta_i0],
-            [-1j * np.sin(np.pi/2) * n_top * np.cos(theta) * delta_i0],
-            [-1j * n_top * np.cos(np.pi/2) * delta_i0]
+            [-np.sin(np.pi / 2) * delta_i0],
+            [np.cos(np.pi / 2) * np.cos(theta) * delta_i0],
+            [-1j * np.sin(np.pi / 2) * n_top * np.cos(theta) * delta_i0],
+            [-1j * n_top * np.cos(np.pi / 2) * delta_i0]
         ]
     )
 
-    final_B_TETM = np.hstack([final_B_TE, final_B_TM])
-    final_RT_TETM = final_A_inv @ final_B_TETM
+    final_B_tetm = np.hstack([final_B_te, final_B_tm])
+    final_RT_tetm = final_A_inv @ final_B_tetm
 
-    R_s_TETM = final_RT_TETM[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    R_p_TETM = final_RT_TETM[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))
+    R_s_tetm = final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
+    R_p_tetm = final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))
 
+    big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
+    big_T_tetm = big_T_tetm @ big_T1_tetm
 
-    big_T1_TETM = final_RT_TETM[2 * ff_xy:, :]
-    big_T_TETM = big_T_TETM @ big_T1_TETM
+    T_s_tetm = big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
+    T_p_tetm = big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
 
-    T_s_TETM = big_T_TETM[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    T_p_TETM = big_T_TETM[ff_xy:, :].T.reshape((2, ff_y, ff_x))
+    de_ri_s_tetm = np.real(R_s_tetm * np.conj(R_s_tetm) * np.real(kz_top / (n_top * np.cos(theta))))
+    de_ri_p_tetm = np.real(R_p_tetm * np.conj(R_p_tetm) * np.real(kz_top / n_top ** 2 / (n_top * np.cos(theta))))
 
+    de_ti_s_tetm = np.real(T_s_tetm * np.conj(T_s_tetm) * np.real(kz_bot / (n_top * np.cos(theta))))
+    de_ti_p_tetm = np.real(T_p_tetm * np.conj(T_p_tetm) * np.real(kz_bot / n_bot ** 2 / (n_top * np.cos(theta))))
 
+    de_ri_tetm = de_ri_s_tetm + de_ri_p_tetm
+    de_ti_tetm = de_ti_s_tetm + de_ti_p_tetm
 
-    de_ri_s_TETM = np.real(R_s_TETM * np.conj(R_s_TETM) * np.real(kz_top / (n_top * np.cos(theta))))
-    de_ri_p_TETM = np.real(R_p_TETM * np.conj(R_p_TETM) * np.real(kz_top / n_top ** 2 / (n_top * np.cos(theta))))
+    res_te_inc = {'R_s': R_s_tetm[0], 'R_p': R_p_tetm[0], 'T_s': T_s_tetm[0], 'T_p': T_p_tetm[0],
+                  'de_ri_s': de_ri_s_tetm[0], 'de_ri_p': de_ri_p_tetm[0], 'de_ri': de_ri_tetm[0],
+                  'de_ti_s': de_ti_s_tetm[0], 'de_ti_p': de_ti_p_tetm[0], 'de_ti': de_ti_tetm[0]}
 
-    de_ti_s_TETM = np.real(T_s_TETM * np.conj(T_s_TETM) * np.real(kz_bot / (n_top * np.cos(theta))))
-    de_ti_p_TETM = np.real(T_p_TETM * np.conj(T_p_TETM) * np.real(kz_bot / n_bot ** 2 / (n_top * np.cos(theta))))
+    res_tm_inc = {'R_s': R_s_tetm[1], 'R_p': R_p_tetm[1], 'T_s': T_s_tetm[1], 'T_p': T_p_tetm[1],
+                  'de_ri_s': de_ri_s_tetm[1], 'de_ri_p': de_ri_p_tetm[1], 'de_ri': de_ri_tetm[1],
+                  'de_ti_s': de_ti_s_tetm[1], 'de_ti_p': de_ti_p_tetm[1], 'de_ti': de_ti_tetm[1]}
 
-    de_ri_TETM = de_ri_s_TETM + de_ri_p_TETM
-    de_ti_TETM = de_ti_s_TETM + de_ti_p_TETM
-
-
-    res_TEinc = {'R_s': R_s_TETM[0], 'R_p': R_p_TETM[0], 'T_s': T_s_TETM[0], 'T_p': T_p_TETM[0],
-                 'de_ri_s': de_ri_s_TETM[0], 'de_ri_p': de_ri_p_TETM[0], 'de_ri': de_ri_TETM[0],
-                 'de_ti_s': de_ti_s_TETM[0], 'de_ti_p': de_ti_p_TETM[0], 'de_ti': de_ti_TETM[0]}
-
-    res_TMinc = {'R_s': R_s_TETM[1], 'R_p': R_p_TETM[1], 'T_s': T_s_TETM[1], 'T_p': T_p_TETM[1],
-                 'de_ri_s': de_ri_s_TETM[1], 'de_ri_p': de_ri_p_TETM[1], 'de_ri': de_ri_TETM[1],
-                 'de_ti_s': de_ti_s_TETM[1], 'de_ti_p': de_ti_p_TETM[1], 'de_ti': de_ti_TETM[1]}
-    result = {'res': res, 'res_TMinc': res_TMinc, 'res_TEinc': res_TEinc}
+    result = {'res': res, 'res_tm_inc': res_tm_inc, 'res_te_inc': res_te_inc}
 
     return result, big_T1
 
-    ###########3
-
-
-    # TM incidence
-    final_B_TM = np.block(
-        [
-            [-np.sin(0) * delta_i0],
-            [np.cos(0) * np.cos(theta) * delta_i0],
-            [-1j * np.sin(0) * n_top * np.cos(theta) * delta_i0],
-            [-1j * n_top * np.cos(0) * delta_i0]
-        ]
-    )
-
-    final_RT_TM = final_A_inv @ final_B_TM
-
-    R_s_TM = final_RT_TM[:ff_xy, :].reshape((ff_y, ff_x))
-    R_p_TM = final_RT_TM[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))
-
-    big_T1_TM = final_RT_TM[2 * ff_xy:, :]
-    big_T_TM = big_T_TETM @ big_T1_TM
-
-    T_s_TM = big_T_TM[:ff_xy, :].reshape((ff_y, ff_x))
-    T_p_TM = big_T_TM[ff_xy:, :].reshape((ff_y, ff_x))
-
-    de_ri_s_TM = np.real(R_s_TM * np.conj(R_s_TM) * np.real(kz_top / (n_top * np.cos(theta))))
-    de_ri_p_TM = np.real(R_p_TM * np.conj(R_p_TM) * np.real(kz_top / n_top ** 2 / (n_top * np.cos(theta))))
-
-    de_ti_s_TM = np.real(T_s_TM * np.conj(T_s_TM) * np.real(kz_bot / (n_top * np.cos(theta))))
-    de_ti_p_TM = np.real(T_p_TM * np.conj(T_p_TM) * np.real(kz_bot / n_bot ** 2 / (n_top * np.cos(theta))))
-
-    de_ri_TM = de_ri_s_TM + de_ri_p_TM
-    de_ti_TM = de_ti_s_TM + de_ti_p_TM
-
-    res_TMinc = {'R_s': R_s_TM, 'R_p': R_p_TM, 'T_s': T_s_TM, 'T_p': T_p_TM,
-                 'de_ri_s': de_ri_s_TM, 'de_ri_p': de_ri_p_TM, 'de_ri': de_ri_TM,
-                 'de_ti_s': de_ti_s_TM, 'de_ti_p': de_ti_p_TM, 'de_ti': de_ti_TM}
-
-    # TE
-    R_s_TE = R_s - R_s_TM
-    R_p_TE = R_p - R_p_TM
-
-    T_s_TE = T_s - T_s_TM
-    T_p_TE = T_s - T_p_TM
-
-    de_ri_s_TE = np.real(R_s_TE * np.conj(R_s_TE) * np.real(kz_top / (n_top * np.cos(theta))))
-    de_ri_p_TE = np.real(R_p_TE * np.conj(R_p_TE) * np.real(kz_top / n_top ** 2 / (n_top * np.cos(theta))))
-
-    de_ti_s_TE = np.real(T_s_TE * np.conj(T_s_TE) * np.real(kz_bot / (n_top * np.cos(theta))))
-    de_ti_p_TE = np.real(T_p_TE * np.conj(T_p_TE) * np.real(kz_bot / n_bot ** 2 / (n_top * np.cos(theta))))
-
-    de_ri_TE = de_ri_s_TE + de_ri_p_TE
-    de_ti_TE = de_ti_s_TE + de_ti_p_TE
-
-    res_TEinc = {'R_s': R_s_TE, 'R_p': R_p_TE, 'T_s': T_s_TE, 'T_p': T_p_TE,
-                 'de_ri_s': de_ri_s_TE, 'de_ri_p': de_ri_p_TE, 'de_ri': de_ri_TE,
-                 'de_ti_s': de_ti_s_TE, 'de_ti_p': de_ti_p_TE, 'de_ti': de_ti_TE}
-
-    result = {'res': res, 'res_TMinc': res_TMinc, 'res_TEinc': res_TEinc}
-
-    return result, big_T1
-    # return de_ri.real, de_ti.real, de_ri_s.real, de_ri_p.real, de_ti_s.real, de_ti_p.real, R_s, R_p, T_s, T_p, big_T1
+    # ###########
+    #
+    #
+    # # TM incidence
+    # final_B_tm = np.block(
+    #     [
+    #         [-np.sin(0) * delta_i0],
+    #         [np.cos(0) * np.cos(theta) * delta_i0],
+    #         [-1j * np.sin(0) * n_top * np.cos(theta) * delta_i0],
+    #         [-1j * n_top * np.cos(0) * delta_i0]
+    #     ]
+    # )
+    #
+    # final_RT_TM = final_A_inv @ final_B_tm
+    #
+    # R_s_TM = final_RT_TM[:ff_xy, :].reshape((ff_y, ff_x))
+    # R_p_TM = final_RT_TM[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))
+    #
+    # big_T1_TM = final_RT_TM[2 * ff_xy:, :]
+    # big_T_TM = big_T_tetm @ big_T1_TM
+    #
+    # T_s_TM = big_T_TM[:ff_xy, :].reshape((ff_y, ff_x))
+    # T_p_TM = big_T_TM[ff_xy:, :].reshape((ff_y, ff_x))
+    #
+    # de_ri_s_TM = np.real(R_s_TM * np.conj(R_s_TM) * np.real(kz_top / (n_top * np.cos(theta))))
+    # de_ri_p_TM = np.real(R_p_TM * np.conj(R_p_TM) * np.real(kz_top / n_top ** 2 / (n_top * np.cos(theta))))
+    #
+    # de_ti_s_TM = np.real(T_s_TM * np.conj(T_s_TM) * np.real(kz_bot / (n_top * np.cos(theta))))
+    # de_ti_p_TM = np.real(T_p_TM * np.conj(T_p_TM) * np.real(kz_bot / n_bot ** 2 / (n_top * np.cos(theta))))
+    #
+    # de_ri_TM = de_ri_s_TM + de_ri_p_TM
+    # de_ti_TM = de_ti_s_TM + de_ti_p_TM
+    #
+    # res_TMinc = {'R_s': R_s_TM, 'R_p': R_p_TM, 'T_s': T_s_TM, 'T_p': T_p_TM,
+    #              'de_ri_s': de_ri_s_TM, 'de_ri_p': de_ri_p_TM, 'de_ri': de_ri_TM,
+    #              'de_ti_s': de_ti_s_TM, 'de_ti_p': de_ti_p_TM, 'de_ti': de_ti_TM}
+    #
+    # # TE
+    # R_s_TE = R_s - R_s_TM
+    # R_p_TE = R_p - R_p_TM
+    #
+    # T_s_TE = T_s - T_s_TM
+    # T_p_TE = T_s - T_p_TM
+    #
+    # de_ri_s_TE = np.real(R_s_TE * np.conj(R_s_TE) * np.real(kz_top / (n_top * np.cos(theta))))
+    # de_ri_p_TE = np.real(R_p_TE * np.conj(R_p_TE) * np.real(kz_top / n_top ** 2 / (n_top * np.cos(theta))))
+    #
+    # de_ti_s_TE = np.real(T_s_TE * np.conj(T_s_TE) * np.real(kz_bot / (n_top * np.cos(theta))))
+    # de_ti_p_TE = np.real(T_p_TE * np.conj(T_p_TE) * np.real(kz_bot / n_bot ** 2 / (n_top * np.cos(theta))))
+    #
+    # de_ri_TE = de_ri_s_TE + de_ri_p_TE
+    # de_ti_TE = de_ti_s_TE + de_ti_p_TE
+    #
+    # res_TEinc = {'R_s': R_s_TE, 'R_p': R_p_TE, 'T_s': T_s_TE, 'T_p': T_p_TE,
+    #              'de_ri_s': de_ri_s_TE, 'de_ri_p': de_ri_p_TE, 'de_ri': de_ri_TE,
+    #              'de_ti_s': de_ti_s_TE, 'de_ti_p': de_ti_p_TE, 'de_ti': de_ti_TE}
+    #
+    # result = {'res': res, 'res_TMinc': res_TMinc, 'res_TEinc': res_TEinc}
+    #
+    # return result, big_T1
+    # # return de_ri.real, de_ti.real, de_ri_s.real, de_ri_p.real, de_ti_s.real, de_ti_p.real, R_s, R_p, T_s, T_p, big_T1

@@ -6,10 +6,19 @@ from .field_distribution import field_plot, field_dist_1d, field_dist_2d
 
 
 class ResultNumpy:
-    def __init__(self, psi, R_s, R_p, de_ri, de_ri_s, de_ri_p, de_ti, de_ti_s, de_ti_p):
-        self.psi = psi
+    def __init__(self, res=None, res_te_inc=None, res_tm_inc=None):
+
+        self.res = res
+        self.res_te_inc = res_te_inc
+        self.res_tm_inc = res_tm_inc
+
+
+class ResultSubNumpy:
+    def __init__(self, R_s, R_p, T_s, T_p, de_ri, de_ri_s, de_ri_p, de_ti, de_ti_s, de_ti_p):
         self.R_s = R_s
         self.R_p = R_p
+        self.T_s = T_s
+        self.T_p = T_p
         self.de_ri = de_ri
         self.de_ri_s = de_ri_s
         self.de_ri_p = de_ri_p
@@ -17,38 +26,6 @@ class ResultNumpy:
         self.de_ti = de_ti
         self.de_ti_s = de_ti_s
         self.de_ti_p = de_ti_p
-
-        # TE incidence only
-        # self._R_s_TEinc = None
-        # self._de_ri_TEinc = None
-        #
-        # # TM incidence only
-        # self._R_p_TMinc = None
-        # self._de_ri_TMinc = None
-
-    @property
-    def R_s_normalized(self):
-        return self.R_s / np.sin(self.psi)
-
-    @property
-    def R_p_normalized(self):
-        return self.R_p / np.cos(self.psi) / 1j
-
-    @property
-    def de_ri_s_normalized(self):
-        if self.psi == 0:
-            return np.zeros(self.de_ri_s.shape)
-        else:
-            return self.de_ri_s / np.sin(self.psi)**2
-
-    @property
-    def de_ti_p_normalized(self):
-        if self.psi == np.pi/2:
-            return np.zeros(self.de_ri_p.shape)
-        else:
-            return self.de_ti_p / np.cos(self.psi)**2
-
-
 
 
 class RCWANumpy(_BaseRCWA):
@@ -130,7 +107,7 @@ class RCWANumpy(_BaseRCWA):
             if self.ucell.shape[1] == 1:
                 # TODO: isreal or iscomplexobj
                 # if (self.pol in (0,1,)) and (self.phi is not None) and (self.fto[1] == 0):
-                if (self.pol in (0,1,)) and (np.isreal(self.phi)) and (self.phi.real % (2 * np.pi) == 0) and (self.fto[1] == 0):
+                if (self.pol in (0, 1,)) and (np.isreal(self.phi)) and (self.phi.real % (2 * np.pi) == 0) and (self.fto[1] == 0):
                 # if (self.pol in (0, 1)) and (not np.iscomplexobj(self.phi)) and (self.phi.real % (2 * np.pi) == 0) and (self.fto[1] == 0):
                     self._grating_type_assigned = 0  # 1D TE and TM only
                 else:
@@ -160,7 +137,7 @@ class RCWANumpy(_BaseRCWA):
     #
     #     return de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p
 
-    def solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+    def solve_for_conv(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
         # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
@@ -168,16 +145,23 @@ class RCWANumpy(_BaseRCWA):
 
         if self.grating_type_assigned == 0:
             # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-            res = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
             # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-            res = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         # self.layer_info_list = layer_info_list
         # self.T1 = T1
 
         # return de_ri_s, de_ri_p, de_ti_s, de_ti_p, R_s, R_p, T_s, T_p
-        return res
+
+        res = ResultSubNumpy(**result_dict['res']) if 'res' in result_dict else None
+        res_te_inc = ResultSubNumpy(**result_dict['res_te_inc']) if 'res_te_inc' in result_dict else None
+        res_tm_inc = ResultSubNumpy(**result_dict['res_tm_inc']) if 'res_tm_inc' in result_dict else None
+
+        result = ResultNumpy(res, res_te_inc, res_tm_inc)
+
+        return result
 
     def conv_solve(self, **kwargs):
         # [setattr(self, k, v) for k, v in kwargs.items()]  # no need in npmeent
@@ -205,14 +189,9 @@ class RCWANumpy(_BaseRCWA):
             raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
         # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        res = self.solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        result = self.solve_for_conv(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-        # self.layer_info_list = layer_info_list
-        # self.T1 = T1
-        #
-        # return de_ri_s, de_ri_p, de_ti_s, de_ti_p, R_s, R_p, T_s, T_p
-
-        return res
+        return result
 
     def calculate_field(self, res_x=20, res_y=20, res_z=20):
         # TODO: change res_ to accept array of points.
