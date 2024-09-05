@@ -218,9 +218,8 @@ class _BaseRCWA:
         fto_x_range = torch.arange(-self.fto[0], self.fto[0] + 1, device=self.device,
                                    dtype=self.type_float)
         fto_y_range = torch.arange(-self.fto[1], self.fto[1] + 1, device=self.device,
-                                   dtype=self.type_float)  # TODO: complex?
+                                   dtype=self.type_float)
 
-        # if self.theta.real >= torch.float32(np.pi / 2):
         if self.theta.real >= torch.tensor(torch.pi/2, dtype=torch.float32):
             # https://github.com/numpy/numpy/issues/27306
             sin_theta = torch.sin(

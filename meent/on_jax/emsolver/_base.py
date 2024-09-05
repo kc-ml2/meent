@@ -300,7 +300,8 @@ class _BaseRCWA:
             d = self.thickness[layer_index]
 
             if self.connecting_algo == 'TMM':
-                W, V, q = transfer_1d_2(self.pol, kx, epx_conv, epy_conv, epz_conv_i, self.type_complex)
+                W, V, q = transfer_1d_2(self.pol, kx, epx_conv, epy_conv, epz_conv_i, self.type_complex,
+                                        self.perturbation)
 
                 X, F, G, T, A_i, B = transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=self.type_complex)
 
@@ -428,7 +429,7 @@ class _BaseRCWA:
             d = self.thickness[layer_index]
 
             if self.connecting_algo == 'TMM':
-                W, V, q = transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=self.type_complex)
+                W, V, q = transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, self.type_complex, self.perturbation)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex)

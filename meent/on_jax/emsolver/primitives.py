@@ -10,8 +10,8 @@ def conj(arr):
 
 
 @partial(jax.custom_vjp, nondiff_argnums=(1, 2, 3))
-def eig(x, type_complex=jnp.complex128, perturbation=1E-10, device='cpu'):
-
+def eig(x, type_complex=jnp.complex128, perturbation=1E-20, device='cpu'):
+    # TODO: check perturbation in backprop
     _eig = jax.jit(jnp.linalg.eig, device=jax.devices('cpu')[0])
 
     eigenvalues_shape = jax.ShapeDtypeStruct(x.shape[:-1], type_complex)

@@ -95,7 +95,7 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
         inc_term = 1j * delta_i0 * np.cos(theta) / n_top
         T1 = np.linalg.pinv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
     else:
-        raise ValueError  # TODO: in jaxmeent
+        raise ValueError
 
     # T1 = np.linalg.pinv(G + 1j * YZ_I @ F) @ (1j * YZ_I @ delta_i0 + inc_term)
     R = (F @ T1 - delta_i0).reshape((1, ff_x))
@@ -377,7 +377,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=np.comple
 
     eigenvalues, W = np.linalg.eig(Omega2_LR)
 
-    # TODO
+    # TODO: check again this is still needed; and whether the sign matters.
     eigenvalues += 0j  # to get positive square root
     # eigenvalues -= 0j  # to get positive square root
     q = eigenvalues ** 0.5

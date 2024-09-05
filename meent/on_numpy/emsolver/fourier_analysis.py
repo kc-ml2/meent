@@ -28,7 +28,7 @@ def cfs2d(cell, x, y, conti_x, conti_y, fto_x, fto_y, type_complex=np.complex128
     ff_x = 2 * fto_x + 1
     ff_y = 2 * fto_y + 1
 
-    period_x, period_y = x[-1], y[-1]  # TODO: needed? for vector modeling?
+    period_x, period_y = x[-1], y[-1]  # needed for vector modeling?
 
     cell = cell.T
 

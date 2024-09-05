@@ -30,7 +30,7 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
 
 
 def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('cpu'), type_complex=torch.complex128,
-                  perturbation=1E-10):  # TODO: check pertrub number
+                  perturbation=1E-20):
 
     Kx = torch.diag(kx)
 
@@ -211,7 +211,7 @@ def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex
 
 
 def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=torch.device('cpu'), type_complex=torch.complex128,
-                   perturbation=1E-10):  #TODO: perturbation. what about jaxmeent?
+                   perturbation=1E-20):
 
     ff_x = len(kx)
     ff_y = len(ky)

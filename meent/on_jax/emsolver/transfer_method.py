@@ -49,12 +49,13 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=jnp.complex128):
     # return kz_top, kz_bot, F, G, T
 
 
-def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.complex128):
+def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.complex128,
+                  perturbation=1E-20):
     Kx = jnp.diag(kx)
 
     def false_fun(Kx, epy_conv):  # TE
         A = Kx ** 2 - epy_conv
-        eigenvalues, W = eig(A)
+        eigenvalues, W = eig(A, type_complex, perturbation)
         eigenvalues += 0j  # to get positive square root
         q = eigenvalues ** 0.5
         Q = jnp.diag(q)
@@ -64,7 +65,7 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.comp
     def true_fun(Kx, epy_conv):  # TM
         B = Kx @ epz_conv_i @ Kx - jnp.eye(epy_conv.shape[0], dtype=type_complex)
 
-        eigenvalues, W = eig(epx_conv @ B)
+        eigenvalues, W = eig(epx_conv @ B, type_complex, perturbation)
 
         eigenvalues += 0j  # to get positive square root
         q = eigenvalues ** 0.5
@@ -254,7 +255,8 @@ def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
 
 
-def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.complex128):
+def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.complex128,
+                  perturbation=1E-20):
     ff_x = len(kx)
     ff_y = len(ky)
 
@@ -273,7 +275,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.compl
         ])
 
     # eigenvalues, W = jnp.linalg.eig(Omega2_LR)
-    eigenvalues, W = eig(Omega2_LR)
+    eigenvalues, W = eig(Omega2_LR, type_complex, perturbation)
     eigenvalues += 0j  # to get positive square root
     q = eigenvalues ** 0.5
 

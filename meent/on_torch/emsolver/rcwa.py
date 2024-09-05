@@ -76,7 +76,7 @@ class RCWATorch(_BaseRCWA):
     @ucell.setter
     def ucell(self, ucell):
 
-        if isinstance(ucell, (torch.Tensor, np.ndarray)):  # Raster # TODO: compare to Jaxmeent
+        if isinstance(ucell, (torch.Tensor, np.ndarray)):  # Raster
             self._modeling_type_assigned = 0
             if ucell.dtype in (torch.complex128, torch.complex64):
                 dtype = self.type_complex
@@ -124,7 +124,7 @@ class RCWATorch(_BaseRCWA):
                 self._grating_type_assigned = 2  # else
 
         elif self.modeling_type_assigned == 1:
-            self.grating_type_assigned = 2  # TODO: 1d conical case
+            self.grating_type_assigned = 2
 
         # if isinstance(self.ucell, torch.Tensor):  # Raster
         #     self.modeling_type_assigned = 0
