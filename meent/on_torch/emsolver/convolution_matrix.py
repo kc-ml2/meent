@@ -88,8 +88,7 @@ def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, device=
     return f_coeffs_xy.T
 
 
-def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu'),
-                       type_complex=torch.complex128):
+def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128):
 
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
@@ -107,13 +106,13 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu')
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
+        # epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
+        epz_conv_i_all[i] = torch.linalg.pinv(epz_conv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
-def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'),
-                                  type_complex=torch.complex128):
+def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128):
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
     epx_conv_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device, dtype=type_complex)
@@ -130,13 +129,13 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
+        # epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
+        epz_conv_i_all[i] = torch.linalg.pinv(epz_conv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
-def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=torch.complex128,
-                                enhanced_dfs=True):
+def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128, enhanced_dfs=True):
 
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
@@ -170,6 +169,7 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=t
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
+        # epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
+        epz_conv_i_all[i] = torch.linalg.pinv(epz_conv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all

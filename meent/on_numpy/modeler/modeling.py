@@ -160,34 +160,6 @@ class ModelingNumpy:
             length = length_top12 / np.sin(angle_inside)
             top3_cp = [top3[0] - length, top3[1]]
 
-            # for i in range(n_split_triangle + 1):
-            #     x = top1[0] - (top1[0] - top2[0]) / n_split_triangle * i
-            #     y = top1[1] - (top1[1] - top2[1]) / n_split_parallelogram * i
-            #     xxx.append(x)
-            #     yyy.append(y)
-            #
-            #     xxx_cp.append(x + length / n_split_triangle * i)
-            #     yyy_cp.append(y)
-            #
-            # for i in range(n_split_parallelogram + 1):
-            #
-            #     x = top2[0] + (top3_cp[0] - top2[0]) / n_split_triangle * i
-            #     y = top2[1] - (top2[1] - top3_cp[1]) / n_split_parallelogram * i
-            #     xxx.append(x)
-            #     yyy.append(y)
-            #
-            #     xxx_cp.append(x + length)
-            #     yyy_cp.append(y)
-            #
-            # for i in range(n_split_triangle + 1):
-            #     x = top3_cp[0] + (top4[0] - top3_cp[0]) / n_split_triangle * i
-            #     y = top3_cp[1] - (top3_cp[1] - top4[1]) / n_split_parallelogram * i
-            #     xxx.append(x)
-            #     yyy.append(y)
-            #
-            #     xxx_cp.append(x + length / n_split_triangle * (n_split_triangle - i))
-            #     yyy_cp.append(y)
-
             # 1: Upper triangle
             xxx1 = top1[0] - (top1[0] - top2[0]) / n_split_triangle * np.arange(n_split_triangle+1).reshape((-1, 1))
             yyy1 = top1[1] - (top1[1] - top2[1]) / n_split_parallelogram * np.arange(n_split_triangle+1).reshape((-1, 1))
@@ -501,8 +473,11 @@ class ModelingNumpy:
             ax, ay = arr[:, i]
             bx, by = arr_roll[:, i]
 
+            # LL = [min(ay.real, by.real), min(ax.real, bx.real)]
+            # UR = [max(ay.real, by.real), max(ax.real, bx.real)]
             LL = [min(ay.real, by.real)+0j, min(ax.real, bx.real)+0j]
             UR = [max(ay.real, by.real)+0j, max(ax.real, bx.real)+0j]
+            # What is 0j for?
 
             res.append([LL, UR, n_index])
 

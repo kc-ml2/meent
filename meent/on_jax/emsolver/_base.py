@@ -280,7 +280,7 @@ class _BaseRCWA:
 
         if self.connecting_algo == 'TMM':
             kz_top, kz_bot, F, G, T \
-                = transfer_1d_1(self.pol, ff_x, kx, self.n_top, self.n_bot, type_complex=self.type_complex)
+                = transfer_1d_1(self.pol, kx, self.n_top, self.n_bot, type_complex=self.type_complex)
         elif self.connecting_algo == 'SMM':
             raise ValueError
 
@@ -314,7 +314,7 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            result, T1 = transfer_1d_4(self.pol, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
+            result, T1 = transfer_1d_4(self.pol, ff_x, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
                                        type_complex=self.type_complex)
             self.T1 = T1
 
@@ -409,7 +409,7 @@ class _BaseRCWA:
 
         if self.connecting_algo == 'TMM':
             kz_top, kz_bot, varphi, big_F, big_G, big_T \
-                = transfer_2d_1(ff_x, ff_y, kx, ky, self.n_top, self.n_bot, type_complex=self.type_complex)
+                = transfer_2d_1(kx, ky, self.n_top, self.n_bot, type_complex=self.type_complex)
 
         elif self.connecting_algo == 'SMM':
             raise ValueError
@@ -444,8 +444,8 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            result, big_T1 = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
-                                                 self.n_top, self.n_bot, ff_x, ff_y, type_complex=self.type_complex)
+            result, big_T1 = transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
+                                           self.n_top, self.n_bot, type_complex=self.type_complex)
             self.T1 = big_T1
 
         elif self.connecting_algo == 'SMM':

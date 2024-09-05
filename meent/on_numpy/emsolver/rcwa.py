@@ -123,7 +123,6 @@ class RCWANumpy(_BaseRCWA):
         self._grating_type_assigned = grating_type_assigned
 
     def solve_for_conv(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
-
         self._assign_grating_type()
 
         if self.grating_type_assigned == 0:
@@ -131,11 +130,11 @@ class RCWANumpy(_BaseRCWA):
         else:
             result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-        res = ResultSubNumpy(**result_dict['res']) if 'res' in result_dict else None
+        res_psi = ResultSubNumpy(**result_dict['res']) if 'res' in result_dict else None
         res_te_inc = ResultSubNumpy(**result_dict['res_te_inc']) if 'res_te_inc' in result_dict else None
         res_tm_inc = ResultSubNumpy(**result_dict['res_tm_inc']) if 'res_tm_inc' in result_dict else None
 
-        result = ResultNumpy(res, res_te_inc, res_tm_inc)
+        result = ResultNumpy(res_psi, res_te_inc, res_tm_inc)
 
         return result
 
