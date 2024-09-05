@@ -99,8 +99,7 @@ def cell_compression(cell, type_complex=jnp.complex128):
 #     return f_coeffs_xy.T
 
 
-def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None,
-                       type_complex=jnp.complex128):
+def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None, type_complex=jnp.complex128):
 
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
@@ -122,7 +121,8 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None,
 
         epx_conv_all = epx_conv_all.at[i].set(epx_conv)
         epy_conv_all = epy_conv_all.at[i].set(epy_conv)
-        epz_conv_i_all = epz_conv_i_all.at[i].set(jnp.linalg.inv(epz_conv))
+        # epz_conv_i_all = epz_conv_i_all.at[i].set(jnp.linalg.inv(epz_conv))
+        epz_conv_i_all = epz_conv_i_all.at[i].set(jnp.linalg.pinv(epz_conv))
 
         # f_coeffs = fft_piecewise_constant(ucell_layer, x_list, y_list,
         #                                          fto_x, fto_y, type_complex=type_complex)
@@ -164,20 +164,17 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=None, type_complex
         epy_conv = cfs2d(eps_matrix, x_list, y_list, 1, 0, fto_x, fto_y, type_complex)
         epx_conv = cfs2d(eps_matrix, x_list, y_list, 0, 1, fto_x, fto_y, type_complex)
 
-        # epx_conv_all[i] = epx_conv
-        # epy_conv_all[i] = epy_conv
-        # epz_conv_i_all[i] = jnp.linalg.inv(epz_conv)
-
         epx_conv_all = epx_conv_all.at[i].set(epx_conv)
         epy_conv_all = epy_conv_all.at[i].set(epy_conv)
-        epz_conv_i_all = epz_conv_i_all.at[i].set(jnp.linalg.inv(epz_conv))
+        # epz_conv_i_all = epz_conv_i_all.at[i].set(jnp.linalg.inv(epz_conv))
+        epz_conv_i_all = epz_conv_i_all.at[i].set(jnp.linalg.pinv(epz_conv))
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
 # @partial(jax.jit, static_argnums=(1, 2, 3, 4, 5))
-def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=jnp.complex128,
-                                enhanced_dfs=True):
+def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=jnp.complex128, enhanced_dfs=True):
+
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
     epx_conv_all = jnp.zeros((ucell.shape[0], ff_xy, ff_xy)).astype(type_complex)
@@ -212,7 +209,8 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=j
 
         epx_conv_all = epx_conv_all.at[i].set(epx_conv)
         epy_conv_all = epy_conv_all.at[i].set(epy_conv)
-        epz_conv_i_all = epz_conv_i_all.at[i].set(jnp.linalg.inv(epz_conv))
+        # epz_conv_i_all = epz_conv_i_all.at[i].set(jnp.linalg.inv(epz_conv))
+        epz_conv_i_all = epz_conv_i_all.at[i].set(jnp.linalg.pinv(epz_conv))
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 

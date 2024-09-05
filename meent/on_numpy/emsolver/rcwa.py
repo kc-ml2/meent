@@ -33,10 +33,10 @@ class RCWANumpy(_BaseRCWA):
                  n_top=1.,
                  n_bot=1.,
                  theta=0.,
-                 phi=0.,
+                 phi=None,
                  psi=None,
-                 period=(100., 100.),
-                 wavelength=900.,
+                 period=(1., 1.),
+                 wavelength=1.,
                  ucell=None,
                  thickness=(0., ),
                  backend=0,
@@ -49,16 +49,15 @@ class RCWANumpy(_BaseRCWA):
                  type_complex=np.complex128,
                  fourier_type=0,  # 0 DFS, 1 CFS
                  enhanced_dfs=True,
-                 # **kwargs,
                  ):
 
         super().__init__(n_top=n_top, n_bot=n_bot, theta=theta, phi=phi, psi=psi, pol=pol,
                          fto=fto, period=period, wavelength=wavelength,
                          thickness=thickness, connecting_algo=connecting_algo, perturbation=perturbation,
-                         device=device, type_complex=type_complex, )
+                         device=device, type_complex=type_complex)
 
         self._modeling_type_assigned = None
-        self.grating_type_assigned = None
+        self._grating_type_assigned = None
 
         self.ucell = ucell
         self.ucell_materials = ucell_materials
@@ -105,10 +104,7 @@ class RCWANumpy(_BaseRCWA):
 
         if self.modeling_type_assigned == 0:
             if self.ucell.shape[1] == 1:
-                # TODO: isreal or iscomplexobj
-                # if (self.pol in (0,1,)) and (self.phi is not None) and (self.fto[1] == 0):
-                if (self.pol in (0, 1,)) and (np.isreal(self.phi)) and (self.phi.real % (2 * np.pi) == 0) and (self.fto[1] == 0):
-                # if (self.pol in (0, 1)) and (not np.iscomplexobj(self.phi)) and (self.phi.real % (2 * np.pi) == 0) and (self.fto[1] == 0):
+                if (self.pol in (0, 1)) and (self.phi is None) and (self.fto[1] == 0):
                     self._grating_type_assigned = 0  # 1D TE and TM only
                 else:
                     self._grating_type_assigned = 1  # 1D conical
@@ -116,7 +112,7 @@ class RCWANumpy(_BaseRCWA):
                 self._grating_type_assigned = 2  # else
 
         elif self.modeling_type_assigned == 1:
-            self.grating_type_assigned = 2
+            self.grating_type_assigned = 2  # TODO: 1d conical case
 
     @property
     def grating_type_assigned(self):
@@ -126,34 +122,14 @@ class RCWANumpy(_BaseRCWA):
     def grating_type_assigned(self, grating_type_assigned):
         self._grating_type_assigned = grating_type_assigned
 
-    # def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
-    #
-    #     self._assign_grating_type()
-    #
-    #     if self.grating_type_assigned == 0:
-    #         de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-    #     else:
-    #         de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-    #
-    #     return de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p
-
     def solve_for_conv(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
-
-        # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self._solve(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         self._assign_grating_type()
 
         if self.grating_type_assigned == 0:
-            # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
             result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
-            # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
             result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-
-        # self.layer_info_list = layer_info_list
-        # self.T1 = T1
-
-        # return de_ri_s, de_ri_p, de_ti_s, de_ti_p, R_s, R_p, T_s, T_p
 
         res = ResultSubNumpy(**result_dict['res']) if 'res' in result_dict else None
         res_te_inc = ResultSubNumpy(**result_dict['res_te_inc']) if 'res_te_inc' in result_dict else None
@@ -181,14 +157,12 @@ class RCWANumpy(_BaseRCWA):
 
         elif self.modeling_type_assigned == 1:  # Vector
             ucell_vector = self.modeling_vector_instruction(self.ucell)
-            self.grating_type_assigned = 2  # 1D conical
             epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_vector(
                 ucell_vector, self.fto[0], self.fto[1], type_complex=self.type_complex)
 
         else:
             raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
-        # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         result = self.solve_for_conv(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         return result

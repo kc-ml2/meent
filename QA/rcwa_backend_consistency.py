@@ -6,33 +6,50 @@ import meent
 def consistency_check(option):
 
     mee = meent.call_mee(backend=0, perturbation=1E-30, **option)  # NumPy
-    de_ri_numpy, de_ti_numpy = mee.conv_solve()
+    res_nupmy = mee.conv_solve()
+    res_numpy_psi = res_nupmy.res
+    res_numpy_te = res_nupmy.res_te_inc
+    res_numpy_tm = res_nupmy.res_tm_inc
+
     field_cell_numpy = mee.calculate_field(res_z=50, res_x=50)
 
     mee = meent.call_mee(backend=1, perturbation=1E-30, **option)  # JAX
-    de_ri_jax, de_ti_jax = mee.conv_solve()
+    res_jax = mee.conv_solve()
+    res_jax_psi = res_jax.res
+    res_jax_te = res_jax.res_te_inc
+    res_jax_tm = res_jax.res_tm_inc
+
     field_cell_jax = mee.calculate_field(res_z=50, res_x=50)
 
     mee = meent.call_mee(backend=2, perturbation=1E-30, **option)  # PyTorch
-    de_ri_torch, de_ti_torch = mee.conv_solve()
+    res_torch = mee.conv_solve()
+    res_torch_psi = res_torch.res
+    res_torch_te = res_torch.res_te_inc
+    res_torch_tm = res_torch.res_tm_inc
+
     field_cell_torch = mee.calculate_field(res_z=50, res_x=50)
-    de_ri_torch, de_ti_torch = de_ri_torch.numpy(), de_ti_torch.numpy()
     field_cell_torch = field_cell_torch.numpy()
 
     digit = 20
+    check_attr = ['R_s', 'R_p', 'T_s', 'T_p', 'de_ri_s', 'de_ri_p', 'de_ri', 'de_ti_s', 'de_ti_p', 'de_ti']
 
-    res1 = [(np.linalg.norm(de_ri_numpy - de_ri_jax) / de_ri_numpy.size).round(digit),
-            (np.linalg.norm(de_ri_jax - de_ri_torch) / de_ri_numpy.size).round(digit),
-            (np.linalg.norm(de_ri_torch - de_ri_numpy) / de_ri_numpy.size).round(digit),]
-    res2 = [(np.linalg.norm(de_ti_numpy - de_ti_jax) / de_ti_numpy.size).round(digit),
-            (np.linalg.norm(de_ti_jax - de_ti_torch) / de_ti_numpy.size).round(digit),
-            (np.linalg.norm(de_ti_torch - de_ti_numpy) / de_ti_numpy.size).round(digit),]
+    for attr in check_attr:
+        print(attr)
+        a = getattr(res_numpy_psi, attr)
+        b = getattr(res_jax_psi, attr)
+        c = getattr(res_torch_psi, attr).numpy()
+
+        print()
+
+        res1 = [(np.linalg.norm(a - b) / a.size).round(digit),
+                (np.linalg.norm(b - c) / a.size).round(digit),
+                (np.linalg.norm(c - a) / a.size).round(digit),]
+        print(attr, res1)
+
     res3 = [(np.linalg.norm(field_cell_numpy - field_cell_jax) / field_cell_numpy.size).round(digit),
             (np.linalg.norm(field_cell_jax - field_cell_torch) / field_cell_numpy.size).round(digit),
             (np.linalg.norm(field_cell_torch - field_cell_numpy) / field_cell_numpy.size).round(digit),]
 
-    print('Refle', res1)
-    print('Trans', res2)
     print('Field', res3)
 
 

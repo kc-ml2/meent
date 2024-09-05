@@ -10,15 +10,38 @@ from .convolution_matrix import to_conv_mat_raster_discrete, to_conv_mat_raster_
 from .field_distribution import field_dist_1d, field_dist_2d,  field_plot
 
 
+class ResultJax:
+    def __init__(self, res=None, res_te_inc=None, res_tm_inc=None):
+
+        self.res = res
+        self.res_te_inc = res_te_inc
+        self.res_tm_inc = res_tm_inc
+
+
+class ResultSubJax:
+    def __init__(self, R_s, R_p, T_s, T_p, de_ri, de_ri_s, de_ri_p, de_ti, de_ti_s, de_ti_p):
+        self.R_s = R_s
+        self.R_p = R_p
+        self.T_s = T_s
+        self.T_p = T_p
+        self.de_ri = de_ri
+        self.de_ri_s = de_ri_s
+        self.de_ri_p = de_ri_p
+
+        self.de_ti = de_ti
+        self.de_ti_s = de_ti_s
+        self.de_ti_p = de_ti_p
+
+
 class RCWAJax(_BaseRCWA):
     def __init__(self,
                  n_top=1.,
                  n_bot=1.,
                  theta=0.,
-                 phi=0.,
+                 phi=None,
                  psi=None,
-                 period=(100., 100.),
-                 wavelength=900.,
+                 period=(1., 1.),
+                 wavelength=1.,
                  ucell=None,
                  thickness=(0., ),
                  backend=0,
@@ -28,10 +51,9 @@ class RCWAJax(_BaseRCWA):
                  connecting_algo='TMM',
                  perturbation=1E-20,
                  device='cpu',
-                 type_complex=np.complex128,
+                 type_complex=jnp.complex128,
                  fourier_type=0,  # 0 DFS, 1 CFS
                  enhanced_dfs=True,
-                 # **kwargs,
                  ):
 
         super().__init__(n_top=n_top, n_bot=n_bot, theta=theta, phi=phi, psi=psi, pol=pol,
@@ -39,14 +61,15 @@ class RCWAJax(_BaseRCWA):
                          thickness=thickness, connecting_algo=connecting_algo, perturbation=perturbation,
                          device=device, type_complex=type_complex)
 
+        self._modeling_type_assigned = None
+        self._grating_type_assigned = None
+
         self.ucell = ucell
         self.ucell_materials = ucell_materials
 
         self.backend = backend
         self.fourier_type = fourier_type
         self.enhanced_dfs = enhanced_dfs
-        self._modeling_type_assigned = None
-        self._grating_type_assigned = None
 
     @property
     def ucell(self):
@@ -56,6 +79,7 @@ class RCWAJax(_BaseRCWA):
     def ucell(self, ucell):
 
         if isinstance(ucell, jnp.ndarray):  # Raster
+            self._modeling_type_assigned = 0
             if ucell.dtype in (jnp.float64, jnp.float32, jnp.int64, jnp.int32):
                 dtype = self.type_float
                 self._ucell = ucell.astype(dtype)
@@ -64,6 +88,7 @@ class RCWAJax(_BaseRCWA):
                 self._ucell = ucell.astype(dtype)
 
         elif isinstance(ucell, np.ndarray):  # Raster
+            self._modeling_type_assigned = 0
             if ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
                 dtype = self.type_float
                 self._ucell = jnp.array(ucell, dtype=dtype)
@@ -72,6 +97,7 @@ class RCWAJax(_BaseRCWA):
                 self._ucell = jnp.array(ucell, dtype=dtype)
 
         elif type(ucell) is list:  # Vector
+            self._modeling_type_assigned = 1
             self._ucell = ucell
         elif ucell is None:
             self._ucell = ucell
@@ -82,30 +108,27 @@ class RCWAJax(_BaseRCWA):
     def modeling_type_assigned(self):
         return self._modeling_type_assigned
 
-    @modeling_type_assigned.setter
-    def modeling_type_assigned(self, modeling_type_assigned):
-        self._modeling_type_assigned = modeling_type_assigned
+    # @modeling_type_assigned.setter
+    # def modeling_type_assigned(self, modeling_type_assigned):
+    #     self._modeling_type_assigned = modeling_type_assigned
 
-    def _assign_modeling_type(self):
-        if isinstance(self.ucell, (np.ndarray, jnp.ndarray)):  # Raster
-            self.modeling_type_assigned = 0
-            if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)):
+    def _assign_grating_type(self):
 
-                def false_fun(): return 0  # 1D TE and TM only
-                def true_fun(): return 1
+        if self.modeling_type_assigned == 0:  # Raster
+            if (self.ucell.shape[1] == 1):
 
-                gear = jax.lax.cond(self.phi % (2 * np.pi) + self.fto[1], true_fun, false_fun)
+                if (self.pol in (0, 1)) and (self.phi is None) and (self.fto[1] == 0):
+                    def false_fun(): return 0  # 1D TE and TM only
+                    def true_fun(): return 1
 
-                self._grating_type_assigned = gear
+                    gear = jax.lax.cond(self.phi % (2 * np.pi) + self.fto[1], true_fun, false_fun)
 
-            # if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0):
-            #     self._grating_type_assigned = 0  # 1D TE and TM only
+                    self._grating_type_assigned = gear
             else:
-                self._grating_type_assigned = 1  # else
+                self._grating_type_assigned = 2
 
-        elif isinstance(self.ucell, list):  # Vector
-            self.modeling_type_assigned = 1
-            self.grating_type_assigned = 1
+        elif self.modeling_type_assigned == 1:  # Vector
+            self.grating_type_assigned = 2
 
     @property
     def grating_type_assigned(self):
@@ -115,7 +138,8 @@ class RCWAJax(_BaseRCWA):
     def grating_type_assigned(self, grating_type_assigned):
         self._grating_type_assigned = grating_type_assigned
 
-    def _solve(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+    @jax_device_set
+    def solve_for_conv(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
         # def false_fun(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
         #     de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
@@ -127,27 +151,35 @@ class RCWAJax(_BaseRCWA):
         #
         # de_ri, de_ti, layer_info_list, T1 = jax.lax.cond(self._grating_type_assigned, true_fun, false_fun, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-        # if self._grating_type_assigned == 0:
-        #     de_ri, de_ti, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        # else:
-        #     de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        self._assign_grating_type()
 
-        # In JAXMeent, 1D TE TM are turned off for jit compilation.
-        de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        if self._grating_type_assigned == 0:
+            result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        else:
+            result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-        return de_ri, de_ti, layer_info_list, T1
+        # TODO: In JAXMeent, 1D TE TM are turned off for jit compilation.
+        # de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        res_psi = ResultSubJax(**result_dict['res']) if 'res' in result_dict else None
+        res_te_inc = ResultSubJax(**result_dict['res_te_inc']) if 'res_te_inc' in result_dict else None
+        res_tm_inc = ResultSubJax(**result_dict['res_tm_inc']) if 'res_tm_inc' in result_dict else None
+
+        result = ResultJax(res_psi, res_te_inc, res_tm_inc)
+
+        return result
+
+    # @jax_device_set
+    # def solve(self, wavelength, e_conv_all, o_e_conv_all):
+    #     de_ri, de_ti, layer_info_list, T1, kx_vector = jax.jit(self._solve)(wavelength, e_conv_all, o_e_conv_all)
+    #
+    #     self.layer_info_list = layer_info_list
+    #     self.T1 = T1
+    #
+    #     return de_ri, de_ti
 
     @jax_device_set
-    def solve(self, wavelength, e_conv_all, o_e_conv_all):
-        de_ri, de_ti, layer_info_list, T1, kx_vector = jax.jit(self._solve)(wavelength, e_conv_all, o_e_conv_all)
-
-        self.layer_info_list = layer_info_list
-        self.T1 = T1
-
-        return de_ri, de_ti
-
-    def _conv_solve(self, **kwargs):
-        self._assign_modeling_type()
+    def conv_solve(self, **kwargs):
+        [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
         if self._modeling_type_assigned == 0:  # Raster
 
@@ -170,29 +202,26 @@ class RCWAJax(_BaseRCWA):
         else:
             raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
-        de_ri, de_ti, layer_info_list, T1 = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        result = self.solve_for_conv(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-        self.layer_info_list = layer_info_list
-        self.T1 = T1
+        return result
 
-        return de_ri, de_ti, layer_info_list, T1
+    # @jax.jit
+    # def _conv_solve_jit(self):
+    #     return self._conv_solve()
 
-    @jax.jit
-    def _conv_solve_jit(self):
-        return self._conv_solve()
-
-    @jax_device_set
-    def conv_solve(self, **kwargs):
-        [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
-        if self.fourier_type == 1:
-            # print('CFT (fourier_type=1) is not supported for jit-compilation. Using non-jit-compiled method.')
-            de_ri, de_ti, layer_info_list, T1 = self._conv_solve()
-
-        else:
-            de_ri, de_ti, layer_info_list, T1 = self._conv_solve()
-            # de_ri, de_ti, layer_info_list, T1 = self._conv_solve_jit()
-
-        return de_ri, de_ti
+    # @jax_device_set
+    # def conv_solve(self, **kwargs):
+    #     [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
+    #     if self.fourier_type == 1:
+    #         # print('CFT (fourier_type=1) is not supported for jit-compilation. Using non-jit-compiled method.')
+    #         de_ri, de_ti, layer_info_list, T1 = self._conv_solve()
+    #
+    #     else:
+    #         de_ri, de_ti, layer_info_list, T1 = self._conv_solve()
+    #         # de_ri, de_ti, layer_info_list, T1 = self._conv_solve_jit()
+    #
+    #     return de_ri, de_ti
 
     @jax_device_set
     def calculate_field(self, res_x=20, res_y=20, res_z=20):

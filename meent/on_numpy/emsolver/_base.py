@@ -7,10 +7,10 @@ from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, trans
 
 
 class _BaseRCWA:
-    def __init__(self, n_top=1., n_bot=1., theta=0., phi=0., psi=None, pol=0., fto=(0, 0),
-                 period=(100., 100.), wavelength=1.,
-                 thickness=(0., ), connecting_algo='TMM', perturbation=1E-20,
-                 type_complex=np.complex128, *args, **kwargs):  # TODO: delete args and kwargs?
+    def __init__(self, n_top=1., n_bot=1., theta=0., phi=None, psi=None, pol=0., fto=(0, 0),
+                 period=(1., 1.), wavelength=1.,
+                 thickness=(0.,), connecting_algo='TMM', perturbation=1E-20,
+                 device=0, type_complex=np.complex128):
 
         self._device = 0
 
@@ -89,8 +89,11 @@ class _BaseRCWA:
 
     @theta.setter
     def theta(self, theta):
-        self._theta = np.array(theta, dtype=self.type_complex)
-        self._theta = np.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
+        if theta is None:
+            self._theta = None
+        else:
+            self._theta = np.array(theta, dtype=self.type_complex)
+            self._theta = np.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
 
     @property
     def phi(self):
@@ -98,11 +101,31 @@ class _BaseRCWA:
 
     @phi.setter
     def phi(self, phi):
-        self._phi = np.array(phi, dtype=self.type_complex)
+        if phi is None:
+            self._phi = None
+        else:
+            self._phi = np.array(phi, dtype=self.type_complex)
+        # self._phi = np.array(phi, dtype=self.type_complex) if phi is not None else None
+
+    @property
+    def psi(self):
+        return self._psi
+
+    @psi.setter
+    def psi(self, psi):
+        if psi is not None:
+            self._psi = np.array(psi, dtype=self.type_complex)  # TODO: complex, QA
+            pol = -(2 * psi / np.pi - 1)
+            self._pol = pol
 
     @property
     def pol(self):
-        # portion of TM. 0: full TE, 1: full TM
+        """
+        portion of TM. 0: full TE, 1: full TM
+
+        Returns: polarization ratio
+
+        """
         return self._pol
 
     @pol.setter
@@ -119,17 +142,6 @@ class _BaseRCWA:
         self._pol = pol
         psi = np.array(np.pi / 2 * (1 - self.pol), dtype=self.type_complex)
         self._psi = psi
-
-    @property
-    def psi(self):
-        return self._psi
-
-    @psi.setter
-    def psi(self, psi):
-        if psi is not None:
-            self._psi = np.array(psi, dtype=self.type_complex)  # TODO: complex, QA
-            pol = -(2 * psi / np.pi - 1)
-            self._pol = pol
 
     @property
     def fto(self):
@@ -202,9 +214,7 @@ class _BaseRCWA:
         else:
             sin_theta = np.sin(self.theta)
 
-        phi = self.phi
-        if phi is None:
-            phi = 0
+        phi = 0 if self.phi is None else self.phi  # phi is None -> 1D TE TM case
 
         kx = (self.n_top * sin_theta * np.cos(phi) + fto_x_range * (
                 wavelength / self.period[0])).astype(self.type_complex).conj()
@@ -260,14 +270,8 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            # de_ri, de_ti, T1 = transfer_1d_4(self.pol, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
-            #                                  type_complex=self.type_complex)
-            # de_ri, de_ti, de_ri_s, de_ri_p, de_ti_s, de_ti_p, R_s, R_p, T_s, T_p, T1\
-            #     = transfer_1d_4(self.pol, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
-            #                                  type_complex=self.type_complex)
-            result, T1 \
-                = transfer_1d_4(self.pol, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
-                                type_complex=self.type_complex)
+            result, T1 = transfer_1d_4(self.pol, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
+                                       type_complex=self.type_complex)
             self.T1 = T1
 
         elif self.connecting_algo == 'SMM':
@@ -277,24 +281,6 @@ class _BaseRCWA:
             #                                self.n_top, self.n_bot, self.theta, self.pol)
         else:
             raise ValueError
-
-        # return de_ri, de_ti, self.layer_info_list, self.T1
-
-        # res = {
-        #     'connecting_algo': self.connecting_algo,
-        #     'de_ri': de_ri,
-        #     'de_ti': de_ti,
-        #     'de_ri_s': de_ri_s,
-        #     'de_ri_p': de_ri_p,
-        #     'de_ti_s': de_ti_s,
-        #     'de_ti_p': de_ti_p,
-        #     'R_s': R_s,
-        #     'R_p': R_p,
-        #     'T_s': T_s,
-        #     'T_p': T_p,
-        #     'layer_info_list': self.layer_info_list,
-        #     'T1': self.T1,
-        # }
 
         return result
 
@@ -355,7 +341,7 @@ class _BaseRCWA:
             # de_ri, de_ti, de_ri_s, de_ri_p, de_ti_s, de_ti_p, R_s, R_p, T_s, T_p, big_T1 = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
             #                                      self.n_top, self.n_bot, ff_x, ff_y, type_complex=self.type_complex)
             result, big_T1 = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
-                                                 self.n_top, self.n_bot, ff_x, ff_y, type_complex=self.type_complex)
+                                           self.n_top, self.n_bot, ff_x, ff_y, type_complex=self.type_complex)
             self.T1 = big_T1
 
         elif self.connecting_algo == 'SMM':
@@ -373,37 +359,4 @@ class _BaseRCWA:
         # de_ri = de_ri.reshape((ff_y, ff_x)).T
         # de_ti = de_ti.reshape((ff_y, ff_x)).T
 
-        # res = {'connecting_algo': self.connecting_algo, }
-        #
-        # return_list = {
-        #     'de_ri': True,
-        #     'de_ti': True,
-        #     'de_ri_s': True,
-        #     'de_ri_p': True,
-        #     'R_s': True,
-        #     'R_p': True,
-        #     'T_s': True,
-        #     'T_p': True,
-        #     'layer_info_list': True,
-        #     'T1': True,
-        # }
-
-        # res = {
-        #     'connecting_algo': self.connecting_algo,
-        #     'de_ri': de_ri,
-        #     'de_ti': de_ti,
-        #     'de_ri_s': de_ri_s,
-        #     'de_ri_p': de_ri_p,
-        #     'de_ti_s': de_ti_s,
-        #     'de_ti_p': de_ti_p,
-        #     'R_s': R_s,
-        #     'R_p': R_p,
-        #     'T_s': T_s,
-        #     'T_p': T_p,
-        #     'layer_info_list': self.layer_info_list,
-        #     'T1': self.T1,
-        # }
-
         return result
-
-        # return de_ri_s, de_ri_p, de_ti_s, de_ti_p, self.layer_info_list, self.T1, R_s, R_p, T_s, T_p
