@@ -227,7 +227,10 @@ class _BaseRCWA:
         else:
             sin_theta = np.sin(self.theta)
 
-        phi = 0 if self.phi is None else self.phi  # phi is None -> 1D TE TM case
+        if self.phi is None:
+            phi = torch.tensor(0, device=self.device, dtype=self.type_complex)
+        else:
+            phi = self.phi
 
         kx = (self.n_top * sin_theta * torch.cos(phi) + fto_x_range * (
                 wavelength / self.period[0])).type(self.type_complex).conj()

@@ -101,8 +101,23 @@ class RCWANumpy(_BaseRCWA):
     #     self._modeling_type_assigned = modeling_type_assigned
 
     def _assign_grating_type(self):
+        """
+        Select the grating type for RCWA simulation. This decides the efficient formulation for given case.
 
-        if self.modeling_type_assigned == 0:
+        `_grating_type_assigned` == 0(1D TETM)    is for 1D grating, no rotation (phi or azimuth), and either TE or TM.
+        `_grating_type_assigned` == 1(1D conical) is for 1D grating with generality.
+        `_grating_type_assigned` == 2(2D)         is for 2D grating with generality.
+
+        Note that no rotation means 'phi' is `None`. If phi is given as '0', then it takes 1D conical form
+         even though when the case itself is 1D TETM.
+
+        1D conical is under implementation.
+
+        Returns:
+
+        """
+
+        if self.modeling_type_assigned == 0:  # Raster
             if self.ucell.shape[1] == 1:
                 if (self.pol in (0, 1)) and (self.phi is None) and (self.fto[1] == 0):
                     self._grating_type_assigned = 0  # 1D TE and TM only
@@ -111,7 +126,7 @@ class RCWANumpy(_BaseRCWA):
             else:
                 self._grating_type_assigned = 2  # else
 
-        elif self.modeling_type_assigned == 1:
+        elif self.modeling_type_assigned == 1:  # Vector
             self.grating_type_assigned = 2  # TODO: 1d conical case
 
     @property

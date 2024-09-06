@@ -251,12 +251,15 @@ class _BaseRCWA:
         fto_x_range = jnp.arange(-self.fto[0], self.fto[0] + 1)
         fto_y_range = jnp.arange(-self.fto[1], self.fto[1] + 1)
 
-        if self.theta.real >= jnp.float32(np.pi / 2):
+        def adjust_theta():
             # https://github.com/numpy/numpy/issues/27306
-            sin_theta = jnp.sin(
+            check = self.theta.real >= jnp.float32(jnp.pi / 2)
+            sin_theta_true_case = jnp.sin(
                 jnp.nextafter(jnp.float32(jnp.pi / 2), jnp.float32(0)) + self.theta.imag * jnp.complex64(1j))
-        else:
-            sin_theta = jnp.sin(self.theta)
+            sin_theta_false_case = jnp.sin(self.theta)
+            return jnp.where(check, sin_theta_true_case, sin_theta_false_case)
+
+        sin_theta = adjust_theta()
 
         phi = 0 if self.phi is None else self.phi  # phi is None -> 1D TE TM case
 
@@ -269,6 +272,7 @@ class _BaseRCWA:
         return kx, ky
 
     @jax_device_set
+    # @jax.jit  # TODO: make optional
     def solve_1d(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
         self.layer_info_list = []
         self.T1 = None
@@ -397,6 +401,7 @@ class _BaseRCWA:
     #     return de_ri, de_ti, self.layer_info_list, self.T1
 
     @jax_device_set
+    # @jax.jit
     def solve_2d(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
         self.layer_info_list = []

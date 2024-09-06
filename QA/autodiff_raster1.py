@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import torch
 
 import meent
-from meent.on_torch.optimizer.loss import LossDeflector
+
 
 type_complex = 0
 device = 0
@@ -48,7 +48,19 @@ jmee = meent.call_mee(backend=1, pol=pol, n_top=n_top, n_bot=n_bot, theta=theta,
 
 pois = ['ucell', 'thickness']  # Parameter Of Interests
 forward = jmee.conv_solve
-loss_fn = LossDeflector(x_order=0, y_order=0)
+
+
+class Loss:
+    def __call__(self, meent_result, *args, **kwargs):
+        res_psi, res_te, res_ti = meent_result.res, meent_result.res_te_inc, meent_result.res_tm_inc
+        de_ti = res_psi.de_ti
+        center = [a // 2 for a in de_ti.shape]
+        res = de_ti[center[0], center[1]+1]
+
+        return res
+
+
+loss_fn = Loss()
 
 # case 1: Gradient
 grad_j = jmee.grad(pois, forward, loss_fn)
@@ -58,7 +70,7 @@ print(grad_j['ucell'])
 print('thickness gradient:')
 print(grad_j['thickness'])
 
-optimizer = optax.sgd(learning_rate=1e-2)
+optimizer = optax.sgd(learning_rate=1E2)
 t0 = time.time()
 res_j = jmee.fit(pois, forward, loss_fn, optimizer, iteration=iteration)
 print('Time JAX', time.time() - t0)
@@ -74,7 +86,6 @@ tmee = meent.call_mee(backend=2, pol=pol, n_top=n_top, n_bot=n_bot, theta=theta,
                       thickness=thickness, type_complex=type_complex, device=device)
 
 forward = tmee.conv_solve
-loss_fn = LossDeflector(x_order=0)  # predefined in meent
 
 grad_t = tmee.grad(pois, forward, loss_fn)
 print('ucell gradient:')
@@ -83,7 +94,7 @@ print('thickness gradient:')
 print(grad_t['thickness'])
 
 opt_torch = torch.optim.SGD
-opt_options = {'lr': 1E-2}
+opt_options = {'lr': 1E2}
 
 t0 = time.time()
 res_t = tmee.fit(pois, forward, loss_fn, opt_torch, opt_options, iteration=iteration)
@@ -102,6 +113,6 @@ print('final thickness difference', np.linalg.norm(res_j['thickness'] - res_t[1]
 
 print('End')
 
-# Note that the gradient in JAX is conjugated.
+# Note that the gradient in JAX is conjugation of PyTorch's.
 # https://github.com/google/jax/issues/4891
 # https://pytorch.org/docs/stable/notes/autograd.html#autograd-for-complex-numbers

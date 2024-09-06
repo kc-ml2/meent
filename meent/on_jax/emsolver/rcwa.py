@@ -44,7 +44,7 @@ class RCWAJax(_BaseRCWA):
                  wavelength=1.,
                  ucell=None,
                  thickness=(0., ),
-                 backend=0,
+                 backend=1,
                  pol=0.,
                  fto=(0, 0),
                  ucell_materials=None,

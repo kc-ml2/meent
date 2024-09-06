@@ -28,13 +28,16 @@ def compare_conv_mat_method(backend, type_complex, device):
 
     mee.fourier_type = 0
     mee.enhanced_dfs = False
-    de_ri_dfs, de_ti_dfs = mee.conv_solve()
+    res_dfs = mee.conv_solve().res
+    de_ri_dfs, de_ti_dfs = res_dfs.de_ri, res_dfs.de_ti
 
     mee.enhanced_dfs = True
-    de_ri_efs, de_ti_efs = mee.conv_solve()
+    res_efs = mee.conv_solve().res
+    de_ri_efs, de_ti_efs = res_efs.de_ri, res_efs.de_ti
 
     mee.fourier_type = 1
-    de_ri_cfs, de_ti_cfs = mee.conv_solve()
+    res_cfs = mee.conv_solve().res
+    de_ri_cfs, de_ti_cfs = res_cfs.de_ri, res_cfs.de_ti
 
     a = np.linalg.norm(de_ri_dfs - de_ri_efs)
     b = np.linalg.norm(de_ti_dfs - de_ti_efs)
@@ -43,9 +46,9 @@ def compare_conv_mat_method(backend, type_complex, device):
     e = np.linalg.norm(de_ri_efs - de_ri_cfs)
     f = np.linalg.norm(de_ti_efs - de_ti_cfs)
 
-    print('DFS-EFS ', a, b)
-    print('DFS-CFS ', c, d)
-    print('EFS-CFS ', e, f)
+    print('Norm of DFS-EFS: ', a, b)
+    print('Norm of DFS-CFS: ', c, d)
+    print('Norm of EFS-CFS: ', e, f)
 
 
 if __name__ == '__main__':
