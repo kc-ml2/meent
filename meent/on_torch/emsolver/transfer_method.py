@@ -1,6 +1,6 @@
 import torch
 
-from .primitives import Eig
+from .primitives import Eig, meeinv
 
 
 def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_complex=torch.complex128):
@@ -30,7 +30,7 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
 
 
 def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('cpu'), type_complex=torch.complex128,
-                  perturbation=1E-20):
+                  perturbation=1E-20, use_pinv=False):
 
     Kx = torch.diag(kx)
 
@@ -55,7 +55,7 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('
         q = eigenvalues ** 0.5
 
         Q = torch.diag(q)
-        V = torch.linalg.pinv(epx_conv) @ W @ Q
+        V = meeinv(epx_conv, use_pinv) @ W @ Q
 
     else:
         raise ValueError
@@ -63,20 +63,20 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('
     return W, V, q
 
 
-def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_complex=torch.complex128):
+def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_complex=torch.complex128, use_pinv=False):
     ff_x = len(q)
 
     I = torch.eye(ff_x, device=device, dtype=type_complex)
 
     X = torch.diag(torch.exp(-k0 * q * d))
 
-    W_i = torch.linalg.pinv(W)
-    V_i = torch.linalg.pinv(V)
+    W_i = meeinv(W, use_pinv)
+    V_i = meeinv(V, use_pinv)
 
     A = 0.5 * (W_i @ F + V_i @ G)
     B = 0.5 * (W_i @ F - V_i @ G)
 
-    A_i = torch.linalg.pinv(A)
+    A_i = meeinv(A, use_pinv)
 
     F = W @ (I + X @ B @ A_i @ X)
     G = V @ (I - X @ B @ A_i @ X)
@@ -86,7 +86,7 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_comp
 
 
 def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, device=torch.device('cpu'),
-                  type_complex=torch.complex128):
+                  type_complex=torch.complex128, use_pinv=False):
 
     Kz_top = torch.diag(kz_top)
     kz_top = kz_top.reshape((1, ff_x))
@@ -95,36 +95,13 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, devic
     delta_i0 = torch.zeros(ff_x, device=device, dtype=type_complex)
     delta_i0[ff_x // 2] = 1
 
-    # if pol == 0:  # TE
-    #     inc_term = 1j * n_top * torch.cos(theta) * delta_i0
-    #     T1 = torch.linalg.pinv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
-    #
-    # elif pol == 1:  # TM
-    #     inc_term = 1j * delta_i0 * torch.cos(theta) / n_top
-    #     T1 = torch.linalg.pinv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
-    #
-    # # T1 = np.linalg.pinv(G + 1j * YZ_I @ F) @ (1j * YZ_I @ delta_i0 + inc_term)
-    # R = F @ T1 - delta_i0
-    # T = T @ T1
-    #
-    # de_ri = torch.real(R * torch.conj(R) * kz_top / (n_top * torch.cos(theta)))
-    #
-    # if pol == 0:
-    #     de_ti = T * torch.conj(T) * torch.real(kz_bot / (n_top * torch.cos(theta)))
-    # elif pol == 1:
-    #     de_ti = T * torch.conj(T) * torch.real(kz_bot / n_bot ** 2) / (torch.cos(theta) / n_top)
-    # else:
-    #     raise ValueError
-    #
-    # return de_ri.real, de_ti.real, T1, [R], [T]
-
     if pol == 0:  # TE
         inc_term = 1j * n_top * torch.cos(theta) * delta_i0
-        T1 = torch.linalg.pinv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
+        T1 = meeinv(G + 1j * Kz_top @ F, use_pinv) @ (1j * Kz_top @ delta_i0 + inc_term)
 
     elif pol == 1:  # TM
         inc_term = 1j * delta_i0 * torch.cos(theta) / n_top
-        T1 = torch.linalg.pinv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
+        T1 = meeinv(G + 1j * Kz_top / (n_top ** 2) @ F, use_pinv) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
     else:
         raise ValueError
 
@@ -211,7 +188,7 @@ def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex
 
 
 def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=torch.device('cpu'), type_complex=torch.complex128,
-                   perturbation=1E-20):
+                   perturbation=1E-20, use_pinv=False):
 
     ff_x = len(kx)
     ff_y = len(ky)
@@ -236,7 +213,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=torch.device('c
     q = eigenvalues ** 0.5
 
     Q = torch.diag(q)
-    Q_i = torch.linalg.pinv(Q)
+    Q_i = meeinv(Q, use_pinv)
     Omega_R = torch.cat(
         [
             torch.cat([-Kx @ Ky, Kx ** 2 - epy_conv], dim=1),
@@ -248,7 +225,8 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=torch.device('c
     return W, V, q
 
 
-def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.device('cpu'), type_complex=torch.complex128):
+def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.device('cpu'),
+                  type_complex=torch.complex128, use_pinv=False):
     ff_xy = len(q)//2
 
     I = torch.eye(ff_xy, device=device, dtype=type_complex)
@@ -297,13 +275,13 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.devi
         torch.cat([V_ss, V_sp],  dim=1),
         torch.cat([V_ps, V_pp], dim=1)])
 
-    big_W_i = torch.linalg.pinv(big_W)
-    big_V_i = torch.linalg.pinv(big_V)
+    big_W_i = meeinv(big_W, use_pinv)
+    big_V_i = meeinv(big_V, use_pinv)
 
     big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
     big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
 
-    big_A_i = torch.linalg.pinv(big_A)
+    big_A_i = meeinv(big_A, use_pinv)
 
     big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
     big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
@@ -314,7 +292,7 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.devi
 
 
 def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
-                  device=torch.device('cpu'), type_complex=torch.complex128):
+                  device=torch.device('cpu'), type_complex=torch.complex128, use_pinv=False):
 
     ff_xy = ff_x * ff_y
 
@@ -357,14 +335,13 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
         ]
     )
 
-    final_A_inv = torch.linalg.pinv(final_A)
+    final_A_inv = meeinv(final_A, use_pinv)
     final_RT = final_A_inv @ final_B
 
     R_s = final_RT[:ff_xy, :].reshape((ff_y, ff_x))
     R_p = final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))
 
     big_T1 = final_RT[2 * ff_xy:, :]
-    # big_T_tetm = big_T.copy()
     big_T_tetm = big_T.clone().detach()
     big_T = big_T @ big_T1
 

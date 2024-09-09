@@ -52,12 +52,13 @@ class RCWATorch(_BaseRCWA):
                  type_complex=torch.complex128,
                  fourier_type=0,
                  enhanced_dfs=True,
+                 use_pinv=False,
                  ):
 
         super().__init__(n_top=n_top, n_bot=n_bot, theta=theta, phi=phi, psi=psi, pol=pol,
                          fto=fto, period=period, wavelength=wavelength,
                          thickness=thickness, connecting_algo=connecting_algo, perturbation=perturbation,
-                         device=device, type_complex=type_complex)
+                         device=device, type_complex=type_complex, use_pinv=use_pinv)
 
         self._modeling_type_assigned = None
         self._grating_type_assigned = None
@@ -68,6 +69,7 @@ class RCWATorch(_BaseRCWA):
         self.backend = backend
         self.fourier_type = fourier_type
         self.enhanced_dfs = enhanced_dfs
+        self.use_pinv = use_pinv
 
     @property
     def ucell(self):
@@ -177,39 +179,27 @@ class RCWATorch(_BaseRCWA):
             if self.fourier_type == 0:
                 epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_discrete(
                     self.ucell, self.fto[0], self.fto[1], device=self.device, type_complex=self.type_complex,
-                    enhanced_dfs=self.enhanced_dfs)
+                    enhanced_dfs=self.enhanced_dfs, use_pinv=self.use_pinv)
 
             elif self.fourier_type == 1:
                 epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_continuous(
-                    self.ucell, self.fto[0], self.fto[1], device=self.device, type_complex=self.type_complex)
+                    self.ucell, self.fto[0], self.fto[1], device=self.device, type_complex=self.type_complex,
+                    use_pinv=self.use_pinv)
             else:
                 raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
         elif self.modeling_type_assigned == 1:  # Vector
             ucell_vector = self.modeling_vector_instruction(self.ucell)
             epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_vector(
-                ucell_vector, self.fto[0], self.fto[1], device=self.device, type_complex=self.type_complex)
+                ucell_vector, self.fto[0], self.fto[1], device=self.device, type_complex=self.type_complex,
+                use_pinv=self.use_pinv)
 
         else:
             raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
-        # de_ri, de_ti,  rayleigh_r, rayleigh_t, layer_info_list, T1 = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        #
-        # self.layer_info_list = layer_info_list
-        # self.T1 = T1
-        #
-        # return de_ri, de_ti
-        # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self._solve(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        #
-        # self.layer_info_list = layer_info_list
-        # self.T1 = T1
-        #
-        # return de_ri_s, de_ri_p, de_ti_s, de_ti_p, R_s, R_p, T_s, T_p
-
         result = self.solve_for_conv(self.wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         return result
-
 
     def calculate_field(self, res_x=20, res_y=20, res_z=20):
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)

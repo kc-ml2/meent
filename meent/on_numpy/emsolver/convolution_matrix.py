@@ -62,8 +62,6 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None, type_complex=
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        # epz_conv_i_all[i] = np.linalg.inv(epz_conv)
-        # epz_conv_i_all[i] = np.linalg.pinv(epz_conv)
         epz_conv_i_all[i] = meeinv(epz_conv, use_pinv=use_pinv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
@@ -87,7 +85,6 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=None, type_complex
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        # epz_conv_i_all[i] = np.linalg.pinv(epz_conv)
         epz_conv_i_all[i] = meeinv(epz_conv, use_pinv=use_pinv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
@@ -127,8 +124,6 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=n
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        # epz_conv_i_all[i] = np.linalg.inv(epz_conv)
-        # epz_conv_i_all[i] = np.linalg.pinv(epz_conv)
         epz_conv_i_all[i] = meeinv(epz_conv, use_pinv=use_pinv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all

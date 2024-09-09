@@ -1,5 +1,6 @@
 import torch
 from .fourier_analysis import dfs2d, cfs2d
+from .primitives import meeinv
 
 
 def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.complex128):
@@ -43,6 +44,7 @@ def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.comple
     return cell_comp, x, y
 
 
+# TODO: delete
 def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
                            type_complex=torch.complex128):
 
@@ -88,7 +90,8 @@ def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, device=
     return f_coeffs_xy.T
 
 
-def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128):
+def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128,
+                       use_pinv=False):
 
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
@@ -106,13 +109,13 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu')
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        # epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
-        epz_conv_i_all[i] = torch.linalg.pinv(epz_conv)
+        epz_conv_i_all[i] = meeinv(epz_conv, use_pinv=use_pinv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
-def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128):
+def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128,
+                                  use_pinv=False):
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
     epx_conv_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device, dtype=type_complex)
@@ -129,13 +132,13 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        # epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
-        epz_conv_i_all[i] = torch.linalg.pinv(epz_conv)
+        epz_conv_i_all[i] = meeinv(epz_conv, use_pinv=use_pinv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
-def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128, enhanced_dfs=True):
+def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=torch.device('cpu'), type_complex=torch.complex128,
+                                enhanced_dfs=True, use_pinv=False):
 
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
@@ -169,7 +172,6 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=torch.device('cpu'),
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        # epz_conv_i_all[i] = torch.linalg.inv(epz_conv)
-        epz_conv_i_all[i] = torch.linalg.pinv(epz_conv)
+        epz_conv_i_all[i] = meeinv(epz_conv, use_pinv=use_pinv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
