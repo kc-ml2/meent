@@ -54,12 +54,13 @@ class RCWAJax(_BaseRCWA):
                  type_complex=jnp.complex128,
                  fourier_type=0,  # 0 DFS, 1 CFS
                  enhanced_dfs=True,
+                 use_pinv=False,
                  ):
 
         super().__init__(n_top=n_top, n_bot=n_bot, theta=theta, phi=phi, psi=psi, pol=pol,
                          fto=fto, period=period, wavelength=wavelength,
                          thickness=thickness, connecting_algo=connecting_algo, perturbation=perturbation,
-                         device=device, type_complex=type_complex)
+                         device=device, type_complex=type_complex, use_pinv=use_pinv)
 
         self._modeling_type_assigned = None
         self._grating_type_assigned = None
@@ -70,6 +71,7 @@ class RCWAJax(_BaseRCWA):
         self.backend = backend
         self.fourier_type = fourier_type
         self.enhanced_dfs = enhanced_dfs
+        self.use_pinv = use_pinv
 
     @property
     def ucell(self):
@@ -113,9 +115,23 @@ class RCWAJax(_BaseRCWA):
     #     self._modeling_type_assigned = modeling_type_assigned
 
     def _assign_grating_type(self):
+        """
+        Select the grating type for RCWA simulation. This decides the efficient formulation for given case.
 
+        `_grating_type_assigned` == 0(1D TETM)    is for 1D grating, no rotation (phi or azimuth), and either TE or TM.
+        `_grating_type_assigned` == 1(1D conical) is for 1D grating with generality.
+        `_grating_type_assigned` == 2(2D)         is for 2D grating with generality.
+
+        Note that no rotation means 'phi' is `None`. If phi is given as '0', then it takes 1D conical form
+         even though when the case itself is 1D TETM.
+
+        1D conical is under implementation.
+
+        Returns:
+
+        """
         if self.modeling_type_assigned == 0:  # Raster
-            if (self.ucell.shape[1] == 1):
+            if self.ucell.shape[1] == 1:
 
                 if (self.pol in (0, 1)) and (self.phi is None) and (self.fto[1] == 0):
                     def false_fun(): return 0  # 1D TE and TM only
@@ -186,18 +202,18 @@ class RCWAJax(_BaseRCWA):
             if self.fourier_type == 0:
                 epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_discrete(
                     self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex,
-                    enhanced_dfs=self.enhanced_dfs)
+                    enhanced_dfs=self.enhanced_dfs, use_pinv=self.use_pinv)
 
             elif self.fourier_type == 1:
                 epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_continuous(
-                    self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex)
+                    self.ucell, self.fto[0], self.fto[1], type_complex=self.type_complex, use_pinv=self.use_pinv)
             else:
                 raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
         elif self._modeling_type_assigned == 1:  # Vector
             ucell_vector = self.modeling_vector_instruction(self.ucell)
             epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_vector(
-                ucell_vector, self.fto[0], self.fto[1], type_complex=self.type_complex)
+                ucell_vector, self.fto[0], self.fto[1], type_complex=self.type_complex, use_pinv=self.use_pinv)
 
         else:
             raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")

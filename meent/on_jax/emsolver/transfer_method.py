@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 
-from .primitives import eig, conj
+from .primitives import eig, conj, meeinv
 
 
 def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=jnp.complex128):
@@ -50,7 +50,7 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=jnp.complex128):
 
 
 def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.complex128,
-                  perturbation=1E-20):
+                  perturbation=1E-20, use_pinv=False):
     Kx = jnp.diag(kx)
 
     def false_fun(Kx, epy_conv):  # TE
@@ -72,7 +72,7 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.comp
 
         Q = jnp.diag(q)
         # V = jnp.linalg.inv(epx_conv) @ W @ Q
-        V = jnp.linalg.pinv(epx_conv) @ W @ Q
+        V = meeinv(epx_conv, use_pinv) @ W @ Q
         return W, V, q
 
     W, V, q = jax.lax.cond(pol, true_fun, false_fun, Kx, epy_conv)
@@ -103,7 +103,7 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.comp
     # return W, V, q
 
 
-def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128):
+def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128, use_pinv=False):
     ff_x = len(q)
 
     I = jnp.eye(ff_x, dtype=type_complex)
@@ -112,14 +112,14 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128):
 
     # W_i = jnp.linalg.inv(W)
     # V_i = jnp.linalg.inv(V)
-    W_i = jnp.linalg.pinv(W)
-    V_i = jnp.linalg.pinv(V)
+    W_i = meeinv(W, use_pinv)
+    V_i = meeinv(V, use_pinv)
 
     A = 0.5 * (W_i @ F + V_i @ G)
     B = 0.5 * (W_i @ F - V_i @ G)
 
     # A_i = jnp.linalg.inv(A)
-    A_i = jnp.linalg.pinv(A)
+    A_i = meeinv(A, use_pinv)
 
     F = W @ (I + X @ B @ A_i @ X)
     G = V @ (I - X @ B @ A_i @ X)
@@ -128,7 +128,7 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128):
     return X, F, G, T, A_i, B
 
 
-def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_complex=jnp.complex128):
+def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_complex=jnp.complex128, use_pinv=False):
     Kz_top = jnp.diag(kz_top)
     kz_top = kz_top.reshape((1, ff_x))
     kz_bot = kz_bot.reshape((1, ff_x))
@@ -136,68 +136,47 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
     delta_i0 = jnp.zeros(ff_x, dtype=type_complex)
     delta_i0 = delta_i0.at[ff_x // 2].set(1)
 
-
-    # if pol == 0:  # TE
-    #     inc_term = 1j * n_top * jnp.cos(theta) * delta_i0
-    #     T1 = jnp.linalg.inv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
-    #
-    # elif pol == 1:  # TM
-    #     inc_term = 1j * delta_i0 * jnp.cos(theta) / n_top
-    #     T1 = jnp.linalg.inv(G + 1j * Kz_top/(n_top ** 2) @ F) @ (1j * Kz_top/(n_top ** 2) @ delta_i0 + inc_term)
-
-    def false_fun(n_top, theta, delta_i0, G, Kz_top, T):  # TE
+    def false_fun():  # TE
         inc_term = 1j * n_top * jnp.cos(theta) * delta_i0
-        # T1 = jnp.linalg.inv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
-        T1 = jnp.linalg.pinv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
-        # R = F @ T1 - delta_i0
-        # T = T @ T1
-
-        # de_ri = jnp.real(R * jnp.conj(R) * kz_top / (n_top * jnp.cos(theta)))
-        # de_ti = T * jnp.conj(T) * jnp.real(kz_bot / (n_top * jnp.cos(theta)))
+        T1 = meeinv(G + 1j * Kz_top @ F, use_pinv) @ (1j * Kz_top @ delta_i0 + inc_term)
 
         R = (F @ T1 - delta_i0).reshape((1, ff_x))
-        T = (T @ T1).reshape((1, ff_x))
+        _T = (T @ T1).reshape((1, ff_x))
 
         de_ri = (R * R.conj() * (kz_top / (n_top * jnp.cos(theta))).real).real
-        de_ti = (T * T.conj() * (kz_bot / (n_top * jnp.cos(theta))).real).real
+        de_ti = (_T * _T.conj() * (kz_bot / (n_top * jnp.cos(theta))).real).real
+
         R_s = R
         R_p = jnp.zeros(R.shape)
-        T_s = T
-        T_p = jnp.zeros(T.shape)
+        T_s = _T
+        T_p = jnp.zeros(_T.shape)
         de_ri_s = de_ri
         de_ri_p = jnp.zeros(de_ri.shape)
         de_ti_s = de_ti
         de_ti_p = jnp.zeros(de_ri.shape)
-        res = {'R': R, 'R_s': R_s, 'R_p': R_p, 'T': T, 'T_s': T_s, 'T_p': T_p,
+        res = {'R_s': R_s, 'R_p': R_p, 'T_s': T_s, 'T_p': T_p,
                'de_ri': de_ri, 'de_ri_s': de_ri_s, 'de_ri_p': de_ri_p,
                'de_ti': de_ti, 'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p,
                }
 
-        result = {'res': res}
+        _result = {'res': res}
 
-        return result, T1
+        return _result, T1
 
-    def true_fun(n_top, theta, delta_i0, G, Kz_top, T):  # TM
+    def true_fun():  # TM
         inc_term = 1j * delta_i0 * jnp.cos(theta) / n_top
-        # T1 = jnp.linalg.inv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
-        T1 = jnp.linalg.pinv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
+        T1 = meeinv(G + 1j * Kz_top / (n_top ** 2) @ F, use_pinv) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
 
-        # R = F @ T1 - delta_i0
-        # T = T @ T1
-        #
-        # de_ri = jnp.real(R * jnp.conj(R) * kz_top / (n_top * jnp.cos(theta)))
-        # de_ti = T * jnp.conj(T) * jnp.real(kz_bot / n_bot ** 2) / (jnp.cos(theta) / n_top)
         R = (F @ T1 - delta_i0).reshape((1, ff_x))
-        T = (T @ T1).reshape((1, ff_x))
+        _T = (T @ T1).reshape((1, ff_x))
 
         de_ri = (R * R.conj() * (kz_top / (n_top * jnp.cos(theta))).real).real
-        # de_ti = jnp.real(T * jnp.conj(T) * jnp.real(kz_bot / n_bot ** 2) / (jnp.cos(theta) / n_top))
-        de_ti = (T * T.conj() * (kz_bot / n_bot ** 2 / (jnp.cos(theta) / n_top)).real).real
+        de_ti = (_T * _T.conj() * (kz_bot / n_bot ** 2 / (jnp.cos(theta) / n_top)).real).real
 
         R_s = jnp.zeros(R.shape)
         R_p = R
-        T_s = jnp.zeros(T.shape)
-        T_p = T
+        T_s = jnp.zeros(_T.shape)
+        T_p = _T
         de_ri_s = jnp.zeros(de_ri.shape)
         de_ri_p = de_ri
         de_ti_s = jnp.zeros(de_ri.shape)
@@ -208,25 +187,71 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
                'de_ti': de_ti, 'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p,
                }
 
-        result = {'res': res}
+        _result = {'res': res}
 
-        return result, T1
+        return _result, T1
 
-        # return de_ri, de_ti, T1
+    # TODO: args are deleted. is this ok? check both for jit and non-jit
+    result, T1 = jax.lax.cond(pol, true_fun, false_fun)
 
-    result, T1 = jax.lax.cond(pol, true_fun, false_fun, n_top, theta, delta_i0, G, Kz_top, T)
-
-    # R = F @ T1 - delta_i0
-    # T = T @ T1
     #
-    # de_ri = jnp.real(R * jnp.conj(R) * kz_top / (n_top * jnp.cos(theta)))
+    # def false_fun(_n_top, _theta, _delta_i0, _G, _Kz_top, _T):  # TE
+    #     inc_term = 1j * _n_top * jnp.cos(_theta) * _delta_i0
+    #     T1 = meeinv(_G + 1j * _Kz_top @ F, use_pinv) @ (1j * _Kz_top @ _delta_i0 + inc_term)
     #
-    # if pol == 0:
-    #     de_ti = T * jnp.conj(T) * jnp.real(kz_bot / (n_top * jnp.cos(theta)))
-    # elif pol == 1:
-    #     de_ti = T * jnp.conj(T) * jnp.real(kz_bot / n_bot ** 2) / (jnp.cos(theta) / n_top)
-    # else:
-    #     raise ValueError
+    #     _R = (F @ T1 - _delta_i0).reshape((1, ff_x))
+    #     _T = (_T @ T1).reshape((1, ff_x))
+    #
+    #     de_ri = (_R * _R.conj() * (kz_top / (_n_top * jnp.cos(_theta))).real).real
+    #     de_ti = (_T * _T.conj() * (kz_bot / (_n_top * jnp.cos(_theta))).real).real
+    #
+    #     R_s = _R
+    #     R_p = jnp.zeros(_R.shape)
+    #     T_s = _T
+    #     T_p = jnp.zeros(_T.shape)
+    #     de_ri_s = de_ri
+    #     de_ri_p = jnp.zeros(de_ri.shape)
+    #     de_ti_s = de_ti
+    #     de_ti_p = jnp.zeros(de_ri.shape)
+    #     res = {'R': _R, 'R_s': R_s, 'R_p': R_p, 'T': _T, 'T_s': T_s, 'T_p': T_p,
+    #            'de_ri': de_ri, 'de_ri_s': de_ri_s, 'de_ri_p': de_ri_p,
+    #            'de_ti': de_ti, 'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p,
+    #            }
+    #
+    #     _result = {'res': res}
+    #
+    #     return _result, T1
+    #
+    # def true_fun(_n_top, _theta, _delta_i0, _G, _Kz_top, _T):  # TM
+    #     inc_term = 1j * _delta_i0 * jnp.cos(_theta) / _n_top
+    #     # T1 = jnp.linalg.inv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
+    #     T1 = meeinv(_G + 1j * _Kz_top / (_n_top ** 2) @ F, use_pinv) @ (1j * _Kz_top / (_n_top ** 2) @ _delta_i0 + inc_term)
+    #
+    #     R = (F @ T1 - _delta_i0).reshape((1, ff_x))
+    #     _T = (_T @ T1).reshape((1, ff_x))
+    #
+    #     de_ri = (R * R.conj() * (kz_top / (_n_top * jnp.cos(_theta))).real).real
+    #     de_ti = (_T * _T.conj() * (kz_bot / n_bot ** 2 / (jnp.cos(_theta) / _n_top)).real).real
+    #
+    #     R_s = jnp.zeros(R.shape)
+    #     R_p = R
+    #     T_s = jnp.zeros(_T.shape)
+    #     T_p = _T
+    #     de_ri_s = jnp.zeros(de_ri.shape)
+    #     de_ri_p = de_ri
+    #     de_ti_s = jnp.zeros(de_ri.shape)
+    #     de_ti_p = de_ti
+    #
+    #     res = {'R_s': R_s, 'R_p': R_p, 'T_s': T_s, 'T_p': T_p,
+    #            'de_ri': de_ri, 'de_ri_s': de_ri_s, 'de_ri_p': de_ri_p,
+    #            'de_ti': de_ti, 'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p,
+    #            }
+    #
+    #     _result = {'res': res}
+    #
+    #     return _result, T1
+    #
+    # result, T1 = jax.lax.cond(pol, true_fun, false_fun, n_top, theta, delta_i0, G, Kz_top, T)
 
     return result, T1
 
@@ -256,7 +281,7 @@ def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
 
 
 def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.complex128,
-                  perturbation=1E-20):
+                  perturbation=1E-20, use_pinv=False):
     ff_x = len(kx)
     ff_y = len(ky)
 
@@ -280,8 +305,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.compl
     q = eigenvalues ** 0.5
 
     Q = jnp.diag(q)
-    # Q_i = jnp.linalg.inv(Q)
-    Q_i = jnp.linalg.pinv(Q)
+    Q_i = meeinv(Q, use_pinv)
 
     Omega_R = jnp.block(
         [
@@ -295,7 +319,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.compl
     return W, V, q
 
 
-def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.complex128):
+def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.complex128, use_pinv=False):
     ff_xy = len(q)//2
 
     I = jnp.eye(ff_xy, dtype=type_complex)
@@ -335,16 +359,13 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.
     big_W = jnp.block([[W_ss, W_sp], [W_ps, W_pp]])
     big_V = jnp.block([[V_ss, V_sp], [V_ps, V_pp]])
 
-    # big_W_i = jnp.linalg.inv(big_W)
-    # big_V_i = jnp.linalg.inv(big_V)
-    big_W_i = jnp.linalg.pinv(big_W)
-    big_V_i = jnp.linalg.pinv(big_V)
+    big_W_i = meeinv(big_W, use_pinv)
+    big_V_i = meeinv(big_V, use_pinv)
 
     big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
     big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
 
-    # big_A_i = jnp.linalg.inv(big_A)
-    big_A_i = jnp.linalg.pinv(big_A)
+    big_A_i = meeinv(big_A, use_pinv)
 
     big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
     big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
@@ -355,7 +376,7 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.
 
 
 def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
-                  type_complex=jnp.complex128):
+                  type_complex=jnp.complex128, use_pinv=False):
     ff_xy = ff_x * ff_y
 
     Kz_top = jnp.diag(kz_top)
@@ -398,10 +419,7 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
         ]
     )
 
-    # final_RT = jnp.linalg.inv(final_A) @ final_B
-
-    # final_A_inv = jnp.linalg.inv(final_A)
-    final_A_inv = jnp.linalg.pinv(final_A)
+    final_A_inv = meeinv(final_A, use_pinv)
     final_RT = final_A_inv @ final_B
 
     R_s = final_RT[:ff_xy, :].reshape((ff_y, ff_x))

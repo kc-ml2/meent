@@ -68,3 +68,12 @@ def eig_bwd(type_complex, perturbation, device, res, g):
 
 
 eig.defvjp(eig_fwd, eig_bwd)
+
+
+def meeinv(x, use_pinv=False):
+    if use_pinv:
+        res = jnp.linalg.pinv(x)
+    else:
+        res = jnp.linalg.inv(x)
+
+    return res

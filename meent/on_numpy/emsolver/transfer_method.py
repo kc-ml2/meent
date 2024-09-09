@@ -1,5 +1,7 @@
 import numpy as np
 
+from .primitives import meeinv
+
 
 def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=np.complex128):
     ff_x = len(kx)
@@ -26,7 +28,7 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=np.complex128):
     return kz_top, kz_bot, F, G, T
 
 
-def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=np.complex128):
+def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=np.complex128, use_pinv=False):
     Kx = np.diag(kx)
 
     if pol == 0:
@@ -46,8 +48,7 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=np.compl
         q = eigenvalues ** 0.5
 
         Q = np.diag(q)
-        # V = np.linalg.inv(epx_conv) @ W @ Q
-        V = np.linalg.pinv(epx_conv) @ W @ Q
+        V = meeinv(epx_conv, use_pinv) @ W @ Q
 
     else:
         raise ValueError
@@ -55,22 +56,20 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=np.compl
     return W, V, q
 
 
-def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=np.complex128):
+def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=np.complex128, use_pinv=False):
     ff_x = len(q)
 
     I = np.eye(ff_x, dtype=type_complex)
 
     X = np.diag(np.exp(-k0 * q * d))
 
-    # W_i = np.linalg.inv(W)
-    # V_i = np.linalg.inv(V)
-    W_i = np.linalg.pinv(W)
-    V_i = np.linalg.pinv(V)
+    W_i = meeinv(W, use_pinv)
+    V_i = meeinv(V, use_pinv)
 
     A = 0.5 * (W_i @ F + V_i @ G)
     B = 0.5 * (W_i @ F - V_i @ G)
 
-    A_i = np.linalg.pinv(A)
+    A_i = meeinv(A, use_pinv)
 
     F = W @ (I + X @ B @ A_i @ X)
     G = V @ (I - X @ B @ A_i @ X)
@@ -79,7 +78,7 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=np.complex128):
     return X, F, G, T, A_i, B
 
 
-def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_complex=np.complex128):
+def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_complex=np.complex128, use_pinv=False):
     Kz_top = np.diag(kz_top)
     kz_top = kz_top.reshape((1, ff_x))
     kz_bot = kz_bot.reshape((1, ff_x))
@@ -89,25 +88,20 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
 
     if pol == 0:  # TE
         inc_term = 1j * n_top * np.cos(theta) * delta_i0
-        T1 = np.linalg.pinv(G + 1j * Kz_top @ F) @ (1j * Kz_top @ delta_i0 + inc_term)
+        T1 = meeinv(G + 1j * Kz_top @ F, use_pinv) @ (1j * Kz_top @ delta_i0 + inc_term)
 
     elif pol == 1:  # TM
         inc_term = 1j * delta_i0 * np.cos(theta) / n_top
-        T1 = np.linalg.pinv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
+        T1 = meeinv(G + 1j * Kz_top / (n_top ** 2) @ F, use_pinv) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
     else:
         raise ValueError
 
-    # T1 = np.linalg.pinv(G + 1j * YZ_I @ F) @ (1j * YZ_I @ delta_i0 + inc_term)
     R = (F @ T1 - delta_i0).reshape((1, ff_x))
     T = (T @ T1).reshape((1, ff_x))
 
-    # de_ri = np.real(np.real(R * np.conj(R) * kz_top / (n_top * np.cos(theta))))
-    # de_ri = np.real(R * np.conj(R) * np.real(kz_top / (n_top * np.cos(theta))))
     de_ri = (R * R.conj() * (kz_top / (n_top * np.cos(theta))).real).real
 
     if pol == 0:
-        # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / (n_top * np.cos(theta))))
-        # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / (n_top * np.cos(theta))))
         de_ti = (T * T.conj() * (kz_bot / (n_top * np.cos(theta))).real).real
         R_s = R
         R_p = np.zeros(R.shape)
@@ -119,8 +113,6 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
         de_ti_p = np.zeros(de_ri.shape)
 
     elif pol == 1:
-        # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2) / (np.cos(theta) / n_top))
-        # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2 / (np.cos(theta) / n_top)))
         de_ti = (T * T.conj() * (kz_bot / n_bot ** 2 / (np.cos(theta) / n_top)).real).real
         R_s = np.zeros(R.shape)
         R_p = R
@@ -140,13 +132,6 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
 
     result = {'res': res}
 
-    # de_ri_s = de_ri_p = de_ri
-    # de_ti_s = de_ti_p = de_ti
-    # R_s = R_p = R
-    # T_s = T_p = T
-    # return de_ri.real, de_ti.real, de_ri_s.real, de_ri_p.real, de_ti_s.real, de_ti_p.real, R_s, R_p, T_s, T_p, T1
-
-    # return de_ri.real, de_ti.real, T1
     return result, T1
 
 
@@ -356,7 +341,7 @@ def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=np.complex128):
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
 
 
-def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=np.complex128):
+def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=np.complex128, use_pinv=False):
     ff_x = len(kx)
     ff_y = len(ky)
     ff_xy = ff_x * ff_y
@@ -383,8 +368,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=np.comple
     q = eigenvalues ** 0.5
 
     Q = np.diag(q)
-    # Q_i = np.linalg.inv(Q)
-    Q_i = np.linalg.pinv(Q)
+    Q_i = meeinv(Q, use_pinv)
 
     Omega_R = np.block(
         [
@@ -398,7 +382,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=np.comple
     return W, V, q
 
 
-def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.complex128):
+def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.complex128, use_pinv=False):
     ff_xy = len(q) // 2
 
     I = np.eye(ff_xy, dtype=type_complex)
@@ -438,16 +422,13 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.c
     big_W = np.block([[W_ss, W_sp], [W_ps, W_pp]])
     big_V = np.block([[V_ss, V_sp], [V_ps, V_pp]])
 
-    # big_W_i = np.linalg.inv(big_W)
-    # big_V_i = np.linalg.inv(big_V)
-    big_W_i = np.linalg.pinv(big_W)
-    big_V_i = np.linalg.pinv(big_V)
+    big_W_i = meeinv(big_W, use_pinv)
+    big_V_i = meeinv(big_V, use_pinv)
 
     big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
     big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
 
-    # big_A_i = np.linalg.inv(big_A)
-    big_A_i = np.linalg.pinv(big_A)
+    big_A_i = meeinv(big_A, use_pinv)
 
     big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
     big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
@@ -458,7 +439,7 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.c
 
 
 def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
-                  type_complex=np.complex128):
+                  type_complex=np.complex128, use_pinv=False):
 
     ff_xy = ff_x * ff_y
 
@@ -501,8 +482,7 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
         ]
     )
 
-    # final_A_inv = np.linalg.inv(final_A)
-    final_A_inv = np.linalg.pinv(final_A)
+    final_A_inv = meeinv(final_A, use_pinv)
     final_RT = final_A_inv @ final_B
 
     R_s = final_RT[:ff_xy, :].reshape((ff_y, ff_x))

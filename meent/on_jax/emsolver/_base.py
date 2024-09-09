@@ -26,7 +26,7 @@ class _BaseRCWA:
     def __init__(self, n_top=1., n_bot=1., theta=0., phi=None, psi=None, pol=0., fto=(0, 0),
                  period=(1., 1.), wavelength=1.,
                  thickness=(0.,), connecting_algo='TMM', perturbation=1E-20,
-                 device=0, type_complex=jnp.complex128):
+                 device=0, type_complex=jnp.complex128, use_pinv=False):
 
         self.device = device
 
@@ -57,6 +57,8 @@ class _BaseRCWA:
         self.wavelength = wavelength
         self.thickness = thickness
         self.connecting_algo = connecting_algo
+        self.use_pinv = use_pinv
+
         self.layer_info_list = []
         self.T1 = None
 
@@ -305,9 +307,10 @@ class _BaseRCWA:
 
             if self.connecting_algo == 'TMM':
                 W, V, q = transfer_1d_2(self.pol, kx, epx_conv, epy_conv, epz_conv_i, self.type_complex,
-                                        self.perturbation)
+                                        self.perturbation, use_pinv=self.use_pinv)
 
-                X, F, G, T, A_i, B = transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=self.type_complex)
+                X, F, G, T, A_i, B = transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=self.type_complex,
+                                                   use_pinv=self.use_pinv)
 
                 layer_info = [epz_conv_i, W, V, q, d, A_i, B]
                 self.layer_info_list.append(layer_info)
@@ -320,7 +323,7 @@ class _BaseRCWA:
 
         if self.connecting_algo == 'TMM':
             result, T1 = transfer_1d_4(self.pol, ff_x, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
-                                       type_complex=self.type_complex)
+                                       type_complex=self.type_complex, use_pinv=self.use_pinv)
             self.T1 = T1
 
         elif self.connecting_algo == 'SMM':
@@ -434,10 +437,12 @@ class _BaseRCWA:
             d = self.thickness[layer_index]
 
             if self.connecting_algo == 'TMM':
-                W, V, q = transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, self.type_complex, self.perturbation)
+                W, V, q = transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, self.type_complex, self.perturbation,
+                                        use_pinv=self.use_pinv)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
-                    = transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex)
+                    = transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex,
+                                    use_pinv=self.use_pinv)
 
                 layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]
                 self.layer_info_list.append(layer_info)
@@ -451,7 +456,8 @@ class _BaseRCWA:
 
         if self.connecting_algo == 'TMM':
             result, big_T1 = transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
-                                           self.n_top, self.n_bot, type_complex=self.type_complex)
+                                           self.n_top, self.n_bot, type_complex=self.type_complex,
+                                           use_pinv=self.use_pinv)
             self.T1 = big_T1
 
         elif self.connecting_algo == 'SMM':
