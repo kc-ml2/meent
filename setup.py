@@ -30,6 +30,9 @@ setup(
     ],
     extras_require=extras,
     python_requires='>=3.8',
+    description=(
+        "Electromagnetic simulation (RCWA) & optimization package in Python"
+    ),
     long_description=long_description,
     long_description_content_type="text/markdown",
     package_data={
