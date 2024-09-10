@@ -144,6 +144,8 @@ class RCWANumpy(_BaseRCWA):
 
         if self.grating_type_assigned == 0:
             result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        elif self._grating_type_assigned == 1:
+            result_dict = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
             result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 

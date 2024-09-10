@@ -5,7 +5,8 @@ import numpy as np
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
 
-from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_4,
+from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_4, transfer_1d_conical_1,
+                              transfer_1d_conical_2, transfer_1d_conical_3, transfer_1d_conical_4,
                               transfer_2d_1, transfer_2d_2, transfer_2d_3, transfer_2d_4)
 
 
@@ -275,7 +276,8 @@ class _BaseRCWA:
 
             if self.connecting_algo == 'TMM':
                 W, V, q = transfer_1d_2(self.pol, kx, epx_conv, epy_conv, epz_conv_i, device=self.device,
-                                        type_complex=self.type_complex, use_pinv=self.use_pinv)
+                                        type_complex=self.type_complex, perturbation=self.perturbation,
+                                        use_pinv=self.use_pinv)
 
                 X, F, G, T, A_i, B = transfer_1d_3(k0, W, V, q, d, F, G, T, device=self.device,
                                                    type_complex=self.type_complex, use_pinv=self.use_pinv)
@@ -302,6 +304,66 @@ class _BaseRCWA:
             raise ValueError
 
         # return de_ri, de_ti, self.rayleigh_R, self.rayleigh_T, self.layer_info_list, self.T1
+        return result
+
+    def solve_1d_conical(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+        self.layer_info_list = []
+        self.T1 = None
+
+        ff_x = self.fto[0] * 2 + 1
+        ff_y = 1
+
+        k0 = 2 * torch.pi / wavelength
+        kx, ky = self.get_kx_ky_vector(wavelength)
+
+        if self.connecting_algo == 'TMM':
+            kz_top, kz_bot, varphi, big_F, big_G, big_T \
+                = transfer_1d_conical_1(kx, ky, self.n_top, self.n_bot, device=self.device,
+                                        type_complex=self.type_complex)
+
+        elif self.connecting_algo == 'SMM':
+            print('SMM for 1D conical is not implemented')
+            return np.nan, np.nan
+        else:
+            raise ValueError
+
+        for layer_index in range(len(self.thickness))[::-1]:
+
+            epx_conv = epx_conv_all[layer_index]
+            epy_conv = epy_conv_all[layer_index]
+            epz_conv_i = epz_conv_i_all[layer_index]
+
+            d = self.thickness[layer_index]
+
+            if self.connecting_algo == 'TMM':
+                W, V, q = transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=self.device,
+                                                type_complex=self.type_complex, perturbation=self.perturbation,
+                                                use_pinv=self.use_pinv)
+
+                big_X, big_F, big_G, big_T, big_A_i, big_B, \
+                    = transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=self.device,
+                                            type_complex=self.type_complex, use_pinv=self.use_pinv)
+
+                layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]
+                self.layer_info_list.append(layer_info)
+
+            elif self.connecting_algo == 'SMM':
+                raise ValueError
+            else:
+                raise ValueError
+
+        if self.connecting_algo == 'TMM':
+            result, big_T1 = transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi,
+                                                   self.theta, self.n_top, self.n_bot, device=self.device,
+                                                   type_complex=self.type_complex,
+                                                   use_pinv=self.use_pinv)
+            self.T1 = big_T1
+
+        elif self.connecting_algo == 'SMM':
+            raise ValueError
+        else:
+            raise ValueError
+
         return result
 
     def solve_2d(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
@@ -337,7 +399,8 @@ class _BaseRCWA:
 
             if self.connecting_algo == 'TMM':
                 W, V, q = transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=self.device,
-                                        type_complex=self.type_complex, use_pinv=self.use_pinv)
+                                        type_complex=self.type_complex, perturbation=self.perturbation,
+                                        use_pinv=self.use_pinv)
 
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=self.device,
@@ -366,7 +429,7 @@ class _BaseRCWA:
             #                                                                                self.n_top, self.n_bot,
             #                                                                                type_complex=self.type_complex)
             result, big_T1 = transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
-                                           self.n_top, self.n_bot, type_complex=self.type_complex,
+                                           self.n_top, self.n_bot, device=self.device, type_complex=self.type_complex,
                                            use_pinv=self.use_pinv)
             self.T1 = big_T1
 

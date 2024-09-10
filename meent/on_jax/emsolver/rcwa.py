@@ -132,7 +132,6 @@ class RCWAJax(_BaseRCWA):
         """
         if self.modeling_type_assigned == 0:  # Raster
             if self.ucell.shape[1] == 1:
-
                 if (self.pol in (0, 1)) and (self.phi is None) and (self.fto[1] == 0):
                     def false_fun(): return 0  # 1D TE and TM only
                     def true_fun(): return 1
@@ -171,11 +170,13 @@ class RCWAJax(_BaseRCWA):
 
         if self._grating_type_assigned == 0:
             result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        elif self._grating_type_assigned == 1:
+            result_dict = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
             result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         # TODO: In JAXMeent, 1D TE TM are turned off for jit compilation.
-        # de_ri, de_ti, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+
         res_psi = ResultSubJax(**result_dict['res']) if 'res' in result_dict else None
         res_te_inc = ResultSubJax(**result_dict['res_te_inc']) if 'res_te_inc' in result_dict else None
         res_tm_inc = ResultSubJax(**result_dict['res_tm_inc']) if 'res_tm_inc' in result_dict else None

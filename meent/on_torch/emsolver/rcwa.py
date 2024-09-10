@@ -121,23 +121,11 @@ class RCWATorch(_BaseRCWA):
                     self._grating_type_assigned = 0  # 1D TE and TM only
                 else:
                     self._grating_type_assigned = 1  # 1D conical
-
             else:
                 self._grating_type_assigned = 2  # else
 
         elif self.modeling_type_assigned == 1:
             self.grating_type_assigned = 2
-
-        # if isinstance(self.ucell, torch.Tensor):  # Raster
-        #     self.modeling_type_assigned = 0
-        #     if (self.ucell.shape[1] == 1) and (self.pol in (0, 1)) and (self.phi % (2 * np.pi) == 0) and (self.fto[1] == 0):
-        #         self._grating_type_assigned = 0  # 1D TE and TM only
-        #     else:
-        #         self._grating_type_assigned = 1  # else
-        #
-        # elif isinstance(self.ucell, list):  # Vector
-        #     self.modeling_type_assigned = 1
-        #     self.grating_type_assigned = 1
 
     @property
     def grating_type_assigned(self):
@@ -151,18 +139,12 @@ class RCWATorch(_BaseRCWA):
         self._assign_grating_type()
 
         if self._grating_type_assigned == 0:
-            # de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-            # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p  = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
             result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-
+        elif self._grating_type_assigned == 1:
+            result_dict = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
-            # de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1 = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-            # de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
             result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
-
-        # return de_ri, de_ti, rayleigh_R, rayleigh_T, layer_info_list, T1
-        # return de_ri_s, de_ri_p, de_ti_s, de_ti_p, layer_info_list, T1, R_s, R_p, T_s, T_p
         res_psi = ResultSubTorch(**result_dict['res']) if 'res' in result_dict else None
         res_te_inc = ResultSubTorch(**result_dict['res_te_inc']) if 'res_te_inc' in result_dict else None
         res_tm_inc = ResultSubTorch(**result_dict['res_tm_inc']) if 'res_tm_inc' in result_dict else None

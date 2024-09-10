@@ -135,20 +135,21 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
     return result, T1
 
 
-def transfer_1d_conical_1(ff_x, ff_y, kx_vector, ky_vector, n_top, n_bot, type_complex=np.complex128):
+def transfer_1d_conical_1(kx, ky, n_top, n_bot, type_complex=np.complex128):
+    ff_x = len(kx)
+    ff_y = len(ky)
     ff_xy = ff_x * ff_y
 
     I = np.eye(ff_xy, dtype=type_complex)
     O = np.zeros((ff_xy, ff_xy), dtype=type_complex)
 
-    kz_top = (n_top ** 2 - kx_vector ** 2 - ky_vector ** 2) ** 0.5
-    kz_bot = (n_bot ** 2 - kx_vector ** 2 - ky_vector ** 2) ** 0.5
+    kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
+    kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.conjugate()
-    kz_bot = kz_bot.conjugate()
+    kz_top = kz_top.flatten().conj()
+    kz_bot = kz_bot.flatten().conj()
 
-    varphi = np.arctan(ky_vector / kx_vector)
-
+    varphi = np.arctan(ky.reshape((-1, 1)) / kx).flatten()
     Kz_bot = np.diag(kz_bot)
 
     big_F = np.block([[I, O], [O, 1j * Kz_bot / (n_bot ** 2)]])
@@ -158,25 +159,25 @@ def transfer_1d_conical_1(ff_x, ff_y, kx_vector, ky_vector, n_top, n_bot, type_c
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
 
 
-def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=np.complex128):
+def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=np.complex128, use_pinv=False):
     ff_x = len(kx)
     ff_y = len(ky)
+    ff_xy = ff_x * ff_y
 
-    I = np.eye(ff_y * ff_x, dtype=type_complex)
+    I = np.eye(ff_xy, dtype=type_complex)
 
     Kx = np.diag(np.tile(kx, ff_y).flatten())
     Ky = np.diag(np.tile(ky.reshape((-1, 1)), ff_x).flatten())
 
     A = Kx ** 2 - epy_conv
-    # A = Kx ** 2 - np.linalg.pinv(epz_conv_i)
     B = Kx @ epz_conv_i @ Kx - I
 
     Omega2_RL = Ky ** 2 + A
     Omega2_LR = Ky ** 2 + B @ epx_conv
-    # Omega2_LR = Ky ** 2 + B @ np.linalg.pinv(epz_conv_i)
 
     eigenvalues_1, W_1 = np.linalg.eig(Omega2_RL)
     eigenvalues_2, W_2 = np.linalg.eig(Omega2_LR)
+
     eigenvalues_1 += 0j  # to get positive square root
     eigenvalues_2 += 0j  # to get positive square root
 
@@ -186,39 +187,37 @@ def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=n
     Q_1 = np.diag(q_1)
     Q_2 = np.diag(q_2)
 
-    A_i = np.linalg.pinv(A)
-    B_i = np.linalg.pinv(B)
+    A_i = meeinv(A, use_pinv)
+    B_i = meeinv(B, use_pinv)
 
     V_11 = A_i @ W_1 @ Q_1
-    V_12 = Ky * A_i @ Kx @ W_2
-    V_21 = Ky * B_i @ Kx @ epz_conv_i @ W_1
-    # V_21 = Ky * B_i @ Kx @ np.linalg.pinv(epy_conv) @ W_1
+    V_12 = Ky @ A_i @ Kx @ W_2
+    V_21 = Ky @ B_i @ Kx @ epz_conv_i @ W_1
     V_22 = B_i @ W_2 @ Q_2
 
     W = np.block([W_1, W_2])
     V = np.block([[V_11, V_12],
                   [V_21, V_22]])
-    q = np.block([q_1, q_2])
+    q = np.hstack([q_1, q_2])
 
     return W, V, q
 
 
-def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.complex128):
-    ff_x = len(W)
+def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.complex128, use_pinv=False):
+    ff_xy = len(q) // 2
+    I = np.eye(ff_xy, dtype=type_complex)
+    O = np.zeros((ff_xy, ff_xy), dtype=type_complex)
 
-    I = np.eye(ff_x, dtype=type_complex)
-    O = np.zeros((ff_x, ff_x), dtype=type_complex)
+    q_1 = q[:ff_xy]
+    q_2 = q[ff_xy:]
 
-    W_1 = W[:, :ff_x]
-    W_2 = W[:, ff_x:]
+    W_1 = W[:, :ff_xy]
+    W_2 = W[:, ff_xy:]
 
-    V_11 = V[:ff_x, :ff_x]
-    V_12 = V[:ff_x, ff_x:]
-    V_21 = V[ff_x:, :ff_x]
-    V_22 = V[ff_x:, ff_x:]
-
-    q_1 = q[:ff_x]
-    q_2 = q[ff_x:]
+    V_11 = V[:ff_xy, :ff_xy]
+    V_12 = V[:ff_xy, ff_xy:]
+    V_21 = V[ff_xy:, :ff_xy]
+    V_22 = V[ff_xy:, ff_xy:]
 
     X_1 = np.diag(np.exp(-k0 * q_1 * d))
     X_2 = np.diag(np.exp(-k0 * q_2 * d))
@@ -240,13 +239,13 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_comp
     big_W = np.block([[V_ss, V_sp], [W_ps, W_pp]])
     big_V = np.block([[W_ss, W_sp], [V_ps, V_pp]])
 
-    big_W_i = np.linalg.pinv(big_W)
-    big_V_i = np.linalg.pinv(big_V)
+    big_W_i = meeinv(big_W, use_pinv)
+    big_V_i = meeinv(big_V, use_pinv)
 
     big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
     big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
 
-    big_A_i = np.linalg.pinv(big_A)
+    big_A_i = meeinv(big_A, use_pinv)
 
     big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
     big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
@@ -256,10 +255,14 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_comp
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 
 
-def transfer_1d_conical_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot, type_complex=np.complex128):
-    ff_xy = len(big_F) // 2
+def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
+                          type_complex=np.complex128, use_pinv=False):
+
+    ff_xy = ff_x * ff_y
 
     Kz_top = np.diag(kz_top)
+    kz_top = kz_top.reshape((ff_y, ff_x))
+    kz_bot = kz_bot.reshape((ff_y, ff_x))
 
     I = np.eye(ff_xy, dtype=type_complex)
     O = np.zeros((ff_xy, ff_xy), dtype=type_complex)
@@ -274,9 +277,6 @@ def transfer_1d_conical_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top
     big_G_21 = big_G[ff_xy:, :ff_xy]
     big_G_22 = big_G[ff_xy:, ff_xy:]
 
-    # delta_i0 = np.zeros(ff_xy, dtype=type_complex)
-    # delta_i0[ff_xy // 2] = 1
-
     delta_i0 = np.zeros((ff_xy, 1), dtype=type_complex)
     delta_i0[ff_xy // 2, 0] = 1
 
@@ -289,32 +289,94 @@ def transfer_1d_conical_4(big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top
             [O, I, -big_G_21, -big_G_22],
         ]
     )
+    final_B = np.block(
+        [
+            [-np.sin(psi) * delta_i0],
+            [np.cos(psi) * np.cos(theta) * delta_i0],
+            [-1j * np.sin(psi) * n_top * np.cos(theta) * delta_i0],
+            [-1j * n_top * np.cos(psi) * delta_i0]
+        ]
+    )
 
-    final_B = np.block([
-        [-np.sin(psi) * delta_i0],
-        [-np.cos(psi) * np.cos(theta) * delta_i0],
-        [-1j * np.sin(psi) * n_top * np.cos(theta) * delta_i0],
-        [1j * n_top * np.cos(psi) * delta_i0]
-    ])
+    final_A_inv = meeinv(final_A, use_pinv)
+    final_RT = final_A_inv @ final_B
 
-    final_RT = np.linalg.pinv(final_A) @ final_B
-
-    R_s = final_RT[:ff_xy, :].flatten()
-    R_p = final_RT[ff_xy:2 * ff_xy, :].flatten()
+    R_s = final_RT[:ff_xy, :].reshape((ff_y, ff_x))
+    R_p = final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))
 
     big_T1 = final_RT[2 * ff_xy:, :]
+    big_T_tetm = big_T.copy()
     big_T = big_T @ big_T1
 
-    T_s = big_T[:ff_xy, :].flatten()
-    T_p = big_T[ff_xy:, :].flatten()
+    T_s = big_T[:ff_xy, :].reshape((ff_y, ff_x))
+    T_p = big_T[ff_xy:, :].reshape((ff_y, ff_x))
 
-    de_ri = R_s * np.conj(R_s) * np.real(kz_top / (n_top * np.cos(theta))) \
-            + R_p * np.conj(R_p) * np.real(kz_top / n_top ** 2 / (n_top * np.cos(theta)))
+    de_ri_s = (R_s * R_s.conj() * (kz_top / (n_top * np.cos(theta))).real).real
+    de_ri_p = (R_p * R_p.conj() * (kz_top / n_top ** 2 / (n_top * np.cos(theta))).real).real
 
-    de_ti = T_s * np.conj(T_s) * np.real(kz_bot / (n_top * np.cos(theta))) \
-            + T_p * np.conj(T_p) * np.real(kz_bot / n_bot ** 2 / (n_top * np.cos(theta)))
+    de_ti_s = (T_s * T_s.conj() * (kz_bot / (n_top * np.cos(theta))).real).real
+    de_ti_p = (T_p * T_p.conj() * (kz_bot / n_bot ** 2 / (n_top * np.cos(theta))).real).real
 
-    return de_ri.real, de_ti.real, big_T1
+    de_ri = de_ri_s + de_ri_p
+    de_ti = de_ti_s + de_ti_p
+
+    res = {'R_s': R_s, 'R_p': R_p, 'T_s': T_s, 'T_p': T_p,
+           'de_ri_s': de_ri_s, 'de_ri_p': de_ri_p, 'de_ri': de_ri,
+           'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p, 'de_ti': de_ti}
+
+    # TE TM incidence
+    psi_tm = np.array(0, dtype=type_complex)
+    final_B_tm = np.block(
+        [
+            [-np.sin(psi_tm) * delta_i0],
+            [np.cos(psi_tm) * np.cos(theta) * delta_i0],
+            [-1j * np.sin(psi_tm) * n_top * np.cos(theta) * delta_i0],
+            [-1j * n_top * np.cos(psi_tm) * delta_i0]
+        ]
+    )
+
+    psi_te = np.array(np.pi / 2, dtype=type_complex)
+    final_B_te = np.block(
+        [
+            [-np.sin(psi_te) * delta_i0],
+            [np.cos(psi_te) * np.cos(theta) * delta_i0],
+            [-1j * np.sin(psi_te) * n_top * np.cos(theta) * delta_i0],
+            [-1j * n_top * np.cos(psi_te) * delta_i0]
+        ]
+    )
+
+    final_B_tetm = np.hstack([final_B_te, final_B_tm])
+    final_RT_tetm = final_A_inv @ final_B_tetm
+
+    R_s_tetm = final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
+    R_p_tetm = final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))
+
+    big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
+    big_T_tetm = big_T_tetm @ big_T1_tetm
+
+    T_s_tetm = big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
+    T_p_tetm = big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
+
+    de_ri_s_tetm = (R_s_tetm * R_s_tetm.conj() * (kz_top / (n_top * np.cos(theta))).real).real
+    de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / n_top ** 2 / (n_top * np.cos(theta))).real).real
+
+    de_ti_s_tetm = (T_s_tetm * T_s_tetm.conj() * (kz_bot / (n_top * np.cos(theta))).real).real
+    de_ti_p_tetm = (T_p_tetm * T_p_tetm.conj() * (kz_bot / n_bot ** 2 / (n_top * np.cos(theta))).real).real
+
+    de_ri_tetm = de_ri_s_tetm + de_ri_p_tetm
+    de_ti_tetm = de_ti_s_tetm + de_ti_p_tetm
+
+    res_te_inc = {'R_s': R_s_tetm[0], 'R_p': R_p_tetm[0], 'T_s': T_s_tetm[0], 'T_p': T_p_tetm[0],
+                  'de_ri_s': de_ri_s_tetm[0], 'de_ri_p': de_ri_p_tetm[0], 'de_ri': de_ri_tetm[0],
+                  'de_ti_s': de_ti_s_tetm[0], 'de_ti_p': de_ti_p_tetm[0], 'de_ti': de_ti_tetm[0]}
+
+    res_tm_inc = {'R_s': R_s_tetm[1], 'R_p': R_p_tetm[1], 'T_s': T_s_tetm[1], 'T_p': T_p_tetm[1],
+                  'de_ri_s': de_ri_s_tetm[1], 'de_ri_p': de_ri_p_tetm[1], 'de_ri': de_ri_tetm[1],
+                  'de_ti_s': de_ti_s_tetm[1], 'de_ti_p': de_ti_p_tetm[1], 'de_ti': de_ti_tetm[1]}
+
+    result = {'res': res, 'res_tm_inc': res_tm_inc, 'res_te_inc': res_te_inc}
+
+    return result, big_T1
 
 
 def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=np.complex128):
@@ -362,9 +424,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=np.comple
 
     eigenvalues, W = np.linalg.eig(Omega2_LR)
 
-    # TODO: check again this is still needed; and whether the sign matters.
     eigenvalues += 0j  # to get positive square root
-    # eigenvalues -= 0j  # to get positive square root
     q = eigenvalues ** 0.5
 
     Q = np.diag(q)
@@ -388,8 +448,8 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.c
     I = np.eye(ff_xy, dtype=type_complex)
     O = np.zeros((ff_xy, ff_xy), dtype=type_complex)
 
-    q1 = q[:ff_xy]
-    q2 = q[ff_xy:]
+    q_1 = q[:ff_xy]
+    q_2 = q[ff_xy:]
 
     W_11 = W[:ff_xy, :ff_xy]
     W_12 = W[:ff_xy, ff_xy:]
@@ -401,8 +461,8 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.c
     V_21 = V[ff_xy:, :ff_xy]
     V_22 = V[ff_xy:, ff_xy:]
 
-    X_1 = np.diag(np.exp(-k0 * q1 * d))
-    X_2 = np.diag(np.exp(-k0 * q2 * d))
+    X_1 = np.diag(np.exp(-k0 * q_1 * d))
+    X_2 = np.diag(np.exp(-k0 * q_2 * d))
 
     F_c = np.diag(np.cos(varphi))
     F_s = np.diag(np.sin(varphi))
