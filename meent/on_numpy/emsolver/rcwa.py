@@ -2,12 +2,11 @@ import numpy as np
 
 from ._base import _BaseRCWA
 from .convolution_matrix import to_conv_mat_raster_continuous, to_conv_mat_raster_discrete, to_conv_mat_vector
-from .field_distribution import field_plot, field_dist_1d, field_dist_2d
+from .field_distribution import field_plot, field_dist_1d, field_dist_1d_conical, field_dist_2d
 
 
 class ResultNumpy:
     def __init__(self, res=None, res_te_inc=None, res_tm_inc=None):
-
         self.res = res
         self.res_te_inc = res_te_inc
         self.res_tm_inc = res_tm_inc
@@ -38,7 +37,7 @@ class RCWANumpy(_BaseRCWA):
                  period=(1., 1.),
                  wavelength=1.,
                  ucell=None,
-                 thickness=(0., ),
+                 thickness=(0.,),
                  backend=0,
                  pol=0.,
                  fto=(0, 0),
@@ -193,6 +192,10 @@ class RCWANumpy(_BaseRCWA):
             res_y = 1
             field_cell = field_dist_1d(self.wavelength, kx, self.T1, self.layer_info_list, self.period, self.pol,
                                        res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        elif self._grating_type_assigned == 1:
+            # TODO other bds
+            field_cell = field_dist_1d_conical(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
+                                               res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
         else:
             field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
                                        res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)

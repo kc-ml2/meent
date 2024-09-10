@@ -437,7 +437,7 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
     big_G_22 = big_G[ff_xy:, ff_xy:]
 
     delta_i0 = jnp.zeros((ff_xy, 1), dtype=type_complex)
-    delta_i0[ff_xy // 2, 0] = 1
+    delta_i0 = delta_i0.at[ff_xy // 2, 0].set(1)
 
     # Final Equation in form of AX=B
     final_A = jnp.block(

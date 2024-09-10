@@ -7,7 +7,7 @@ from functools import partial
 
 from ._base import _BaseRCWA, jax_device_set
 from .convolution_matrix import to_conv_mat_raster_discrete, to_conv_mat_raster_continuous, to_conv_mat_vector
-from .field_distribution import field_dist_1d, field_dist_2d,  field_plot
+from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist_2d,  field_plot
 
 
 class ResultJax:
@@ -133,12 +133,17 @@ class RCWAJax(_BaseRCWA):
         if self.modeling_type_assigned == 0:  # Raster
             if self.ucell.shape[1] == 1:
                 if (self.pol in (0, 1)) and (self.phi is None) and (self.fto[1] == 0):
-                    def false_fun(): return 0  # 1D TE and TM only
-                    def true_fun(): return 1
+                    self._grating_type_assigned = 0
+                else:
+                    self._grating_type_assigned = 1
 
-                    gear = jax.lax.cond(self.phi % (2 * np.pi) + self.fto[1], true_fun, false_fun)
-
-                    self._grating_type_assigned = gear
+                    # TODO: jit
+                    # def false_fun(): return 0  # 1D TE and TM only
+                    # def true_fun(): return 1
+                    #
+                    # gear = jax.lax.cond(self.phi % (2 * np.pi) + self.fto[1], true_fun, false_fun)
+                    #
+                    # self._grating_type_assigned = gear
             else:
                 self._grating_type_assigned = 2
 
@@ -242,13 +247,15 @@ class RCWAJax(_BaseRCWA):
 
     @jax_device_set
     def calculate_field(self, res_x=20, res_y=20, res_z=20):
-
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
 
         if self._grating_type_assigned == 0:
             res_y = 1
             field_cell = field_dist_1d(self.wavelength, kx, self.T1, self.layer_info_list, self.period, self.pol,
                                        res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+        elif self._grating_type_assigned == 1:
+            field_cell = field_dist_1d_conical(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
+                                               res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
         else:
             field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
                                        res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
