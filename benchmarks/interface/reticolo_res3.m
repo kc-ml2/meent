@@ -39,7 +39,6 @@ if grating_type == 0
     aa = res1(wavelength,period,textures,nn,k_parallel,parm);
     res = res2(aa, profile);
 else
-    phi = phi * (180 / np.pi);
     aa = res1(wavelength,period,textures,nn,k_parallel, phi, parm);
     res = res2(aa, profile);
 end

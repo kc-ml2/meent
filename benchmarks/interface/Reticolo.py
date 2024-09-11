@@ -161,6 +161,8 @@ class Reticolo:
 
         if phi is None:
             phi = 0
+        else:
+            phi = phi * (180 / np.pi)
 
         if cal_field:
             # top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell = \
