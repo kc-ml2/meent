@@ -325,7 +325,7 @@ class _BaseRCWA:
         if self.connecting_algo == 'TMM':
             result, T1 = transfer_1d_4(self.pol, ff_x, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
                                        type_complex=self.type_complex, use_pinv=self.use_pinv)
-            self.T1 = T1
+            self.T1 = T1  # Hurdle for jitting. This is not saved.
 
         elif self.connecting_algo == 'SMM':
             raise ValueError

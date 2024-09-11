@@ -25,7 +25,7 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=jnp.complex128):
         G = 1j * Kz_bot
         return Kz_bot, G
 
-    Kz_bot, G = jax.lax.cond(pol, true_fun, false_fun, kz_bot)
+    Kz_bot, G = jax.lax.cond(pol.real, true_fun, false_fun, kz_bot)
 
     T = jnp.eye(ff_x, dtype=type_complex)
 
@@ -75,7 +75,7 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.comp
         V = meeinv(epx_conv, use_pinv) @ W @ Q
         return W, V, q
 
-    W, V, q = jax.lax.cond(pol, true_fun, false_fun, Kx, epy_conv)
+    W, V, q = jax.lax.cond(pol.real, true_fun, false_fun, Kx, epy_conv)
 
     return W, V, q
     # if pol == 0:
@@ -147,13 +147,13 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
         de_ti = (_T * _T.conj() * (kz_bot / (n_top * jnp.cos(theta))).real).real
 
         R_s = R
-        R_p = jnp.zeros(R.shape)
+        R_p = jnp.zeros(R.shape, dtype=R.dtype)
         T_s = _T
-        T_p = jnp.zeros(_T.shape)
+        T_p = jnp.zeros(_T.shape, dtype=_T.dtype)
         de_ri_s = de_ri
-        de_ri_p = jnp.zeros(de_ri.shape)
+        de_ri_p = jnp.zeros(de_ri.shape, dtype=de_ri.dtype)
         de_ti_s = de_ti
-        de_ti_p = jnp.zeros(de_ri.shape)
+        de_ti_p = jnp.zeros(de_ri.shape, dtype=de_ti.dtype)
         res = {'R_s': R_s, 'R_p': R_p, 'T_s': T_s, 'T_p': T_p,
                'de_ri': de_ri, 'de_ri_s': de_ri_s, 'de_ri_p': de_ri_p,
                'de_ti': de_ti, 'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p,
@@ -173,13 +173,13 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
         de_ri = (R * R.conj() * (kz_top / (n_top * jnp.cos(theta))).real).real
         de_ti = (_T * _T.conj() * (kz_bot / n_bot ** 2 / (jnp.cos(theta) / n_top)).real).real
 
-        R_s = jnp.zeros(R.shape)
+        R_s = jnp.zeros(R.shape, dtype=R.dtype)
         R_p = R
-        T_s = jnp.zeros(_T.shape)
+        T_s = jnp.zeros(_T.shape, dtype=_T.dtype)
         T_p = _T
-        de_ri_s = jnp.zeros(de_ri.shape)
+        de_ri_s = jnp.zeros(de_ri.shape, dtype=de_ri.dtype)
         de_ri_p = de_ri
-        de_ti_s = jnp.zeros(de_ri.shape)
+        de_ti_s = jnp.zeros(de_ri.shape, dtype=de_ti.dtype)
         de_ti_p = de_ti
 
         res = {'R_s': R_s, 'R_p': R_p, 'T_s': T_s, 'T_p': T_p,
@@ -191,67 +191,7 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
 
         return _result, T1
 
-    # TODO: args are deleted. is this ok? check both for jit and non-jit
-    result, T1 = jax.lax.cond(pol, true_fun, false_fun)
-
-    #
-    # def false_fun(_n_top, _theta, _delta_i0, _G, _Kz_top, _T):  # TE
-    #     inc_term = 1j * _n_top * jnp.cos(_theta) * _delta_i0
-    #     T1 = meeinv(_G + 1j * _Kz_top @ F, use_pinv) @ (1j * _Kz_top @ _delta_i0 + inc_term)
-    #
-    #     _R = (F @ T1 - _delta_i0).reshape((1, ff_x))
-    #     _T = (_T @ T1).reshape((1, ff_x))
-    #
-    #     de_ri = (_R * _R.conj() * (kz_top / (_n_top * jnp.cos(_theta))).real).real
-    #     de_ti = (_T * _T.conj() * (kz_bot / (_n_top * jnp.cos(_theta))).real).real
-    #
-    #     R_s = _R
-    #     R_p = jnp.zeros(_R.shape)
-    #     T_s = _T
-    #     T_p = jnp.zeros(_T.shape)
-    #     de_ri_s = de_ri
-    #     de_ri_p = jnp.zeros(de_ri.shape)
-    #     de_ti_s = de_ti
-    #     de_ti_p = jnp.zeros(de_ri.shape)
-    #     res = {'R': _R, 'R_s': R_s, 'R_p': R_p, 'T': _T, 'T_s': T_s, 'T_p': T_p,
-    #            'de_ri': de_ri, 'de_ri_s': de_ri_s, 'de_ri_p': de_ri_p,
-    #            'de_ti': de_ti, 'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p,
-    #            }
-    #
-    #     _result = {'res': res}
-    #
-    #     return _result, T1
-    #
-    # def true_fun(_n_top, _theta, _delta_i0, _G, _Kz_top, _T):  # TM
-    #     inc_term = 1j * _delta_i0 * jnp.cos(_theta) / _n_top
-    #     # T1 = jnp.linalg.inv(G + 1j * Kz_top / (n_top ** 2) @ F) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
-    #     T1 = meeinv(_G + 1j * _Kz_top / (_n_top ** 2) @ F, use_pinv) @ (1j * _Kz_top / (_n_top ** 2) @ _delta_i0 + inc_term)
-    #
-    #     R = (F @ T1 - _delta_i0).reshape((1, ff_x))
-    #     _T = (_T @ T1).reshape((1, ff_x))
-    #
-    #     de_ri = (R * R.conj() * (kz_top / (_n_top * jnp.cos(_theta))).real).real
-    #     de_ti = (_T * _T.conj() * (kz_bot / n_bot ** 2 / (jnp.cos(_theta) / _n_top)).real).real
-    #
-    #     R_s = jnp.zeros(R.shape)
-    #     R_p = R
-    #     T_s = jnp.zeros(_T.shape)
-    #     T_p = _T
-    #     de_ri_s = jnp.zeros(de_ri.shape)
-    #     de_ri_p = de_ri
-    #     de_ti_s = jnp.zeros(de_ri.shape)
-    #     de_ti_p = de_ti
-    #
-    #     res = {'R_s': R_s, 'R_p': R_p, 'T_s': T_s, 'T_p': T_p,
-    #            'de_ri': de_ri, 'de_ri_s': de_ri_s, 'de_ri_p': de_ri_p,
-    #            'de_ti': de_ti, 'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p,
-    #            }
-    #
-    #     _result = {'res': res}
-    #
-    #     return _result, T1
-    #
-    # result, T1 = jax.lax.cond(pol, true_fun, false_fun, n_top, theta, delta_i0, G, Kz_top, T)
+    result, T1 = jax.lax.cond(pol.real, true_fun, false_fun)
 
     return result, T1
 

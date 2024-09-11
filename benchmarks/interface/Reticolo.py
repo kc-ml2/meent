@@ -97,7 +97,7 @@ class Reticolo:
                  matlab_plot_field=0, res3_npts=0, *args, **kwargs):
 
         # theta *= (180 / np.pi)
-        phi *= (180 / np.pi)
+        # phi *= (180 / np.pi)
 
         if grating_type in (0, 1):
             period = period[0]
@@ -148,22 +148,30 @@ class Reticolo:
 
         profile = np.array([[0, *thickness, 0], range(1, len(thickness) + 3)])
 
-        top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell = \
+        (top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te,
+         bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, field_cell) = \
             self._run(pol, theta, phi, period, n_top, fto, textures, profile, wavelength, grating_type,
                       cal_field=True, matlab_plot_field=matlab_plot_field, res3_npts=res3_npts)
 
-        return top_refl_info.efficiency, top_tran_info.efficiency, bottom_refl_info.efficiency, \
-               bottom_tran_info.efficiency, field_cell
+        return (top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm,
+                bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, field_cell)
 
     def _run(self, pol, theta, phi, period, n_top, fto,
              textures, profile, wavelength, grating_type, cal_field=False, matlab_plot_field=0, res3_npts=0):
 
+        if phi is None:
+            phi = 0
+
         if cal_field:
-            top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell = \
+            # top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell = \
+            (top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te,
+             bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, field_cell) = \
                 self.eng.reticolo_res3(pol, theta, phi, period, n_top, fto,
                                        textures, profile, wavelength, grating_type, matlab_plot_field, res3_npts,
-                                       nout=5)
-            res = (top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, field_cell)
+                                       nout=9)
+
+            res = (top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te,
+                   bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, field_cell)
         else:
             top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info = \
                 self.eng.reticolo_res2(pol, theta, phi, period, n_top, fto,
