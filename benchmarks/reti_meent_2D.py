@@ -78,11 +78,6 @@ def run_2d(option, case, plot_figure=False):
         # T_p_tm = res_t.res_tm_inc.T_p
 
         print(bds[i])
-        print('n_bot', option['n_bot'])
-        print(de_ri_te)
-        print(reti_de_ri_te)
-        print('de_ri_te', np.linalg.norm(de_ri_te - reti_de_ri_te),)
-
         print('de_ri_te', np.linalg.norm(de_ri_te - reti_de_ri_te),
               'de_ti_te', np.linalg.norm(de_ti_te - reti_de_ti_te),
               'de_ri_tm', np.linalg.norm(de_ri_tm - reti_de_ri_tm),
