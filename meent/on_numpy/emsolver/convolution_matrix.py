@@ -1,5 +1,6 @@
 import numpy as np
 from .fourier_analysis import dfs2d, cfs2d
+from .primitives import meeinv
 
 
 def cell_compression(cell, type_complex=np.complex128):
@@ -43,7 +44,7 @@ def cell_compression(cell, type_complex=np.complex128):
     return cell_comp, x, y
 
 
-def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None, type_complex=np.complex128):
+def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None, type_complex=np.complex128, use_pinv=False):
 
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
@@ -61,12 +62,12 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None, type_complex=
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        epz_conv_i_all[i] = np.linalg.inv(epz_conv)
+        epz_conv_i_all[i] = meeinv(epz_conv, use_pinv=use_pinv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
-def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=None, type_complex=np.complex128):
+def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=None, type_complex=np.complex128, use_pinv=False):
 
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
@@ -84,13 +85,13 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=None, type_complex
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        epz_conv_i_all[i] = np.linalg.inv(epz_conv)
+        epz_conv_i_all[i] = meeinv(epz_conv, use_pinv=use_pinv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 
 
 def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=np.complex128,
-                                enhanced_dfs=True):
+                                enhanced_dfs=True, use_pinv=False):
 
     ff_xy = (2 * fto_x + 1) * (2 * fto_y + 1)
 
@@ -123,7 +124,7 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=n
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
-        epz_conv_i_all[i] = np.linalg.inv(epz_conv)
+        epz_conv_i_all[i] = meeinv(epz_conv, use_pinv=use_pinv)
 
     return epx_conv_all, epy_conv_all, epz_conv_i_all
 

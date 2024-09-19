@@ -1,4 +1,6 @@
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reticolo_res3(_pol,
+%function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reticolo_res3(_pol,
+function [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reticolo_res3(_pol,
+%function [res] = reticolo_res3(_pol,
     theta, phi, period, n_inc, nn, _textures, _profile, wavelength, grating_type, matlab_plot_field, res3_npts);
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
@@ -41,7 +43,7 @@ else
     res = res2(aa, profile);
 end
 
-x = linspace(0, period(1), 50);
+x = linspace(0, period(1), 11);
 
 %parm.res3.sens=1;
 %##parm.res3.gauss_x = 100
@@ -58,10 +60,11 @@ end
 if grating_type == 0
     [e,z,o]=res3(x,aa,profile,1,parm);
 else
+%    y = linspace(period(1), 0, 50);
     if grating_type == 1
         y=0;
     else
-        y = linspace(period(1), 0, 50);
+        y = linspace(period(1), 0, 11);
     end
 
     if pol == 1
@@ -75,20 +78,30 @@ else
 end
 
 if grating_type == 0
-    top_refl_info = res.inc_top_reflected;
-    top_tran_info = res.inc_top_transmitted;
-    bottom_refl_info = res.inc_bottom_reflected;
-    bottom_tran_info = res.inc_bottom_transmitted;
+%    top_refl_info = res.inc_top_reflected;
+%    top_tran_info = res.inc_top_transmitted;
+%    bottom_refl_info = res.inc_bottom_reflected;
+%    bottom_tran_info = res.inc_bottom_transmitted;
+
+    top_refl_info_te = res.inc_top_reflected;
+    top_tran_info_te = res.inc_top_transmitted;
+    top_refl_info_tm = res.inc_top_reflected;
+    top_tran_info_tm = res.inc_top_transmitted;
+
+    bottom_refl_info_te = res.inc_bottom_reflected;
+    bottom_tran_info_te = res.inc_bottom_transmitted;
+    bottom_refl_info_tm = res.inc_bottom_reflected;
+    bottom_tran_info_tm = res.inc_bottom_transmitted;
+
 else
-    if pol == 1  % TE
-        top_refl_info = res.TEinc_top_reflected;
-        top_tran_info = res.TEinc_top_transmitted;
-        bottom_refl_info = res.TEinc_bottom_reflected;
-        bottom_tran_info = res.TEinc_bottom_transmitted;
-    else  % TM
-        top_refl_info = res.TMinc_top_reflected;
-        top_tran_info = res.TMinc_top_transmitted;
-        bottom_refl_info = res.TMinc_bottom_reflected;
-        bottom_tran_info = res.TMinc_bottom_transmitted;
-    end
+    top_refl_info_te = res.TEinc_top_reflected;
+    top_tran_info_te = res.TEinc_top_transmitted;
+    top_refl_info_tm = res.TMinc_top_reflected;
+    top_tran_info_tm = res.TMinc_top_transmitted;
+
+    bottom_refl_info_te = res.TEinc_bottom_reflected;
+    bottom_tran_info_te = res.TEinc_bottom_transmitted;
+    bottom_refl_info_tm = res.TMinc_bottom_reflected;
+    bottom_tran_info_tm = res.TMinc_bottom_transmitted;
+
 end

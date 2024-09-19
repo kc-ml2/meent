@@ -44,3 +44,12 @@ class Eig(torch.autograd.Function):
             grad = grad.real
 
         return grad
+
+
+def meeinv(x, use_pinv=False):
+    if use_pinv:
+        res = torch.linalg.pinv(x)
+    else:
+        res = torch.linalg.inv(x)
+
+    return res

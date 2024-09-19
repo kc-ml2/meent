@@ -1,26 +1,28 @@
 
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d(ex_case);
+function [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d(ex_case);
     warning('off', 'Octave:possible-matlab-short-circuit-operator');
     warning('off', 'Invalid UTF-8 byte sequences have been replaced.');
     warning('off', 'findstr is obsolete; use strfind instead');
 
     if ex_case == 1
-        [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_1();
+        [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_1();
     elseif ex_case == 2
-        [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_2();
+        [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_2();
     elseif ex_case == 3
-        [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_3();
+        [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_3();
     elseif ex_case == 4
-        [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_4();
+        [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_4();
     elseif ex_case == 5
-        [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_5();
+        [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_5();
     elseif ex_case == 6
-        [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_6();
+        [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_6();
+    elseif ex_case == 7
+        [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_7();
     end
 
 end
 
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_1();
+function [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_1();
 
     warning('off', 'Octave:possible-matlab-short-circuit-operator');
     warning('off', 'Invalid UTF-8 byte sequences have been replaced.');
@@ -71,10 +73,10 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     aa = res1(wavelength,period,textures,nn,k_parallel, phi, parm);
     res = res2(aa, profile);
 
-    x = linspace(-period(1)/2, period(1)/2, 50);
-    y = linspace(period(2)/2, -period(2)/2, 50);
-    x = linspace(0, period(1), 50);
-    y = linspace(period(2), 0, 50);
+    x = linspace(-period(1)/2, period(1)/2, 11);
+    y = linspace(period(2)/2, -period(2)/2, 11);
+    x = linspace(0, period(1), 11);
+    y = linspace(period(2), 0, 11);
 
 %    x = [0:1:49] * period(1) / 50 - period(1)/2;
 %    x = [1:1:50] * period(1) / 50 - period(1)/2;
@@ -93,20 +95,31 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     end
     [e,z,o]=res3(x,y,aa,profile,einc, parm);
 
-    if pol == 1  % TE
-        top_refl_info = res.TEinc_top_reflected;
-        top_tran_info = res.TEinc_top_transmitted;
-        bottom_refl_info = res.TEinc_bottom_reflected;
-        bottom_tran_info = res.TEinc_bottom_transmitted;
-    else  % TM
-        top_refl_info = res.TMinc_top_reflected;
-        top_tran_info = res.TMinc_top_transmitted;
-        bottom_refl_info = res.TMinc_bottom_reflected;
-        bottom_tran_info = res.TMinc_bottom_transmitted;
-    end
+%    if pol == 1  % TE
+%        top_refl_info = res.TEinc_top_reflected;
+%        top_tran_info = res.TEinc_top_transmitted;
+%        bottom_refl_info = res.TEinc_bottom_reflected;
+%        bottom_tran_info = res.TEinc_bottom_transmitted;
+%    else  % TM
+%        top_refl_info = res.TMinc_top_reflected;
+%        top_tran_info = res.TMinc_top_transmitted;
+%        bottom_refl_info = res.TMinc_bottom_reflected;
+%        bottom_tran_info = res.TMinc_bottom_transmitted;
+%    end
+
+    top_refl_info_te = res.TEinc_top_reflected;
+    top_tran_info_te = res.TEinc_top_transmitted;
+    top_refl_info_tm = res.TMinc_top_reflected;
+    top_tran_info_tm = res.TMinc_top_transmitted;
+
+    bottom_refl_info_te = res.TEinc_bottom_reflected;
+    bottom_tran_info_te = res.TEinc_bottom_transmitted;
+    bottom_refl_info_tm = res.TMinc_bottom_reflected;
+    bottom_tran_info_tm = res.TMinc_bottom_transmitted;
+
 end
 
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_2();
+function [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_2();
 
     warning('off', 'Octave:possible-matlab-short-circuit-operator');
     warning('off', 'Invalid UTF-8 byte sequences have been replaced.');
@@ -152,11 +165,11 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     aa = res1(wavelength,period,textures,nn,k_parallel, phi, parm);
     res = res2(aa, profile);
 
-    x = linspace(-period(1)/2, period(1)/2, 50);
-    y = linspace(-period(2)/2, period(2)/2, 50);
-    y = linspace(period(2)/2, -period(2)/2, 50);
-    x = linspace(0, period(1), 50);
-    y = linspace(period(2), 0, 50);
+    x = linspace(-period(1)/2, period(1)/2, 11);
+    y = linspace(-period(2)/2, period(2)/2, 11);
+    y = linspace(period(2)/2, -period(2)/2, 11);
+    x = linspace(0, period(1), 11);
+    y = linspace(period(2), 0, 11);
 
 %    x = [0:1:49] * period(1) / 50 - period(1)/2;
 %    x = [1:1:50] * period(1) / 50 - period(1)/2;
@@ -165,7 +178,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 %    y = [50:-1:1] .* period(2) / 50 - period(2)/2
 %    y = [49:-1:0] .* period(2) / 50 - period(2)/2
 
-    parm.res3.trace=1;  %trace automatique % automatic trace
+    parm.res3.trace=0;  %trace automatique % automatic trace
 
     if pol == 1
         einc = [0, 1];
@@ -176,21 +189,31 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     end
     [e,z,o]=res3(x,y,aa,profile,einc, parm);
 
-    if pol == 1  % TE
-        top_refl_info = res.TEinc_top_reflected;
-        top_tran_info = res.TEinc_top_transmitted;
-        bottom_refl_info = res.TEinc_bottom_reflected;
-        bottom_tran_info = res.TEinc_bottom_transmitted;
-    else  % TM
-        top_refl_info = res.TMinc_top_reflected;
-        top_tran_info = res.TMinc_top_transmitted;
-        bottom_refl_info = res.TMinc_bottom_reflected;
-        bottom_tran_info = res.TMinc_bottom_transmitted;
-    end
+%    if pol == 1  % TE
+%        top_refl_info = res.TEinc_top_reflected;
+%        top_tran_info = res.TEinc_top_transmitted;
+%        bottom_refl_info = res.TEinc_bottom_reflected;
+%        bottom_tran_info = res.TEinc_bottom_transmitted;
+%    else  % TM
+%        top_refl_info = res.TMinc_top_reflected;
+%        top_tran_info = res.TMinc_top_transmitted;
+%        bottom_refl_info = res.TMinc_bottom_reflected;
+%        bottom_tran_info = res.TMinc_bottom_transmitted;
+%    end
+
+    top_refl_info_te = res.TEinc_top_reflected;
+    top_tran_info_te = res.TEinc_top_transmitted;
+    top_refl_info_tm = res.TMinc_top_reflected;
+    top_tran_info_tm = res.TMinc_top_transmitted;
+
+    bottom_refl_info_te = res.TEinc_bottom_reflected;
+    bottom_tran_info_te = res.TEinc_bottom_transmitted;
+    bottom_refl_info_tm = res.TMinc_bottom_reflected;
+    bottom_tran_info_tm = res.TMinc_bottom_transmitted;
 end
 
 
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_3();
+function [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_3();
 
     warning('off', 'Octave:possible-matlab-short-circuit-operator');
     warning('off', 'Invalid UTF-8 byte sequences have been replaced.');
@@ -219,7 +242,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 
     parm = res0;
     parm.res1.champ = 1;      % calculate precisely
-    parm.res1.trace = 1;
+    parm.res1.trace = 0;
 
     k_parallel = n_top*sind(theta); % n_air, or whatever the refractive index of the medium where light is coming in.
 
@@ -233,11 +256,11 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     aa = res1(wavelength,period,textures,nn,k_parallel, phi, parm);
     res = res2(aa, profile);
 
-    x = linspace(-period(1)/2, period(1)/2, 50);
-    y = linspace(-period(2)/2, period(2)/2, 50);
-    y = linspace(period(2)/2, -period(2)/2, 50);
-    x = linspace(0, period(1), 50);
-    y = linspace(period(2), 0, 50);
+    x = linspace(-period(1)/2, period(1)/2, 11);
+    y = linspace(-period(2)/2, period(2)/2, 11);
+    y = linspace(period(2)/2, -period(2)/2, 11);
+    x = linspace(0, period(1), 11);
+    y = linspace(period(2), 0, 11);
 
 %    x = [0:1:49] * period(1) / 50 - period(1)/2;
 %    x = [1:1:50] * period(1) / 50 - period(1)/2;
@@ -246,7 +269,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 %    y = [50:-1:1] .* period(2) / 50 - period(2)/2
 %    y = [49:-1:0] .* period(2) / 50 - period(2)/2
 
-    parm.res3.trace=1;  %trace automatique % automatic trace
+    parm.res3.trace=0;  %trace automatique % automatic trace
 
     if pol == 1
         einc = [0, 1];
@@ -257,21 +280,31 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     end
     [e,z,o]=res3(x,y,aa,profile,einc, parm);
 
-    if pol == 1  % TE
-        top_refl_info = res.TEinc_top_reflected;
-        top_tran_info = res.TEinc_top_transmitted;
-        bottom_refl_info = res.TEinc_bottom_reflected;
-        bottom_tran_info = res.TEinc_bottom_transmitted;
-    else  % TM
-        top_refl_info = res.TMinc_top_reflected;
-        top_tran_info = res.TMinc_top_transmitted;
-        bottom_refl_info = res.TMinc_bottom_reflected;
-        bottom_tran_info = res.TMinc_bottom_transmitted;
-    end
+%    if pol == 1  % TE
+%        top_refl_info = res.TEinc_top_reflected;
+%        top_tran_info = res.TEinc_top_transmitted;
+%        bottom_refl_info = res.TEinc_bottom_reflected;
+%        bottom_tran_info = res.TEinc_bottom_transmitted;
+%    else  % TM
+%        top_refl_info = res.TMinc_top_reflected;
+%        top_tran_info = res.TMinc_top_transmitted;
+%        bottom_refl_info = res.TMinc_bottom_reflected;
+%        bottom_tran_info = res.TMinc_bottom_transmitted;
+%    end
+
+    top_refl_info_te = res.TEinc_top_reflected;
+    top_tran_info_te = res.TEinc_top_transmitted;
+    top_refl_info_tm = res.TMinc_top_reflected;
+    top_tran_info_tm = res.TMinc_top_transmitted;
+
+    bottom_refl_info_te = res.TEinc_bottom_reflected;
+    bottom_tran_info_te = res.TEinc_bottom_transmitted;
+    bottom_refl_info_tm = res.TMinc_bottom_reflected;
+    bottom_tran_info_tm = res.TMinc_bottom_transmitted;
 end
 
 
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_4();
+function [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_4();
 
     warning('off', 'Octave:possible-matlab-short-circuit-operator');
     warning('off', 'Invalid UTF-8 byte sequences have been replaced.');
@@ -302,7 +335,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 
     parm = res0;
     parm.res1.champ = 1;      % calculate precisely
-    parm.res1.trace = 1;
+    parm.res1.trace = 0;
 
     k_parallel = n_top*sind(theta); % n_air, or whatever the refractive index of the medium where light is coming in.
 
@@ -335,8 +368,8 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 %    x = linspace(-period(1)/2, period(1)/2, 50);
 %    y = linspace(-period(2)/2, period(2)/2, 50);
 %    y = linspace(period(2)/2, -period(2)/2, 50);
-    x = linspace(0, period(1), 50);
-    y = linspace(period(2), 0, 50);
+    x = linspace(0, period(1), 11);
+    y = linspace(period(2), 0, 11);
 
 %    x = [0:1:49] * period(1) / 50 - period(1)/2;
 %    x = [1:1:50] * period(1) / 50 - period(1)/2;
@@ -345,7 +378,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 %    y = [50:-1:1] .* period(2) / 50 - period(2)/2
 %    y = [49:-1:0] .* period(2) / 50 - period(2)/2
 
-    parm.res3.trace=1;  %trace automatique % automatic trace
+    parm.res3.trace=0;  %trace automatique % automatic trace
 
 %    parm.res3.npts = res3_npts;
 
@@ -358,20 +391,30 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     end
     [e,z,o]=res3(x,y,aa,profile,einc, parm);
 
-    if pol == 1  % TE
-        top_refl_info = res.TEinc_top_reflected;
-        top_tran_info = res.TEinc_top_transmitted;
-        bottom_refl_info = res.TEinc_bottom_reflected;
-        bottom_tran_info = res.TEinc_bottom_transmitted;
-    else  % TM
-        top_refl_info = res.TMinc_top_reflected;
-        top_tran_info = res.TMinc_top_transmitted;
-        bottom_refl_info = res.TMinc_bottom_reflected;
-        bottom_tran_info = res.TMinc_bottom_transmitted;
-    end
+%    if pol == 1  % TE
+%        top_refl_info = res.TEinc_top_reflected;
+%        top_tran_info = res.TEinc_top_transmitted;
+%        bottom_refl_info = res.TEinc_bottom_reflected;
+%        bottom_tran_info = res.TEinc_bottom_transmitted;
+%    else  % TM
+%        top_refl_info = res.TMinc_top_reflected;
+%        top_tran_info = res.TMinc_top_transmitted;
+%        bottom_refl_info = res.TMinc_bottom_reflected;
+%        bottom_tran_info = res.TMinc_bottom_transmitted;
+%    end
+
+    top_refl_info_te = res.TEinc_top_reflected;
+    top_tran_info_te = res.TEinc_top_transmitted;
+    top_refl_info_tm = res.TMinc_top_reflected;
+    top_tran_info_tm = res.TMinc_top_transmitted;
+
+    bottom_refl_info_te = res.TEinc_bottom_reflected;
+    bottom_tran_info_te = res.TEinc_bottom_transmitted;
+    bottom_refl_info_tm = res.TMinc_bottom_reflected;
+    bottom_tran_info_tm = res.TMinc_bottom_transmitted;
 end
 
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_5();
+function [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_5();
 
     warning('off', 'Octave:possible-matlab-short-circuit-operator');
     warning('off', 'Invalid UTF-8 byte sequences have been replaced.');
@@ -418,7 +461,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 
     parm = res0;
     parm.res1.champ = 1;      % calculate precisely
-    parm.res1.trace = 1;
+    parm.res1.trace = 0;
 
     k_parallel = n_top*sind(theta); % n_air, or whatever the refractive index of the medium where light is coming in.
 
@@ -448,13 +491,13 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     %parm.res3.sens=1;
     %##parm.res3.gauss_x = 100
 
-    x = linspace(-period(1)/2, period(1)/2, 50);
-    y = linspace(-period(2)/2, period(2)/2, 50);
-    y = linspace(period(2)/2, -period(2)/2, 50);
+    x = linspace(-period(1)/2, period(1)/2, 11);
+    y = linspace(-period(2)/2, period(2)/2, 11);
+    y = linspace(period(2)/2, -period(2)/2, 11);
 
 
-    x = linspace(0, period(1), 50);
-    y = linspace(period(2), 0, 50);
+    x = linspace(0, period(1), 11);
+    y = linspace(period(2), 0, 11);
 
 %    x = [0:1:49] * period(1) / 50 - period(1)/2;
 %    x = [1:1:50] * period(1) / 50 - period(1)/2;
@@ -463,7 +506,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 %    y = [50:-1:1] .* period(2) / 50 - period(2)/2
 %    y = [49:-1:0] .* period(2) / 50 - period(2)/2
 
-    parm.res3.trace=1;  %trace automatique % automatic trace
+    parm.res3.trace=0;  %trace automatique % automatic trace
 
 %    parm.res3.npts = res3_npts;
 
@@ -476,20 +519,30 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     end
     [e,z,o]=res3(x,y,aa,profile,einc, parm);
 
-    if pol == 1  % TE
-        top_refl_info = res.TEinc_top_reflected;
-        top_tran_info = res.TEinc_top_transmitted;
-        bottom_refl_info = res.TEinc_bottom_reflected;
-        bottom_tran_info = res.TEinc_bottom_transmitted;
-    else  % TM
-        top_refl_info = res.TMinc_top_reflected;
-        top_tran_info = res.TMinc_top_transmitted;
-        bottom_refl_info = res.TMinc_bottom_reflected;
-        bottom_tran_info = res.TMinc_bottom_transmitted;
-    end
+%    if pol == 1  % TE
+%        top_refl_info = res.TEinc_top_reflected;
+%        top_tran_info = res.TEinc_top_transmitted;
+%        bottom_refl_info = res.TEinc_bottom_reflected;
+%        bottom_tran_info = res.TEinc_bottom_transmitted;
+%    else  % TM
+%        top_refl_info = res.TMinc_top_reflected;
+%        top_tran_info = res.TMinc_top_transmitted;
+%        bottom_refl_info = res.TMinc_bottom_reflected;
+%        bottom_tran_info = res.TMinc_bottom_transmitted;
+%    end
+
+    top_refl_info_te = res.TEinc_top_reflected;
+    top_tran_info_te = res.TEinc_top_transmitted;
+    top_refl_info_tm = res.TMinc_top_reflected;
+    top_tran_info_tm = res.TMinc_top_transmitted;
+
+    bottom_refl_info_te = res.TEinc_bottom_reflected;
+    bottom_tran_info_te = res.TEinc_bottom_transmitted;
+    bottom_refl_info_tm = res.TMinc_bottom_reflected;
+    bottom_tran_info_tm = res.TMinc_bottom_transmitted;
 end
 
-function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] = reti_2d_6();
+function [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_6();
 
     warning('off', 'Octave:possible-matlab-short-circuit-operator');
     warning('off', 'Invalid UTF-8 byte sequences have been replaced.');
@@ -520,7 +573,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 
     parm = res0;
     parm.res1.champ = 1;      % calculate precisely
-    parm.res1.trace = 1;
+    parm.res1.trace = 0;
 
     k_parallel = n_top*sind(theta); % n_air, or whatever the refractive index of the medium where light is coming in.
 
@@ -531,7 +584,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 %    parm.res3.npts=[0,1,0];
     parm.res3.npts=[11,11,11];
 
-    %parm.res1.trace = 1; % show the texture
+    %parm.res1.trace = 0; % show the texture
     %
     %textures = cell(1, size(_textures, 2));
     %for i = 1:length(_textures)
@@ -553,8 +606,8 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 %    x = linspace(-period(1)/2, period(1)/2, 50);
 %    y = linspace(-period(2)/2, period(2)/2, 50);
 %    y = linspace(period(2)/2, -period(2)/2, 50);
-    x = linspace(0, period(1), 50);
-    y = linspace(period(2), 0, 50);
+    x = linspace(0, period(1), 11);
+    y = linspace(period(2), 0, 11);
 
 %    x = [0:1:49] * period(1) / 50 - period(1)/2;
 %    x = [1:1:50] * period(1) / 50 - period(1)/2;
@@ -563,7 +616,7 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
 %    y = [50:-1:1] .* period(2) / 50 - period(2)/2
 %    y = [49:-1:0] .* period(2) / 50 - period(2)/2
 
-    parm.res3.trace=1;  %trace automatique % automatic trace
+    parm.res3.trace=0;  %trace automatique % automatic trace
 
 %    parm.res3.npts = res3_npts;
 
@@ -576,17 +629,137 @@ function [top_refl_info, top_tran_info, bottom_refl_info, bottom_tran_info, e] =
     end
     [e,z,o]=res3(x,y,aa,profile,einc, parm);
 
-    if pol == 1  % TE
-        top_refl_info = res.TEinc_top_reflected;
-        top_tran_info = res.TEinc_top_transmitted;
-        bottom_refl_info = res.TEinc_bottom_reflected;
-        bottom_tran_info = res.TEinc_bottom_transmitted;
-    else  % TM
-        top_refl_info = res.TMinc_top_reflected;
-        top_tran_info = res.TMinc_top_transmitted;
-        bottom_refl_info = res.TMinc_bottom_reflected;
-        bottom_tran_info = res.TMinc_bottom_transmitted;
+%    if pol == 1  % TE
+%        top_refl_info = res.TEinc_top_reflected;
+%        top_tran_info = res.TEinc_top_transmitted;
+%        bottom_refl_info = res.TEinc_bottom_reflected;
+%        bottom_tran_info = res.TEinc_bottom_transmitted;
+%    else  % TM
+%        top_refl_info = res.TMinc_top_reflected;
+%        top_tran_info = res.TMinc_top_transmitted;
+%        bottom_refl_info = res.TMinc_bottom_reflected;
+%        bottom_tran_info = res.TMinc_bottom_transmitted;
+%    end
+
+    top_refl_info_te = res.TEinc_top_reflected;
+    top_tran_info_te = res.TEinc_top_transmitted;
+    top_refl_info_tm = res.TMinc_top_reflected;
+    top_tran_info_tm = res.TMinc_top_transmitted;
+
+    bottom_refl_info_te = res.TEinc_bottom_reflected;
+    bottom_tran_info_te = res.TEinc_bottom_transmitted;
+    bottom_refl_info_tm = res.TMinc_bottom_reflected;
+    bottom_tran_info_tm = res.TMinc_bottom_transmitted;
+end
+
+function [top_refl_info_te, top_tran_info_te, top_refl_info_tm, top_tran_info_tm, bottom_refl_info_te, bottom_tran_info_te, bottom_refl_info_tm, bottom_tran_info_tm, e] = reti_2d_7();
+
+    warning('off', 'Octave:possible-matlab-short-circuit-operator');
+    warning('off', 'Invalid UTF-8 byte sequences have been replaced.');
+    warning('off', 'findstr is obsolete; use strfind instead');
+
+    factor = 1;
+    pol = 1;
+    n_top = 1;
+    n_bot = 1;
+    theta = 10;
+    phi = 20;
+    nn = [2,2];
+    period = [480/factor, 480/factor];
+    wavelength = 550/factor;
+    thickness = 220/factor;
+
+
+    a = [0+240, 120+240, 160, 80, 4-1i, 1];
+    b  = [0+240, -120+240, 160, 80, 4, 1];
+    c = [120+240, 0+240, 80, 160, 4+5i, 1];
+    d = [-120+240, 0+240, 80, 160, 4, 1];
+
+    textures = cell(1,3);
+    textures{1} = n_top;
+    textures{2} = {1,a, b, c, d};
+    textures{3} = n_bot;
+
+
+    parm = res0;
+    parm.res1.champ = 1;      % calculate precisely
+    parm.res1.trace = 0;
+
+    k_parallel = n_top*sind(theta); % n_air, or whatever the refractive index of the medium where light is coming in.
+
+    parm = res0;
+
+    parm.not_io = 1;  % no write data on hard disk
+    parm.res1.champ = 1; % the electromagnetic field is calculated accurately
+%    parm.res3.npts=[0,1,0];
+    parm.res3.npts=[11,11,11];
+
+    %parm.res1.trace = 0; % show the texture
+    %
+    %textures = cell(1, size(_textures, 2));
+    %for i = 1:length(_textures)
+    %    textures(i) = _textures(i);
+    %end
+    %
+    %profile = cell(1, size(_profile, 1));
+    %profile(1) = _profile(1, :);
+    %profile(2) = _profile(2, :);
+
+    profile = {[0, thickness, 0], [1, 2, 3]};
+    aa = res1(wavelength,period,textures,nn,k_parallel, phi, parm);
+    res = res2(aa, profile);
+
+    %res3(aa)
+    %parm.res3.sens=1;
+    %##parm.res3.gauss_x = 100
+
+%    x = linspace(-period(1)/2, period(1)/2, 50);
+%    y = linspace(-period(2)/2, period(2)/2, 50);
+%    y = linspace(period(2)/2, -period(2)/2, 50);
+    x = linspace(0, period(1), 11);
+    y = linspace(period(2), 0, 11);
+
+%    x = [0:1:49] * period(1) / 50 - period(1)/2;
+%    x = [1:1:50] * period(1) / 50 - period(1)/2;
+%    y = [0:1:49] .* period(2) / 50 - period(2)/2
+%    y = [1:1:50] .* period(2) / 50 - period(2)/2
+%    y = [50:-1:1] .* period(2) / 50 - period(2)/2
+%    y = [49:-1:0] .* period(2) / 50 - period(2)/2
+
+    parm.res3.trace=0;  %trace automatique % automatic trace
+
+%    parm.res3.npts = res3_npts;
+
+    if pol == 1
+        einc = [0, 1];
+    elseif pol == -1
+        einc = [1, 0];
+    else
+        disp('only TE or TM is allowed.');
     end
+    [e,z,o]=res3(x,y,aa,profile,einc, parm);
+
+%    if pol == 1  % TE
+%        top_refl_info = res.TEinc_top_reflected;
+%        top_tran_info = res.TEinc_top_transmitted;
+%        bottom_refl_info = res.TEinc_bottom_reflected;
+%        bottom_tran_info = res.TEinc_bottom_transmitted;
+%    else  % TM
+%        top_refl_info = res.TMinc_top_reflected;
+%        top_tran_info = res.TMinc_top_transmitted;
+%        bottom_refl_info = res.TMinc_bottom_reflected;
+%        bottom_tran_info = res.TMinc_bottom_transmitted;
+%    end
+
+    top_refl_info_te = res.TEinc_top_reflected;
+    top_tran_info_te = res.TEinc_top_transmitted;
+    top_refl_info_tm = res.TMinc_top_reflected;
+    top_tran_info_tm = res.TMinc_top_transmitted;
+
+    bottom_refl_info_te = res.TEinc_bottom_reflected;
+    bottom_tran_info_te = res.TEinc_bottom_transmitted;
+    bottom_refl_info_tm = res.TMinc_bottom_reflected;
+    bottom_tran_info_tm = res.TMinc_bottom_transmitted;
 end
 
 % Divides the given geometry into rectangles to be used in Reticolo

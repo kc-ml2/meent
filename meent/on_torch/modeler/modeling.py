@@ -38,7 +38,7 @@ class ModelingTorch:
         self.mat_table = None
         self.ucell_info_list = None
         self.period = period
-        self.type_complex = torch.complex128
+        # self.type_complex = torch.complex128
         # self.type_float = torch.float64
 
         self.film_layer = None
