@@ -17,6 +17,20 @@ class ResultJax:
         self.res_te_inc = res_te_inc
         self.res_tm_inc = res_tm_inc
 
+    @property
+    def de_ri(self):
+        if self.res is not None:
+            return self.res.de_ri
+        else:
+            return None
+
+    @property
+    def de_ti(self):
+        if self.res is not None:
+            return self.res.de_ti
+        else:
+            return None
+
 
 class ResultSubJax:
     def __init__(self, R_s, R_p, T_s, T_p, de_ri, de_ri_s, de_ri_p, de_ti, de_ti_s, de_ti_p):

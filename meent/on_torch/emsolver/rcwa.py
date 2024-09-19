@@ -1,4 +1,3 @@
-import time
 import torch
 
 import numpy as np
@@ -14,6 +13,20 @@ class ResultTorch:
         self.res = res
         self.res_te_inc = res_te_inc
         self.res_tm_inc = res_tm_inc
+
+    @property
+    def de_ri(self):
+        if self.res is not None:
+            return self.res.de_ri
+        else:
+            return None
+
+    @property
+    def de_ti(self):
+        if self.res is not None:
+            return self.res.de_ti
+        else:
+            return None
 
 
 class ResultSubTorch:

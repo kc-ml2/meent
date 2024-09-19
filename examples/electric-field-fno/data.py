@@ -66,7 +66,7 @@ def get_field(
         ucell=ucell_new
     )
     # Calculate field distribution: OLD
-    de_ri, de_ti, field_cell = mee.conv_solve_field(
+    result, field_cell = mee.conv_solve_field(
         res_x=field_res[0], res_y=field_res[1], res_z=field_res[2],
     )
 

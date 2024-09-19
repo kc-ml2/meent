@@ -4,18 +4,19 @@ import meent
 
 
 def run():
-    rcwa_options = dict(backend=1, grating_type=2, thickness=[205, 305, 100000], period=[300, 300],
-                        fourier_order=[3, 3],
-                        n_I=1, n_II=1,
+    rcwa_options = dict(backend=1, thickness=[205, 305, 100000], period=[300, 300],
+                        fto=[3, 3],
+                        n_top=1, n_bot=1,
                         wavelength=900,
-                        fft_type=2,
+                        pol=0.5,
                         )
 
-    si = 3.638751670074983-0.007498295841854125j
+    # si = 3.638751670074983-0.007498295841854125j
+    si = 3.638751670074983
     sio2 = 1.4518-0j
     si3n4 = 2.0056-0j
 
-    instructions = [
+    ucell = [
         # layer 1
         [sio2,
             [
@@ -41,16 +42,27 @@ def run():
     ]
 
     mee = meent.call_mee(**rcwa_options)
-    mee.modeling_vector_instruction(instructions)
+    mee.ucell = ucell
 
-    de_ri, de_ti = mee.conv_solve()
-    print(de_ri)
+    result = mee.conv_solve()
+
+    result_given_pol = result.res
+    result_te_incidence = result.res_te_inc
+    result_tm_incidence = result.res_tm_inc
+
+    de_ri, de_ti = result_given_pol.de_ri, result_given_pol.de_ti
+    de_ri1, de_ti1 = result_te_incidence.de_ri, result_te_incidence.de_ti
+    de_ri2, de_ti2 = result_tm_incidence.de_ri, result_tm_incidence.de_ti
+
+    print(de_ri.sum(), de_ti.sum())
+    print(de_ri1.sum(), de_ti1.sum())
+    print(de_ri2.sum(), de_ti2.sum())
 
     return
 
 
 if __name__ == '__main__':
 
-    res = run()
+    run()
 
     print(0)

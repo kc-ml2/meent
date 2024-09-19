@@ -78,6 +78,11 @@ def run_2d(option, case, plot_figure=False):
         # T_p_tm = res_t.res_tm_inc.T_p
 
         print(bds[i])
+        print('n_bot', option['n_bot'])
+        print(de_ri_te)
+        print(reti_de_ri_te)
+        print('de_ri_te', np.linalg.norm(de_ri_te - reti_de_ri_te),)
+
         print('de_ri_te', np.linalg.norm(de_ri_te - reti_de_ri_te),
               'de_ti_te', np.linalg.norm(de_ti_te - reti_de_ti_te),
               'de_ri_tm', np.linalg.norm(de_ri_tm - reti_de_ri_tm),
@@ -313,6 +318,40 @@ def case_2d_6(plot_figure=False):
     run_2d(option, 6, plot_figure)
 
 
+def case_2d_7(plot_figure=False):
+    factor = 1
+    option = {}
+    option['pol'] = 0  # 0: TE, 1: TM
+    option['n_top'] = 1  # n_incidence
+    option['n_bot'] = 1  # n_transmission
+    option['theta'] = 10 * np.pi / 180
+    option['phi'] = 20 * np.pi / 180
+    option['fto'] = [2, 2]
+    option['period'] = [480 / factor, 480 / factor]
+    option['wavelength'] = 550 / factor
+    option['thickness'] = [220 / factor, ]  # final term is for h_substrate
+    option['fourier_type'] = 1
+
+    ucell = [
+        # layer 1
+        [1,
+         [
+             # obj 1
+             ['rectangle', 0+240, 120+240, 160, 80, 4+1j, 0, 0, 0],
+             # obj 2
+             ['rectangle', 0+240, -120+240, 160, 80, 4, 0, 0, 0],
+             # obj 3
+             ['rectangle', 120+240, 0+240, 80, 160, 4-5j, 0, 0, 0],
+             # obj 4
+             ['rectangle', -120+240, 0+240, 80, 160, 4, 0, 0, 0],
+         ],
+         ],
+    ]
+
+    option['ucell'] = ucell
+    run_2d(option, 7, plot_figure)
+
+
 if __name__ == '__main__':
 
     case_2d_1()
@@ -321,3 +360,4 @@ if __name__ == '__main__':
     case_2d_4()
     case_2d_5()
     case_2d_6()
+    case_2d_7()

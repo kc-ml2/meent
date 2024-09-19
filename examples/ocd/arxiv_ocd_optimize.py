@@ -119,60 +119,16 @@ def modelling_ref_index(wavelength, rcwa_options, modeling_options, params_name,
 
         ucell.append([a, obj_list_per_layer])
     mee.ucell = ucell
-    # mee.draw(layer_info_list)
 
     return mee, ucell
-
-
-def modelling_ref_index_old(wavelength, rcwa_options, modeling_options, params_name, params_value, instructions):
-
-    mee = meent.call_mee(wavelength=wavelength, **rcwa_options)
-
-    t = mee.thickness
-
-    for i in range(len(t)):
-        if f'l{i+1}_thickness' in params_name:
-            t[i] = params_value[params_name[f'l{i+1}_thickness']].reshape((1, 1))
-    mee.thickness = t
-
-    mat_table = read_material_table()
-
-    layer_info_list = []
-    for i, layer in enumerate(instructions):
-        obj_list_per_layer = []
-        for j, _ in enumerate(layer):
-            instructions_new = []
-            instructions_target = instructions[i][j]
-            for k, inst in enumerate(instructions_target):
-                if k == 0:
-                    func = getattr(mee, inst)
-                elif inst in params_name:
-                    instructions_new.append(params_value[params_name[inst]])
-                elif inst in modeling_options:
-                    if inst[-7:] == 'n_index' and type(modeling_options[inst]) is str:
-                        a = find_nk_index(modeling_options[inst], mat_table, wavelength).conj()
-                    else:
-                        a = modeling_options[inst]
-                    instructions_new.append(a)
-                else:
-                    raise ValueError
-            obj_list_per_layer += func(*instructions_new)
-
-        a = modeling_options[f'l{i+1}_n_base']
-        if type(a) is str:
-            a = find_nk_index(a, mat_table, wavelength).conj()
-
-        layer_info_list.append([a, obj_list_per_layer])
-
-    mee.draw(layer_info_list)
-
-    return mee, layer_info_list
 
 
 def reflectance_mode_00(mee, wavelength):
     mee.wavelength = wavelength
 
-    de_ri, de_ti = mee.conv_solve()
+    # de_ri, de_ti = mee.conv_solve()
+    result = mee.conv_solve()
+    de_ri, de_ti = result.de_ri, result.de_ti
 
     x_c, y_c = np.array(de_ti.shape) // 2
     reflectance = de_ri[x_c, y_c]

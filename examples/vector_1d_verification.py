@@ -8,52 +8,53 @@ def run_vector(rcwa_options, backend):
 
     rcwa_options['backend'] = backend
     mee = meent.call_mee(**rcwa_options)
-    mee.modeling_vector_instruction(instructions)
+    mee.ucell = ucell_vector
 
-    de_ri, de_ti = mee.conv_solve()
+    res = mee.conv_solve()
 
-    return de_ri, de_ti
+    return res.de_ri, res.de_ti
 
 
-def run_raster(rcwa_options, backend, fft_type):
+def run_raster(rcwa_options, backend, fourier_type):
 
-    # ucell = ucell.numpy()
+    # ucell_raster = ucell_raster.numpy()
 
     rcwa_options['backend'] = backend
-    rcwa_options['fourier_type'] = fft_type
+    rcwa_options['fourier_type'] = fourier_type
     # 0: Discrete Fourier series; 1 is for Continuous FS which is used in vector modeling.
 
-
     if backend == 0:
-        ucell = np.asarray(rcwa_options['ucell'])
+        ucell_raster_1 = np.asarray(ucell_raster)
     elif backend == 1:
-        ucell = np.asarray(rcwa_options['ucell'])
+        ucell_raster_1 = np.asarray(ucell_raster)
     elif backend == 2:
-        ucell = torch.as_tensor(rcwa_options['ucell'])
+        ucell_raster_1 = torch.as_tensor(ucell_raster)
     else:
         raise ValueError
 
-    rcwa_options['ucell'] = ucell
+    rcwa_options['ucell'] = ucell_raster_1
 
     mee = meent.call_mee(**rcwa_options)
 
-    de_ri, de_ti = mee.conv_solve()
+    res = mee.conv_solve()
+    de_ri, de_ti = res.de_ri, res.de_ti
+
     return de_ri, de_ti
 
 
 if __name__ == '__main__':
-    rcwa_options = dict(backend=0, grating_type=2, thickness=[205, 100000], period=[300, 300],
-                        fourier_order=[3, 0],
-                        n_I=1, n_II=1,
+    rcwa_options = dict(backend=0, thickness=[205, 100000], period=[300, 300],
+                        fto=[3, 0],
+                        n_top=1, n_bot=1,
                         wavelength=900,
-                        fft_type=2,
                         )
 
-    si = 3.638751670074983-0.007498295841854125j
+    # si = 3.638751670074983-0.007498295841854125j
+    si = 3.638751670074983
     sio2 = 1.4518
     si3n4 = 2.0056
 
-    instructions = [
+    ucell_vector = [
         # layer 1
         [si3n4,
             [
@@ -73,7 +74,7 @@ if __name__ == '__main__':
     b = si
     c = si
 
-    ucell = [
+    ucell_raster = [
         [
             [c,c,c,c,c,c,c,c,c,c] + [a,a,a,a,a,a,a,a,c,c] + [c,c,a,a,a,a,a,a,a,a],
             [c,c,c,c,c,c,c,c,c,c] + [a,a,a,a,a,a,a,a,c,c] + [c,c,a,a,a,a,a,a,a,a],
@@ -139,7 +140,6 @@ if __name__ == '__main__':
             [b,b,b,b,b,b,b,b,b,b] + [b,b,b,b,b,b,b,b,b,b] + [b,b,b,b,b,b,b,b,b,b],
         ],
     ]
-    # ucell = np.array(ucell)
 
     de_ri_v_0, de_ti_v_0 = run_vector(rcwa_options, 0)  # NumPy
     de_ri_v_1, de_ti_v_1 = run_vector(rcwa_options, 1)  # JAX
@@ -159,7 +159,6 @@ if __name__ == '__main__':
     print(f'Norm of difference JAX and Torch; R: {np.linalg.norm(de_ri_v_1-de_ri_v_2)}, T: {np.linalg.norm(de_ti_v_1-de_ti_v_2)}')
     print(f'Norm of difference Torch and NumPy; R: {np.linalg.norm(de_ri_v_1-de_ri_v_2)}, T: {np.linalg.norm(de_ti_v_1-de_ti_v_2)}')
 
-    rcwa_options['ucell'] = ucell
     de_ri_r_0_dfs, de_ti_r_0_dfs = run_raster(rcwa_options, 0, 0)  # NumPy
     de_ri_r_0_cfs, de_ti_r_0_cfs = run_raster(rcwa_options, 0, 1)  # NumPy
     de_ri_r_1_dfs, de_ti_r_1_dfs = run_raster(rcwa_options, 1, 0)  # JAX
