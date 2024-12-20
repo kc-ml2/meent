@@ -198,7 +198,7 @@ class RCWANumpy(_BaseRCWA):
 
         return result
 
-    def calculate_field(self, res_x=20, res_y=20, res_z=20):
+    def calculate_field(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False)):
         # TODO: change res_ to accept array of points.
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
 
@@ -209,16 +209,18 @@ class RCWANumpy(_BaseRCWA):
         elif self._grating_type_assigned == 1:
             # TODO other bds
             field_cell = field_dist_1d_conical(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                               res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+                                               res_x=res_x, res_y=res_y, res_z=res_z, set_field_input=set_field_input,
+                                               type_complex=self.type_complex)
         else:
             field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                       res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+                                       res_x=res_x, res_y=res_y, res_z=res_z, set_field_input=set_field_input,
+                                       type_complex=self.type_complex)
 
         return field_cell
 
-    def conv_solve_field(self, res_x=20, res_y=20, res_z=20):
+    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False)):
         res = self.conv_solve()
-        field_cell = self.calculate_field(res_x, res_y, res_z)
+        field_cell = self.calculate_field(res_x, res_y, res_z, set_field_input)
         return res, field_cell
 
     def field_plot(self, field_cell):

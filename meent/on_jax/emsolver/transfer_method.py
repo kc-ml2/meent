@@ -355,7 +355,6 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_comp
 def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
                           type_complex=jnp.complex128, use_pinv=False):
 
-
     ff_xy = ff_x * ff_y
 
     Kz_top = jnp.diag(kz_top)
@@ -364,7 +363,6 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
 
     I = jnp.eye(ff_xy, dtype=type_complex)
     O = jnp.zeros((ff_xy, ff_xy), dtype=type_complex)
-
 
     big_F_11 = big_F[:ff_xy, :ff_xy]
     big_F_12 = big_F[:ff_xy, ff_xy:]
@@ -475,7 +473,9 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
 
     result = {'res': res, 'res_tm_inc': res_tm_inc, 'res_te_inc': res_te_inc}
 
-    return result, big_T1
+    big_T1_all = jnp.stack((big_T1, big_T1_tetm[:, 0:1], big_T1_tetm[:, 1:2]))
+
+    return result, big_T1_all
 
 
 def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
@@ -718,6 +718,8 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
 
     result = {'res': res, 'res_tm_inc': res_tm_inc, 'res_te_inc': res_te_inc}
 
-    return result, big_T1
+    big_T1_all = jnp.stack((big_T1, big_T1_tetm[:, 0:1], big_T1_tetm[:, 1:2]))
+
+    return result, big_T1_all
 
 

@@ -260,7 +260,7 @@ class RCWAJax(_BaseRCWA):
     #     return de_ri, de_ti
 
     @jax_device_set
-    def calculate_field(self, res_x=20, res_y=20, res_z=20):
+    def calculate_field(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False)):
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
 
         if self._grating_type_assigned == 0:
@@ -269,10 +269,12 @@ class RCWAJax(_BaseRCWA):
                                        res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
         elif self._grating_type_assigned == 1:
             field_cell = field_dist_1d_conical(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                               res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+                                               res_x=res_x, res_y=res_y, res_z=res_z,  set_field_input=set_field_input,
+                                               type_complex=self.type_complex)
         else:
             field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                       res_x=res_x, res_y=res_y, res_z=res_z, type_complex=self.type_complex)
+                                       res_x=res_x, res_y=res_y, res_z=res_z, set_field_input=set_field_input,
+                                       type_complex=self.type_complex)
 
         return field_cell
 
@@ -281,7 +283,7 @@ class RCWAJax(_BaseRCWA):
 
     @partial(jax.jit, static_argnums=(1, 2, 3))
     @jax_device_set
-    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, **kwargs):
+    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False), **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
         if self.fourier_type == 1:
@@ -289,13 +291,13 @@ class RCWAJax(_BaseRCWA):
             return None, None, None
 
         de_ri, de_ti, _, _ = self._conv_solve()
-        field_cell = self.calculate_field(res_x, res_y, res_z)
+        field_cell = self.calculate_field(res_x, res_y, res_z, set_field_input)
         return de_ri, de_ti, field_cell
 
     @jax_device_set
-    def conv_solve_field_no_jit(self, res_x=20, res_y=20, res_z=20):
+    def conv_solve_field_no_jit(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False)):
         de_ri, de_ti, _, _ = self._conv_solve()
-        field_cell = self.calculate_field(res_x, res_y, res_z)
+        field_cell = self.calculate_field(res_x, res_y, res_z, set_field_input)
         return de_ri, de_ti, field_cell
 
     def run_ucell_vmap(self, ucell_list):
