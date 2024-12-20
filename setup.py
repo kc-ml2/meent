@@ -19,7 +19,7 @@ with open(os.path.join(cwd, "README.md"), encoding="utf-8") as f:
 
 setup(
     name='meent',
-    version='0.11.0',
+    version='0.12.0',
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
