@@ -377,7 +377,8 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
     R_p = final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))
 
     big_T1 = final_RT[2 * ff_xy:, :]
-    big_T_tetm = big_T.clone().detach()
+    # big_T_tetm = big_T.clone().detach()
+    big_T_tetm = big_T.clone()
     big_T = big_T @ big_T1
 
     T_s = big_T[:ff_xy, :].reshape((ff_y, ff_x))
@@ -447,8 +448,9 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
                   'de_ti_s': de_ti_s_tetm[1], 'de_ti_p': de_ti_p_tetm[1], 'de_ti': de_ti_tetm[1]}
 
     result = {'res': res, 'res_tm_inc': res_tm_inc, 'res_te_inc': res_te_inc}
+    big_T1_all = torch.stack((big_T1, big_T1_tetm[:, 0:1], big_T1_tetm[:, 1:2]))
 
-    return result, big_T1
+    return result, big_T1_all
 
 
 def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex=torch.complex128):
@@ -642,7 +644,8 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
     R_p = final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))
 
     big_T1 = final_RT[2 * ff_xy:, :]
-    big_T_tetm = big_T.clone().detach()
+    # big_T_tetm = big_T.clone().detach()
+    big_T_tetm = big_T.clone()
     big_T = big_T @ big_T1
 
     T_s = big_T[:ff_xy, :].reshape((ff_y, ff_x))
@@ -712,5 +715,7 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
                   'de_ti_s': de_ti_s_tetm[1], 'de_ti_p': de_ti_p_tetm[1], 'de_ti': de_ti_tetm[1]}
 
     result = {'res': res, 'res_tm_inc': res_tm_inc, 'res_te_inc': res_te_inc}
+    # big_T1_all = [big_T1, big_T1_tetm[:, 0:1], big_T1_tetm[:, 1:2]]
+    big_T1_all = torch.stack((big_T1, big_T1_tetm[:, 0:1], big_T1_tetm[:, 1:2]))
 
-    return result, big_T1
+    return result, big_T1_all

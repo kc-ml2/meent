@@ -54,7 +54,7 @@ class RCWATorch(_BaseRCWA):
                  period=(1., 1.),
                  wavelength=1.,
                  ucell=None,
-                 thickness=(0., ),
+                 thickness=(0.,),
                  backend=2,
                  pol=0.,
                  fto=(0, 0),
@@ -196,28 +196,31 @@ class RCWATorch(_BaseRCWA):
 
         return result
 
-    def calculate_field(self, res_x=20, res_y=20, res_z=20):
+    def calculate_field(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False)):
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
 
         if self._grating_type_assigned == 0:
             res_y = 1
             field_cell = field_dist_1d(self.wavelength, kx, self.T1, self.layer_info_list, self.period, self.pol,
-                                       res_x=res_x, res_y=res_y, res_z=res_z, device=self.device, type_complex=self.type_complex)
+                                       res_x=res_x, res_y=res_y, res_z=res_z, device=self.device,
+                                       type_complex=self.type_complex)
         elif self._grating_type_assigned == 1:
             field_cell = field_dist_1d_conical(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                       res_x=res_x, res_y=res_y, res_z=res_z, device=self.device, type_complex=self.type_complex)
+                                               res_x=res_x, res_y=res_y, res_z=res_z, set_field_input=set_field_input,
+                                               device=self.device, type_complex=self.type_complex)
         else:
             field_cell = field_dist_2d(self.wavelength, kx, ky, self.T1, self.layer_info_list, self.period,
-                                       res_x=res_x, res_y=res_y, res_z=res_z, device=self.device, type_complex=self.type_complex)
+                                       res_x=res_x, res_y=res_y, res_z=res_z, set_field_input=set_field_input,
+                                       device=self.device, type_complex=self.type_complex)
 
         return field_cell
 
-    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, **kwargs):
+    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False), **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
-        de_ri, de_ti = self.conv_solve()
-        field_cell = self.calculate_field(res_x, res_y, res_z)
-        return de_ri, de_ti, field_cell
+        res = self.conv_solve()
+        field_cell = self.calculate_field(res_x, res_y, res_z, set_field_input)
+        return res, field_cell
 
     def field_plot(self, field_cell):
         field_plot(field_cell, self.pol)

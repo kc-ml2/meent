@@ -32,20 +32,31 @@ def run_1dc(option, plot_figure=False):
     # Numpy
     mee = meent.call_mee(backend=0, **option)
     res_numpy = mee.conv_solve()
-    field_cell_numpy = mee.calculate_field(res_z=res_z, res_y=res_y, res_x=res_x)
+    field_cell_numpy = mee.calculate_field(res_z=res_z, res_y=res_y, res_x=res_x, set_field_input=(True, True, True))
 
     # JAX
     mee = meent.call_mee(backend=1, **option)  # JAX
     res_jax = mee.conv_solve()
-    field_cell_jax = mee.calculate_field(res_z=res_z, res_y=res_y, res_x=res_x)
+    field_cell_jax = mee.calculate_field(res_z=res_z, res_y=res_y, res_x=res_x, set_field_input=(True, True, True))
 
     # Torch
     mee = meent.call_mee(backend=2, **option)  # PyTorch
     res_torch = mee.conv_solve()
-    field_cell_torch = mee.calculate_field(res_z=res_z, res_y=res_y, res_x=res_x).numpy()
+    field_cell_torch = mee.calculate_field(res_z=res_z, res_y=res_y, res_x=res_x, set_field_input=(True, True, True)).numpy()
 
     bds = ['Numpy', 'JAX', 'Torch']
     fields = [field_cell_numpy, field_cell_jax, field_cell_torch]
+
+    print('Field difference: given_pol to TE, given_pol to TM')
+    n1 = np.linalg.norm(field_cell_numpy[0] - field_cell_numpy[1])
+    n2 = np.linalg.norm(field_cell_numpy[0] - field_cell_numpy[2])
+    j1 = np.linalg.norm(field_cell_jax[0] - field_cell_jax[1])
+    j2 = np.linalg.norm(field_cell_jax[0] - field_cell_jax[2])
+    t1 = np.linalg.norm(field_cell_torch[0] - field_cell_torch[1])
+    t2 = np.linalg.norm(field_cell_torch[0] - field_cell_torch[2])
+    print(f'numpy: {n1}, {n2}')
+    print(f'jax: {j1}, {j2}')
+    print(f'torch: {t1}, {t2}')
 
     print('Norm of (meent - reti) per backend')
     for i, res_t in enumerate([res_numpy, res_jax, res_torch]):
@@ -78,7 +89,7 @@ def run_1dc(option, plot_figure=False):
               )
 
         for i_field in range(reti_field_cell.shape[-1]):
-            res_temp = np.linalg.norm(fields[i][i_field] - reti_field_cell[i_field])
+            res_temp = np.linalg.norm(fields[i][0,:,:,:,i_field] - reti_field_cell[:,:,:,i_field])
             print(f'field, {i_field+1}th: {res_temp}')
 
         if plot_figure:
