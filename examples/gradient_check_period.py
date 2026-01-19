@@ -13,8 +13,9 @@ def get_ucell(mode, backend):
         ucell = np.array([[[1.0]*5 + [1.5]*5]]) 
     else: # 2D
         # 1 layer, y=10, x=10
-        x = np.array([[1.0]*5 + [1.5]*5])
-        ucell = np.repeat(x, 10, axis=0).reshape(1, 10, 10)
+        # Checkerboard-like pattern (square in middle)
+        ucell = np.ones((1, 10, 10)) * 1.0
+        ucell[0, 2:8, 2:8] = 1.5
         
     if backend == 1: # JAX
         return jnp.array(ucell)
