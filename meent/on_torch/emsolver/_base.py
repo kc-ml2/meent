@@ -193,6 +193,8 @@ class _BaseRCWA:
     @period.setter
     def period(self, period):
         if isinstance(period, torch.Tensor):
+            # Maintain the autograd graph by using graph-preserving operations (view, repeat)
+            # instead of creating a new leaf tensor with torch.tensor().
             if period.ndim == 0:
                 p = period.view(1).repeat(2)
             elif period.numel() == 1:
@@ -202,7 +204,7 @@ class _BaseRCWA:
             self._period = p.to(device=self.device, dtype=self.type_float)
 
         elif type(period) in (list, tuple, np.ndarray):
-            # Check if elements are tensors
+            # Check if elements are tensors to preserve the autograd graph using torch.stack().
             if len(period) > 0 and isinstance(period[0], torch.Tensor):
                 if len(period) == 1:
                     p = torch.stack([period[0], period[0]])
