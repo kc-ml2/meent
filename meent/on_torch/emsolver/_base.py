@@ -192,12 +192,29 @@ class _BaseRCWA:
 
     @period.setter
     def period(self, period):
-        if type(period) in (int, float):
+        if isinstance(period, torch.Tensor):
+            if period.ndim == 0:
+                p = period.view(1).repeat(2)
+            elif period.numel() == 1:
+                p = period.view(1).repeat(2)
+            else:
+                p = period
+            self._period = p.to(device=self.device, dtype=self.type_float)
+
+        elif type(period) in (list, tuple, np.ndarray):
+            # Check if elements are tensors
+            if len(period) > 0 and isinstance(period[0], torch.Tensor):
+                if len(period) == 1:
+                    p = torch.stack([period[0], period[0]])
+                else:
+                    p = torch.stack([period[0], period[1]])
+                self._period = p.to(device=self.device, dtype=self.type_float)
+            else:
+                if len(period) == 1:
+                    period = [period[0], period[0]]
+                self._period = torch.tensor(period, device=self.device, dtype=self.type_float)
+        elif type(period) in (int, float):
             self._period = torch.tensor([period, period], device=self.device, dtype=self.type_float)
-        elif type(period) in (list, tuple, np.ndarray) or isinstance(period, torch.Tensor):
-            if len(period) == 1:
-                period = [period[0], period[0]]
-            self._period = torch.tensor(period, device=self.device, dtype=self.type_float)
         else:
             raise ValueError
 
