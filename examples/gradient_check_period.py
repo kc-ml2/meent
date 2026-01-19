@@ -113,10 +113,12 @@ def run_jax(mode, shape_type):
     else:
         ad_arr = np.array(ad_grad)
         fd_arr = np.array(fd_grad)
-        
+
     diff = np.abs(ad_arr - fd_arr).max()
     if diff < 1e-4:
         print(f"    PASSED (Diff: {diff:.2e})")
+        print(f"    AD: {ad_grad}")
+        print(f"    FD: {fd_grad}")
     else:
         print(f"    FAILED (Diff: {diff:.2e})")
         print(f"    AD: {ad_grad}")
@@ -223,6 +225,8 @@ def run_torch(mode, shape_type):
     
     if diff < 1e-4:
         print(f"    PASSED (Diff: {diff:.2e})")
+        print(f"    AD: {ad_grad}")
+        print(f"    FD: {fd_grad}")
     else:
         print(f"    FAILED (Diff: {diff:.2e})")
         print(f"    AD: {ad_grad}")
