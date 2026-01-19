@@ -28,7 +28,7 @@ def run_jax(mode, shape_type):
     
     def loss_fn(p):
         # p is whatever structure jax.grad passes down (list of tracers, array tracer, etc.)
-        fto = [1, 0] if mode == '1D' else [1, 1]
+        fto = [5, 0] if mode == '1D' else [5, 5]
         mee = meent.call_mee(backend=1, period=p, ucell=ucell,
                              wavelength=900., thickness=[500.], fto=fto,
                              n_top=1., n_bot=1.5)
@@ -141,7 +141,7 @@ def run_torch(mode, shape_type):
         p = [torch.tensor(val, dtype=torch.float64, requires_grad=True) for _ in range(2)]
 
     def loss_fn(p_in):
-        fto = [1, 0] if mode == '1D' else [1, 1]
+        fto = [5, 0] if mode == '1D' else [5, 5]
         mee = meent.call_mee(backend=2, period=p_in, ucell=ucell,
                              wavelength=900., thickness=[500.], fto=fto,
                              n_top=1., n_bot=1.5)
