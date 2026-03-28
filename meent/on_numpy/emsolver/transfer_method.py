@@ -61,29 +61,27 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=np.compl
     return W, V, q
 
 
-def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=np.complex128, use_pinv=False):
+def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=np.complex128, use_pinv=False,
+                   same_material=False):
     ff_x = len(q)
 
     I = np.eye(ff_x, dtype=type_complex)
 
     X = np.diag(np.exp(-k0 * q * d))
 
-    W_i = meeinv(W, use_pinv)
-    V_i = meeinv(V, use_pinv)
-
-    A = 0.5 * (W_i @ F + V_i @ G)
-    B = 0.5 * (W_i @ F - V_i @ G)
-
-    # When the layer material matches the substrate/previous layer,
-    # V_i @ G ≈ -I, making A ≈ 0 (no interface reflection).
-    # Detect this by checking if V_i @ G is close to -I, and if so,
-    # skip interface matching — just apply propagation.
-    vig = V_i @ G
-    same_material = np.allclose(vig, -np.eye(ff_x, dtype=type_complex), atol=0.1)
     if same_material:
+        # Same material as substrate/previous layer: no interface reflection.
+        # Skip boundary matching, apply propagation only.
+        A_i = np.zeros((ff_x, ff_x), dtype=type_complex)
+        B = np.zeros((ff_x, ff_x), dtype=type_complex)
         T = T @ X
-        A_i = np.zeros_like(A)
     else:
+        W_i = meeinv(W, use_pinv)
+        V_i = meeinv(V, use_pinv)
+
+        A = 0.5 * (W_i @ F + V_i @ G)
+        B = 0.5 * (W_i @ F - V_i @ G)
+
         A_i = meeinv(A, use_pinv)
 
         F = W @ (I + X @ B @ A_i @ X)

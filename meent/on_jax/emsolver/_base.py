@@ -297,6 +297,10 @@ class _BaseRCWA:
         else:
             raise ValueError
 
+        # Track eps of layer below for same-material detection.
+        # Substrate eps uses conj(n)^2 to match layer convention.
+        eps_below = jnp.conj(self.n_bot) ** 2
+
         # From the last layer
         for layer_index in range(len(self.thickness))[::-1]:
 
@@ -310,11 +314,20 @@ class _BaseRCWA:
                 W, V, q = transfer_1d_2(self.pol, kx, epx_conv, epy_conv, epz_conv_i, self.type_complex,
                                         self.perturbation, use_pinv=self.use_pinv)
 
+                # Detect if this layer has the same material as the layer below.
+                # For the bottom layer, compare with substrate eps.
+                # A uniform layer of the same material has diagonal eps_conv ≈ eps_below * I.
+                layer_eps_diag = jnp.diag(epx_conv).mean()
+                is_same = jnp.allclose(layer_eps_diag, eps_below, rtol=1e-3)
+
                 X, F, G, T, A_i, B = transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=self.type_complex,
-                                                   use_pinv=self.use_pinv)
+                                                   use_pinv=self.use_pinv, same_material=is_same)
 
                 layer_info = [epz_conv_i, W, V, q, d, A_i, B]
                 self.layer_info_list.append(layer_info)
+
+                # Update eps_below for next layer comparison
+                eps_below = layer_eps_diag
 
             elif self.connecting_algo == 'SMM':
                 raise ValueError

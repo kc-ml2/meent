@@ -65,28 +65,27 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('
     return W, V, q
 
 
-def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_complex=torch.complex128, use_pinv=False):
+def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_complex=torch.complex128, use_pinv=False,
+                   same_material=False):
     ff_x = len(q)
 
     I = torch.eye(ff_x, device=device, dtype=type_complex)
 
     X = torch.diag(torch.exp(-k0 * q * d))
 
-    W_i = meeinv(W, use_pinv)
-    V_i = meeinv(V, use_pinv)
-
-    A = 0.5 * (W_i @ F + V_i @ G)
-    B = 0.5 * (W_i @ F - V_i @ G)
-
-    # When the layer material matches the substrate/previous layer,
-    # V_i @ G approx -I, making A approx 0 (no interface reflection).
-    # Detect this and skip interface matching -- just apply propagation.
-    vig = V_i @ G
-    same_material = torch.allclose(vig, -torch.eye(ff_x, device=device, dtype=type_complex), atol=0.1)
     if same_material:
+        # Same material as substrate/previous layer: no interface reflection.
+        # Skip boundary matching, apply propagation only.
+        A_i = torch.zeros((ff_x, ff_x), device=device, dtype=type_complex)
+        B = torch.zeros((ff_x, ff_x), device=device, dtype=type_complex)
         T = T @ X
-        A_i = torch.zeros_like(A)
     else:
+        W_i = meeinv(W, use_pinv)
+        V_i = meeinv(V, use_pinv)
+
+        A = 0.5 * (W_i @ F + V_i @ G)
+        B = 0.5 * (W_i @ F - V_i @ G)
+
         A_i = meeinv(A, use_pinv)
 
         F = W @ (I + X @ B @ A_i @ X)

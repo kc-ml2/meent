@@ -105,43 +105,32 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.comp
     # return W, V, q
 
 
-def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128, use_pinv=False):
+def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128, use_pinv=False,
+                   same_material=False):
     ff_x = len(q)
 
     I = jnp.eye(ff_x, dtype=type_complex)
 
     X = jnp.diag(jnp.exp(-k0 * q * d))
 
-    # W_i = jnp.linalg.inv(W)
-    # V_i = jnp.linalg.inv(V)
-    W_i = meeinv(W, use_pinv)
-    V_i = meeinv(V, use_pinv)
+    if same_material:
+        # Same material as substrate/previous layer: no interface reflection.
+        # Skip boundary matching, apply propagation only.
+        A_i = jnp.zeros((ff_x, ff_x), dtype=type_complex)
+        B = jnp.zeros((ff_x, ff_x), dtype=type_complex)
+        T = T @ X
+    else:
+        W_i = meeinv(W, use_pinv)
+        V_i = meeinv(V, use_pinv)
 
-    A = 0.5 * (W_i @ F + V_i @ G)
-    B = 0.5 * (W_i @ F - V_i @ G)
+        A = 0.5 * (W_i @ F + V_i @ G)
+        B = 0.5 * (W_i @ F - V_i @ G)
 
-    # When the layer material matches the substrate/previous layer,
-    # V_i @ G approx -I, making A approx 0 (no interface reflection).
-    # Detect this and skip interface matching -- just apply propagation.
-    vig = V_i @ G
-    same_material = jnp.allclose(vig, -jnp.eye(ff_x, dtype=type_complex), atol=0.1)
-
-    def same_material_fun(args):
-        F_in, G_in, T_in, W, V, I, X, B, A = args
-        T_out = T_in @ X
-        A_i = jnp.zeros_like(A)
-        return F_in, G_in, T_out, A_i
-
-    def diff_material_fun(args):
-        F_in, G_in, T_in, W, V, I, X, B, A = args
         A_i = meeinv(A, use_pinv)
-        F_out = W @ (I + X @ B @ A_i @ X)
-        G_out = V @ (I - X @ B @ A_i @ X)
-        T_out = T_in @ A_i @ X
-        return F_out, G_out, T_out, A_i
 
-    F, G, T, A_i = jax.lax.cond(same_material, same_material_fun, diff_material_fun,
-                                 (F, G, T, W, V, I, X, B, A))
+        F = W @ (I + X @ B @ A_i @ X)
+        G = V @ (I - X @ B @ A_i @ X)
+        T = T @ A_i @ X
 
     return X, F, G, T, A_i, B
 
