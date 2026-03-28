@@ -375,6 +375,10 @@ class _BaseRCWA:
         else:
             raise ValueError
 
+        # Track eps of layer below for same-material detection.
+        # Substrate eps uses conj(n)^2 to match layer convention.
+        eps_below = jnp.conj(self.n_bot) ** 2
+
         for layer_index in range(len(self.thickness))[::-1]:
 
             epx_conv = epx_conv_all[layer_index]
@@ -384,20 +388,23 @@ class _BaseRCWA:
             d = self.thickness[layer_index]
 
             if self.connecting_algo == 'TMM':
-                # big_X, big_F, big_G, big_T, big_A_i, big_B, W_1, W_2, V_11, V_12, V_21, V_22, q_1, q_2 \
-                #     = transfer_1d_conical_2(k0, Kx, ky, E_conv, E_conv_i, o_E_conv_i, ff, d,
-                #                             varphi, big_F, big_G, big_T,
-                #                             type_complex=self.type_complex, device=self.device)
                 W, V, q = transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=self.type_complex,
                                                 perturbation=self.perturbation, device=self.device,
                                                 use_pinv=self.use_pinv)
 
+                # Detect if this layer has the same material as the layer below.
+                layer_eps_diag = jnp.diag(epx_conv).mean()
+                is_same = jnp.allclose(layer_eps_diag, eps_below, rtol=1e-3)
+
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex,
-                                            use_pinv=self.use_pinv)
+                                            use_pinv=self.use_pinv, same_material=is_same)
 
                 layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]
                 self.layer_info_list.append(layer_info)
+
+                # Update eps_below for next layer comparison
+                eps_below = layer_eps_diag
 
             elif self.connecting_algo == 'SMM':
                 raise ValueError
@@ -405,9 +412,6 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            # de_ri, de_ti, big_T1 = transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, self.psi, self.theta, ff,
-            #                                              delta_i0, k_I_z, k0, self.n_top, self.n_bot, k_II_z,
-            #                                              type_complex=self.type_complex)
             result, big_T1 = transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi,
                                                    self.theta, self.n_top, self.n_bot, type_complex=self.type_complex,
                                                    use_pinv=self.use_pinv)
@@ -444,6 +448,10 @@ class _BaseRCWA:
         else:
             raise ValueError
 
+        # Track eps of layer below for same-material detection.
+        # Substrate eps uses conj(n)^2 to match layer convention.
+        eps_below = jnp.conj(self.n_bot) ** 2
+
         # From the last layer
         for layer_index in range(len(self.thickness))[::-1]:
 
@@ -457,12 +465,19 @@ class _BaseRCWA:
                 W, V, q = transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, self.type_complex, self.perturbation,
                                         use_pinv=self.use_pinv)
 
+                # Detect if this layer has the same material as the layer below.
+                layer_eps_diag = jnp.diag(epx_conv).mean()
+                is_same = jnp.allclose(layer_eps_diag, eps_below, rtol=1e-3)
+
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=self.type_complex,
-                                    use_pinv=self.use_pinv)
+                                    use_pinv=self.use_pinv, same_material=is_same)
 
                 layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]
                 self.layer_info_list.append(layer_info)
+
+                # Update eps_below for next layer comparison
+                eps_below = layer_eps_diag
 
             elif self.connecting_algo == 'SMM':
                 raise ValueError

@@ -216,7 +216,8 @@ def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=n
     return W, V, q
 
 
-def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.complex128, use_pinv=False):
+def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.complex128, use_pinv=False,
+                          same_material=False):
     ff_xy = len(q) // 2
     I = np.eye(ff_xy, dtype=type_complex)
     O = np.zeros((ff_xy, ff_xy), dtype=type_complex)
@@ -224,46 +225,52 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_comp
     q_1 = q[:ff_xy]
     q_2 = q[ff_xy:]
 
-    W_1 = W[:, :ff_xy]
-    W_2 = W[:, ff_xy:]
-
-    V_11 = V[:ff_xy, :ff_xy]
-    V_12 = V[:ff_xy, ff_xy:]
-    V_21 = V[ff_xy:, :ff_xy]
-    V_22 = V[ff_xy:, ff_xy:]
-
     X_1 = np.diag(np.exp(-k0 * q_1 * d))
     X_2 = np.diag(np.exp(-k0 * q_2 * d))
 
-    F_c = np.diag(np.cos(varphi))
-    F_s = np.diag(np.sin(varphi))
-
-    V_ss = F_c @ V_11
-    V_sp = F_c @ V_12 - F_s @ W_2
-    W_ss = F_c @ W_1 + F_s @ V_21
-    W_sp = F_s @ V_22
-    W_ps = F_s @ V_11
-    W_pp = F_c @ W_2 + F_s @ V_12
-    V_ps = F_c @ V_21 - F_s @ W_1
-    V_pp = F_c @ V_22
-
     big_I = np.eye(2 * (len(I)), dtype=type_complex)
     big_X = np.block([[X_1, O], [O, X_2]])
-    big_W = np.block([[V_ss, V_sp], [W_ps, W_pp]])
-    big_V = np.block([[W_ss, W_sp], [V_ps, V_pp]])
 
-    big_W_i = meeinv(big_W, use_pinv)
-    big_V_i = meeinv(big_V, use_pinv)
+    if same_material:
+        big_A_i = np.zeros_like(big_F)
+        big_B = np.zeros_like(big_F)
+        big_T = big_T @ big_X
+    else:
+        W_1 = W[:, :ff_xy]
+        W_2 = W[:, ff_xy:]
 
-    big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
-    big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+        V_11 = V[:ff_xy, :ff_xy]
+        V_12 = V[:ff_xy, ff_xy:]
+        V_21 = V[ff_xy:, :ff_xy]
+        V_22 = V[ff_xy:, ff_xy:]
 
-    big_A_i = meeinv(big_A, use_pinv)
+        F_c = np.diag(np.cos(varphi))
+        F_s = np.diag(np.sin(varphi))
 
-    big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
-    big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+        V_ss = F_c @ V_11
+        V_sp = F_c @ V_12 - F_s @ W_2
+        W_ss = F_c @ W_1 + F_s @ V_21
+        W_sp = F_s @ V_22
+        W_ps = F_s @ V_11
+        W_pp = F_c @ W_2 + F_s @ V_12
+        V_ps = F_c @ V_21 - F_s @ W_1
+        V_pp = F_c @ V_22
 
-    big_T = big_T @ big_A_i @ big_X
+        big_W = np.block([[V_ss, V_sp], [W_ps, W_pp]])
+        big_V = np.block([[W_ss, W_sp], [V_ps, V_pp]])
+
+        big_W_i = meeinv(big_W, use_pinv)
+        big_V_i = meeinv(big_V, use_pinv)
+
+        big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
+        big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+
+        big_A_i = meeinv(big_A, use_pinv)
+
+        big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
+        big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+
+        big_T = big_T @ big_A_i @ big_X
 
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 
@@ -456,7 +463,8 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=np.comple
     return W, V, q
 
 
-def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.complex128, use_pinv=False):
+def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.complex128, use_pinv=False,
+                  same_material=False):
     ff_xy = len(q) // 2
 
     I = np.eye(ff_xy, dtype=type_complex)
@@ -465,49 +473,55 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.c
     q_1 = q[:ff_xy]
     q_2 = q[ff_xy:]
 
-    W_11 = W[:ff_xy, :ff_xy]
-    W_12 = W[:ff_xy, ff_xy:]
-    W_21 = W[ff_xy:, :ff_xy]
-    W_22 = W[ff_xy:, ff_xy:]
-
-    V_11 = V[:ff_xy, :ff_xy]
-    V_12 = V[:ff_xy, ff_xy:]
-    V_21 = V[ff_xy:, :ff_xy]
-    V_22 = V[ff_xy:, ff_xy:]
-
     X_1 = np.diag(np.exp(-k0 * q_1 * d))
     X_2 = np.diag(np.exp(-k0 * q_2 * d))
 
-    F_c = np.diag(np.cos(varphi))
-    F_s = np.diag(np.sin(varphi))
-
-    W_ss = F_c @ W_21 - F_s @ W_11
-    W_sp = F_c @ W_22 - F_s @ W_12
-    W_ps = F_c @ W_11 + F_s @ W_21
-    W_pp = F_c @ W_12 + F_s @ W_22
-
-    V_ss = F_c @ V_11 + F_s @ V_21
-    V_sp = F_c @ V_12 + F_s @ V_22
-    V_ps = F_c @ V_21 - F_s @ V_11
-    V_pp = F_c @ V_22 - F_s @ V_12
-
-    big_I = np.eye(2 * (len(I)), dtype=type_complex)
     big_X = np.block([[X_1, O], [O, X_2]])
-    big_W = np.block([[W_ss, W_sp], [W_ps, W_pp]])
-    big_V = np.block([[V_ss, V_sp], [V_ps, V_pp]])
 
-    big_W_i = meeinv(big_W, use_pinv)
-    big_V_i = meeinv(big_V, use_pinv)
+    if same_material:
+        big_A_i = np.zeros_like(big_F)
+        big_B = np.zeros_like(big_F)
+        big_T = big_T @ big_X
+    else:
+        W_11 = W[:ff_xy, :ff_xy]
+        W_12 = W[:ff_xy, ff_xy:]
+        W_21 = W[ff_xy:, :ff_xy]
+        W_22 = W[ff_xy:, ff_xy:]
 
-    big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
-    big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+        V_11 = V[:ff_xy, :ff_xy]
+        V_12 = V[:ff_xy, ff_xy:]
+        V_21 = V[ff_xy:, :ff_xy]
+        V_22 = V[ff_xy:, ff_xy:]
 
-    big_A_i = meeinv(big_A, use_pinv)
+        F_c = np.diag(np.cos(varphi))
+        F_s = np.diag(np.sin(varphi))
 
-    big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
-    big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+        W_ss = F_c @ W_21 - F_s @ W_11
+        W_sp = F_c @ W_22 - F_s @ W_12
+        W_ps = F_c @ W_11 + F_s @ W_21
+        W_pp = F_c @ W_12 + F_s @ W_22
 
-    big_T = big_T @ big_A_i @ big_X
+        V_ss = F_c @ V_11 + F_s @ V_21
+        V_sp = F_c @ V_12 + F_s @ V_22
+        V_ps = F_c @ V_21 - F_s @ V_11
+        V_pp = F_c @ V_22 - F_s @ V_12
+
+        big_I = np.eye(2 * (len(I)), dtype=type_complex)
+        big_W = np.block([[W_ss, W_sp], [W_ps, W_pp]])
+        big_V = np.block([[V_ss, V_sp], [V_ps, V_pp]])
+
+        big_W_i = meeinv(big_W, use_pinv)
+        big_V_i = meeinv(big_V, use_pinv)
+
+        big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
+        big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+
+        big_A_i = meeinv(big_A, use_pinv)
+
+        big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
+        big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+
+        big_T = big_T @ big_A_i @ big_X
 
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 
