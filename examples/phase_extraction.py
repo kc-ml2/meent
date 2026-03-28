@@ -9,7 +9,8 @@ for metasurface design and wavefront engineering applications.
 
 Access pattern:
     result = mee.conv_solve()
-    R_s = result.res.R_s      # complex array
+    R_s = result.R_s          # complex array (top-level property)
+    R_s = result.R_s      # equivalent, via sub-result
     phase = np.angle(R_s)     # phase in radians
 
 For 1D gratings, R_s has shape (1, 2*fto+1) where the 0th order
@@ -51,8 +52,8 @@ def run():
     de_ri = result.res.de_ri  # shape: (1, 2*fto+1)
 
     # --- Complex Rayleigh coefficients ---
-    R_s = result.res.R_s  # complex reflection amplitude (TE)
-    T_s = result.res.T_s  # complex transmission amplitude (TE)
+    R_s = result.R_s  # complex reflection amplitude (TE)
+    T_s = result.T_s  # complex transmission amplitude (TE)
 
     # 0th order: index [0, fto] for 1D
     r0 = R_s[0, fto]
@@ -73,7 +74,7 @@ def run():
     for t in [50, 100, 150, 200, 250, 300]:
         mee.thickness = [t]
         res = mee.conv_solve()
-        r = res.res.R_s[0, fto]
+        r = res.R_s[0, fto]
         print(f"{t:>15d} {np.degrees(np.angle(r)):>+12.2f} {abs(r)**2:>10.6f}")
 
 

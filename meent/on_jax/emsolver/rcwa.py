@@ -31,6 +31,38 @@ class ResultJax:
         else:
             return None
 
+    @property
+    def R_s(self):
+        """Complex reflection amplitude (TE component)."""
+        if self.res is not None:
+            return self.res.R_s
+        else:
+            return None
+
+    @property
+    def R_p(self):
+        """Complex reflection amplitude (TM component)."""
+        if self.res is not None:
+            return self.res.R_p
+        else:
+            return None
+
+    @property
+    def T_s(self):
+        """Complex transmission amplitude (TE component)."""
+        if self.res is not None:
+            return self.res.T_s
+        else:
+            return None
+
+    @property
+    def T_p(self):
+        """Complex transmission amplitude (TM component)."""
+        if self.res is not None:
+            return self.res.T_p
+        else:
+            return None
+
 
 class ResultSubJax:
     def __init__(self, R_s, R_p, T_s, T_p, de_ri, de_ri_s, de_ri_p, de_ti, de_ti_s, de_ti_p):
