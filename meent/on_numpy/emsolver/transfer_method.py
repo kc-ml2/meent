@@ -14,12 +14,17 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=np.complex128):
 
     F = np.eye(ff_x, dtype=type_complex)
 
+    # Substrate eigenvalues: q = sqrt(kx^2 - eps), consistent with transfer_1d_2.
+    # For real n, q = j*kz and G reduces to the original formulation.
+    # For complex n, q != j*conj(kz), so using q directly is essential
+    # to ensure impedance matching between layers and substrate.
+    eps_bot = type_complex(n_bot ** 2)
+    q_bot = (kx ** 2 - eps_bot).astype(type_complex) ** 0.5
+
     if pol == 0:  # TE
-        Kz_bot = np.diag(kz_bot)
-        G = 1j * Kz_bot
+        G = np.diag(-q_bot)
     elif pol == 1:  # TM
-        Kz_bot = np.diag(kz_bot / (n_bot ** 2))
-        G = 1j * Kz_bot
+        G = np.diag(-q_bot / eps_bot)
     else:
         raise ValueError
 
@@ -79,7 +84,23 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=np.complex128, use_pinv=
 
 
 def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_complex=np.complex128, use_pinv=False):
-    Kz_top = np.diag(kz_top)
+    eps_top = type_complex(n_top ** 2)
+    q_top = (kx_sq - eps_top + 0j) ** 0.5 if 'kx_sq' in dir() else \
+            np.array([(type_complex(n_top * np.sin(theta)) ** 2 - eps_top) ** 0.5], dtype=type_complex)
+    # Simplified: at the incident kx only (center diffraction order)
+    kx_center = kz_top.flatten()[ff_x // 2]  # Not kx, but we need kx...
+    # Actually, we need kx values. They're not passed to this function.
+    # For the superstrate, the G_top matrix uses the same eigenvalue approach.
+    # kx is encoded in kz_top: kz = conj(sqrt(eps_top - kx^2))
+    # So kx^2 = eps_top - conj(kz_top)^2 ... but this is circular.
+    #
+    # Simpler: compute q_top from kz_top.
+    # q = sqrt(kx^2 - eps) = sqrt(-(eps - kx^2)) = sqrt(-kz_raw^2)
+    # kz_raw = conj(kz_top) (since kz_top was conjugated)
+    # q_top = sqrt(-conj(kz_top)^2)
+    kz_top_raw = kz_top.conj()  # undo the conj to get raw kz
+    q_top_arr = (-kz_top_raw ** 2).astype(type_complex) ** 0.5
+
     kz_top = kz_top.reshape((1, ff_x))
     kz_bot = kz_bot.reshape((1, ff_x))
 
@@ -88,11 +109,13 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
 
     if pol == 0:  # TE
         inc_term = 1j * n_top * np.cos(theta) * delta_i0
-        T1 = meeinv(G + 1j * Kz_top @ F, use_pinv) @ (1j * Kz_top @ delta_i0 + inc_term)
+        Q_top = np.diag(-q_top_arr)
+        T1 = meeinv(G + Q_top @ F, use_pinv) @ (Q_top @ delta_i0 + inc_term)
 
     elif pol == 1:  # TM
         inc_term = 1j * delta_i0 * np.cos(theta) / n_top
-        T1 = meeinv(G + 1j * Kz_top / (n_top ** 2) @ F, use_pinv) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
+        Q_top = np.diag(-q_top_arr / eps_top)
+        T1 = meeinv(G + Q_top @ F, use_pinv) @ (Q_top @ delta_i0 + inc_term)
     else:
         raise ValueError
 
