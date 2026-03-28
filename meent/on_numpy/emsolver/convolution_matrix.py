@@ -54,7 +54,7 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=None, type_complex=
 
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
-        eps_matrix = ucell_layer ** 2
+        eps_matrix = np.conj(ucell_layer) ** 2
 
         epz_conv = cfs2d(eps_matrix, x_list, y_list, 1, 1, fto_x, fto_y, type_complex)
         epy_conv = cfs2d(eps_matrix, x_list, y_list, 1, 0,  fto_x, fto_y, type_complex)
@@ -116,7 +116,7 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=None, type_complex=n
             n = minimum_pattern_size_x // layer.shape[1]
             layer = np.repeat(layer, n + 1, axis=1)
 
-        eps_matrix = layer ** 2
+        eps_matrix = np.conj(layer) ** 2
 
         epz_conv = dfs2d(eps_matrix, 1, 1, fto_x, fto_y, type_complex)
         epy_conv = dfs2d(eps_matrix, 1, 0, fto_x, fto_y, type_complex)
