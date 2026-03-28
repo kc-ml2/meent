@@ -101,7 +101,7 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu')
 
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
-        eps_matrix = ucell_layer ** 2
+        eps_matrix = torch.conj(ucell_layer) ** 2
 
         epz_conv = cfs2d(eps_matrix, x_list, y_list, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
         epy_conv = cfs2d(eps_matrix, x_list, y_list, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
@@ -124,7 +124,7 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'
 
     for i, layer in enumerate(ucell):
         n_compressed, x_list, y_list = cell_compression(layer, device=device, type_complex=type_complex)
-        eps_matrix = n_compressed ** 2
+        eps_matrix = torch.conj(n_compressed) ** 2
 
         epz_conv = cfs2d(eps_matrix, x_list, y_list, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
         epy_conv = cfs2d(eps_matrix, x_list, y_list, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
@@ -164,7 +164,7 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=torch.device('cpu'),
             n = torch.tensor(n, device=device)
             layer = layer.repeat_interleave(n + 1, axis=1)
 
-        eps_matrix = layer ** 2
+        eps_matrix = torch.conj(layer) ** 2
 
         epz_conv = dfs2d(eps_matrix, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
         epy_conv = dfs2d(eps_matrix, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)

@@ -10,22 +10,24 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=jnp.complex128):
     kz_top = (n_top ** 2 - kx ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2) ** 0.5
 
-    kz_top = kz_top.conjugate()
-    kz_bot = kz_bot.conjugate()
-
     F = jnp.eye(ff_x, dtype=type_complex)
 
-    def false_fun(kz_bot):
-        Kz_bot = jnp.diag(kz_bot)
-        G = 1j * Kz_bot
-        return Kz_bot, G
+    # Substrate boundary: eigenvalue-consistent q = sqrt(kx^2 - eps).
+    eps_bot = jnp.array(n_bot ** 2, dtype=type_complex)
+    q_bot = (kx ** 2 - eps_bot).astype(type_complex) ** 0.5
 
-    def true_fun(kz_bot):
-        Kz_bot = jnp.diag(kz_bot / (n_bot ** 2))
-        G = 1j * Kz_bot
-        return Kz_bot, G
+    def false_fun(q_bot):  # TE
+        G = jnp.diag(-q_bot)
+        return G
 
-    Kz_bot, G = jax.lax.cond(pol.real, true_fun, false_fun, kz_bot)
+    def true_fun(q_bot):  # TM
+        G = jnp.diag(-q_bot / eps_bot)
+        return G
+
+    G = jax.lax.cond(pol.real, true_fun, false_fun, q_bot)
+
+    kz_top = kz_top.conjugate()
+    kz_bot = kz_bot.conjugate()
 
     T = jnp.eye(ff_x, dtype=type_complex)
 
@@ -118,12 +120,28 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128, use_pinv
     A = 0.5 * (W_i @ F + V_i @ G)
     B = 0.5 * (W_i @ F - V_i @ G)
 
-    # A_i = jnp.linalg.inv(A)
-    A_i = meeinv(A, use_pinv)
+    # When the layer material matches the substrate/previous layer,
+    # V_i @ G approx -I, making A approx 0 (no interface reflection).
+    # Detect this and skip interface matching -- just apply propagation.
+    vig = V_i @ G
+    same_material = jnp.allclose(vig, -jnp.eye(ff_x, dtype=type_complex), atol=0.1)
 
-    F = W @ (I + X @ B @ A_i @ X)
-    G = V @ (I - X @ B @ A_i @ X)
-    T = T @ A_i @ X
+    def same_material_fun(args):
+        F_in, G_in, T_in, W, V, I, X, B, A = args
+        T_out = T_in @ X
+        A_i = jnp.zeros_like(A)
+        return F_in, G_in, T_out, A_i
+
+    def diff_material_fun(args):
+        F_in, G_in, T_in, W, V, I, X, B, A = args
+        A_i = meeinv(A, use_pinv)
+        F_out = W @ (I + X @ B @ A_i @ X)
+        G_out = V @ (I - X @ B @ A_i @ X)
+        T_out = T_in @ A_i @ X
+        return F_out, G_out, T_out, A_i
+
+    F, G, T, A_i = jax.lax.cond(same_material, same_material_fun, diff_material_fun,
+                                 (F, G, T, W, V, I, X, B, A))
 
     return X, F, G, T, A_i, B
 
@@ -208,14 +226,18 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
+    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
+
+    # Eigenvalue-consistent substrate boundary (pre-conj)
+    eps_bot = jnp.array(n_bot ** 2, dtype=type_complex)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot).astype(type_complex).flatten() ** 0.5
+
+    big_F = jnp.block([[I, O], [O, jnp.diag(-q_bot / eps_bot)]])
+    big_G = jnp.block([[jnp.diag(-q_bot), O], [O, I]])
+
     kz_top = kz_top.flatten().conj()
     kz_bot = kz_bot.flatten().conj()
 
-    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = jnp.diag(kz_bot)
-
-    big_F = jnp.block([[I, O], [O, 1j * Kz_bot / (n_bot ** 2)]])
-    big_G = jnp.block([[1j * Kz_bot, O], [O, I]])
     big_T = jnp.eye(2 * ff_xy, dtype=type_complex)
 
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
@@ -489,14 +511,18 @@ def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
+    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
+
+    # Eigenvalue-consistent substrate boundary (pre-conj)
+    eps_bot = jnp.array(n_bot ** 2, dtype=type_complex)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot).astype(type_complex).flatten() ** 0.5
+
+    big_F = jnp.block([[I, O], [O, jnp.diag(-q_bot / eps_bot)]])
+    big_G = jnp.block([[jnp.diag(-q_bot), O], [O, I]])
+
     kz_top = kz_top.flatten().conj()
     kz_bot = kz_bot.flatten().conj()
 
-    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = jnp.diag(kz_bot)
-
-    big_F = jnp.block([[I, O], [O, 1j * Kz_bot / (n_bot ** 2)]])
-    big_G = jnp.block([[1j * Kz_bot, O], [O, I]])
     big_T = jnp.eye(2 * ff_xy, dtype=type_complex)
 
     return kz_top, kz_bot, varphi, big_F, big_G, big_T

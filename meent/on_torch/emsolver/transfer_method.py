@@ -8,21 +8,23 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
 
     kz_top = (n_top ** 2 - kx ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2) ** 0.5
-    # kz_top = torch.conj(kz_top)
-    # kz_bot = torch.conj(kz_bot)
-    kz_top = kz_top.conj()
-    kz_bot = kz_bot.conj()
 
     F = torch.eye(ff_x, device=device, dtype=type_complex)
 
+    # Substrate boundary: eigenvalue-consistent q = sqrt(kx^2 - eps).
+    # Uses raw n^2 to match Fresnel at bare interfaces.
+    eps_bot = type_complex(n_bot ** 2)
+    q_bot = (kx ** 2 - eps_bot).to(type_complex) ** 0.5
+
     if pol == 0:  # TE
-        Kz_bot = torch.diag(kz_bot)
-        G = 1j * Kz_bot
+        G = torch.diag(-q_bot)
     elif pol == 1:  # TM
-        Kz_bot = torch.diag(kz_bot / (n_bot ** 2))
-        G = 1j * Kz_bot
+        G = torch.diag(-q_bot / eps_bot)
     else:
         raise ValueError
+
+    kz_top = kz_top.conj()
+    kz_bot = kz_bot.conj()
 
     T = torch.eye(ff_x, device=device, dtype=type_complex)
 
@@ -76,11 +78,20 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_comp
     A = 0.5 * (W_i @ F + V_i @ G)
     B = 0.5 * (W_i @ F - V_i @ G)
 
-    A_i = meeinv(A, use_pinv)
+    # When the layer material matches the substrate/previous layer,
+    # V_i @ G approx -I, making A approx 0 (no interface reflection).
+    # Detect this and skip interface matching -- just apply propagation.
+    vig = V_i @ G
+    same_material = torch.allclose(vig, -torch.eye(ff_x, device=device, dtype=type_complex), atol=0.1)
+    if same_material:
+        T = T @ X
+        A_i = torch.zeros_like(A)
+    else:
+        A_i = meeinv(A, use_pinv)
 
-    F = W @ (I + X @ B @ A_i @ X)
-    G = V @ (I - X @ B @ A_i @ X)
-    T = T @ A_i @ X
+        F = W @ (I + X @ B @ A_i @ X)
+        G = V @ (I - X @ B @ A_i @ X)
+        T = T @ A_i @ X
 
     return X, F, G, T, A_i, B
 
@@ -174,35 +185,28 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, device='cpu', type_complex=torch
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
-
-
-    # varphi = torch.arctan(ky / kx_vector)
-
     varphi = torch.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = torch.diag(kz_bot)
 
-
-    # Y_I = torch.diag(k_I_z / k0)
-    # Y_II = torch.diag(k_II_z / k0)
-    #
-    # Z_I = torch.diag(k_I_z / (k0 * n_I ** 2))
-    # Z_II = torch.diag(k_II_z / (k0 * n_II ** 2))
+    # Eigenvalue-consistent substrate boundary (pre-conj)
+    eps_bot = type_complex(n_bot ** 2)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot).to(type_complex).flatten() ** 0.5
 
     big_F = torch.cat(
         [
             torch.cat([I, O], dim=1),
-            torch.cat([O, 1j * Kz_bot / (n_bot ** 2)], dim=1),
+            torch.cat([O, torch.diag(-q_bot / eps_bot)], dim=1),
         ]
     )
 
     big_G = torch.cat(
         [
-            torch.cat([1j * Kz_bot, O], dim=1),
+            torch.cat([torch.diag(-q_bot), O], dim=1),
             torch.cat([O, I], dim=1),
         ]
     )
+
+    kz_top = kz_top.flatten().conj()
+    kz_bot = kz_bot.flatten().conj()
 
     big_T = torch.eye(2*ff_xy, device=device, dtype=type_complex)
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
@@ -464,25 +468,28 @@ def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
-
     varphi = torch.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = torch.diag(kz_bot)
+
+    # Eigenvalue-consistent substrate boundary (pre-conj)
+    eps_bot = type_complex(n_bot ** 2)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot).to(type_complex).flatten() ** 0.5
 
     big_F = torch.cat(
         [
             torch.cat([I, O], dim=1),
-            torch.cat([O, 1j * Kz_bot / (n_bot ** 2)], dim=1),
+            torch.cat([O, torch.diag(-q_bot / eps_bot)], dim=1),
         ]
     )
 
     big_G = torch.cat(
         [
-            torch.cat([1j * Kz_bot, O], dim=1),
+            torch.cat([torch.diag(-q_bot), O], dim=1),
             torch.cat([O, I], dim=1),
         ]
     )
+
+    kz_top = kz_top.flatten().conj()
+    kz_bot = kz_bot.flatten().conj()
 
     big_T = torch.eye(2 * ff_xy, device=device, dtype=type_complex)
 
