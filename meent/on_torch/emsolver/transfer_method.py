@@ -8,15 +8,11 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
 
     kz_top = (n_top ** 2 - kx ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2) ** 0.5
-    # kz_top = torch.conj(kz_top)
-    # kz_bot = torch.conj(kz_bot)
-    kz_top = kz_top.conj()
-    kz_bot = kz_bot.conj()
 
     F = torch.eye(ff_x, device=device, dtype=type_complex)
 
     if pol == 0:  # TE
-        Kz_bot = torch.diag(kz_bot)
+        Kz_bot = torch.diag(kz_bot.conj())
         G = 1j * Kz_bot
     elif pol == 1:  # TM
         Kz_bot = torch.diag(kz_bot / (n_bot ** 2))
@@ -25,6 +21,9 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
         raise ValueError
 
     T = torch.eye(ff_x, device=device, dtype=type_complex)
+
+    kz_top = kz_top.conj()
+    kz_bot = kz_bot.conj()
 
     return kz_top, kz_bot, F, G, T
 
@@ -174,35 +173,25 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, device='cpu', type_complex=torch
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
-
-
-    # varphi = torch.arctan(ky / kx_vector)
-
     varphi = torch.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = torch.diag(kz_bot)
-
-
-    # Y_I = torch.diag(k_I_z / k0)
-    # Y_II = torch.diag(k_II_z / k0)
-    #
-    # Z_I = torch.diag(k_I_z / (k0 * n_I ** 2))
-    # Z_II = torch.diag(k_II_z / (k0 * n_II ** 2))
+    Kz_bot_raw = torch.diag(kz_bot.flatten())
 
     big_F = torch.cat(
         [
             torch.cat([I, O], dim=1),
-            torch.cat([O, 1j * Kz_bot / (n_bot ** 2)], dim=1),
+            torch.cat([O, 1j * Kz_bot_raw / (n_bot ** 2)], dim=1),
         ]
     )
 
     big_G = torch.cat(
         [
-            torch.cat([1j * Kz_bot, O], dim=1),
+            torch.cat([1j * torch.diag(kz_bot.flatten().conj()), O], dim=1),
             torch.cat([O, I], dim=1),
         ]
     )
+
+    kz_top = kz_top.flatten().conj()
+    kz_bot = kz_bot.flatten().conj()
 
     big_T = torch.eye(2*ff_xy, device=device, dtype=type_complex)
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
@@ -464,25 +453,25 @@ def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
-
     varphi = torch.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = torch.diag(kz_bot)
+    Kz_bot_raw = torch.diag(kz_bot.flatten())
 
     big_F = torch.cat(
         [
             torch.cat([I, O], dim=1),
-            torch.cat([O, 1j * Kz_bot / (n_bot ** 2)], dim=1),
+            torch.cat([O, 1j * Kz_bot_raw / (n_bot ** 2)], dim=1),
         ]
     )
 
     big_G = torch.cat(
         [
-            torch.cat([1j * Kz_bot, O], dim=1),
+            torch.cat([1j * torch.diag(kz_bot.flatten().conj()), O], dim=1),
             torch.cat([O, I], dim=1),
         ]
     )
+
+    kz_top = kz_top.flatten().conj()
+    kz_bot = kz_bot.flatten().conj()
 
     big_T = torch.eye(2 * ff_xy, device=device, dtype=type_complex)
 

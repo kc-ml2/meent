@@ -10,13 +10,10 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=jnp.complex128):
     kz_top = (n_top ** 2 - kx ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2) ** 0.5
 
-    kz_top = kz_top.conjugate()
-    kz_bot = kz_bot.conjugate()
-
     F = jnp.eye(ff_x, dtype=type_complex)
 
     def false_fun(kz_bot):
-        Kz_bot = jnp.diag(kz_bot)
+        Kz_bot = jnp.diag(kz_bot.conjugate())
         G = 1j * Kz_bot
         return Kz_bot, G
 
@@ -28,6 +25,9 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=jnp.complex128):
     Kz_bot, G = jax.lax.cond(pol.real, true_fun, false_fun, kz_bot)
 
     T = jnp.eye(ff_x, dtype=type_complex)
+
+    kz_top = kz_top.conjugate()
+    kz_bot = kz_bot.conjugate()
 
     return kz_top, kz_bot, F, G, T
 
@@ -208,15 +208,15 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
+    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
+    Kz_bot_raw = jnp.diag(kz_bot.flatten())
+
+    big_F = jnp.block([[I, O], [O, 1j * Kz_bot_raw / (n_bot ** 2)]])
+    big_G = jnp.block([[1j * jnp.diag(kz_bot.flatten().conj()), O], [O, I]])
+    big_T = jnp.eye(2 * ff_xy, dtype=type_complex)
+
     kz_top = kz_top.flatten().conj()
     kz_bot = kz_bot.flatten().conj()
-
-    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = jnp.diag(kz_bot)
-
-    big_F = jnp.block([[I, O], [O, 1j * Kz_bot / (n_bot ** 2)]])
-    big_G = jnp.block([[1j * Kz_bot, O], [O, I]])
-    big_T = jnp.eye(2 * ff_xy, dtype=type_complex)
 
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
 
@@ -489,15 +489,15 @@ def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
+    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
+    Kz_bot_raw = jnp.diag(kz_bot.flatten())
+
+    big_F = jnp.block([[I, O], [O, 1j * Kz_bot_raw / (n_bot ** 2)]])
+    big_G = jnp.block([[1j * jnp.diag(kz_bot.flatten().conj()), O], [O, I]])
+    big_T = jnp.eye(2 * ff_xy, dtype=type_complex)
+
     kz_top = kz_top.flatten().conj()
     kz_bot = kz_bot.flatten().conj()
-
-    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = jnp.diag(kz_bot)
-
-    big_F = jnp.block([[I, O], [O, 1j * Kz_bot / (n_bot ** 2)]])
-    big_G = jnp.block([[1j * Kz_bot, O], [O, I]])
-    big_T = jnp.eye(2 * ff_xy, dtype=type_complex)
 
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
 
