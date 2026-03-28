@@ -113,7 +113,7 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, type_
         de_ti_p = np.zeros(de_ri.shape)
 
     elif pol == 1:
-        de_ti = (T * T.conj() * (kz_bot / n_bot ** 2 / (np.cos(theta) / n_top)).real).real
+        de_ti = (T * T.conj() * (kz_bot.conj() / n_bot ** 2 / (np.cos(theta) / n_top)).real).real
         R_s = np.zeros(R.shape)
         R_p = R
         T_s = np.zeros(T.shape)
@@ -312,10 +312,10 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
     T_p = big_T[ff_xy:, :].reshape((ff_y, ff_x))
 
     de_ri_s = (R_s * R_s.conj() * (kz_top / (n_top * np.cos(theta))).real).real
-    de_ri_p = (R_p * R_p.conj() * (kz_top / n_top ** 2 / (n_top * np.cos(theta))).real).real
+    de_ri_p = (R_p * R_p.conj() * (kz_top.conj() / n_top ** 2 / (n_top * np.cos(theta))).real).real
 
     de_ti_s = (T_s * T_s.conj() * (kz_bot / (n_top * np.cos(theta))).real).real
-    de_ti_p = (T_p * T_p.conj() * (kz_bot / n_bot ** 2 / (n_top * np.cos(theta))).real).real
+    de_ti_p = (T_p * T_p.conj() * (kz_bot.conj() / n_bot ** 2 / (n_top * np.cos(theta))).real).real
 
     de_ri = de_ri_s + de_ri_p
     de_ti = de_ti_s + de_ti_p
@@ -358,10 +358,10 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
     T_p_tetm = big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
 
     de_ri_s_tetm = (R_s_tetm * R_s_tetm.conj() * (kz_top / (n_top * np.cos(theta))).real).real
-    de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / n_top ** 2 / (n_top * np.cos(theta))).real).real
+    de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top.conj() / n_top ** 2 / (n_top * np.cos(theta))).real).real
 
     de_ti_s_tetm = (T_s_tetm * T_s_tetm.conj() * (kz_bot / (n_top * np.cos(theta))).real).real
-    de_ti_p_tetm = (T_p_tetm * T_p_tetm.conj() * (kz_bot / n_bot ** 2 / (n_top * np.cos(theta))).real).real
+    de_ti_p_tetm = (T_p_tetm * T_p_tetm.conj() * (kz_bot.conj() / n_bot ** 2 / (n_top * np.cos(theta))).real).real
 
     de_ri_tetm = de_ri_s_tetm + de_ri_p_tetm
     de_ti_tetm = de_ti_s_tetm + de_ti_p_tetm
@@ -557,10 +557,10 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
     T_p = big_T[ff_xy:, :].reshape((ff_y, ff_x))
 
     de_ri_s = (R_s * R_s.conj() * (kz_top / (n_top * np.cos(theta))).real).real
-    de_ri_p = (R_p * R_p.conj() * (kz_top / n_top ** 2 / (n_top * np.cos(theta))).real).real
+    de_ri_p = (R_p * R_p.conj() * (kz_top.conj() / n_top ** 2 / (n_top * np.cos(theta))).real).real
 
     de_ti_s = (T_s * T_s.conj() * (kz_bot / (n_top * np.cos(theta))).real).real
-    de_ti_p = (T_p * T_p.conj() * (kz_bot / n_bot ** 2 / (n_top * np.cos(theta))).real).real
+    de_ti_p = (T_p * T_p.conj() * (kz_bot.conj() / n_bot ** 2 / (n_top * np.cos(theta))).real).real
 
     de_ri = de_ri_s + de_ri_p
     de_ti = de_ti_s + de_ti_p
@@ -603,10 +603,10 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
     T_p_tetm = big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
 
     de_ri_s_tetm = (R_s_tetm * R_s_tetm.conj() * (kz_top / (n_top * np.cos(theta))).real).real
-    de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / n_top ** 2 / (n_top * np.cos(theta))).real).real
+    de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top.conj() / n_top ** 2 / (n_top * np.cos(theta))).real).real
 
     de_ti_s_tetm = (T_s_tetm * T_s_tetm.conj() * (kz_bot / (n_top * np.cos(theta))).real).real
-    de_ti_p_tetm = (T_p_tetm * T_p_tetm.conj() * (kz_bot / n_bot ** 2 / (n_top * np.cos(theta))).real).real
+    de_ti_p_tetm = (T_p_tetm * T_p_tetm.conj() * (kz_bot.conj() / n_bot ** 2 / (n_top * np.cos(theta))).real).real
 
     de_ri_tetm = de_ri_s_tetm + de_ri_p_tetm
     de_ti_tetm = de_ti_s_tetm + de_ti_p_tetm
