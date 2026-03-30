@@ -10,22 +10,25 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=jnp.complex128):
     kz_top = (n_top ** 2 - kx ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2) ** 0.5
 
-    kz_top = kz_top.conjugate()
-    kz_bot = kz_bot.conjugate()
-
     F = jnp.eye(ff_x, dtype=type_complex)
 
-    def false_fun(kz_bot):
-        Kz_bot = jnp.diag(kz_bot)
-        G = 1j * Kz_bot
-        return Kz_bot, G
+    # Substrate boundary: eigenvalue-consistent q = sqrt(kx^2 - eps).
+    eps_bot = jnp.array(n_bot ** 2, dtype=type_complex)
+    # Add -1e-20j perturbation for correct sqrt branch (see numpy transfer_1d_1 comment)
+    q_bot = (kx ** 2 - eps_bot - 1e-20j).astype(type_complex) ** 0.5
 
-    def true_fun(kz_bot):
-        Kz_bot = jnp.diag(kz_bot / (n_bot ** 2))
-        G = 1j * Kz_bot
-        return Kz_bot, G
+    def false_fun(q_bot):  # TE
+        G = jnp.diag(-q_bot)
+        return G
 
-    Kz_bot, G = jax.lax.cond(pol.real, true_fun, false_fun, kz_bot)
+    def true_fun(q_bot):  # TM
+        G = jnp.diag(-q_bot / eps_bot)
+        return G
+
+    G = jax.lax.cond(pol.real, true_fun, false_fun, q_bot)
+
+    kz_top = kz_top.conjugate()
+    kz_bot = kz_bot.conjugate()
 
     T = jnp.eye(ff_x, dtype=type_complex)
 
@@ -103,27 +106,35 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.comp
     # return W, V, q
 
 
-def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128, use_pinv=False):
+def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128, use_pinv=False,
+                   same_material=False):
     ff_x = len(q)
 
     I = jnp.eye(ff_x, dtype=type_complex)
 
     X = jnp.diag(jnp.exp(-k0 * q * d))
 
-    # W_i = jnp.linalg.inv(W)
-    # V_i = jnp.linalg.inv(V)
-    W_i = meeinv(W, use_pinv)
-    V_i = meeinv(V, use_pinv)
+    if same_material:
+        # Same material as substrate/previous layer: no interface reflection.
+        # Skip boundary matching, apply propagation only.
+        # Transform X to physical basis via W to handle eigenvalue reordering.
+        W_i = meeinv(W, use_pinv)
+        X_phys = W @ X @ W_i
+        A_i = jnp.zeros((ff_x, ff_x), dtype=type_complex)
+        B = jnp.zeros((ff_x, ff_x), dtype=type_complex)
+        T = T @ X_phys
+    else:
+        W_i = meeinv(W, use_pinv)
+        V_i = meeinv(V, use_pinv)
 
-    A = 0.5 * (W_i @ F + V_i @ G)
-    B = 0.5 * (W_i @ F - V_i @ G)
+        A = 0.5 * (W_i @ F + V_i @ G)
+        B = 0.5 * (W_i @ F - V_i @ G)
 
-    # A_i = jnp.linalg.inv(A)
-    A_i = meeinv(A, use_pinv)
+        A_i = meeinv(A, use_pinv)
 
-    F = W @ (I + X @ B @ A_i @ X)
-    G = V @ (I - X @ B @ A_i @ X)
-    T = T @ A_i @ X
+        F = W @ (I + X @ B @ A_i @ X)
+        G = V @ (I - X @ B @ A_i @ X)
+        T = T @ A_i @ X
 
     return X, F, G, T, A_i, B
 
@@ -208,14 +219,19 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
+    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
+
+    # Eigenvalue-consistent substrate boundary (pre-conj)
+    eps_bot = jnp.array(n_bot ** 2, dtype=type_complex)
+    # Add -1e-20j perturbation for correct sqrt branch (see transfer_1d_1 comment)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot - 1e-20j).astype(type_complex).flatten() ** 0.5
+
+    big_F = jnp.block([[I, O], [O, jnp.diag(-q_bot / eps_bot)]])
+    big_G = jnp.block([[jnp.diag(-q_bot), O], [O, I]])
+
     kz_top = kz_top.flatten().conj()
     kz_bot = kz_bot.flatten().conj()
 
-    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = jnp.diag(kz_bot)
-
-    big_F = jnp.block([[I, O], [O, 1j * Kz_bot / (n_bot ** 2)]])
-    big_G = jnp.block([[1j * Kz_bot, O], [O, I]])
     big_T = jnp.eye(2 * ff_xy, dtype=type_complex)
 
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
@@ -298,7 +314,8 @@ def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=j
     return W, V, q
 
 
-def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.complex128, use_pinv=False):
+def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.complex128, use_pinv=False,
+                          same_material=False):
     ff_xy = len(q) // 2
     I = jnp.eye(ff_xy, dtype=type_complex)
     O = jnp.zeros((ff_xy, ff_xy), dtype=type_complex)
@@ -306,46 +323,54 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_comp
     q_1 = q[:ff_xy]
     q_2 = q[ff_xy:]
 
-    W_1 = W[:, :ff_xy]
-    W_2 = W[:, ff_xy:]
-
-    V_11 = V[:ff_xy, :ff_xy]
-    V_12 = V[:ff_xy, ff_xy:]
-    V_21 = V[ff_xy:, :ff_xy]
-    V_22 = V[ff_xy:, ff_xy:]
-
     X_1 = jnp.diag(jnp.exp(-k0 * q_1 * d))
     X_2 = jnp.diag(jnp.exp(-k0 * q_2 * d))
 
-    F_c = jnp.diag(jnp.cos(varphi))
-    F_s = jnp.diag(jnp.sin(varphi))
-
-    V_ss = F_c @ V_11
-    V_sp = F_c @ V_12 - F_s @ W_2
-    W_ss = F_c @ W_1 + F_s @ V_21
-    W_sp = F_s @ V_22
-    W_ps = F_s @ V_11
-    W_pp = F_c @ W_2 + F_s @ V_12
-    V_ps = F_c @ V_21 - F_s @ W_1
-    V_pp = F_c @ V_22
-
-    big_I = jnp.eye(2 * (len(I)), dtype=type_complex)
     big_X = jnp.block([[X_1, O], [O, X_2]])
-    big_W = jnp.block([[V_ss, V_sp], [W_ps, W_pp]])
-    big_V = jnp.block([[W_ss, W_sp], [V_ps, V_pp]])
 
-    big_W_i = meeinv(big_W, use_pinv)
-    big_V_i = meeinv(big_V, use_pinv)
+    if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
+        big_A_i = jnp.zeros_like(big_F)
+        big_B = jnp.zeros_like(big_F)
+        big_T = big_T @ big_X_phys
+    else:
+        W_1 = W[:, :ff_xy]
+        W_2 = W[:, ff_xy:]
 
-    big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
-    big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+        V_11 = V[:ff_xy, :ff_xy]
+        V_12 = V[:ff_xy, ff_xy:]
+        V_21 = V[ff_xy:, :ff_xy]
+        V_22 = V[ff_xy:, ff_xy:]
 
-    big_A_i = meeinv(big_A, use_pinv)
+        F_c = jnp.diag(jnp.cos(varphi))
+        F_s = jnp.diag(jnp.sin(varphi))
 
-    big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
-    big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+        V_ss = F_c @ V_11
+        V_sp = F_c @ V_12 - F_s @ W_2
+        W_ss = F_c @ W_1 + F_s @ V_21
+        W_sp = F_s @ V_22
+        W_ps = F_s @ V_11
+        W_pp = F_c @ W_2 + F_s @ V_12
+        V_ps = F_c @ V_21 - F_s @ W_1
+        V_pp = F_c @ V_22
 
-    big_T = big_T @ big_A_i @ big_X
+        big_I = jnp.eye(2 * (len(I)), dtype=type_complex)
+        big_W = jnp.block([[V_ss, V_sp], [W_ps, W_pp]])
+        big_V = jnp.block([[W_ss, W_sp], [V_ps, V_pp]])
+
+        big_W_i = meeinv(big_W, use_pinv)
+        big_V_i = meeinv(big_V, use_pinv)
+
+        big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
+        big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+
+        big_A_i = meeinv(big_A, use_pinv)
+
+        big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
+        big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+
+        big_T = big_T @ big_A_i @ big_X
 
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 
@@ -489,14 +514,19 @@ def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
+    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
+
+    # Eigenvalue-consistent substrate boundary (pre-conj)
+    eps_bot = jnp.array(n_bot ** 2, dtype=type_complex)
+    # Add -1e-20j perturbation for correct sqrt branch (see transfer_1d_1 comment)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot - 1e-20j).astype(type_complex).flatten() ** 0.5
+
+    big_F = jnp.block([[I, O], [O, jnp.diag(-q_bot / eps_bot)]])
+    big_G = jnp.block([[jnp.diag(-q_bot), O], [O, I]])
+
     kz_top = kz_top.flatten().conj()
     kz_bot = kz_bot.flatten().conj()
 
-    varphi = jnp.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = jnp.diag(kz_bot)
-
-    big_F = jnp.block([[I, O], [O, 1j * Kz_bot / (n_bot ** 2)]])
-    big_G = jnp.block([[1j * Kz_bot, O], [O, I]])
     big_T = jnp.eye(2 * ff_xy, dtype=type_complex)
 
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
@@ -541,7 +571,8 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, type_complex=jnp.compl
     return W, V, q
 
 
-def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.complex128, use_pinv=False):
+def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.complex128, use_pinv=False,
+                  same_material=False):
     ff_xy = len(q)//2
 
     I = jnp.eye(ff_xy, dtype=type_complex)
@@ -550,49 +581,57 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.
     q_1 = q[:ff_xy]
     q_2 = q[ff_xy:]
 
-    W_11 = W[:ff_xy, :ff_xy]
-    W_12 = W[:ff_xy, ff_xy:]
-    W_21 = W[ff_xy:, :ff_xy]
-    W_22 = W[ff_xy:, ff_xy:]
-
-    V_11 = V[:ff_xy, :ff_xy]
-    V_12 = V[:ff_xy, ff_xy:]
-    V_21 = V[ff_xy:, :ff_xy]
-    V_22 = V[ff_xy:, ff_xy:]
-
     X_1 = jnp.diag(jnp.exp(-k0 * q_1 * d))
     X_2 = jnp.diag(jnp.exp(-k0 * q_2 * d))
 
-    F_c = jnp.diag(jnp.cos(varphi))
-    F_s = jnp.diag(jnp.sin(varphi))
-
-    W_ss = F_c @ W_21 - F_s @ W_11
-    W_sp = F_c @ W_22 - F_s @ W_12
-    W_ps = F_c @ W_11 + F_s @ W_21
-    W_pp = F_c @ W_12 + F_s @ W_22
-
-    V_ss = F_c @ V_11 + F_s @ V_21
-    V_sp = F_c @ V_12 + F_s @ V_22
-    V_ps = F_c @ V_21 - F_s @ V_11
-    V_pp = F_c @ V_22 - F_s @ V_12
-
-    big_I = jnp.eye(2 * (len(I)), dtype=type_complex)
     big_X = jnp.block([[X_1, O], [O, X_2]])
-    big_W = jnp.block([[W_ss, W_sp], [W_ps, W_pp]])
-    big_V = jnp.block([[V_ss, V_sp], [V_ps, V_pp]])
 
-    big_W_i = meeinv(big_W, use_pinv)
-    big_V_i = meeinv(big_V, use_pinv)
+    if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
+        big_A_i = jnp.zeros_like(big_F)
+        big_B = jnp.zeros_like(big_F)
+        big_T = big_T @ big_X_phys
+    else:
+        W_11 = W[:ff_xy, :ff_xy]
+        W_12 = W[:ff_xy, ff_xy:]
+        W_21 = W[ff_xy:, :ff_xy]
+        W_22 = W[ff_xy:, ff_xy:]
 
-    big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
-    big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+        V_11 = V[:ff_xy, :ff_xy]
+        V_12 = V[:ff_xy, ff_xy:]
+        V_21 = V[ff_xy:, :ff_xy]
+        V_22 = V[ff_xy:, ff_xy:]
 
-    big_A_i = meeinv(big_A, use_pinv)
+        F_c = jnp.diag(jnp.cos(varphi))
+        F_s = jnp.diag(jnp.sin(varphi))
 
-    big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
-    big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+        W_ss = F_c @ W_21 - F_s @ W_11
+        W_sp = F_c @ W_22 - F_s @ W_12
+        W_ps = F_c @ W_11 + F_s @ W_21
+        W_pp = F_c @ W_12 + F_s @ W_22
 
-    big_T = big_T @ big_A_i @ big_X
+        V_ss = F_c @ V_11 + F_s @ V_21
+        V_sp = F_c @ V_12 + F_s @ V_22
+        V_ps = F_c @ V_21 - F_s @ V_11
+        V_pp = F_c @ V_22 - F_s @ V_12
+
+        big_I = jnp.eye(2 * (len(I)), dtype=type_complex)
+        big_W = jnp.block([[W_ss, W_sp], [W_ps, W_pp]])
+        big_V = jnp.block([[V_ss, V_sp], [V_ps, V_pp]])
+
+        big_W_i = meeinv(big_W, use_pinv)
+        big_V_i = meeinv(big_V, use_pinv)
+
+        big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
+        big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+
+        big_A_i = meeinv(big_A, use_pinv)
+
+        big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
+        big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+
+        big_T = big_T @ big_A_i @ big_X
 
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 

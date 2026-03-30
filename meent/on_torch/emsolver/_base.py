@@ -265,6 +265,10 @@ class _BaseRCWA:
         else:
             raise ValueError
 
+        # Track eps of layer below for same-material detection.
+        # Substrate eps uses conj(n)^2 to match layer convention.
+        eps_below = torch.conj(torch.tensor(self.n_bot, dtype=self.type_complex, device=self.device)) ** 2
+
         # From the last layer
         for layer_index in range(len(self.thickness))[::-1]:
 
@@ -279,11 +283,21 @@ class _BaseRCWA:
                                         type_complex=self.type_complex, perturbation=self.perturbation,
                                         use_pinv=self.use_pinv)
 
+                # Detect if this layer has the same material as the layer below.
+                # For the bottom layer, compare with substrate eps.
+                # A uniform layer of the same material has diagonal eps_conv ≈ eps_below * I.
+                layer_eps_diag = torch.diag(epx_conv).mean()
+                is_same = torch.allclose(layer_eps_diag, eps_below, rtol=1e-3)
+
                 X, F, G, T, A_i, B = transfer_1d_3(k0, W, V, q, d, F, G, T, device=self.device,
-                                                   type_complex=self.type_complex, use_pinv=self.use_pinv)
+                                                   type_complex=self.type_complex, use_pinv=self.use_pinv,
+                                                   same_material=is_same)
 
                 layer_info = [epz_conv_i, W, V, q, d, A_i, B]
                 self.layer_info_list.append(layer_info)
+
+                # Update eps_below for next layer comparison
+                eps_below = layer_eps_diag
 
             elif self.connecting_algo == 'SMM':
                 raise ValueError
@@ -327,6 +341,10 @@ class _BaseRCWA:
         else:
             raise ValueError
 
+        # Track eps of layer below for same-material detection.
+        # Substrate eps uses conj(n)^2 to match layer convention.
+        eps_below = torch.conj(torch.tensor(self.n_bot, dtype=self.type_complex, device=self.device)) ** 2
+
         for layer_index in range(len(self.thickness))[::-1]:
 
             epx_conv = epx_conv_all[layer_index]
@@ -340,12 +358,20 @@ class _BaseRCWA:
                                                 type_complex=self.type_complex, perturbation=self.perturbation,
                                                 use_pinv=self.use_pinv)
 
+                # Detect if this layer has the same material as the layer below.
+                layer_eps_diag = torch.diag(epx_conv).mean()
+                is_same = torch.allclose(layer_eps_diag, eps_below, rtol=1e-3)
+
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=self.device,
-                                            type_complex=self.type_complex, use_pinv=self.use_pinv)
+                                            type_complex=self.type_complex, use_pinv=self.use_pinv,
+                                            same_material=is_same)
 
                 layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]
                 self.layer_info_list.append(layer_info)
+
+                # Update eps_below for next layer comparison
+                eps_below = layer_eps_diag
 
             elif self.connecting_algo == 'SMM':
                 raise ValueError
@@ -388,6 +414,10 @@ class _BaseRCWA:
         else:
             raise ValueError
 
+        # Track eps of layer below for same-material detection.
+        # Substrate eps uses conj(n)^2 to match layer convention.
+        eps_below = torch.conj(torch.tensor(self.n_bot, dtype=self.type_complex, device=self.device)) ** 2
+
         # From the last layer
         for layer_index in range(len(self.thickness))[::-1]:
 
@@ -402,12 +432,20 @@ class _BaseRCWA:
                                         type_complex=self.type_complex, perturbation=self.perturbation,
                                         use_pinv=self.use_pinv)
 
+                # Detect if this layer has the same material as the layer below.
+                layer_eps_diag = torch.diag(epx_conv).mean()
+                is_same = torch.allclose(layer_eps_diag, eps_below, rtol=1e-3)
+
                 big_X, big_F, big_G, big_T, big_A_i, big_B, \
                     = transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=self.device,
-                                    type_complex=self.type_complex, use_pinv=self.use_pinv)
+                                    type_complex=self.type_complex, use_pinv=self.use_pinv,
+                                    same_material=is_same)
 
                 layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]
                 self.layer_info_list.append(layer_info)
+
+                # Update eps_below for next layer comparison
+                eps_below = layer_eps_diag
 
             elif self.connecting_algo == 'SMM':
                 raise ValueError

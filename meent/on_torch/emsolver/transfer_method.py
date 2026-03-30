@@ -8,21 +8,27 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
 
     kz_top = (n_top ** 2 - kx ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2) ** 0.5
-    # kz_top = torch.conj(kz_top)
-    # kz_bot = torch.conj(kz_bot)
-    kz_top = kz_top.conj()
-    kz_bot = kz_bot.conj()
 
     F = torch.eye(ff_x, device=device, dtype=type_complex)
 
+    # Substrate boundary: eigenvalue-consistent q = sqrt(kx^2 - eps).
+    # Uses raw n^2 to match Fresnel at bare interfaces.
+    eps_bot = torch.tensor(n_bot ** 2, dtype=type_complex, device=device)
+    # Add tiny negative imaginary perturbation to select correct sqrt branch.
+    # Without this, torch loses the -0j sign from kx.conj(), causing sqrt(-real)
+    # to give positive imaginary instead of negative, which flips the G matrix sign
+    # for propagating diffraction orders and produces wrong Fresnel coefficients.
+    q_bot = (kx ** 2 - eps_bot - 1e-20j).to(type_complex) ** 0.5
+
     if pol == 0:  # TE
-        Kz_bot = torch.diag(kz_bot)
-        G = 1j * Kz_bot
+        G = torch.diag(-q_bot)
     elif pol == 1:  # TM
-        Kz_bot = torch.diag(kz_bot / (n_bot ** 2))
-        G = 1j * Kz_bot
+        G = torch.diag(-q_bot / eps_bot)
     else:
         raise ValueError
+
+    kz_top = kz_top.conj()
+    kz_bot = kz_bot.conj()
 
     T = torch.eye(ff_x, device=device, dtype=type_complex)
 
@@ -63,24 +69,36 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('
     return W, V, q
 
 
-def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_complex=torch.complex128, use_pinv=False):
+def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_complex=torch.complex128, use_pinv=False,
+                   same_material=False):
     ff_x = len(q)
 
     I = torch.eye(ff_x, device=device, dtype=type_complex)
 
     X = torch.diag(torch.exp(-k0 * q * d))
 
-    W_i = meeinv(W, use_pinv)
-    V_i = meeinv(V, use_pinv)
+    if same_material:
+        # Same material as substrate/previous layer: no interface reflection.
+        # Skip boundary matching, apply propagation only.
+        # Transform X to physical basis via W to handle eigenvalue reordering
+        # (torch.linalg.eig may return eigenvalues in different order than numpy).
+        W_i = meeinv(W, use_pinv)
+        X_phys = W @ X @ W_i
+        A_i = torch.zeros((ff_x, ff_x), device=device, dtype=type_complex)
+        B = torch.zeros((ff_x, ff_x), device=device, dtype=type_complex)
+        T = T @ X_phys
+    else:
+        W_i = meeinv(W, use_pinv)
+        V_i = meeinv(V, use_pinv)
 
-    A = 0.5 * (W_i @ F + V_i @ G)
-    B = 0.5 * (W_i @ F - V_i @ G)
+        A = 0.5 * (W_i @ F + V_i @ G)
+        B = 0.5 * (W_i @ F - V_i @ G)
 
-    A_i = meeinv(A, use_pinv)
+        A_i = meeinv(A, use_pinv)
 
-    F = W @ (I + X @ B @ A_i @ X)
-    G = V @ (I - X @ B @ A_i @ X)
-    T = T @ A_i @ X
+        F = W @ (I + X @ B @ A_i @ X)
+        G = V @ (I - X @ B @ A_i @ X)
+        T = T @ A_i @ X
 
     return X, F, G, T, A_i, B
 
@@ -129,7 +147,7 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, devic
     elif pol == 1:
         # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2) / (np.cos(theta) / n_top))
         # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2 / (np.cos(theta) / n_top)))
-        de_ti = (T * T.conj() * (kz_bot / n_bot ** 2 / (torch.cos(theta) / n_top)).real).real
+        de_ti = (T * T.conj() * (kz_bot.conj() / n_bot ** 2 / (torch.cos(theta) / n_top)).real).real
         R_s = torch.zeros(R.shape)
         R_p = R
         T_s = torch.zeros(T.shape)
@@ -174,35 +192,29 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, device='cpu', type_complex=torch
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
-
-
-    # varphi = torch.arctan(ky / kx_vector)
-
     varphi = torch.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = torch.diag(kz_bot)
 
-
-    # Y_I = torch.diag(k_I_z / k0)
-    # Y_II = torch.diag(k_II_z / k0)
-    #
-    # Z_I = torch.diag(k_I_z / (k0 * n_I ** 2))
-    # Z_II = torch.diag(k_II_z / (k0 * n_II ** 2))
+    # Eigenvalue-consistent substrate boundary (pre-conj)
+    eps_bot = torch.tensor(n_bot ** 2, dtype=type_complex, device=kx.device)
+    # Add -1e-20j perturbation for correct sqrt branch (see transfer_1d_1 comment)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot - 1e-20j).to(type_complex).flatten() ** 0.5
 
     big_F = torch.cat(
         [
             torch.cat([I, O], dim=1),
-            torch.cat([O, 1j * Kz_bot / (n_bot ** 2)], dim=1),
+            torch.cat([O, torch.diag(-q_bot / eps_bot)], dim=1),
         ]
     )
 
     big_G = torch.cat(
         [
-            torch.cat([1j * Kz_bot, O], dim=1),
+            torch.cat([torch.diag(-q_bot), O], dim=1),
             torch.cat([O, I], dim=1),
         ]
     )
+
+    kz_top = kz_top.flatten().conj()
+    kz_bot = kz_bot.flatten().conj()
 
     big_T = torch.eye(2*ff_xy, device=device, dtype=type_complex)
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
@@ -263,7 +275,7 @@ def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device='cpu', 
 # def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z,
 #                           device='cpu', type_complex=torch.complex128):
 def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device='cpu', type_complex=torch.complex128,
-                          use_pinv=False):
+                          use_pinv=False, same_material=False):
 
     ff_xy = len(q) // 2
     I = torch.eye(ff_xy, device=device, dtype=type_complex)
@@ -272,56 +284,62 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device='c
     q_1 = q[:ff_xy]
     q_2 = q[ff_xy:]
 
-    W_1 = W[:, :ff_xy]
-    W_2 = W[:, ff_xy:]
-
-    V_11 = V[:ff_xy, :ff_xy]
-    V_12 = V[:ff_xy, ff_xy:]
-    V_21 = V[ff_xy:, :ff_xy]
-    V_22 = V[ff_xy:, ff_xy:]
-
-
     X_1 = torch.diag(torch.exp(-k0 * q_1 * d))
     X_2 = torch.diag(torch.exp(-k0 * q_2 * d))
-
-    F_c = torch.diag(torch.cos(varphi))
-    F_s = torch.diag(torch.sin(varphi))
-
-    V_ss = F_c @ V_11
-    V_sp = F_c @ V_12 - F_s @ W_2
-    W_ss = F_c @ W_1 + F_s @ V_21
-    W_sp = F_s @ V_22
-    W_ps = F_s @ V_11
-    W_pp = F_c @ W_2 + F_s @ V_12
-    V_ps = F_c @ V_21 - F_s @ W_1
-    V_pp = F_c @ V_22
-
-    big_I = torch.eye(2 * (len(I)), device=device, dtype=type_complex)
 
     big_X = torch.cat([
         torch.cat([X_1, O], dim=1),
         torch.cat([O, X_2], dim=1)])
 
-    big_W = torch.cat([
-        torch.cat([V_ss, V_sp], dim=1),
-        torch.cat([W_ps, W_pp], dim=1)])
+    if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
+        big_A_i = torch.zeros_like(big_F)
+        big_B = torch.zeros_like(big_F)
+        big_T = big_T @ big_X_phys
+    else:
+        W_1 = W[:, :ff_xy]
+        W_2 = W[:, ff_xy:]
 
-    big_V = torch.cat([
-        torch.cat([W_ss, W_sp],  dim=1),
-        torch.cat([V_ps, V_pp], dim=1)])
+        V_11 = V[:ff_xy, :ff_xy]
+        V_12 = V[:ff_xy, ff_xy:]
+        V_21 = V[ff_xy:, :ff_xy]
+        V_22 = V[ff_xy:, ff_xy:]
 
-    big_W_i = meeinv(big_W, use_pinv)
-    big_V_i = meeinv(big_V, use_pinv)
+        F_c = torch.diag(torch.cos(varphi))
+        F_s = torch.diag(torch.sin(varphi))
 
-    big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
-    big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+        V_ss = F_c @ V_11
+        V_sp = F_c @ V_12 - F_s @ W_2
+        W_ss = F_c @ W_1 + F_s @ V_21
+        W_sp = F_s @ V_22
+        W_ps = F_s @ V_11
+        W_pp = F_c @ W_2 + F_s @ V_12
+        V_ps = F_c @ V_21 - F_s @ W_1
+        V_pp = F_c @ V_22
 
-    big_A_i = meeinv(big_A, use_pinv)
+        big_I = torch.eye(2 * (len(I)), device=device, dtype=type_complex)
 
-    big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
-    big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+        big_W = torch.cat([
+            torch.cat([V_ss, V_sp], dim=1),
+            torch.cat([W_ps, W_pp], dim=1)])
 
-    big_T = big_T @ big_A_i @ big_X
+        big_V = torch.cat([
+            torch.cat([W_ss, W_sp],  dim=1),
+            torch.cat([V_ps, V_pp], dim=1)])
+
+        big_W_i = meeinv(big_W, use_pinv)
+        big_V_i = meeinv(big_V, use_pinv)
+
+        big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
+        big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+
+        big_A_i = meeinv(big_A, use_pinv)
+
+        big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
+        big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+
+        big_T = big_T @ big_A_i @ big_X
 
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 
@@ -464,25 +482,29 @@ def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
-
     varphi = torch.arctan(ky.reshape((-1, 1)) / kx).flatten()
-    Kz_bot = torch.diag(kz_bot)
+
+    # Eigenvalue-consistent substrate boundary (pre-conj)
+    eps_bot = torch.tensor(n_bot ** 2, dtype=type_complex, device=kx.device)
+    # Add -1e-20j perturbation for correct sqrt branch (see transfer_1d_1 comment)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot - 1e-20j).to(type_complex).flatten() ** 0.5
 
     big_F = torch.cat(
         [
             torch.cat([I, O], dim=1),
-            torch.cat([O, 1j * Kz_bot / (n_bot ** 2)], dim=1),
+            torch.cat([O, torch.diag(-q_bot / eps_bot)], dim=1),
         ]
     )
 
     big_G = torch.cat(
         [
-            torch.cat([1j * Kz_bot, O], dim=1),
+            torch.cat([torch.diag(-q_bot), O], dim=1),
             torch.cat([O, I], dim=1),
         ]
     )
+
+    kz_top = kz_top.flatten().conj()
+    kz_bot = kz_bot.flatten().conj()
 
     big_T = torch.eye(2 * ff_xy, device=device, dtype=type_complex)
 
@@ -528,7 +550,7 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=torch.device('c
 
 
 def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.device('cpu'),
-                  type_complex=torch.complex128, use_pinv=False):
+                  type_complex=torch.complex128, use_pinv=False, same_material=False):
     ff_xy = len(q)//2
 
     I = torch.eye(ff_xy, device=device, dtype=type_complex)
@@ -537,58 +559,65 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.devi
     q_1 = q[:ff_xy]
     q_2 = q[ff_xy:]
 
-    W_11 = W[:ff_xy, :ff_xy]
-    W_12 = W[:ff_xy, ff_xy:]
-    W_21 = W[ff_xy:, :ff_xy]
-    W_22 = W[ff_xy:, ff_xy:]
-
-    V_11 = V[:ff_xy, :ff_xy]
-    V_12 = V[:ff_xy, ff_xy:]
-    V_21 = V[ff_xy:, :ff_xy]
-    V_22 = V[ff_xy:, ff_xy:]
-
     X_1 = torch.diag(torch.exp(-k0 * q_1 * d))
     X_2 = torch.diag(torch.exp(-k0 * q_2 * d))
-
-    F_c = torch.diag(torch.cos(varphi))
-    F_s = torch.diag(torch.sin(varphi))
-
-    W_ss = F_c @ W_21 - F_s @ W_11
-    W_sp = F_c @ W_22 - F_s @ W_12
-    W_ps = F_c @ W_11 + F_s @ W_21
-    W_pp = F_c @ W_12 + F_s @ W_22
-
-    V_ss = F_c @ V_11 + F_s @ V_21
-    V_sp = F_c @ V_12 + F_s @ V_22
-    V_ps = F_c @ V_21 - F_s @ V_11
-    V_pp = F_c @ V_22 - F_s @ V_12
-
-    big_I = torch.eye(2 * (len(I)), device=device, dtype=type_complex)
 
     big_X = torch.cat([
         torch.cat([X_1, O], dim=1),
         torch.cat([O, X_2], dim=1)])
 
-    big_W = torch.cat([
-        torch.cat([W_ss, W_sp], dim=1),
-        torch.cat([W_ps, W_pp], dim=1)])
+    if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
+        big_A_i = torch.zeros_like(big_F)
+        big_B = torch.zeros_like(big_F)
+        big_T = big_T @ big_X_phys
+    else:
+        W_11 = W[:ff_xy, :ff_xy]
+        W_12 = W[:ff_xy, ff_xy:]
+        W_21 = W[ff_xy:, :ff_xy]
+        W_22 = W[ff_xy:, ff_xy:]
 
-    big_V = torch.cat([
-        torch.cat([V_ss, V_sp],  dim=1),
-        torch.cat([V_ps, V_pp], dim=1)])
+        V_11 = V[:ff_xy, :ff_xy]
+        V_12 = V[:ff_xy, ff_xy:]
+        V_21 = V[ff_xy:, :ff_xy]
+        V_22 = V[ff_xy:, ff_xy:]
 
-    big_W_i = meeinv(big_W, use_pinv)
-    big_V_i = meeinv(big_V, use_pinv)
+        F_c = torch.diag(torch.cos(varphi))
+        F_s = torch.diag(torch.sin(varphi))
 
-    big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
-    big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+        W_ss = F_c @ W_21 - F_s @ W_11
+        W_sp = F_c @ W_22 - F_s @ W_12
+        W_ps = F_c @ W_11 + F_s @ W_21
+        W_pp = F_c @ W_12 + F_s @ W_22
 
-    big_A_i = meeinv(big_A, use_pinv)
+        V_ss = F_c @ V_11 + F_s @ V_21
+        V_sp = F_c @ V_12 + F_s @ V_22
+        V_ps = F_c @ V_21 - F_s @ V_11
+        V_pp = F_c @ V_22 - F_s @ V_12
 
-    big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
-    big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+        big_I = torch.eye(2 * (len(I)), device=device, dtype=type_complex)
 
-    big_T = big_T @ big_A_i @ big_X
+        big_W = torch.cat([
+            torch.cat([W_ss, W_sp], dim=1),
+            torch.cat([W_ps, W_pp], dim=1)])
+
+        big_V = torch.cat([
+            torch.cat([V_ss, V_sp],  dim=1),
+            torch.cat([V_ps, V_pp], dim=1)])
+
+        big_W_i = meeinv(big_W, use_pinv)
+        big_V_i = meeinv(big_V, use_pinv)
+
+        big_A = 0.5 * (big_W_i @ big_F + big_V_i @ big_G)
+        big_B = 0.5 * (big_W_i @ big_F - big_V_i @ big_G)
+
+        big_A_i = meeinv(big_A, use_pinv)
+
+        big_F = big_W @ (big_I + big_X @ big_B @ big_A_i @ big_X)
+        big_G = big_V @ (big_I - big_X @ big_B @ big_A_i @ big_X)
+
+        big_T = big_T @ big_A_i @ big_X
 
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 
