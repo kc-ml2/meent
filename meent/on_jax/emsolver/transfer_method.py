@@ -14,7 +14,8 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=jnp.complex128):
 
     # Substrate boundary: eigenvalue-consistent q = sqrt(kx^2 - eps).
     eps_bot = jnp.array(n_bot ** 2, dtype=type_complex)
-    q_bot = (kx ** 2 - eps_bot).astype(type_complex) ** 0.5
+    # Add -1e-20j perturbation for correct sqrt branch (see numpy transfer_1d_1 comment)
+    q_bot = (kx ** 2 - eps_bot - 1e-20j).astype(type_complex) ** 0.5
 
     def false_fun(q_bot):  # TE
         G = jnp.diag(-q_bot)
@@ -116,9 +117,12 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=jnp.complex128, use_pinv
     if same_material:
         # Same material as substrate/previous layer: no interface reflection.
         # Skip boundary matching, apply propagation only.
+        # Transform X to physical basis via W to handle eigenvalue reordering.
+        W_i = meeinv(W, use_pinv)
+        X_phys = W @ X @ W_i
         A_i = jnp.zeros((ff_x, ff_x), dtype=type_complex)
         B = jnp.zeros((ff_x, ff_x), dtype=type_complex)
-        T = T @ X
+        T = T @ X_phys
     else:
         W_i = meeinv(W, use_pinv)
         V_i = meeinv(V, use_pinv)
@@ -219,7 +223,8 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
 
     # Eigenvalue-consistent substrate boundary (pre-conj)
     eps_bot = jnp.array(n_bot ** 2, dtype=type_complex)
-    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot).astype(type_complex).flatten() ** 0.5
+    # Add -1e-20j perturbation for correct sqrt branch (see transfer_1d_1 comment)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot - 1e-20j).astype(type_complex).flatten() ** 0.5
 
     big_F = jnp.block([[I, O], [O, jnp.diag(-q_bot / eps_bot)]])
     big_G = jnp.block([[jnp.diag(-q_bot), O], [O, I]])
@@ -324,9 +329,11 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_comp
     big_X = jnp.block([[X_1, O], [O, X_2]])
 
     if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
         big_A_i = jnp.zeros_like(big_F)
         big_B = jnp.zeros_like(big_F)
-        big_T = big_T @ big_X
+        big_T = big_T @ big_X_phys
     else:
         W_1 = W[:, :ff_xy]
         W_2 = W[:, ff_xy:]
@@ -511,7 +518,8 @@ def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=jnp.complex128):
 
     # Eigenvalue-consistent substrate boundary (pre-conj)
     eps_bot = jnp.array(n_bot ** 2, dtype=type_complex)
-    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot).astype(type_complex).flatten() ** 0.5
+    # Add -1e-20j perturbation for correct sqrt branch (see transfer_1d_1 comment)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot - 1e-20j).astype(type_complex).flatten() ** 0.5
 
     big_F = jnp.block([[I, O], [O, jnp.diag(-q_bot / eps_bot)]])
     big_G = jnp.block([[jnp.diag(-q_bot), O], [O, I]])
@@ -579,9 +587,11 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=jnp.
     big_X = jnp.block([[X_1, O], [O, X_2]])
 
     if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
         big_A_i = jnp.zeros_like(big_F)
         big_B = jnp.zeros_like(big_F)
-        big_T = big_T @ big_X
+        big_T = big_T @ big_X_phys
     else:
         W_11 = W[:ff_xy, :ff_xy]
         W_12 = W[:ff_xy, ff_xy:]

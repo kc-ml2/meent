@@ -19,7 +19,9 @@ def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=np.complex128):
     # Same-material layer/substrate mismatch is handled in transfer_1d_3
     # via det(A) ≈ 0 detection.
     eps_bot = type_complex(n_bot ** 2)
-    q_bot = (kx ** 2 - eps_bot).astype(type_complex) ** 0.5
+    # Add -1e-20j perturbation to ensure correct sqrt branch for propagating modes.
+    # numpy usually gets this right via -0j from kx.conj(), but this makes it explicit.
+    q_bot = (kx ** 2 - eps_bot - 1e-20j).astype(type_complex) ** 0.5
 
     if pol == 0:  # TE
         G = np.diag(-q_bot)
@@ -72,9 +74,12 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, type_complex=np.complex128, use_pinv=
     if same_material:
         # Same material as substrate/previous layer: no interface reflection.
         # Skip boundary matching, apply propagation only.
+        # Transform X to physical basis via W to handle eigenvalue reordering.
+        W_i = meeinv(W, use_pinv)
+        X_phys = W @ X @ W_i
         A_i = np.zeros((ff_x, ff_x), dtype=type_complex)
         B = np.zeros((ff_x, ff_x), dtype=type_complex)
-        T = T @ X
+        T = T @ X_phys
     else:
         W_i = meeinv(W, use_pinv)
         V_i = meeinv(V, use_pinv)
@@ -232,9 +237,11 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_comp
     big_X = np.block([[X_1, O], [O, X_2]])
 
     if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
         big_A_i = np.zeros_like(big_F)
         big_B = np.zeros_like(big_F)
-        big_T = big_T @ big_X
+        big_T = big_T @ big_X_phys
     else:
         W_1 = W[:, :ff_xy]
         W_2 = W[:, ff_xy:]
@@ -479,9 +486,11 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, type_complex=np.c
     big_X = np.block([[X_1, O], [O, X_2]])
 
     if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
         big_A_i = np.zeros_like(big_F)
         big_B = np.zeros_like(big_F)
-        big_T = big_T @ big_X
+        big_T = big_T @ big_X_phys
     else:
         W_11 = W[:ff_xy, :ff_xy]
         W_12 = W[:ff_xy, ff_xy:]

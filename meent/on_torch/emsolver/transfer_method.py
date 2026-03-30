@@ -14,7 +14,11 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
     # Substrate boundary: eigenvalue-consistent q = sqrt(kx^2 - eps).
     # Uses raw n^2 to match Fresnel at bare interfaces.
     eps_bot = torch.tensor(n_bot ** 2, dtype=type_complex, device=device)
-    q_bot = (kx ** 2 - eps_bot).to(type_complex) ** 0.5
+    # Add tiny negative imaginary perturbation to select correct sqrt branch.
+    # Without this, torch loses the -0j sign from kx.conj(), causing sqrt(-real)
+    # to give positive imaginary instead of negative, which flips the G matrix sign
+    # for propagating diffraction orders and produces wrong Fresnel coefficients.
+    q_bot = (kx ** 2 - eps_bot - 1e-20j).to(type_complex) ** 0.5
 
     if pol == 0:  # TE
         G = torch.diag(-q_bot)
@@ -76,9 +80,13 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_comp
     if same_material:
         # Same material as substrate/previous layer: no interface reflection.
         # Skip boundary matching, apply propagation only.
+        # Transform X to physical basis via W to handle eigenvalue reordering
+        # (torch.linalg.eig may return eigenvalues in different order than numpy).
+        W_i = meeinv(W, use_pinv)
+        X_phys = W @ X @ W_i
         A_i = torch.zeros((ff_x, ff_x), device=device, dtype=type_complex)
         B = torch.zeros((ff_x, ff_x), device=device, dtype=type_complex)
-        T = T @ X
+        T = T @ X_phys
     else:
         W_i = meeinv(W, use_pinv)
         V_i = meeinv(V, use_pinv)
@@ -139,7 +147,7 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, devic
     elif pol == 1:
         # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2) / (np.cos(theta) / n_top))
         # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2 / (np.cos(theta) / n_top)))
-        de_ti = (T * T.conj() * (kz_bot / n_bot ** 2 / (torch.cos(theta) / n_top)).real).real
+        de_ti = (T * T.conj() * (kz_bot.conj() / n_bot ** 2 / (torch.cos(theta) / n_top)).real).real
         R_s = torch.zeros(R.shape)
         R_p = R
         T_s = torch.zeros(T.shape)
@@ -188,7 +196,8 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, device='cpu', type_complex=torch
 
     # Eigenvalue-consistent substrate boundary (pre-conj)
     eps_bot = torch.tensor(n_bot ** 2, dtype=type_complex, device=kx.device)
-    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot).to(type_complex).flatten() ** 0.5
+    # Add -1e-20j perturbation for correct sqrt branch (see transfer_1d_1 comment)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot - 1e-20j).to(type_complex).flatten() ** 0.5
 
     big_F = torch.cat(
         [
@@ -283,9 +292,11 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device='c
         torch.cat([O, X_2], dim=1)])
 
     if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
         big_A_i = torch.zeros_like(big_F)
         big_B = torch.zeros_like(big_F)
-        big_T = big_T @ big_X
+        big_T = big_T @ big_X_phys
     else:
         W_1 = W[:, :ff_xy]
         W_2 = W[:, ff_xy:]
@@ -475,7 +486,8 @@ def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex
 
     # Eigenvalue-consistent substrate boundary (pre-conj)
     eps_bot = torch.tensor(n_bot ** 2, dtype=type_complex, device=kx.device)
-    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot).to(type_complex).flatten() ** 0.5
+    # Add -1e-20j perturbation for correct sqrt branch (see transfer_1d_1 comment)
+    q_bot = (kx ** 2 + ky.reshape((-1, 1)) ** 2 - eps_bot - 1e-20j).to(type_complex).flatten() ** 0.5
 
     big_F = torch.cat(
         [
@@ -555,9 +567,11 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.devi
         torch.cat([O, X_2], dim=1)])
 
     if same_material:
+        W_i = meeinv(W, use_pinv)
+        big_X_phys = W @ big_X @ W_i
         big_A_i = torch.zeros_like(big_F)
         big_B = torch.zeros_like(big_F)
-        big_T = big_T @ big_X
+        big_T = big_T @ big_X_phys
     else:
         W_11 = W[:ff_xy, :ff_xy]
         W_12 = W[:ff_xy, ff_xy:]
