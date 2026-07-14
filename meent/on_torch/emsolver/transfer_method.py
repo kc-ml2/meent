@@ -514,8 +514,10 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=torch.device('c
     eigenvalues, W = Eig.apply(Omega2_LR)
     q = eigenvalues ** 0.5
 
+    q = torch.where(q.abs() < 1E-10, torch.full_like(q, 1E-10), q)
+
     Q = torch.diag(q)
-    Q_i = meeinv(Q, use_pinv)
+    Q_i = torch.diag(1 / q)
     Omega_R = torch.cat(
         [
             torch.cat([-Kx @ Ky, Kx ** 2 - epy_conv], dim=1),

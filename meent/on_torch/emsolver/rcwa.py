@@ -60,7 +60,7 @@ class RCWATorch(_BaseRCWA):
                  fto=(0, 0),
                  ucell_materials=None,
                  connecting_algo='TMM',
-                 perturbation=1E-20,
+                 perturbation=1E-10,
                  device='cpu',
                  type_complex=torch.complex128,
                  fourier_type=0,
@@ -88,33 +88,36 @@ class RCWATorch(_BaseRCWA):
     def ucell(self):
         return self._ucell
 
-    @ucell.setter
+    @ucell.setter # edited by Taesang
     def ucell(self, ucell):
 
-        if isinstance(ucell, (torch.Tensor, np.ndarray)):  # Raster
+        if isinstance(ucell, (torch.Tensor, np.ndarray)):
             self._modeling_type_assigned = 0
+            
+            if isinstance(ucell, np.ndarray):
+                ucell = torch.from_numpy(ucell)
+
+            if ucell.dim() == 3:
+                ucell = ucell.unsqueeze(-1).repeat(1, 1, 1, 3)                
+            elif ucell.dim() == 4:
+                if ucell.shape[-1] != 3:
+                    raise ValueError("Anisotropic ucell must have 3 components (nx, ny, nz) in the last dimension")
+            else:
+                raise ValueError("ucell must be 2D, 3D (Isotropic), or 4D (Anisotropic)")
+
             if ucell.dtype in (torch.complex128, torch.complex64):
                 dtype = self.type_complex
-                self._ucell = ucell.to(device=self.device, dtype=dtype)
-            elif ucell.dtype in (torch.float64, torch.float32, torch.int64, torch.int32):
-                dtype = self.type_float
-                self._ucell = ucell.to(device=self.device, dtype=dtype)
-            elif ucell.dtype in (np.int64, np.float64, np.int32, np.float32):
-                dtype = self.type_float
-                self._ucell = torch.tensor(ucell, device=self.device, dtype=dtype)
-            elif ucell.dtype in (np.complex128, np.complex64):
-                dtype = self.type_complex
-                self._ucell = torch.tensor(ucell, device=self.device, dtype=dtype)
             else:
-                raise ValueError
+                dtype = self.type_float
 
+            self._ucell = ucell.to(device=self.device, dtype=dtype)
         elif type(ucell) is list:  # Vector
             self._modeling_type_assigned = 1
             self._ucell = ucell
         elif ucell is None:
             self._ucell = ucell
         else:
-            raise ValueError
+            raise ValueError("Invalid ucell type. Expected Tensor, ndarray, or list")
 
     @property
     def modeling_type_assigned(self):
@@ -125,20 +128,28 @@ class RCWATorch(_BaseRCWA):
     #     self._modeling_type_assigned = modeling_type_assigned
 
     def _assign_grating_type(self):
-        # self.modeling_type_assigned = 0
-        # self._grating_type_assigned = 1  # else
-
         if self.modeling_type_assigned == 0:
-            if self.ucell.shape[1] == 1:
-                if (self.pol in (0, 1)) and (self.phi is None) and (self.fto[1] == 0):
-                    self._grating_type_assigned = 0  # 1D TE and TM only
-                else:
-                    self._grating_type_assigned = 1  # 1D conical
+            if self.ucell.shape[-1] == 3:
+                nx, ny, nz = self.ucell[..., 0], self.ucell[..., 1], self.ucell[..., 2]
+                is_aniso = not (torch.allclose(nx, ny) and torch.allclose(ny, nz))
             else:
-                self._grating_type_assigned = 2  # else
+                is_aniso = False
 
+            if self.ucell.shape[1] == 1:
+                # Torch backend only: phi=0 is treated the same as phi=None (routes to the
+                # fast pure-1D solver), unlike the numpy/jax backends where phi=0 deliberately
+                # forces the conical solver. See QA/1d_pattern_in_1dc_and_2d.py for that contract.
+                phi_is_zero_or_none = self.phi is None or self.phi == 0
+                if (self.pol in (0, 1)) and phi_is_zero_or_none and (self.fto[1] == 0):
+                    self._grating_type_assigned = 0
+                elif is_aniso:
+                    self._grating_type_assigned = 2
+                else:
+                    self._grating_type_assigned = 1
+            else:
+                self._grating_type_assigned = 2
         elif self.modeling_type_assigned == 1:
-            self.grating_type_assigned = 2
+            self._grating_type_assigned = 2
 
     @property
     def grating_type_assigned(self):
