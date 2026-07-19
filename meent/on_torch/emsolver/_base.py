@@ -228,7 +228,7 @@ class _BaseRCWA:
             sin_theta = torch.sin(
                 torch.nextafter(torch.float32(torch.pi / 2), torch.float32(0)) + self.theta.imag * np.complex64(1j))
         else:
-            sin_theta = np.sin(self.theta)
+            sin_theta = torch.sin(self.theta)
 
         if self.phi is None:
             phi = torch.tensor(0, device=self.device, dtype=self.type_complex)
