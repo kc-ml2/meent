@@ -73,11 +73,13 @@ class RCWATorch(_BaseRCWA):
                          thickness=thickness, connecting_algo=connecting_algo, perturbation=perturbation,
                          device=device, type_complex=type_complex, use_pinv=use_pinv)
 
+        self.is_aniso = False
         self._modeling_type_assigned = None
         self._grating_type_assigned = None
 
         self.ucell = ucell
         self.ucell_materials = ucell_materials
+        self._assign_grating_type()
 
         self.backend = backend
         self.fourier_type = fourier_type
@@ -131,9 +133,9 @@ class RCWATorch(_BaseRCWA):
         if self.modeling_type_assigned == 0:
             if self.ucell.shape[-1] == 3:
                 nx, ny, nz = self.ucell[..., 0], self.ucell[..., 1], self.ucell[..., 2]
-                is_aniso = not (torch.allclose(nx, ny) and torch.allclose(ny, nz))
+                self.is_aniso = not (torch.allclose(nx, ny) and torch.allclose(ny, nz))
             else:
-                is_aniso = False
+                self.is_aniso = False
 
             if self.ucell.shape[1] == 1:
                 # Torch backend only: phi=0 is treated the same as phi=None (routes to the
@@ -142,7 +144,7 @@ class RCWATorch(_BaseRCWA):
                 phi_is_zero_or_none = self.phi is None or self.phi == 0
                 if (self.pol in (0, 1)) and phi_is_zero_or_none and (self.fto[1] == 0):
                     self._grating_type_assigned = 0
-                elif is_aniso:
+                elif self.is_aniso:
                     self._grating_type_assigned = 2
                 else:
                     self._grating_type_assigned = 1
@@ -160,14 +162,19 @@ class RCWATorch(_BaseRCWA):
         self._grating_type_assigned = grating_type_assigned
 
     def solve_for_conv(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
-        self._assign_grating_type()
 
-        if self._grating_type_assigned == 0:
-            result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-        elif self._grating_type_assigned == 1:
-            result_dict = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        if self.is_aniso:
+            if self._grating_type_assigned == 0:
+                result_dict = self.solve_1d_aniso(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            else:
+                result_dict = self.solve_2d_aniso(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
-            result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            if self._grating_type_assigned == 0:
+                result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            elif self._grating_type_assigned == 1:
+                result_dict = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            else:
+                result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         res_psi = ResultSubTorch(**result_dict['res']) if 'res' in result_dict else None
         res_te_inc = ResultSubTorch(**result_dict['res_te_inc']) if 'res_te_inc' in result_dict else None

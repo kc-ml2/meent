@@ -5,9 +5,12 @@ import numpy as np
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
 
-from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_4, transfer_1d_conical_1,
-                              transfer_1d_conical_2, transfer_1d_conical_3, transfer_1d_conical_4,
-                              transfer_2d_1, transfer_2d_2, transfer_2d_3, transfer_2d_4)
+from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_4, 
+                              transfer_1d_conical_1, transfer_1d_conical_2, transfer_1d_conical_3, transfer_1d_conical_4,
+                              transfer_2d_1, transfer_2d_2, transfer_2d_3, transfer_2d_4,
+                              transfer_1d_1_aniso, transfer_1d_2_aniso, transfer_1d_3_aniso, transfer_1d_4_aniso, transfer_1d_conical_1_aniso,
+                              transfer_1d_conical_2_aniso, transfer_1d_conical_3_aniso, transfer_1d_conical_4_aniso,
+                              transfer_2d_1_aniso, transfer_2d_2_aniso, transfer_2d_3_aniso, transfer_2d_4_aniso)
 
 
 class _BaseRCWA:
@@ -353,7 +356,7 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            result, big_T1 = transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi,
+            result, big_T1 = transfer_1d_conical_4(kx,ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi,
                                                    self.theta, self.n_top, self.n_bot, device=self.device,
                                                    type_complex=self.type_complex,
                                                    use_pinv=self.use_pinv)#, phi=self.phi)#, varphi=varphi)
@@ -428,7 +431,212 @@ class _BaseRCWA:
             #                                                                                kz_bot, self.psi, self.theta,
             #                                                                                self.n_top, self.n_bot,
             #                                                                                type_complex=self.type_complex)
-            result, big_T1 = transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
+            result, big_T1 = transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
+                                           self.n_top, self.n_bot, device=self.device, type_complex=self.type_complex,
+                                           use_pinv=self.use_pinv)
+            self.T1 = big_T1
+
+        elif self.connecting_algo == 'SMM':
+            raise ValueError
+            # de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_top,
+            #                                self.pol, self.theta, self.phi, self.fto)
+        else:
+            raise ValueError
+
+        # de_ri = de_ri.reshape((ff_y, ff_x)).T
+        # de_ti = de_ti.reshape((ff_y, ff_x)).T
+        #
+        # return de_ri, de_ti, self.rayleigh_R, self.rayleigh_T, self.layer_info_list, self.T1
+        # return de_ri_s, de_ri_p, de_ti_s, de_ti_p, self.layer_info_list, self.T1, R_s, R_p, T_s, T_p
+        return result
+
+    ## solver for anisotropic cases
+    def solve_1d_aniso(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+        self.layer_info_list = []
+        self.T1 = None
+
+        ff_x = self.fto[0] * 2 + 1
+
+        k0 = 2 * torch.pi / wavelength
+        kx, _ = self.get_kx_ky_vector(wavelength)
+
+        if self.connecting_algo == 'TMM':
+            kz_top, kz_bot, F, G, T \
+                = transfer_1d_1_aniso(self.pol, kx, self.n_top, self.n_bot, device=self.device,
+                                type_complex=self.type_complex)
+
+        elif self.connecting_algo == 'SMM':
+            raise ValueError
+            # Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
+            #     = scattering_1d_1(k0, self.n_top, self.n_bot, self.theta, self.phi, fourier_indices, self.period,
+            #                       self.pol, wl=wavelength)
+        else:
+            raise ValueError
+
+        # From the last layer
+        for layer_index in range(len(self.thickness))[::-1]:
+
+            epx_conv = epx_conv_all[layer_index]
+            epy_conv = epy_conv_all[layer_index]
+            epz_conv_i = epz_conv_i_all[layer_index]
+
+            d = self.thickness[layer_index]
+
+            if self.connecting_algo == 'TMM':
+                W, V, q = transfer_1d_2_aniso(self.pol, kx, epx_conv, epy_conv, epz_conv_i, device=self.device,
+                                        type_complex=self.type_complex, perturbation=self.perturbation,
+                                        use_pinv=self.use_pinv)
+
+                X, F, G, T, A_i, B = transfer_1d_3_aniso(k0, W, V, q, d, F, G, T, device=self.device,
+                                                   type_complex=self.type_complex, use_pinv=self.use_pinv)
+
+                layer_info = [epz_conv_i, W, V, q, d, A_i, B]
+                self.layer_info_list.append(layer_info)
+
+            elif self.connecting_algo == 'SMM':
+                raise ValueError
+                # A, B, S_dict, Sg = scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg)
+            else:
+                raise ValueError
+
+        if self.connecting_algo == 'TMM':
+            result, T1 = transfer_1d_4_aniso(self.pol, ff_x, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
+                                       device=self.device, type_complex=self.type_complex, use_pinv=self.use_pinv)
+            self.T1 = T1
+
+        elif self.connecting_algo == 'SMM':
+            raise ValueError
+            # de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, self.ff, Wr, self.fto, Kzr, Kzt,
+            #                                self.n_top, self.n_bot, self.theta, self.pol)
+        else:
+            raise ValueError
+
+        # return de_ri, de_ti, self.rayleigh_R, self.rayleigh_T, self.layer_info_list, self.T1
+        return result
+
+    def solve_1d_conical_aniso(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+        self.layer_info_list = []
+        self.T1 = None
+
+        ff_x = self.fto[0] * 2 + 1
+        ff_y = 1
+
+        k0 = 2 * torch.pi / wavelength
+        kx, ky = self.get_kx_ky_vector(wavelength)
+
+        if self.connecting_algo == 'TMM':
+            kz_top, kz_bot, varphi, big_F, big_G, big_T \
+                = transfer_1d_conical_1_aniso(kx, ky, self.n_top, self.n_bot, device=self.device,
+                                        type_complex=self.type_complex)
+
+        elif self.connecting_algo == 'SMM':
+            print('SMM for 1D conical is not implemented')
+            return np.nan, np.nan
+        else:
+            raise ValueError
+
+        for layer_index in range(len(self.thickness))[::-1]:
+
+            epx_conv = epx_conv_all[layer_index]
+            epy_conv = epy_conv_all[layer_index]
+            epz_conv_i = epz_conv_i_all[layer_index]
+
+            d = self.thickness[layer_index]
+
+            if self.connecting_algo == 'TMM':
+                W, V, q = transfer_1d_conical_2_aniso(kx, ky, epx_conv, epy_conv, epz_conv_i, device=self.device,
+                                                type_complex=self.type_complex, perturbation=self.perturbation,
+                                                use_pinv=self.use_pinv)
+
+                big_X, big_F, big_G, big_T, big_A_i, big_B, \
+                    = transfer_1d_conical_3_aniso(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=self.device,
+                                            type_complex=self.type_complex, use_pinv=self.use_pinv)
+
+                layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]
+                self.layer_info_list.append(layer_info)
+
+            elif self.connecting_algo == 'SMM':
+                raise ValueError
+            else:
+                raise ValueError
+
+        if self.connecting_algo == 'TMM':
+            result, big_T1 = transfer_1d_conical_4_aniso(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi,
+                                                   self.theta, self.n_top, self.n_bot, device=self.device,
+                                                   type_complex=self.type_complex,
+                                                   use_pinv=self.use_pinv)#, phi=self.phi)#, varphi=varphi)
+            self.T1 = big_T1
+
+        elif self.connecting_algo == 'SMM':
+            raise ValueError
+        else:
+            raise ValueError
+
+        return result
+
+    def solve_2d_aniso(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+
+        self.layer_info_list = []
+        self.T1 = None
+
+        ff_x = self.fto[0] * 2 + 1
+        ff_y = self.fto[1] * 2 + 1
+
+        k0 = 2 * torch.pi / wavelength
+        kx, ky = self.get_kx_ky_vector(wavelength)
+
+        if self.connecting_algo == 'TMM':
+            kz_top, kz_bot, varphi, big_F, big_G, big_T \
+                = transfer_2d_1_aniso(kx, ky, self.n_top, self.n_bot, device=self.device, type_complex=self.type_complex)
+
+        elif self.connecting_algo == 'SMM':
+            raise ValueError
+            # Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
+            #     = scattering_2d_1(self.n_top, self.n_bot, self.theta, self.phi, k0, self.period, self.fto)
+        else:
+            raise ValueError
+
+        # From the last layer
+        for layer_index in range(len(self.thickness))[::-1]:
+
+            epx_conv = epx_conv_all[layer_index]
+            epy_conv = epy_conv_all[layer_index]
+            epz_conv_i = epz_conv_i_all[layer_index]
+
+            d = self.thickness[layer_index]
+
+            if self.connecting_algo == 'TMM':
+                W, V, q = transfer_2d_2_aniso(kx, ky, epx_conv, epy_conv, epz_conv_i, device=self.device,
+                                        type_complex=self.type_complex, perturbation=self.perturbation,
+                                        use_pinv=self.use_pinv)
+
+                big_X, big_F, big_G, big_T, big_A_i, big_B, \
+                    = transfer_2d_3_aniso(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=self.device,
+                                    type_complex=self.type_complex, use_pinv=self.use_pinv)
+
+                layer_info = [epz_conv_i, W, V, q, d, big_A_i, big_B]
+                self.layer_info_list.append(layer_info)
+
+            elif self.connecting_algo == 'SMM':
+                raise ValueError
+                # W, V, LAMBDA = scattering_2d_wv(ff_xy, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
+                # A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
+            else:
+                raise ValueError
+
+        if self.connecting_algo == 'TMM':
+            # de_ri, de_ti, big_T1, [R_s, R_p], [T_s, T_p], = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
+            #                                      self.n_top, self.n_bot, device=self.device,
+            #                                      type_complex=self.type_complex)
+            # self.T1 = big_T1
+            # self.rayleigh_R = [R_s, R_p]
+            # self.rayleigh_T = [T_s, T_p]
+
+            # de_ri_s, de_ri_p, de_ti_s, de_ti_p, big_T1, R_s, R_p, T_s, T_p = transfer_2d_4(big_F, big_G, big_T, kz_top,
+            #                                                                                kz_bot, self.psi, self.theta,
+            #                                                                                self.n_top, self.n_bot,
+            #                                                                                type_complex=self.type_complex)
+            result, big_T1 = transfer_2d_4_aniso(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
                                            self.n_top, self.n_bot, device=self.device, type_complex=self.type_complex,
                                            use_pinv=self.use_pinv)
             self.T1 = big_T1
