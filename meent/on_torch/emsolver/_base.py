@@ -13,7 +13,7 @@ from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, trans
 class _BaseRCWA:
     def __init__(self, n_top=1., n_bot=1., theta=0., phi=None, psi=None, pol=0., fto=(0, 0),
                  period=(1., 1.), wavelength=1.,
-                 thickness=(0.,), connecting_algo='TMM', perturbation=1E-20,
+                 thickness=(0.,), connecting_algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=torch.complex128, use_pinv=False):
 
         # device
@@ -356,7 +356,7 @@ class _BaseRCWA:
             result, big_T1 = transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi,
                                                    self.theta, self.n_top, self.n_bot, device=self.device,
                                                    type_complex=self.type_complex,
-                                                   use_pinv=self.use_pinv)
+                                                   use_pinv=self.use_pinv)#, phi=self.phi)#, varphi=varphi)
             self.T1 = big_T1
 
         elif self.connecting_algo == 'SMM':
