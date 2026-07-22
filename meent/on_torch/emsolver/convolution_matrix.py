@@ -153,22 +153,46 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=torch.device('cpu'),
         minimum_pattern_size_y = 4 * fto_y + 1
         minimum_pattern_size_x = 4 * fto_x + 1
         # e.g., 8 bytes * (40*500) * (40*500) / 1E6 = 3200 MB = 3.2 GB
-
+        
+        # ucell shape (Layers, H, w, 3)
+        num_layers = ucell.shape[0] # added by Taesang
+        
     for i, layer in enumerate(ucell):
+        
+        lx = layer[..., 0] # added by Taesang
+        ly = layer[..., 1] # added by Taesang
+        lz = layer[..., 2] # added by Taesang
+        
         if layer.shape[0] < minimum_pattern_size_y:
-            n = minimum_pattern_size_y // layer.shape[0]
-            n = torch.tensor(n, device=device)
-            layer = layer.repeat_interleave(n + 1, axis=0)
+            n_rep_y = (minimum_pattern_size_y // layer.shape[0]) + 1 # added by Taesang
+            
+            lx = lx.repeat_interleave(n_rep_y, dim=0) # added by Taesang
+            ly = ly.repeat_interleave(n_rep_y, dim=0) # added by Taesang
+            lz = lz.repeat_interleave(n_rep_y, dim=0) # added by Taesang
+            
+            # n = minimum_pattern_size_y // layer.shape[0] # deleted by Taesang
+            # n = torch.tensor(n, device=device) # deleted by Taesang
+            # layer = layer.repeat_interleave(n + 1, axis=0) # deleted by Taesang
         if layer.shape[1] < minimum_pattern_size_x:
-            n = minimum_pattern_size_x // layer.shape[1]
-            n = torch.tensor(n, device=device)
-            layer = layer.repeat_interleave(n + 1, axis=1)
+            n_rep_x = (minimum_pattern_size_x // layer.shape[1]) + 1 # added by Taesang
+            
+            lx = lx.repeat_interleave(n_rep_x, dim=1) # added by Taesang
+            ly = ly.repeat_interleave(n_rep_x, dim=1) # added by Taesang
+            lz = lz.repeat_interleave(n_rep_x, dim=1) # added by Taesang
+            
+            # n = minimum_pattern_size_x // layer.shape[1]
+            # n = torch.tensor(n, device=device)
+            # layer = layer.repeat_interleave(n + 1, axis=1)
+            
+        eps_x = lx ** 2 # added by Taesang
+        eps_y = ly ** 2 # added by Taesang
+        eps_z = lz ** 2 # added by Taesang
+        
+        # eps_matrix = layer ** 2 # deleted by Taesang
 
-        eps_matrix = layer ** 2
-
-        epz_conv = dfs2d(eps_matrix, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
-        epy_conv = dfs2d(eps_matrix, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
-        epx_conv = dfs2d(eps_matrix, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        epz_conv = dfs2d(eps_z, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex) # edited by Taesang
+        epy_conv = dfs2d(eps_y, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex) # edited by Taesang
+        epx_conv = dfs2d(eps_x, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex) # edited by Taesang
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
