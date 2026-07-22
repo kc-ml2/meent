@@ -4,7 +4,7 @@ import meent
 
 
 def run():
-    rcwa_options = dict(backend=1, thickness=[205, 305, 100000], period=[300, 300],
+    rcwa_options = dict(backend=2, thickness=[205, 305, 100000], period=[300, 300],
                         fto=[3, 3],
                         n_top=1, n_bot=1,
                         wavelength=900,

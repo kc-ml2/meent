@@ -7,6 +7,32 @@ from os import walk
 from pathlib import Path
 
 
+def _is_vector_index(n_index):
+    """True if a refractive-index value specifies (nx, ny, nz) for diagonal anisotropy."""
+    if isinstance(n_index, (list, tuple)):
+        return len(n_index) == 3
+    if torch.is_tensor(n_index):
+        return n_index.numel() == 3
+    return False
+
+
+def _to_index_vector(n_index, dtype):
+    """Normalize a refractive-index value to a length-3 tensor (nx, ny, nz), preserving autograd.
+
+    A scalar is broadcast to all three diagonal components (isotropic entry inside an
+    anisotropic layer).
+    """
+    if isinstance(n_index, (list, tuple)):
+        comps = [c.reshape(()).type(dtype) if torch.is_tensor(c) else torch.tensor(c, dtype=dtype)
+                 for c in n_index]
+        return torch.stack(comps)
+    if torch.is_tensor(n_index):
+        if n_index.numel() == 3:
+            return n_index.reshape(3).type(dtype)
+        return n_index.reshape(()).type(dtype).repeat(3)
+    return torch.tensor([n_index, n_index, n_index], dtype=dtype)
+
+
 class Compress(torch.autograd.Function):
     """
     Not available as of now and actually no need to use this class.
@@ -58,18 +84,20 @@ class ModelingTorch:
 
     def rectangle(self, cx, cy, lx, ly, n_index, angle=0, n_split_triangle=2, n_split_parallelogram=2, angle_margin=1E-5):
 
+        # dtype must be set at creation: torch.tensor(<python float>) defaults to float32 and
+        # silently loses ~1e-8 of relative precision that a later .type(float64) cannot recover.
         if type(lx) in (int, float):
-            lx = torch.tensor(lx).reshape(1)
+            lx = torch.tensor(lx, dtype=self.type_float).reshape(1)
         elif type(lx) is torch.Tensor:
             lx = lx.reshape(1)
 
         if type(ly) in (int, float):
-            ly = torch.tensor(ly).reshape(1)
+            ly = torch.tensor(ly, dtype=self.type_float).reshape(1)
         elif type(ly) is torch.Tensor:
             ly = ly.reshape(1)
 
         if type(angle) in (int, float):
-            angle = torch.tensor(angle).reshape(1)
+            angle = torch.tensor(angle, dtype=self.type_float).reshape(1)
         elif type(angle) is torch.Tensor:
             angle = angle.reshape(1)
 
@@ -255,18 +283,19 @@ class ModelingTorch:
 
     def ellipse(self, cx, cy, lx, ly, n_index, angle=0, n_split_w=2, n_split_h=2, angle_margin=1E-5, debug=False):
 
+        # dtype must be set at creation: see the note in rectangle().
         if type(lx) in (int, float):
-            lx = torch.tensor(lx).reshape(1)
+            lx = torch.tensor(lx, dtype=self.type_float).reshape(1)
         elif type(lx) is torch.Tensor:
             lx = lx.reshape(1)
 
         if type(ly) in (int, float):
-            ly = torch.tensor(ly).reshape(1)
+            ly = torch.tensor(ly, dtype=self.type_float).reshape(1)
         elif type(ly) is torch.Tensor:
             ly = ly.reshape(1)
 
         if type(angle) in (int, float):
-            angle = torch.tensor(angle).reshape(1)
+            angle = torch.tensor(angle, dtype=self.type_float).reshape(1)
         elif type(angle) is torch.Tensor:
             angle = angle.reshape(1)
 
@@ -473,8 +502,17 @@ class ModelingTorch:
         if col_list and col_list[0] == 0:
             col_list = col_list[1:]
 
-        # ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype, requires_grad=True) * pmtvy_base
-        ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype) * pmtvy_base
+        # Diagonal anisotropy: a layer is anisotropic if its background or any object
+        # specifies a 3-vector (nx, ny, nz). Scalars are promoted to (n, n, n).
+        is_aniso = _is_vector_index(pmtvy_base) or any(_is_vector_index(obj[2]) for obj in obj_list)
+
+        if is_aniso:
+            base = _to_index_vector(pmtvy_base, datatype)
+            # ucell_layer = torch.ones((len(row_list), len(col_list), 3), dtype=datatype, requires_grad=True) * base
+            ucell_layer = torch.ones((len(row_list), len(col_list), 3), dtype=datatype) * base
+        else:
+            # ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype, requires_grad=True) * pmtvy_base
+            ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype) * pmtvy_base
 
         for obj in obj_list:
             top_left, bottom_right, pmty = obj
@@ -491,10 +529,21 @@ class ModelingTorch:
                 col_begin = col_list.index(top_left[1]) + 1
             col_end = col_list.index(bottom_right[1]) + 1
 
-            ucell_layer[row_begin:row_end, col_begin:col_end] = pmty
+            if is_aniso:
+                ucell_layer[row_begin:row_end, col_begin:col_end, :] = _to_index_vector(pmty, datatype)
+            else:
+                ucell_layer[row_begin:row_end, col_begin:col_end] = pmty
 
         x_list = torch.cat(col_list).reshape((-1, 1))
         y_list = torch.cat(row_list).reshape((-1, 1))
+
+        # The geometry above is built with device-less tensor creations (defaulting to CPU).
+        # Move the outputs to the solver device here, at the single boundary consumed by
+        # to_conv_mat_vector, so vector modeling works under device='cuda'. .to() is a no-op
+        # on CPU and is differentiable, so gradients still flow back to any parameters.
+        ucell_layer = ucell_layer.to(self.device)
+        x_list = x_list.to(self.device)
+        y_list = y_list.to(self.device)
 
         return ucell_layer, x_list, y_list
 

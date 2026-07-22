@@ -90,7 +90,7 @@ class RCWATorch(_BaseRCWA):
     def ucell(self):
         return self._ucell
 
-    @ucell.setter # edited by Taesang
+    @ucell.setter
     def ucell(self, ucell):
 
         if isinstance(ucell, (torch.Tensor, np.ndarray)):
@@ -100,12 +100,16 @@ class RCWATorch(_BaseRCWA):
                 ucell = torch.from_numpy(ucell)
 
             if ucell.dim() == 3:
-                ucell = ucell.unsqueeze(-1).repeat(1, 1, 1, 3)                
+                # Isotropic (Layers, H, W): kept as-is. Do NOT expand to (..., 3) with
+                # nx=ny=nz — that would triple ucell memory (and, under enhanced_dfs, triple
+                # the huge repeated pattern) for no benefit. to_conv_mat_* handle the 3D
+                # (isotropic) and 4D (anisotropic) cases separately.
+                pass
             elif ucell.dim() == 4:
                 if ucell.shape[-1] != 3:
                     raise ValueError("Anisotropic ucell must have 3 components (nx, ny, nz) in the last dimension")
             else:
-                raise ValueError("ucell must be 2D, 3D (Isotropic), or 4D (Anisotropic)")
+                raise ValueError("ucell must be 3D (Isotropic) or 4D (Anisotropic)")
 
             if ucell.dtype in (torch.complex128, torch.complex64):
                 dtype = self.type_complex
@@ -131,10 +135,10 @@ class RCWATorch(_BaseRCWA):
 
     def _assign_grating_type(self):
         if self.modeling_type_assigned == 0:
-            if self.ucell.shape[-1] == 3:
+            if self.ucell.dim() == 4:  # (Layers, H, W, 3): anisotropic
                 nx, ny, nz = self.ucell[..., 0], self.ucell[..., 1], self.ucell[..., 2]
                 self.is_aniso = not (torch.allclose(nx, ny) and torch.allclose(ny, nz))
-            else:
+            else:  # (Layers, H, W): isotropic
                 self.is_aniso = False
 
             if self.ucell.shape[1] == 1:
@@ -163,18 +167,23 @@ class RCWATorch(_BaseRCWA):
 
     def solve_for_conv(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
-        if self.is_aniso:
-            if self._grating_type_assigned == 0:
-                result_dict = self.solve_1d_aniso(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-            else:
-                result_dict = self.solve_2d_aniso(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        # Re-derive the grating type from the current ucell right before solving.
+        # The ucell setter does not recompute it, so if ucell was assigned after
+        # construction (the pattern every example uses) the value set in __init__
+        # would be stale (None -> everything falls through to solve_2d). Restoring
+        # this call here matches the 0.12.0 behaviour.
+        self._assign_grating_type()
+
+        # Anisotropy needs no separate solver: epx/epy/epz are already independent
+        # convolution matrices, so the same transfer-matrix routines cover both cases.
+        # is_aniso only decides which grating type a 1D-shaped ucell is routed to
+        # (see _assign_grating_type).
+        if self._grating_type_assigned == 0:
+            result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+        elif self._grating_type_assigned == 1:
+            result_dict = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         else:
-            if self._grating_type_assigned == 0:
-                result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-            elif self._grating_type_assigned == 1:
-                result_dict = self.solve_1d_conical(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
-            else:
-                result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
+            result_dict = self.solve_2d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
 
         res_psi = ResultSubTorch(**result_dict['res']) if 'res' in result_dict else None
         res_te_inc = ResultSubTorch(**result_dict['res_te_inc']) if 'res_te_inc' in result_dict else None
