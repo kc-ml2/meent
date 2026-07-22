@@ -37,7 +37,7 @@ class Eig(torch.autograd.Function):
 
         Fij = eig_val.reshape((1, -1)) - eig_val.reshape((-1, 1))
         Fij = Fij / (torch.abs(Fij) ** 2 + Eig.perturbation)
-        diag_indices = torch.arange(len(Fij))
+        diag_indices = torch.arange(len(Fij), device=Fij.device)
         Fij[diag_indices, diag_indices] = 0
 
         grad = torch.linalg.inv(W_H) @ (grad_eigval + Fij * (W_H @ grad_eigvec)) @ W_H
