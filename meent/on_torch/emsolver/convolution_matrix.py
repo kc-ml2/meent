@@ -138,7 +138,15 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'
         else:
             raise ValueError("layer must be 2D (isotropic) or 3D with 3 components (anisotropic)")
 
-        if (lx is ly) or (torch.equal(lx, ly) and torch.equal(ly, lz)):
+        # Share one compression only when the three components are the *same tensor*
+        # (the isotropic branch above), never when they merely hold equal values.
+        # Dispatching on value equality silently breaks the backward pass: the shared
+        # path reads lx alone, so at a point where eps_x == eps_y == eps_z the gradient
+        # of eps_y and eps_z comes back as exactly 0 while eps_x collects their sum.
+        # The forward result is identical either way, so the bug is invisible until you
+        # differentiate -- e.g. an optimization started from an isotropic material takes
+        # one badly wrong step, which later iterations never undo.
+        if lx is ly is lz:
             # compress once and share the discontinuity grid across components
             n_compressed, x_list, y_list = cell_compression(lx, device=device, type_complex=type_complex)
             eps_x = eps_y = eps_z = n_compressed ** 2
