@@ -1,3 +1,4 @@
+import warnings
 from bisect import bisect, bisect_left
 
 import torch
@@ -605,6 +606,28 @@ class ModelingTorch:
         return ucell_info_list
 
 
+def warn_if_out_of_range(material, mat_data, wl):
+    """Warn when wl falls outside the tabulated range, where interp clamps to the endpoints.
+
+    The clamp is silent, so a wavelength given in the wrong unit returns a plausible-looking
+    number instead of failing. Tables do not all share one unit -- the files under
+    nk_data/refractiveindex_info are in metres, the older ones in nanometres -- so mixing them
+    in a single mat_list is the usual cause.
+    """
+    try:
+        wl_min, wl_max = float(np.min(wl)), float(np.max(wl))
+    except Exception:  # device-resident or traced values have no range to inspect here
+        return
+
+    low, high = float(np.min(mat_data[:, 0])), float(np.max(mat_data[:, 0]))
+    if wl_min < low or wl_max > high:
+        warnings.warn(
+            f'{material}: wavelength {wl_min:.4e} - {wl_max:.4e} falls outside the tabulated '
+            f'range {low:.4e} - {high:.4e}; values are clamped to the endpoints. '
+            f'Check that the wavelength unit matches the table.',
+            stacklevel=3)
+
+
 def find_nk_index(material, mat_table, wl):
     if material[-6:] == '__real':
         material = material[:-6]
@@ -613,6 +636,7 @@ def find_nk_index(material, mat_table, wl):
         n_only = False
 
     mat_data = mat_table[material.upper()]
+    warn_if_out_of_range(material, mat_data, wl)
     n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
 
     if n_only:

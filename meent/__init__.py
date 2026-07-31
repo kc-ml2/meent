@@ -7,3 +7,4 @@ except:
     pass
 
 from .main import call_mee
+from .on_numpy.modeler.modeling import list_materials, print_materials

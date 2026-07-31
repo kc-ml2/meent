@@ -1,5 +1,7 @@
 from bisect import bisect_left
 
+import warnings
+
 import numpy as np
 
 from os import walk
@@ -678,6 +680,28 @@ class ModelingNumpy:
         return ucell_vector
 
 
+def warn_if_out_of_range(material, mat_data, wl):
+    """Warn when wl falls outside the tabulated range, where interp clamps to the endpoints.
+
+    The clamp is silent, so a wavelength given in the wrong unit returns a plausible-looking
+    number instead of failing. Tables do not all share one unit -- the files under
+    nk_data/refractiveindex_info are in metres, the older ones in nanometres -- so mixing them
+    in a single mat_list is the usual cause.
+    """
+    try:
+        wl_min, wl_max = float(np.min(wl)), float(np.max(wl))
+    except Exception:  # traced or device-resident values have no range to inspect here
+        return
+
+    low, high = float(np.min(mat_data[:, 0])), float(np.max(mat_data[:, 0]))
+    if wl_min < low or wl_max > high:
+        warnings.warn(
+            f'{material}: wavelength {wl_min:.4e} - {wl_max:.4e} falls outside the tabulated '
+            f'range {low:.4e} - {high:.4e}; values are clamped to the endpoints. '
+            f'Check that the wavelength unit matches the table.',
+            stacklevel=3)
+
+
 def find_nk_index(material, mat_table, wl):
     if material[-6:] == '__real':
         material = material[:-6]
@@ -686,6 +710,7 @@ def find_nk_index(material, mat_table, wl):
         n_only = False
 
     mat_data = mat_table[material.upper()]
+    warn_if_out_of_range(material, mat_data, wl)
     n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
 
     if n_only:
@@ -725,3 +750,62 @@ def read_material_table(nk_path=None, type_complex=np.complex128):
             data = np.array([data['WL'], data['n'], data['k']], dtype=type_complex)[:, :, 0].T
             mat_table[name[:-4].upper()] = data
     return mat_table
+
+
+def read_table_comments(nk_path=None):
+    """Collect the '# key: value' provenance lines written into each nk_data text table."""
+    if nk_path is None:
+        nk_path = str(Path(__file__).resolve().parent.parent.parent) + '/nk_data'
+
+    comments = {}
+    for (dirpath, dirnames, filenames) in walk(nk_path):
+        for name in filenames:
+            if name[-3:] != 'txt':
+                continue
+            entry = {}
+            with open(f'{dirpath}/{name}') as file:
+                next(file, None)  # column header
+                for line in file:
+                    if not line.startswith('#'):
+                        break
+                    key, _, value = line[1:].partition(':')
+                    entry[key.strip()] = value.strip()
+            comments[name[:-4].upper()] = entry
+    return comments
+
+
+def list_materials(nk_path=None):
+    """Summarise the material tables that read_material_table can serve.
+
+    Returns one dict per table holding the name to pass in mat_list, the tabulated wavelength
+    range and, where the file carries them, the reference and measurement conditions. Several
+    datasets usually exist for one material and differ in sample preparation, temperature and
+    coverage, so the name alone does not identify the data -- this is how to tell them apart.
+    """
+    mat_table = read_material_table(nk_path)
+    comments = read_table_comments(nk_path)
+
+    materials = []
+    for name in sorted(mat_table):
+        wavelength = np.asarray(mat_table[name])[:, 0].real
+        entry = comments.get(name, {})
+        materials.append({
+            'name': name,
+            'wl_min': float(wavelength.min()),
+            'wl_max': float(wavelength.max()),
+            'source': entry.get('source', ''),
+            'conditions': entry.get('conditions', ''),
+        })
+    return materials
+
+
+def print_materials(nk_path=None):
+    """Print list_materials as an aligned table."""
+    materials = list_materials(nk_path)
+    width = max(len(material['name']) for material in materials)
+
+    print(f'{"name":{width}}  {"wavelength range":^25}  source')
+    for material in materials:
+        source = material['source'][:70] or '-'
+        print(f'{material["name"]:{width}}  '
+              f'{material["wl_min"]:.4e} - {material["wl_max"]:.4e}  {source}')
