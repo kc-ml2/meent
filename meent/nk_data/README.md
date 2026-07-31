@@ -136,7 +136,9 @@ Converted from the lab's MATLAB `optprop_*` routines by `tools/convert_matlab_op
 | --- | --- | --- |
 | `si_jwkang-260409` | 1.251e-06 – 3.988e-05 | in-house measurement, 2026-04-09 |
 | `sio2_jwkang-260409` | 1.252e-06 – 3.988e-05 | in-house measurement, 2026-04-09 |
+| `batio3_intrinsic-260223-o` / `-e` | 1.930e-07 – 3.988e-05 | in-house measurement, 2026-02-23 |
 | `mgo_palik` | 1.319e-06 – 1.370e-05 | Palik handbook |
+| `ti_brendelbormann` | 2.480e-07 – 3.100e-05 | same data as `ti_rakic-bb` |
 | `au_palik-drude` | 5.000e-07 – 5.000e-05 | Drude fit, sampled |
 | `graphene_falkovsky-ef200meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
 | `graphene_falkovsky-ef400meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
@@ -156,8 +158,15 @@ thick to carry the intended sheet response. For other gating, edit `GRAPHENE_FER
 the converter and re-run. The measured `graphene_el-sayed` and `graphene_song` tables are the
 better choice when the graphene is not being tuned.
 
-`ti_rakic-bb` came from the same MATLAB library but is byte-identical to the refractiveindex.info
-`Ti/Rakic-BB` record, so it is generated from that public source instead.
+`batio3_intrinsic-260223-*` is uniaxial and ships as an ordinary/extraordinary pair, like the
+crystals under `refractiveindex_info/`. It spans the visible into the mid-infrared and its
+extinction is real above roughly 15 µm, where BaTiO₃'s phonon resonances take over -- at 20 µm the
+two rays sit at 1.17 - 3.21i and 2.88 - 1.79i, so which axis the field sees changes the answer
+completely there.
+
+`ti_brendelbormann` and `ti_rakic-bb` are the same numbers to the last digit: the MATLAB library's
+copy came from the refractiveindex.info record. Both names are kept so the table is findable
+either way, but there is no reason to prefer one over the other.
 
 ## Adding a material
 

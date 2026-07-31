@@ -35,11 +35,21 @@ VACUUM_PERMITTIVITY = 8.85418781762039e-12
 FERMI_VELOCITY = 1e6
 LIGHT_SPEED = 299792458
 
-# (output name, wavnk_*.mat stem) -- wrappers that just load a table.
+# (output name, wavnk_*.mat stem) -- wrappers that just load a [wavelength(um), n, k] table.
 MAT_TABLES = [
     ('MgO_palik', 'wavnk_MgO_Palik'),
     ('Si_jwkang-260409', 'wavnk_Si_JwKang_260409'),
     ('SiO2_jwkang-260409', 'wavnk_SiO2_JwKang_260409'),
+    # Byte-identical to the refractiveindex.info Ti/Rakic-BB record, which ships as ti_rakic-bb.
+    # Kept under the name the MATLAB library uses so it can be found either way.
+    ('Ti_brendelbormann', 'wavnk_Ti_BrendelBormann'),
+]
+
+# Five-column tables, [wavelength(um), n_o, k_o, n_e, k_e], for uniaxial crystals. One table
+# holds one index, so these are written out as separate <name>-o and <name>-e files: a single
+# file would lose the extraordinary ray silently, since find_nk_index reads columns 1 and 2.
+MAT_BIREFRINGENT = [
+    ('BaTiO3_intrinsic-260223', 'wavnk_BTO_Intrinsic_260223'),
 ]
 
 # Fermi levels tabulated for the Falkovsky model, in eV. Graphene is transparent below the
@@ -144,6 +154,20 @@ def main():
              f'source: lab MATLAB library, {stem}.mat (via optprop_{stem[6:]}.m)',
              'type: tabulated nk'])
         print(f'{path.name:30} {count:5} pts')
+
+    for name, stem in MAT_BIREFRINGENT:
+        table = np.asarray(loadmat(str(library / f'{stem}.mat'))['data'], dtype=float)
+        wavelength = table[:, 0] * 1e-6
+        for ray, label, n_col, k_col in [('o', 'ordinary', 1, 2), ('e', 'extraordinary', 3, 4)]:
+            path, count = write_table(
+                out_dir, f'{name}-{ray}', wavelength, table[:, n_col], table[:, k_col],
+                [f'material: {name.split("_")[0]}',
+                 f'source: lab MATLAB library, {stem}.mat',
+                 f'ray: {label}',
+                 'note: uniaxial crystal; pair with the matching -o / -e table to build a '
+                 '(nx, ny, nz) ucell',
+                 'type: tabulated nk'])
+            print(f'{path.name:30} {count:5} pts')
 
     wavelength = np.geomspace(*MODEL_WAVELENGTH_RANGE, MODEL_SAMPLES)
 
