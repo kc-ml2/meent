@@ -90,9 +90,30 @@ temperature and coverage. Where more than one is shipped, pick deliberately.
 | `graphene_el-sayed` | 2.400e-07 – 1.000e-06 | El-Sayed et al. 2021 | CVD graphene |
 | `graphene_song` | 1.930e-07 – 1.690e-06 | Song et al. 2018 | CVD mono-graphene |
 
-Tables stored upstream as dispersion coefficients rather than measurements are sampled onto a
-grid at conversion time and carry `k = 0`, which is what a dispersion formula implies. Their
-`# note:` header says so.
+### Measurements and fits are stored differently
+
+Optical constants come in two shapes and are kept that way. Measurements are tabulated, so those
+files carry data rows. Fits are a handful of Sellmeier coefficients standing in for a curve, so
+those files carry the coefficients and no rows at all:
+
+```
+Wavelength(m)	n	k
+# material: SiO2
+# type: formula 1
+# coefficients: 0 0.6961663 0.0684043 0.4079426 0.1162414 0.8974794 9.896161
+# coefficient_unit: um
+# range: 2.1000e-07 - 6.7000e-06 m
+```
+
+`read_material_table` reads the header, and `find_nk_index` evaluates the formula instead of
+interpolating. Both kinds are used the same way from outside. Expanding a fit onto a grid would
+lose the exact curve, cap it at whatever range was sampled, and turn seven coefficients into five
+thousand rows, so it is not done. A fit gives `n` alone; `k` is 0 over the range it covers.
+
+Formula numbering follows refractiveindex.info. `meent/dispersion.py` implements formulas 1
+(Sellmeier) and 2 (Sellmeier-2); anything else raises `NotImplementedError` rather than guessing.
+Coefficients keep upstream's micrometre convention while `range` is in metres, as the
+`# coefficient_unit:` line records -- `evaluate` converts, so callers stay in metres.
 
 ### Birefringent materials
 
@@ -181,8 +202,10 @@ python tools/convert_refractiveindex_info.py <extracted>/database/data
 ```
 
 The converter needs `pyyaml`; meent itself does not, so it is not an install dependency. It
-handles `tabulated nk`, `tabulated n`, `tabulated k`, `formula 1` (Sellmeier) and `formula 2`
-(Sellmeier-2). Other dispersion formulas raise `NotImplementedError` rather than guessing.
+copies `tabulated nk`, `tabulated n` and `tabulated k` records out as data rows, and passes
+dispersion formulas through as coefficients for `meent/dispersion.py` to evaluate. Adding a
+formula means implementing it there; unimplemented ones raise `NotImplementedError` on lookup
+rather than being guessed at.
 
 New folders also have to be added to `package_data` in `setup.py`, or they will be missing from
 an installed copy.

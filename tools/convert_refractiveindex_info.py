@@ -136,12 +136,30 @@ def _rows(block):
     return np.array([[float(v) for v in line.split()] for line in block.strip().splitlines()])
 
 
-def _read_record(path):
-    """Return (wavelength_um, n, k, kind) for one YAML record.
+def _read_formula(document):
+    """Return (formula number, coefficients, range in metres) if the record is a fit, else None.
 
-    n and k are sampled on a common wavelength grid. Records that only specify n (dispersion
-    formulas and 'tabulated n' entries) get k = 0, which is what the source implies: the data
-    was taken in a range where the material is treated as transparent.
+    Fits are kept as coefficients rather than expanded onto a grid: the curve is exact that way,
+    stays valid across the whole range the source quotes, and the file stays a few lines instead
+    of a few thousand.
+    """
+    for entry in document['DATA']:
+        kind = entry['type']
+        if not kind.startswith('formula'):
+            continue
+        lo, hi = (float(v) for v in str(entry['wavelength_range']).split())
+        return (int(kind.split()[1]),
+                [float(v) for v in str(entry['coefficients']).split()],
+                (lo * 1e-6, hi * 1e-6))
+    return None
+
+
+def _read_record(path):
+    """Return (wavelength_um, n, k, kind) for one tabulated YAML record.
+
+    n and k are sampled on a common wavelength grid. Records that only specify n ('tabulated n'
+    entries) get k = 0, which is what the source implies: the data was taken in a range where the
+    material is treated as transparent.
     """
     document = yaml.safe_load(path.read_text(encoding='utf-8'))
 
@@ -163,11 +181,6 @@ def _read_record(path):
             k = np.interp(wl, table[:, 0], table[:, 1]) if wl is not None else table[:, 1]
             if wl is None:
                 wl = table[:, 0]
-        elif kind in DISPERSION_FORMULAS:
-            lo, hi = (float(v) for v in str(entry['wavelength_range']).split())
-            coefficients = [float(v) for v in str(entry['coefficients']).split()]
-            wl = np.linspace(lo, hi, FORMULA_SAMPLES)
-            n = DISPERSION_FORMULAS[kind](coefficients, wl)
         else:
             raise NotImplementedError(f'{path.name}: unsupported record type {kind!r}')
 
@@ -182,30 +195,37 @@ def _read_record(path):
 def convert(name, shelf, page, data_root, out_dir):
     source = Path(data_root) / shelf / 'nk' / f'{page}.yml'
     document = yaml.safe_load(source.read_text(encoding='utf-8'))
-    wl_um, n, k, kind = _read_record(source)
 
-    header = [f'# material: {name.split("_")[0]}']
-    header.append(f'# source: {_flatten(document.get("REFERENCES"))}')
+    header = [f'# material: {name.split("_")[0]}',
+              f'# source: {_flatten(document.get("REFERENCES"))}']
     if document.get('COMMENTS'):
         header.append(f'# conditions: {_flatten(document["COMMENTS"])}')
     header.append(f'# upstream: {UPSTREAM} {shelf}/nk/{page}.yml')
-    header.append(f'# type: {kind}')
-    if 'formula' in kind:
-        header.append(f'# note: dispersion formula sampled at {FORMULA_SAMPLES} points; k set to 0')
-    elif 'tabulated nk' not in kind:
-        header.append('# note: k not given by the source; set to 0')
-    header.append(f'# range: {wl_um[0] * 1e-6:.4e} - {wl_um[-1] * 1e-6:.4e} m')
+
+    formula = _read_formula(document)
+    if formula is not None:
+        number, coefficients, (low, high) = formula
+        header.append(f'# type: formula {number}')
+        header.append(f'# coefficients: {" ".join(f"{c:.10g}" for c in coefficients)}')
+        header.append('# coefficient_unit: um')
+        header.append('# note: dispersion fit; k is 0 across the range it covers')
+        rows, low_out, high_out = [], low, high
+    else:
+        wl_um, n, k, kind = _read_record(source)
+        header.append(f'# type: {kind}')
+        if 'tabulated nk' not in kind:
+            header.append('# note: k not given by the source; set to 0')
+        rows = [f'{w * 1e-6:.6e}\t{n_value:.6g}\t{k_value:.6g}'
+                for w, n_value, k_value in zip(wl_um, n, k)]
+        low_out, high_out = wl_um[0] * 1e-6, wl_um[-1] * 1e-6
+
+    header.append(f'# range: {low_out:.4e} - {high_out:.4e} m')
     header.append(f'# converted: {date.today().isoformat()} by tools/convert_refractiveindex_info.py'
                   ' (wavelength um -> m)')
 
-    lines = ['Wavelength(m)\tn\tk']
-    lines += header
-    for wl_value, n_value, k_value in zip(wl_um, n, k):
-        lines.append(f'{wl_value * 1e-6:.6e}\t{n_value:.6g}\t{k_value:.6g}')
-
     out_path = Path(out_dir) / f'{name}.txt'
-    out_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-    return out_path, len(wl_um), wl_um[0] * 1e-6, wl_um[-1] * 1e-6
+    out_path.write_text('\n'.join(['Wavelength(m)\tn\tk'] + header + rows) + '\n', encoding='utf-8')
+    return out_path, len(rows), low_out, high_out
 
 
 def main():

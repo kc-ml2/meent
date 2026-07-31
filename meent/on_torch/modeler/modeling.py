@@ -7,6 +7,8 @@ import numpy as np
 from os import walk
 from pathlib import Path
 
+from ... import dispersion
+
 
 def _is_vector_index(n_index):
     """True if a refractive-index value specifies (nx, ny, nz) for diagonal anisotropy."""
@@ -619,7 +621,10 @@ def warn_if_out_of_range(material, mat_data, wl):
     except Exception:  # device-resident or traced values have no range to inspect here
         return
 
-    low, high = float(np.min(mat_data[:, 0])), float(np.max(mat_data[:, 0]))
+    if isinstance(mat_data, dict):
+        low, high = mat_data['wavelength_range']
+    else:
+        low, high = float(np.min(mat_data[:, 0])), float(np.max(mat_data[:, 0]))
     if wl_min < low or wl_max > high:
         warnings.warn(
             f'{material}: wavelength {wl_min:.4e} - {wl_max:.4e} falls outside the tabulated '
@@ -637,6 +642,13 @@ def find_nk_index(material, mat_table, wl):
 
     mat_data = mat_table[material.upper()]
     warn_if_out_of_range(material, mat_data, wl)
+
+    # Fitted materials are stored as coefficients rather than data rows, so evaluate rather than
+    # interpolate. A fit gives n alone; k is 0 over the range it covers.
+    if isinstance(mat_data, dict):
+        n_index = dispersion.evaluate(mat_data, wl, np)
+        return n_index if n_only else n_index + 0j
+
     n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
 
     if n_only:
@@ -670,6 +682,10 @@ def read_material_table(nk_path=None, type_complex=torch.complex128):
         name_list.extend(filenames)
     for path, name in zip(full_path_list, name_list):
         if name[-3:] == 'txt':
+            spec = dispersion.parse_header(path)
+            if spec is not None:
+                mat_table[name[:-4].upper()] = spec
+                continue
             data = np.loadtxt(path, skiprows=1)
             mat_table[name[:-4].upper()] = data.astype(type_complex)
 
