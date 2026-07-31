@@ -704,7 +704,10 @@ def find_nk_index(material, mat_table, wl):
         return n_index
 
     k_index = jnp.interp(wl, mat_data[:, 0], mat_data[:, 2])
-    nk = (n_index + 1j * k_index)
+    # meent solves on the negative sign convention, so absorption is -ik: tables store k as the
+    # positive extinction coefficient, and returning +ik instead turns every lossy material into
+    # a gain medium (transmission through a slab grows with thickness rather than decaying).
+    nk = (n_index - 1j * k_index)
 
     return nk
 

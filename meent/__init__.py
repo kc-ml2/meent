@@ -7,4 +7,8 @@ except:
     pass
 
 from .main import call_mee
-from .on_numpy.modeler.modeling import list_materials, print_materials
+# Material lookup is duplicated per backend, but the three agree on the value they return: the
+# table itself is plain data, and find_nk_index gives the same n - ik on all of them. Re-export
+# one set so callers do not have to reach into a backend module to read an index.
+from .on_numpy.modeler.modeling import (find_nk_index, list_materials, print_materials,
+                                        read_material_table)

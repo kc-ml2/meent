@@ -10,7 +10,7 @@ Three shapes appear, and this script covers all of them:
     material -- graphene's response depends on how it is gated, so a table has to fix the Fermi
     level, mobility and temperature.
 
-Output goes to nk_data/optprop/. Tables whose upstream is the refractiveindex.info database
+Output goes to nk_data/jLab/. Tables whose upstream is the refractiveindex.info database
 belong in nk_data/refractiveindex_info/ via tools/convert_refractiveindex_info.py instead --
 Ti_BrendelBormann is one such case, being byte-identical to that database's Ti/Rakic-BB.
 
@@ -128,7 +128,7 @@ def main():
     parser.add_argument('material_data', help="path to the MATLAB 'Material data' directory")
     parser.add_argument('-o', '--out-dir',
                         default=str(Path(__file__).resolve().parent.parent
-                                    / 'meent' / 'nk_data' / 'optprop'))
+                                    / 'meent' / 'nk_data' / 'jLab'))
     args = parser.parse_args()
 
     library = Path(args.material_data) / 'material data library'

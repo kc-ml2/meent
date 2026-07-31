@@ -7,12 +7,37 @@ it sits in is ignored.
 ```python
 import meent
 
-mee = meent.call_mee(backend=0, wavelength=1.55e-6, period=[1.0e-6], thickness=[2.0e-7])
+mee = meent.call_mee(backend=2, wavelength=1.55e-6, period=[1.0e-6], thickness=[2.0e-7])
 mee.ucell = mee.put_refractive_index_in_ucell(ucell, ['sio2_malitson', 'au_johnson'], 1.55e-6)
 ```
 
 Use `meent.print_materials()` to list everything available with its wavelength range, or
-`meent.list_materials()` for the same data as dicts.
+`meent.list_materials()` for the same data as dicts. To read one index directly, without going
+through a solver:
+
+```python
+table = meent.read_material_table()
+meent.find_nk_index('au_johnson', table, 1.55e-6)   # 0.5241 - 10.7424j
+```
+
+Each backend carries its own copy of these two functions under `meent.on_*/modeler/modeling.py`;
+they return the same values, and the ones re-exported here are the numpy set.
+
+## Sign convention
+
+Tables store `k` as the positive extinction coefficient, the way every source publishes it.
+`find_nk_index` returns `n - ik`, because the solver runs on the negative sign convention. Handed
+`n + ik` a material amplifies instead of absorbing: transmission through a slab grows with
+thickness rather than decaying, and `R + T` exceeds 1. That is the quickest check that an index
+has the wrong sign.
+
+All three backends return the same sign, so no `.conj()` is needed anywhere:
+
+```python
+mee.ucell = mee.put_refractive_index_in_ucell(ucell, ['sio2_malitson', 'au_johnson'], wl)
+```
+
+The `__real` suffix drops `k` entirely and returns `n` on its own.
 
 ## Wavelength units differ between folders
 
@@ -21,7 +46,7 @@ tables are the one place an absolute unit is fixed.
 
 | folder | unit |
 | --- | --- |
-| `refractiveindex_info/`, `optprop/` | **metres** |
+| `refractiveindex_info/`, `jLab/` | **metres** |
 | `filmetrics/`, `matlab/` | **nanometres** |
 
 Do not mix the two in one `mat_list`. Interpolation clamps to the endpoints outside a table's
@@ -65,7 +90,7 @@ temperature and coverage. Where more than one is shipped, pick deliberately.
 coefficients rather than measurements; they are sampled onto a table at conversion time and
 carry `k = 0`, which is what a dispersion formula implies. Their `# note:` header says so.
 
-## optprop/
+## jLab/
 
 Converted from the lab's MATLAB `optprop_*` routines by `tools/convert_matlab_optprop.py`.
 
