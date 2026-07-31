@@ -69,7 +69,11 @@ temperature and coverage. Where more than one is shipped, pick deliberately.
 | `sio2_malitson` | 2.100e-07 – 6.700e-06 | Malitson 1965 | fused silica, 20 °C |
 | `sio2_lemarchand` | 2.500e-07 – 2.500e-06 | Lemarchand 2013 | 580 nm sputtered film on BK7 |
 | `si3n4_luke` | 3.100e-07 – 5.504e-06 | Luke et al. 2015 | 340 nm Si₃N₄ on thermal SiO₂ |
-| `al2o3_malitson` | 2.652e-07 – 5.577e-06 | Malitson 1962 | synthetic sapphire, ordinary ray |
+| `al2o3_malitson-o` / `-e` | 2.000e-07 – 5.000e-06 | Malitson 1962 | synthetic sapphire |
+| `al2o3_querry-o` / `-e` | 2.100e-07 – 5.556e-05 | Querry 1985 | sapphire, reaches 55 µm and has k |
+| `sio2_ghosh-o` / `-e` | 1.980e-07 – 2.053e-06 | Ghosh 1999 | α-quartz |
+| `tio2_bond-o` / `-e` | 4.500e-07 – 2.400e-06 | Bond 1965 | rutile |
+| `batio3_wemple-o` / `-e` | 4.000e-07 – 7.000e-07 | Wemple 1968 | BaTiO₃ |
 | `tio2_siefke` | 1.202e-07 – 1.251e-04 | Siefke et al. 2016 | 350 nm ALD film |
 | `hfo2_franta` | 1.148e-07 – 1.251e-04 | Franta et al. 2015 | e-beam evaporated film on c-Si |
 | `au_johnson` | 1.879e-07 – 1.937e-06 | Johnson & Christy 1972 | room temperature |
@@ -86,9 +90,43 @@ temperature and coverage. Where more than one is shipped, pick deliberately.
 | `graphene_el-sayed` | 2.400e-07 – 1.000e-06 | El-Sayed et al. 2021 | CVD graphene |
 | `graphene_song` | 1.930e-07 – 1.690e-06 | Song et al. 2018 | CVD mono-graphene |
 
-`sio2_malitson`, `si3n4_luke` and `al2o3_malitson` are stored upstream as Sellmeier
-coefficients rather than measurements; they are sampled onto a table at conversion time and
-carry `k = 0`, which is what a dispersion formula implies. Their `# note:` header says so.
+Tables stored upstream as dispersion coefficients rather than measurements are sampled onto a
+grid at conversion time and carry `k = 0`, which is what a dispersion formula implies. Their
+`# note:` header says so.
+
+### Birefringent materials
+
+A table holds one refractive index, so uniaxial crystals ship as separate ordinary (`-o`) and
+extraordinary (`-e`) files, the way upstream stores them. Putting both in one file does not work:
+`find_nk_index` reads columns 1 and 2, so extra columns are dropped without a warning and you get
+the ordinary ray while believing otherwise.
+
+Combine them yourself, since `put_refractive_index_in_ucell` returns an array shaped like the
+pattern it was given and cannot produce the extra axis:
+
+```python
+n_o = meent.find_nk_index('tio2_bond-o', table, wl)
+n_e = meent.find_nk_index('tio2_bond-e', table, wl)
+
+ucell = torch.zeros((1, 1, 10, 3), dtype=torch.complex128)   # last axis = (nx, ny, nz)
+ucell[..., 0] = ucell[..., 1] = n_o                          # optic axis along z
+ucell[..., 2] = n_e
+```
+
+The solver reads that last axis as the diagonal of the permittivity tensor. An off-diagonal
+tensor -- an optic axis that is not aligned with x, y or z -- is not supported.
+
+Two caveats on the data:
+
+`al2o3_querry-*` quotes n to three decimals, which cannot resolve sapphire's 0.008 birefringence;
+subtracting the two rays gives a rounding artefact of about 0.024 that barely varies with
+wavelength. Use it for a single ray, where its reach to 55 µm and its k are what it is good for,
+and use `al2o3_malitson-*` for birefringence.
+
+GaN is shipped only as `gan_kawashima`, a single index. Its one upstream ordinary/extraordinary
+pair fits the two rays with different functional forms -- the extraordinary one has no
+visible-range oscillator at all -- and their difference comes out negative where wurtzite GaN is
+positive uniaxial, so it is left out rather than shipped as a birefringent pair.
 
 ## jLab/
 
@@ -134,8 +172,8 @@ python tools/convert_refractiveindex_info.py <extracted>/database/data
 ```
 
 The converter needs `pyyaml`; meent itself does not, so it is not an install dependency. It
-handles `tabulated nk`, `tabulated n`, `tabulated k` and `formula 1` (Sellmeier). Other
-dispersion formulas raise `NotImplementedError` rather than guessing.
+handles `tabulated nk`, `tabulated n`, `tabulated k`, `formula 1` (Sellmeier) and `formula 2`
+(Sellmeier-2). Other dispersion formulas raise `NotImplementedError` rather than guessing.
 
 New folders also have to be added to `package_data` in `setup.py`, or they will be missing from
 an installed copy.

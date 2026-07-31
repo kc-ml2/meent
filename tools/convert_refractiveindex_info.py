@@ -48,7 +48,29 @@ RECORDS = [
     ('SiO2_malitson', 'main/SiO2', 'Malitson'),
     ('SiO2_lemarchand', 'main/SiO2', 'Lemarchand'),
     ('Si3N4_luke', 'main/Si3N4', 'Luke'),
-    ('Al2O3_malitson', 'main/Al2O3', 'Malitson'),
+    # Birefringent materials are shipped as separate ordinary and extraordinary tables, the way
+    # upstream stores them. A single table cannot carry both: find_nk_index reads columns 1 and 2
+    # and would silently return the ordinary ray for a file that also held the extraordinary one.
+    # Build the (nx, ny, nz) ucell from two lookups instead.
+    ('Al2O3_malitson-o', 'main/Al2O3', 'Malitson-o'),
+    ('Al2O3_malitson-e', 'main/Al2O3', 'Malitson-e'),
+    # Querry reaches 55 um and carries k, which Malitson does not, but it quotes n to three
+    # decimals -- too coarse to resolve sapphire's 0.008 birefringence, so the two rays differ by
+    # a rounding artefact rather than by the real amount. Use it for a single ray, not for a
+    # birefringent pair.
+    ('Al2O3_querry-o', 'main/Al2O3', 'Querry-o'),
+    ('Al2O3_querry-e', 'main/Al2O3', 'Querry-e'),
+    ('SiO2_ghosh-o', 'main/SiO2', 'Ghosh-o'),
+    ('SiO2_ghosh-e', 'main/SiO2', 'Ghosh-e'),
+    ('TiO2_bond-o', 'main/TiO2', 'Bond-o'),
+    ('TiO2_bond-e', 'main/TiO2', 'Bond-e'),
+    ('BaTiO3_wemple-o', 'main/BaTiO3', 'Wemple-o'),
+    ('BaTiO3_wemple-e', 'main/BaTiO3', 'Wemple-e'),
+    # GaN's only ordinary/extraordinary pair upstream is Barker, whose two rays were fit with
+    # different functional forms -- the extraordinary one carries no visible-range oscillator at
+    # all, only an infrared pole. Their difference comes out at -0.027 where wurtzite GaN is
+    # positive uniaxial at about +0.02, so the pair is not shipped. gan_kawashima covers GaN as a
+    # single index.
     ('TiO2_siefke', 'main/TiO2', 'Siefke'),
     ('HfO2_franta', 'main/HfO2', 'Franta'),
     ('Au_johnson', 'main/Au', 'Johnson'),
@@ -98,6 +120,18 @@ def _formula1(coefficients, wl_um):
     return np.sqrt(n2)
 
 
+def _formula2(coefficients, wl_um):
+    """Sellmeier-2: as formula 1, but the pole term is C_2i rather than C_2i squared."""
+    wl2 = np.asarray(wl_um, dtype=float) ** 2
+    n2 = 1.0 + coefficients[0]
+    for i in range(1, len(coefficients), 2):
+        n2 = n2 + coefficients[i] * wl2 / (wl2 - coefficients[i + 1])
+    return np.sqrt(n2)
+
+
+DISPERSION_FORMULAS = {'formula 1': _formula1, 'formula 2': _formula2}
+
+
 def _rows(block):
     return np.array([[float(v) for v in line.split()] for line in block.strip().splitlines()])
 
@@ -129,11 +163,11 @@ def _read_record(path):
             k = np.interp(wl, table[:, 0], table[:, 1]) if wl is not None else table[:, 1]
             if wl is None:
                 wl = table[:, 0]
-        elif kind == 'formula 1':
+        elif kind in DISPERSION_FORMULAS:
             lo, hi = (float(v) for v in str(entry['wavelength_range']).split())
             coefficients = [float(v) for v in str(entry['coefficients']).split()]
             wl = np.linspace(lo, hi, FORMULA_SAMPLES)
-            n = _formula1(coefficients, wl)
+            n = DISPERSION_FORMULAS[kind](coefficients, wl)
         else:
             raise NotImplementedError(f'{path.name}: unsupported record type {kind!r}')
 
