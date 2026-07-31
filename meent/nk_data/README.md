@@ -21,7 +21,7 @@ tables are the one place an absolute unit is fixed.
 
 | folder | unit |
 | --- | --- |
-| `refractiveindex_info/` | **metres** |
+| `refractiveindex_info/`, `optprop/` | **metres** |
 | `filmetrics/`, `matlab/` | **nanometres** |
 
 Do not mix the two in one `mat_list`. Interpolation clamps to the endpoints outside a table's
@@ -53,6 +53,7 @@ temperature and coverage. Where more than one is shipped, pick deliberately.
 | `al_mcpeak` | 1.500e-07 – 1.700e-06 | McPeak et al. 2015 | template-stripped evaporated film |
 | `cu_johnson` | 1.879e-07 – 1.937e-06 | Johnson & Christy 1972 | room temperature |
 | `ti_johnson` | 1.880e-07 – 1.937e-06 | Johnson & Christy 1974 | room temperature |
+| `ti_rakic-bb` | 2.480e-07 – 3.100e-05 | Rakić et al. 1998 | Brendel-Bormann model |
 | `gan_kawashima` | 1.240e-07 – 9.919e-07 | Kawashima et al. 1997 | hexagonal GaN on sapphire |
 | `mgo_synowicki` | 1.301e-07 – 3.300e-05 | Synowicki & Tiwald 2004 | oscillator model |
 | `batio3_johnston-clamped` | 4.000e-07 – 1.000e-06 | Johnston 1971 | crystalline BaTiO₃, clamped |
@@ -63,6 +64,37 @@ temperature and coverage. Where more than one is shipped, pick deliberately.
 `sio2_malitson`, `si3n4_luke` and `al2o3_malitson` are stored upstream as Sellmeier
 coefficients rather than measurements; they are sampled onto a table at conversion time and
 carry `k = 0`, which is what a dispersion formula implies. Their `# note:` header says so.
+
+## optprop/
+
+Converted from the lab's MATLAB `optprop_*` routines by `tools/convert_matlab_optprop.py`.
+
+| key | range (m) | origin |
+| --- | --- | --- |
+| `si_jwkang-260409` | 1.251e-06 – 3.988e-05 | in-house measurement, 2026-04-09 |
+| `sio2_jwkang-260409` | 1.252e-06 – 3.988e-05 | in-house measurement, 2026-04-09 |
+| `mgo_palik` | 1.319e-06 – 1.370e-05 | Palik handbook |
+| `au_palik-drude` | 5.000e-07 – 5.000e-05 | Drude fit, sampled |
+| `graphene_falkovsky-ef200meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
+| `graphene_falkovsky-ef400meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
+| `graphene_falkovsky-ef600meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
+
+Two of these are models rather than measurements, so they carry assumptions a table cannot show:
+
+`au_palik-drude` is a free-electron Drude fit with no interband term, despite the Palik in its
+name. Gold's interband transitions dominate below roughly 500 nm, so this is an infrared model;
+prefer `au_johnson` or `au_mcpeak` in the visible.
+
+`graphene_falkovsky-*` is one curve out of a model family. Graphene's response is set by how it
+is gated, so each file fixes a Fermi level (the interband onset sits at `hw = 2 Ef`) alongside a
+mobility of 10000 cm²/Vs and 300 K. The model gives a sheet conductivity; the tables spread it
+over an assumed 0.34 nm thickness to get a bulk index, so a layer using them has to be that
+thick to carry the intended sheet response. For other gating, edit `GRAPHENE_FERMI_LEVELS` in
+the converter and re-run. The measured `graphene_el-sayed` and `graphene_song` tables are the
+better choice when the graphene is not being tuned.
+
+`ti_rakic-bb` came from the same MATLAB library but is byte-identical to the refractiveindex.info
+`Ti/Rakic-BB` record, so it is generated from that public source instead.
 
 ## Adding a material
 

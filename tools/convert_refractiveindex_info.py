@@ -57,6 +57,7 @@ RECORDS = [
     ('Al_mcpeak', 'main/Al', 'McPeak'),
     ('Cu_johnson', 'main/Cu', 'Johnson'),
     ('Ti_johnson', 'main/Ti', 'Johnson'),
+    ('Ti_rakic-bb', 'main/Ti', 'Rakic-BB'),
     ('GaN_kawashima', 'main/GaN', 'Kawashima'),
     ('MgO_synowicki', 'main/MgO', 'Synowicki'),
     ('BaTiO3_johnston-clamped', 'main/BaTiO3', 'Johnston-clamped'),

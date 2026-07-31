@@ -39,6 +39,7 @@ setup(
         'meent': ['nk_data/filmetrics/*.txt',
                   'nk_data/matlab/*.mat',
                   'nk_data/refractiveindex_info/*.txt',
+                  'nk_data/optprop/*.txt',
                   ],
     },
 )
