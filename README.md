@@ -69,6 +69,16 @@ Jupyter notebooks are prepared in [tutorials](tutorials) to give a brief introdu
 ## Examples
 Comprehensive examples of computational optics with Meent can be found in `examples` folder.
 
+## Testing
+```shell
+pip install pytest
+pytest
+```
+Tests live in [tests](tests). If you are new to pytest, start with
+[tests/GUIDE.md](tests/GUIDE.md) — it is written for scientists rather than
+software engineers, and explains how to run the suite, read its output, and
+write a test with a defensible tolerance.
+
 ## Citation
 To cite this repository:
 
