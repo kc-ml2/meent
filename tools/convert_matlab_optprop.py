@@ -25,6 +25,7 @@ from pathlib import Path
 import numpy as np
 from scipy.integrate import quad
 from scipy.io import loadmat
+from scipy.special import wofz
 
 # Physical constants, matching the values hard-coded in the MATLAB sources so the ported models
 # reproduce them exactly.
@@ -62,6 +63,34 @@ GRAPHENE_THICKNESS = 0.34e-9  # m, used to turn a sheet conductivity into a bulk
 # Wavelength grid for the two models, log spaced because they span two decades.
 MODEL_WAVELENGTH_RANGE = (0.5e-6, 50e-6)
 MODEL_SAMPLES = 1000
+
+# The newer Material_data set computes a Brendel-Bormann oscillator model inline instead of
+# loading a table: a Drude term for the conduction electrons plus Gaussian-broadened Lorentz
+# oscillators for the interband transitions, which is why it needs the Faddeeva function.
+#
+# These are sampled onto a grid rather than kept as coefficients, unlike the Sellmeier fits under
+# refractiveindex_info/. Those evaluate with plain arithmetic in whichever array library a backend
+# uses; this one needs wofz, which jax does not provide, so a table is the portable form.
+# (output name, parameter convention, coefficients)
+#   'ev' -- optprop_Au.m / optprop_Ti.m, which convert cm-1 to eV first
+#   'cm' -- optprop_CaF2.m, which works in cm-1 throughout
+BRENDEL_BORMANN = [
+    ('Au_jw-bb', 'ev', [9.20007, 0.85195, 0.09509, 0.03361, 0.08138, 0.24435, 0.66983, 0.04378,
+                        0.02654, 3.57689, 0.30055, 0.39482, 0.09543, 3.59156, 0.93598, 0.83641,
+                        7.69005, 3.59644, 0.88825, 1.28384, 0.23893, 34.87059, 1.87353]),
+    ('Ti_jw-bb', 'ev', [7.29, 0.126, 0.067, 0.427, 1.877, 1.459, 0.463, 0.218, 0.1, 2.661, 0.506,
+                        0.513, 0.615, 0.805, 0.799, 0.0002, 4.109, 19.86, 2.854]),
+    ('CaF2_jw-bb', 'cm', [1.84462, 14357190.64106, 2.59652, 626.33865, 11858.60141, 269739.04488,
+                          0.14187, 223.90971, 53.62512, 786.56174, 33.25617, 242.183, 504.21943]),
+]
+BRENDEL_BORMANN_RANGE = (0.15e-6, 100e-6)
+BRENDEL_BORMANN_SAMPLES = 4000
+
+# (output name, .mat file, variable) -- tables in the newer set, stored as [wavenumber(cm-1), n, k]
+# rather than the [wavelength(um), n, k] the older library uses.
+WAVENUMBER_TABLES = [
+    ('Iongel_jw', '[Optprop][Iongel][JW].mat', 'Iongel_JW'),
+]
 
 
 def _cosh_ratio(a, b):
@@ -108,6 +137,36 @@ def graphene_falkovsky(wavelength, fermi_level, mobility, temperature):
     return np.sqrt(permittivity)
 
 
+def brendel_bormann(coefficients, wavenumber, convention):
+    """Brendel-Bormann permittivity, ported from optprop_Au.m / optprop_Ti.m / optprop_CaF2.m.
+
+    A Lorentz oscillator broadened by a Gaussian spread in its centre frequency integrates to a
+    Voigt profile, which is where the Faddeeva function comes from. The two conventions differ
+    only in whether the parameters are quoted in eV or in wavenumbers.
+    """
+    if convention == 'ev':
+        omega = np.asarray(wavenumber, dtype=float) / 8065.54429  # cm-1 per eV
+        plasma, strength, damping = coefficients[:3]
+        permittivity = 1 - strength * plasma ** 2 / (omega * (omega + 1j * damping))
+        for i in range(3, len(coefficients), 4):
+            f, gamma, centre, sigma = coefficients[i:i + 4]
+            a = np.sqrt(omega ** 2 + 1j * omega * gamma)
+            permittivity = permittivity + 1j * np.sqrt(np.pi) * f * plasma ** 2 / (
+                2 ** 1.5 * a * sigma) * (wofz((a - centre) / (np.sqrt(2) * sigma))
+                                         + wofz((a + centre) / (np.sqrt(2) * sigma)))
+        return np.sqrt(permittivity)
+
+    omega = np.asarray(wavenumber, dtype=float)
+    permittivity = coefficients[0]
+    for i in range(1, len(coefficients), 4):
+        strength, gamma, sigma, centre = coefficients[i:i + 4]
+        a = np.sqrt(omega ** 2 + 1j * gamma * omega)
+        permittivity = permittivity + 1j * np.sqrt(np.pi) * strength / (
+            2 * np.sqrt(2) * sigma * a) * (wofz((a - centre) / (np.sqrt(2) * sigma))
+                                           + wofz((a + centre) / (np.sqrt(2) * sigma)))
+    return np.sqrt(permittivity)
+
+
 def gold_drude(wavelength):
     """Drude fit used by optprop_Au_Palik: eps = eps_inf - wp^2 / (w^2 + i*Gamma*w)."""
     permittivity_infinity = 1.0
@@ -136,6 +195,7 @@ def write_table(out_dir, name, wavelength, n, k, header):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('material_data', help="path to the MATLAB 'Material data' directory")
+    parser.add_argument('--jw-dir', help='path to the newer Material_data set (Au/Ti/CaF2/Iongel)')
     parser.add_argument('-o', '--out-dir',
                         default=str(Path(__file__).resolve().parent.parent
                                     / 'meent' / 'nk_data' / 'jLab'))
@@ -180,6 +240,30 @@ def main():
          'note: free-electron Drude only, no interband term; unreliable below roughly 1 um',
          'type: model'])
     print(f'{path.name:30} {count:5} pts')
+
+    if args.jw_dir:
+        jw = Path(args.jw_dir)
+        wavelength = np.geomspace(*BRENDEL_BORMANN_RANGE, BRENDEL_BORMANN_SAMPLES)
+        for name, convention, coefficients in BRENDEL_BORMANN:
+            index = brendel_bormann(coefficients, 1e-2 / wavelength, convention)
+            path, count = write_table(
+                out_dir, name, wavelength, index.real, index.imag,
+                [f'material: {name.split("_")[0]}',
+                 f'source: Material_data set, optprop_{name.split("_")[0]}.m',
+                 'model: Brendel-Bormann oscillators, sampled onto this grid',
+                 'type: model'])
+            print(f'{path.name:30} {count:5} pts')
+
+        for name, filename, variable in WAVENUMBER_TABLES:
+            table = np.asarray(loadmat(str(jw / filename))[variable], dtype=float)
+            # Stored against wavenumber, so wavelength runs backwards; interp needs it ascending.
+            table = table[np.argsort(1e-2 / table[:, 0])]
+            path, count = write_table(
+                out_dir, name, 1e-2 / table[:, 0], table[:, 1], table[:, 2],
+                [f'material: {name.split("_")[0]}',
+                 f'source: Material_data set, {filename} (via optprop_{name.split("_")[0]}.m)',
+                 'type: tabulated nk'])
+            print(f'{path.name:30} {count:5} pts')
 
     for fermi_level in GRAPHENE_FERMI_LEVELS:
         index = graphene_falkovsky(wavelength, fermi_level,

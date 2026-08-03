@@ -3,7 +3,7 @@ Wavelength(m)	n	k
 # source: lab MATLAB library, wavnk_Ti_BrendelBormann.mat (via optprop_Ti_BrendelBormann.m)
 # type: tabulated nk
 # range: 2.4797e-07 - 3.0996e-05 m
-# converted: 2026-07-31 by tools/convert_matlab_optprop.py
+# converted: 2026-08-03 by tools/convert_matlab_optprop.py
 2.479700e-07	0.18885	1.4035
 2.540600e-07	0.19618	1.4617
 2.603000e-07	0.2041	1.5216

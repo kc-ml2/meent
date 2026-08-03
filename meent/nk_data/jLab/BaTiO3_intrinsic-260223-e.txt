@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # note: uniaxial crystal; pair with the matching -o / -e table to build a (nx, ny, nz) ucell
 # type: tabulated nk
 # range: 1.9300e-07 - 3.9884e-05 m
-# converted: 2026-07-31 by tools/convert_matlab_optprop.py
+# converted: 2026-08-03 by tools/convert_matlab_optprop.py
 1.930000e-07	1.83402	0.95077
 1.940000e-07	1.85424	0.957698
 1.950000e-07	1.87247	0.96259

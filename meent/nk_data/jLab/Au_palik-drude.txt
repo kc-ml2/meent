@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # note: free-electron Drude only, no interband term; unreliable below roughly 1 um
 # type: model
 # range: 5.0000e-07 - 5.0000e-05 m
-# converted: 2026-07-31 by tools/convert_matlab_optprop.py
+# converted: 2026-08-03 by tools/convert_matlab_optprop.py
 5.000000e-07	0.0395199	2.91823
 5.023102e-07	0.0398644	2.93329
 5.046311e-07	0.040212	2.94841

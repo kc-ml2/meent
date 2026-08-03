@@ -160,6 +160,10 @@ Converted from the lab's MATLAB `optprop_*` routines by `tools/convert_matlab_op
 | `batio3_intrinsic-260223-o` / `-e` | 1.930e-07 – 3.988e-05 | in-house measurement, 2026-02-23 |
 | `mgo_palik` | 1.319e-06 – 1.370e-05 | Palik handbook |
 | `ti_brendelbormann` | 2.480e-07 – 3.100e-05 | same data as `ti_rakic-bb` |
+| `iongel_jw` | 1.667e-06 – 3.324e-05 | ion gel, measured |
+| `au_jw-bb` | 1.500e-07 – 1.000e-04 | Brendel-Bormann fit, sampled |
+| `ti_jw-bb` | 1.500e-07 – 1.000e-04 | Brendel-Bormann fit, sampled |
+| `caf2_jw-bb` | 1.500e-07 – 1.000e-04 | Brendel-Bormann fit, sampled |
 | `au_palik-drude` | 5.000e-07 – 5.000e-05 | Drude fit, sampled |
 | `graphene_falkovsky-ef200meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
 | `graphene_falkovsky-ef400meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
@@ -188,6 +192,19 @@ completely there.
 `ti_brendelbormann` and `ti_rakic-bb` are the same numbers to the last digit: the MATLAB library's
 copy came from the refractiveindex.info record. Both names are kept so the table is findable
 either way, but there is no reason to prefer one over the other.
+
+The `*_jw-bb` tables come from a newer `Material_data` set whose `optprop_*.m` compute a
+Brendel-Bormann oscillator model inline -- a Drude term plus Lorentz oscillators broadened by a
+Gaussian spread in centre frequency, which integrates to a Voigt profile and so needs the
+Faddeeva function. They are sampled onto a grid rather than kept as coefficients, unlike the
+Sellmeier fits under `refractiveindex_info/`: those evaluate with plain arithmetic in any array
+library, while this one needs `wofz`, which jax does not provide.
+
+`ti_jw-bb` reproduces `ti_brendelbormann` to about 1e-3, so it is a third copy of the same model
+rather than new data. **`au_jw-bb` does not match any measured gold in this repository**: its n
+runs 0.5 to 0.8 high against Johnson & Christy, McPeak and Olmon alike, and its coefficients are
+not the published Rakić set either. What it was fit to is not recorded. Prefer `au_johnson` or
+`au_mcpeak` unless you know this fit is the right one for your sample.
 
 ## Adding a material
 
