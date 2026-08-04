@@ -134,6 +134,23 @@ This is what lets reference data be **committed before the feature it validates
 is merged**: the data-only tests assert the archived result immediately, and the
 live tests announce exactly what is missing instead of failing confusingly.
 
+### 6b. Parking a case whose feature has not merged
+
+A case can be committed before the code it validates exists. The data-only tests
+assert the finding immediately; the live tests skip with the probe's reason.
+
+When that happens, add a **`RERUN.md`** next to `case.py` recording what the case
+assumes about the unmerged API, what to check when it lands, and what to update
+afterwards — see
+[`1D_anisotropic_grating_conical_incidence/RERUN.md`](1D_anisotropic_grating_conical_incidence/RERUN.md)
+and its companion `verify_after_merge.py`, which checks each API assumption
+separately so a changed signature is diagnosed in one line instead of as a wall
+of pytest failures.
+
+This matters most when the feature is being written by someone else: the case
+records what you needed, so the merge can be checked against it rather than
+guessed at.
+
 ### 7. Check it
 
 ```bash

@@ -52,8 +52,11 @@ tensor. `res1` is called in its full conical form and `res2` returns `TEinc` and
 
 **meent side.** `Meent_1D_anisotropic_grating_conical_incidence.ipynb`, 1206
 solves (3 methods × 2 polarizations × 201 wavelengths) in 587 s, 0 failures,
-backend 2 (torch), complex128. That notebook lives in the experiment folder
-outside this repository — see "Caveats" below.
+backend 2 (torch), complex128. **That notebook no longer exists on this machine**
+— see "Caveats" and [RERUN.md](RERUN.md#inventory).
+
+**Status: parked.** The live tests skip until diagonal anisotropy is merged.
+[RERUN.md](RERUN.md) is the runbook for picking this back up.
 
 **Required feature.** Diagonal anisotropy is torch-only and landed on
 `feature/anisotropic-diagonal-torch` (commit 186fd07). It is **not on `main`**, so
@@ -112,12 +115,10 @@ LAPACK build, and eigendecomposition ordering and rounding differ across builds.
 `TOL_RECORDED` in `case.py` is therefore a guess (1e-9) rather than a
 measurement — measure it on the CI machine and tighten it.
 
-**Not committed** from the original experiment folder: `prv1.mat` (16 MB
-RETICOLO intermediate), `.opju` (Origin project), `.xlsx` (the same numbers as
-the `.txt` files, reorganized for plotting), and the notebook. The `.txt` files
-are canonical; everything else is derived, large, or both.
-
-**The notebook is not version-controlled.** It is the only record of how the
-meent side was produced, and it currently lives only in the experiment folder.
-`case.py` reproduces its solve path, but not its analysis. Consider committing it
-alongside this README.
+**The source folder has since been emptied.** `prv1.mat`, the `.opju` Origin
+project, the `.xlsx`, and — most importantly — the reproduction notebook are gone
+from this machine. They were untracked files in a second checkout that was later
+switched to another branch; there is no stash and no commit containing them. The
+eight `.txt` files here survived only because they were copied into commit
+0cee92d. Full inventory, and where the notebook probably still exists, in
+[RERUN.md](RERUN.md#inventory).

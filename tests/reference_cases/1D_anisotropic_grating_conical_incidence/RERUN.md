@@ -1,0 +1,196 @@
+# Re-running this case after the anisotropy PR merges
+
+This case is **parked**. Its data and tolerances are committed and its data-only
+tests pass today, but the live tests skip because diagonal anisotropy is not on
+`main`. When the PR merges, work through this document.
+
+The PR is being written by someone else and may differ from the branch this case
+was built against (`feature/anisotropic-diagonal-torch`, 186fd07). So the first
+step is not `pytest` — it is a script that checks each API assumption separately
+and tells you which one moved.
+
+---
+
+## TL;DR
+
+```bash
+git checkout main && git pull                    # the merged anisotropy
+git checkout feature/pytest && git rebase main   # bring the tests onto it
+pip install -e . && pip install pytest torch
+
+python tests/reference_cases/1D_anisotropic_grating_conical_incidence/verify_after_merge.py
+```
+
+**Check the first line it prints.** It reports which `meent` was imported. If
+that path is a `site-packages` copy rather than your working tree, you are
+testing the wrong code — `pip install -e .` from the repo root and re-run. This
+is easy to miss and makes every result meaningless.
+
+Read its output, apply what it tells you, then:
+
+```bash
+pytest tests/test_reference.py -v                # data-only + live smoke
+pytest tests/test_reference.py -m slow           # full 201-point sweep, ~10 min
+```
+
+---
+
+## Status right now
+
+| | |
+|---|---|
+| data-only tests | **32 pass** — verified against the committed files |
+| live tests | **72 skip** — "anisotropic ucell not supported by this checkout" |
+| full sweep | deselected (`slow`) |
+| feature needed | diagonal anisotropy, torch-only, `feature/anisotropic-diagonal-torch` @ 186fd07 |
+
+The skip is produced by `_loader._probe_anisotropy_diagonal`, which attempts a
+one-wavelength anisotropic solve and reports the exception. **When the merge is
+right, the skips turn into runs with no code change.** If they don't, the probe's
+message names the reason.
+
+---
+
+## The API contract
+
+`case.py` encodes eight assumptions about how anisotropy is used. Each has a
+matching check in `verify_after_merge.py`. This table is the thing to consult
+when a check fails.
+
+| # | Assumption | Encoded in | If the PR changed it |
+|---|---|---|---|
+| 1 | ucell of shape `(layers, H, W, 3)` means a diagonal (nx, ny, nz) tensor | `case.build_raster` | Rewrite `build_raster` to the new spelling (e.g. an explicit flag or a separate argument). Keep the *structure* identical — 4 columns of 250 nm, bar spanning 250–750 nm. |
+| 2 | An anisotropic conical case solves at all | `case.build` | If it raises, the case cannot run; report it as a PR bug rather than adapting. |
+| 3 | Vector instructions accept a 3-component index | `case.build_vector` | Adapt the instruction format. If vector anisotropy did not land, drop `'vector'` from `case.METHODS` and say so here — the discrete/continuous comparison still stands. |
+| 4 | Anisotropic + conical routes to the 2D solver | `case.py` docstring | Only a comment is wrong, unless the routing changed the *answer*. Check the numbers in section 2 of the script before editing anything. |
+| 5 | `type_complex=0` means complex128 | `case.TYPE_COMPLEX` | Update. Note that a silent drop to complex64 would move the deviations from 1e-11 to ~1e-6 and look like a physics regression. |
+| 6 | The isotropic path still works | — | This is a guard on the PR, not on the case. A failure here is a merge defect worth raising immediately. |
+| 7 | A conical solve exposes `res_te_inc` / `res_tm_inc` | not used by `case.py` | Informational. |
+| 8 | `pol=0`'s `.res` equals `res_te_inc` | not used by `case.py` | Informational — if it holds, the sweep can be halved by solving once per wavelength instead of once per polarization. Worth doing before the full sweep. |
+
+## If a contract check fails
+
+**Do not widen a tolerance to make anything pass.** The tolerances here were
+measured from data, and the whole point of the case is that they are falsifiable.
+
+Work in this order:
+
+1. **Contract failure (section 1 of the script)** — an interface moved. Fix
+   `case.py` to speak the new interface, keeping the physical structure
+   identical. Re-run the script. Nothing in section 2 means anything until
+   section 1 is clean.
+2. **Energy conservation fails but RETICOLO agreement holds** — unlikely
+   combination; suspect the observable extraction (`case.observables`) rather
+   than the solver.
+3. **RETICOLO agreement fails** — this is the interesting one. See below.
+
+## If the numbers disagree
+
+The question is always *which side moved*. Three sources of evidence, in order
+of cost:
+
+1. **Is it all methods or one?** `discrete` alone drifting is a Fourier-expansion
+   change. All three moving together is the solver or the structure.
+2. **Is it all wavelengths or a few?** The script prints per-wavelength
+   deviations. A single bad wavelength near a resonance is a conditioning
+   problem; a uniform offset is a normalization change.
+3. **Does energy still conserve?** If R + T = 1 holds but RETICOLO disagrees,
+   power is being moved between R and T — a normalization or branch-cut sign,
+   not a bookkeeping error. We verified this failure mode is invisible to the
+   energy check by mutating the data, which is why both tests exist.
+
+If meent legitimately improved (say `discrete` now agrees to 1e-8), that is a
+**finding, not a chore**: tighten `TOL_REFERENCE`, update `MEASURED_REFERENCE`
+and the table in README.md, and say why in the commit message. Do not leave a
+loose tolerance in place because it passes.
+
+## What to update after a good run
+
+The script prints these at the end, ready to paste:
+
+- **`TOL_RECORDED`** in `case.py` — currently a guess (1e-9). This is the number
+  that has been waiting for a machine that can actually run the case. The
+  recorded sweep ran on Windows with a different LAPACK build and
+  eigendecomposition is not bit-reproducible across builds, so expect ~1e-11,
+  not 0.
+- **`MEASURED_REFERENCE`** — only if you ran `-m slow`. The script's figures come
+  from the 4-wavelength smoke subset and are not the full-sweep worst case.
+- **README.md** in this directory — the measured-agreement tables, and the
+  RETICOLO version, which is still unrecorded.
+- **This file** — delete the "parked" framing once the case runs.
+
+---
+
+## Inventory
+
+**Committed here** — this is now the only copy of the experiment's data:
+
+```
+reference/  RETICOLO_..._TE.txt, _TM.txt        201 wavelengths each
+            RETICOLO_....m                      the MATLAB script that made them
+recorded/   Meent_..._{TE,TM}_{discrete,continuous,vector}.txt
+case.py     structure, sweep, tolerances, meent construction
+README.md   provenance, measured agreement, caveats
+RERUN.md    this file
+verify_after_merge.py
+```
+
+**Lost.** The original experiment folder
+(`/home/chs/Work/Meent/meent/1D_anisotropic_grating_conical_incidence/`) was
+emptied when that checkout switched branches — the files were untracked, there
+is no stash, and they are not in any commit on any branch. Gone from this
+machine:
+
+- `Meent_1D_anisotropic_grating_conical_incidence.ipynb` — the notebook that
+  produced `recorded/`, **and the only record of the analysis** (energy audit,
+  method cross-comparison, RETICOLO comparison, a convolution-matrix stability
+  probe, and the plots). Per its own stored output it was run from
+  `e:\Taesang Yun\meent\validation\transmittance\1D_anisotropic_grating_conical_incidence`,
+  so the master copy should still exist on that Windows machine. **Please commit
+  it here when you can.**
+- `prv1.mat` (16 MB RETICOLO intermediate), `1D_....xlsx`, `1D_....opju` — derived
+  or regenerable; the `.txt` files are canonical.
+
+The eight `.txt` files survived only because they were copied into commit
+0cee92d. That is the argument for this directory existing.
+
+**Reconstructable from what is committed:** `case.py` reproduces the solve path
+exactly (same structure, same fto, same sweep), and the checks the notebook did
+by eye are now assertions in `tests/test_reference.py`. What is *not*
+reconstructable is the notebook's stability probe — it blended the discrete and
+continuous convolution matrices with a parameter `t` and looked for a
+discontinuity at `t → 1`. Worth rewriting as a test if that investigation matters.
+
+---
+
+## Reference numbers
+
+Recomputed from the committed files. `verify_after_merge.py` compares against
+these; they are also in README.md.
+
+meent vs RETICOLO, max(|ΔR|, |ΔT|) over 201 wavelengths:
+
+| method | TE | TM | asserted |
+|---|---|---|---|
+| discrete | 6.25e-06 | 1.03e-05 | 1e-4 |
+| continuous | 5.06e-11 | 6.20e-11 | 1e-8 |
+| vector | 5.06e-11 | 6.24e-11 | 1e-6 |
+
+Energy, max |R + T − 1|: RETICOLO 9.81e-11; meent 9.76e-12 (discrete),
+1.14e-11 (continuous), 2.93e-11 (vector). Continuous vs vector: 1.05e-11.
+
+Smoke wavelengths and why: **540 nm** worst TM discrete, **565 nm** worst TE
+discrete, **639 nm** worst continuous/vector and worst energy residual,
+**700 nm** endpoint.
+
+---
+
+## Also worth checking at merge time
+
+`tests/test_properties.py::TestGratingTypeAssignment` is a stub whose expected
+table was written from the numpy backend. On the anisotropy branch, torch's
+`_assign_grating_type` treats `phi=0` the same as `phi=None` (routing to the fast
+1D solver), whereas numpy and jax deliberately let `phi=0` force the conical
+path — see `QA/1d_pattern_in_1dc_and_2d.py` for that contract. If the merged PR
+keeps that difference, the stub needs per-backend expectations, and the
+divergence deserves a note in the main README.
