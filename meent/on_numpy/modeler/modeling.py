@@ -654,8 +654,9 @@ class ModelingNumpy:
         for i_mat, material in enumerate(mat_list):
             mask = np.nonzero(ucell_mask == i_mat)
 
-            if type(material) is str:
-                if not self.mat_table:
+            if isinstance(material, (str, dict)):
+                # A dict is a self-contained spec, so it needs no table; only a name does.
+                if isinstance(material, str) and not self.mat_table:
                     self.mat_table = read_material_table()
                 assign_value = find_nk_index(material, self.mat_table, wl)
             else:
@@ -686,9 +687,8 @@ def warn_if_out_of_range(material, mat_data, wl):
     """Warn when wl falls outside the tabulated range, where interp clamps to the endpoints.
 
     The clamp is silent, so a wavelength given in the wrong unit returns a plausible-looking
-    number instead of failing. Tables do not all share one unit -- the files under
-    nk_data/refractiveindex_info are in metres, the older ones in nanometres -- so mixing them
-    in a single mat_list is the usual cause.
+    number instead of failing. Every table under nk_data is in metres, so a warning here almost
+    always means the wavelength was passed in nanometres or micrometres.
     """
     try:
         wl_min, wl_max = float(np.min(wl)), float(np.max(wl))
@@ -708,20 +708,31 @@ def warn_if_out_of_range(material, mat_data, wl):
 
 
 def find_nk_index(material, mat_table, wl):
-    if material[-6:] == '__real':
+    if isinstance(material, dict):
+        mat_data = material
+        material_name = mat_data.get('formula', 'dynamic material')
+        n_only = False
+    elif material[-6:] == '__real':
         material = material[:-6]
         n_only = True
+        mat_data = mat_table[material.upper()]
+        material_name = material
     else:
         n_only = False
-
-    mat_data = mat_table[material.upper()]
-    warn_if_out_of_range(material, mat_data, wl)
+        mat_data = mat_table[material.upper()]
+        material_name = material
+    warn_if_out_of_range(material_name, mat_data, wl)
 
     # Fitted materials are stored as coefficients rather than data rows, so evaluate rather than
-    # interpolate. A fit gives n alone; k is 0 over the range it covers.
+    # interpolate. A Sellmeier fit gives n alone; the oscillator models give n + ik, since
+    # absorption is the point of them.
     if isinstance(mat_data, dict):
         n_index = dispersion.evaluate(mat_data, wl, np)
-        return n_index if n_only else n_index + 0j
+        if n_only:
+            return np.real(n_index)
+        # Returned on the ordinary optics convention (n + ik). meent solves on n - ik, so
+        # conjugate -- the same flip the tabulated branch below applies to its k column.
+        return np.conj(n_index + 0j)
 
     n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
 

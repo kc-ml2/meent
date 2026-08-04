@@ -1,9 +1,9 @@
 Wavelength(m)	n	k
 # material: Si
-# source: lab MATLAB library, wavnk_Si_JwKang_260409.mat (via optprop_Si_JwKang_260409.m)
+# source: wavnk_Si_JwKang_260409.mat
 # type: tabulated nk
 # range: 1.2512e-06 - 3.9884e-05 m
-# converted: 2026-08-03 by tools/convert_matlab_optprop.py
+# converted: 2026-08-04 by tools/convert_matlab_optprop.py
 1.251185e-06	3.51545	0
 1.251789e-06	3.51535	0
 1.252393e-06	3.51525	0

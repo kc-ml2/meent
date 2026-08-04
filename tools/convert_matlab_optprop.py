@@ -3,19 +3,27 @@
 The MATLAB library under 'Material data' exposes one optprop_<material>_<source>.m per dataset.
 Three shapes appear, and this script covers all of them:
 
-  * thin wrappers that load 'material data library/wavnk_<name>.mat', whose 'data' variable is
-    an (N, 3) array of [wavelength(um), n, k];
-  * an inline Drude fit (optprop_Au_Palik);
+  * thin wrappers that load 'wavnk_<name>.mat', whose 'data' variable is an (N, 3) array of
+    [wavelength(um), n, k];
+  * inline oscillator models (optprop_Au, optprop_Ti, optprop_CaF2);
   * a parametric Kubo model (optprop_Gr_Falkovsky), which is a model family rather than one
     material -- graphene's response depends on how it is gated, so a table has to fix the Fermi
     level, mobility and temperature.
+
+Sources are located by filename anywhere under the directories given, so it does not matter
+whether the library is laid out in subfolders or flat; anything missing is reported and skipped.
+
+Measurements are written out as data rows. The inline models are written out as coefficients
+instead, under a 'type: model <name>' header that meent/dispersion.py evaluates on lookup -- no
+resampling, and the parameters stay visible and editable. Graphene is the exception: its Kubo
+integral needs quadrature per point, so it stays sampled.
 
 Output goes to nk_data/jLab/. Tables whose upstream is the refractiveindex.info database
 belong in nk_data/refractiveindex_info/ via tools/convert_refractiveindex_info.py instead --
 Ti_BrendelBormann is one such case, being byte-identical to that database's Ti/Rakic-BB.
 
 Usage:
-    python tools/convert_matlab_optprop.py "<path to Material data>"
+    python tools/convert_matlab_optprop.py "<path to the material data directory>"
 """
 
 import argparse
@@ -37,51 +45,61 @@ FERMI_VELOCITY = 1e6
 LIGHT_SPEED = 299792458
 
 # (output name, wavnk_*.mat stem) -- wrappers that just load a [wavelength(um), n, k] table.
+# Output files are named after their source: same stem, .txt extension. That is also the lookup
+# key, since read_material_table keys the table on the file name.
+#
+# (material, source .mat) -- wrappers that just load a [wavelength(um), n, k] table.
 MAT_TABLES = [
-    ('MgO_palik', 'wavnk_MgO_Palik'),
-    ('Si_jwkang-260409', 'wavnk_Si_JwKang_260409'),
-    ('SiO2_jwkang-260409', 'wavnk_SiO2_JwKang_260409'),
-    # Byte-identical to the refractiveindex.info Ti/Rakic-BB record, which ships as ti_rakic-bb.
-    # Kept under the name the MATLAB library uses so it can be found either way.
-    ('Ti_brendelbormann', 'wavnk_Ti_BrendelBormann'),
+    ('MgO', 'wavnk_MgO_Palik.mat'),
+    ('Si', 'wavnk_Si_JwKang_260409.mat'),
+    ('SiO2', 'wavnk_SiO2_JwKang_260409.mat'),
 ]
 
-# Five-column tables, [wavelength(um), n_o, k_o, n_e, k_e], for uniaxial crystals. One table
-# holds one index, so these are written out as separate <name>-o and <name>-e files: a single
-# file would lose the extraordinary ray silently, since find_nk_index reads columns 1 and 2.
-MAT_BIREFRINGENT = [
-    ('BaTiO3_intrinsic-260223', 'wavnk_BTO_Intrinsic_260223'),
+# (material, source .xlsx) -- [wavelength(um), n_o, k_o, n_e, k_e] under one header row, for
+# uniaxial crystals. One file holds one index, so these are written out as separate -o and -e
+# files: a single file would lose the extraordinary ray silently, since find_nk_index reads
+# columns 1 and 2.
+XLSX_BIREFRINGENT = [
+    ('BaTiO3', '260223_BTO_Vis_MIR_intrinsic.xlsx'),
 ]
 
 # Fermi levels tabulated for the Falkovsky model, in eV. Graphene is transparent below the
 # interband onset at hw = 2 Ef, so each level gives a materially different curve.
+GRAPHENE_SOURCE = 'optprop_Gr_Falkovsky.m'
 GRAPHENE_FERMI_LEVELS = [0.2, 0.4, 0.6]
 GRAPHENE_MOBILITY = 10000.0  # cm^2/Vs
 GRAPHENE_TEMPERATURE = 300.0  # K
 GRAPHENE_THICKNESS = 0.34e-9  # m, used to turn a sheet conductivity into a bulk permittivity
 
-# Wavelength grid for the two models, log spaced because they span two decades.
+# Wavelength grid for the sampled model, log spaced because it spans two decades.
 MODEL_WAVELENGTH_RANGE = (0.5e-6, 50e-6)
 MODEL_SAMPLES = 1000
 
-# The newer Material_data set computes a Brendel-Bormann oscillator model inline instead of
+# The optprop_* routines below compute a Brendel-Bormann oscillator model inline instead of
 # loading a table: a Drude term for the conduction electrons plus Gaussian-broadened Lorentz
 # oscillators for the interband transitions, which is why it needs the Faddeeva function.
 #
-# These are sampled onto a grid rather than kept as coefficients, unlike the Sellmeier fits under
+# These are kept as coefficients and evaluated on lookup, like the Sellmeier fits under
 # refractiveindex_info/. Those evaluate with plain arithmetic in whichever array library a backend
-# uses; this one needs wofz, which jax does not provide, so a table is the portable form.
-# (output name, parameter convention, coefficients)
+# uses; this one needs wofz, so it goes through numpy -- which is what every backend but jax
+# hands to dispersion.evaluate anyway.
+#
+# The coefficients are the L vectors the .m files hard-code; the sources are read only to confirm
+# the dataset is the one being converted.
+# (material, source .m, parameter convention, coefficients)
 #   'ev' -- optprop_Au.m / optprop_Ti.m, which convert cm-1 to eV first
 #   'cm' -- optprop_CaF2.m, which works in cm-1 throughout
 BRENDEL_BORMANN = [
-    ('Au_jw-bb', 'ev', [9.20007, 0.85195, 0.09509, 0.03361, 0.08138, 0.24435, 0.66983, 0.04378,
-                        0.02654, 3.57689, 0.30055, 0.39482, 0.09543, 3.59156, 0.93598, 0.83641,
-                        7.69005, 3.59644, 0.88825, 1.28384, 0.23893, 34.87059, 1.87353]),
-    ('Ti_jw-bb', 'ev', [7.29, 0.126, 0.067, 0.427, 1.877, 1.459, 0.463, 0.218, 0.1, 2.661, 0.506,
-                        0.513, 0.615, 0.805, 0.799, 0.0002, 4.109, 19.86, 2.854]),
-    ('CaF2_jw-bb', 'cm', [1.84462, 14357190.64106, 2.59652, 626.33865, 11858.60141, 269739.04488,
-                          0.14187, 223.90971, 53.62512, 786.56174, 33.25617, 242.183, 504.21943]),
+    ('Au', 'optprop_Au.m', 'ev',
+     [9.20007, 0.85195, 0.09509, 0.03361, 0.08138, 0.24435, 0.66983, 0.04378,
+      0.02654, 3.57689, 0.30055, 0.39482, 0.09543, 3.59156, 0.93598, 0.83641,
+      7.69005, 3.59644, 0.88825, 1.28384, 0.23893, 34.87059, 1.87353]),
+    ('Ti', 'optprop_Ti.m', 'ev',
+     [7.29, 0.126, 0.067, 0.427, 1.877, 1.459, 0.463, 0.218, 0.1, 2.661, 0.506,
+      0.513, 0.615, 0.805, 0.799, 0.0002, 4.109, 19.86, 2.854]),
+    ('CaF2', 'optprop_CaF2.m', 'cm',
+     [1.84462, 14357190.64106, 2.59652, 626.33865, 11858.60141, 269739.04488,
+      0.14187, 223.90971, 53.62512, 786.56174, 33.25617, 242.183, 504.21943]),
 ]
 BRENDEL_BORMANN_RANGE = (0.15e-6, 100e-6)
 BRENDEL_BORMANN_SAMPLES = 4000
@@ -89,7 +107,7 @@ BRENDEL_BORMANN_SAMPLES = 4000
 # (output name, .mat file, variable) -- tables in the newer set, stored as [wavenumber(cm-1), n, k]
 # rather than the [wavelength(um), n, k] the older library uses.
 WAVENUMBER_TABLES = [
-    ('Iongel_jw', '[Optprop][Iongel][JW].mat', 'Iongel_JW'),
+    ('Iongel', '[Optprop][Iongel][JW].mat', 'Iongel_JW'),
 ]
 
 
@@ -167,18 +185,6 @@ def brendel_bormann(coefficients, wavenumber, convention):
     return np.sqrt(permittivity)
 
 
-def gold_drude(wavelength):
-    """Drude fit used by optprop_Au_Palik: eps = eps_inf - wp^2 / (w^2 + i*Gamma*w)."""
-    permittivity_infinity = 1.0
-    plasma_frequency = 2 * np.pi * 1.85e15
-    damping = 2 * np.pi * 14.5355e12
-
-    angular_frequency = 2 * np.pi * LIGHT_SPEED / wavelength
-    permittivity = permittivity_infinity - plasma_frequency ** 2 / (
-        angular_frequency ** 2 + 1j * damping * angular_frequency)
-    return np.sqrt(permittivity)
-
-
 def write_table(out_dir, name, wavelength, n, k, header):
     lines = ['Wavelength(m)\tn\tk']
     lines += [f'# {line}' for line in header]
@@ -192,93 +198,163 @@ def write_table(out_dir, name, wavelength, n, k, header):
     return path, len(wavelength)
 
 
+def read_spreadsheet(path):
+    """[wavelength(um), n_o, k_o, n_e, k_e] from a one-sheet .xlsx with a single header row."""
+    from openpyxl import load_workbook
+
+    sheet = load_workbook(str(path), data_only=True, read_only=True).worksheets[0]
+    rows = sheet.iter_rows(min_row=2, values_only=True)
+    return np.array([row[:5] for row in rows if row[0] is not None], dtype=float)
+
+
+def write_birefringent(out_dir, name, material, table, source):
+    """Write [wavelength(um), n_o, k_o, n_e, k_e] out as separate -o and -e tables."""
+    wavelength = table[:, 0] * 1e-6
+    for ray, label, n_col, k_col in [('o', 'ordinary', 1, 2), ('e', 'extraordinary', 3, 4)]:
+        path, count = write_table(
+            out_dir, f'{name}-{ray}', wavelength, table[:, n_col], table[:, k_col],
+            [f'material: {material}',
+             f'source: {source}',
+             f'ray: {label}',
+             'note: uniaxial crystal; pair with the matching -o / -e table to build a '
+             '(nx, ny, nz) ucell',
+             'type: tabulated nk'])
+        print(f'{path.name:38} {count:5} pts')
+
+
+def write_model(out_dir, name, model, coefficients, wavelength_range, header):
+    """Write a model as its coefficients, with no data rows.
+
+    meent/dispersion.py reads the 'type: model' and 'coefficients' lines back and evaluates the
+    curve at lookup time, so nothing here is resampled and the parameters stay editable.
+    """
+    lines = ['Wavelength(m)\tn\tk']
+    lines += [f'# {line}' for line in header]
+    lines.append(f'# type: model {model}')
+    lines.append('# coefficients: ' + ' '.join(repr(float(value)) for value in coefficients))
+    lines.append(f'# range: {wavelength_range[0]:.4e} - {wavelength_range[1]:.4e} m')
+    lines.append(f'# converted: {date.today().isoformat()} by tools/convert_matlab_optprop.py')
+
+    path = Path(out_dir) / f'{name}.txt'
+    path.write_text('\n'.join(lines) + '\n', encoding='ascii')
+    return path, len(coefficients)
+
+
+def find_source(roots, filename):
+    """First file called `filename` anywhere under `roots`, or None.
+
+    Searching by name rather than by path keeps this working whether the library is laid out in
+    subfolders or flat, which the two sets it has to read are not consistent about.
+    """
+    for root in roots:
+        if root is None:
+            continue
+        candidate = Path(root) / filename
+        if candidate.is_file():
+            return candidate
+        for match in Path(root).rglob(filename):
+            return match
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('material_data', help="path to the MATLAB 'Material data' directory")
-    parser.add_argument('--jw-dir', help='path to the newer Material_data set (Au/Ti/CaF2/Iongel)')
+    parser.add_argument('material_data', help='path to the material data directory')
+    parser.add_argument('--jw-dir', help='second directory to search, if the sets are split')
     parser.add_argument('-o', '--out-dir',
                         default=str(Path(__file__).resolve().parent.parent
                                     / 'meent' / 'nk_data' / 'jLab'))
     args = parser.parse_args()
 
-    library = Path(args.material_data) / 'material data library'
+    roots = [args.material_data, args.jw_dir]
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    missing = []
 
-    for name, stem in MAT_TABLES:
-        table = np.asarray(loadmat(str(library / f'{stem}.mat'))['data'], dtype=float)
+    for material, filename in MAT_TABLES:
+        source = find_source(roots, filename)
+        if source is None:
+            missing.append(filename)
+            continue
+        table = np.asarray(loadmat(str(source))['data'], dtype=float)
         wavelength = table[:, 0] * 1e-6  # the MATLAB library tabulates micrometres
         path, count = write_table(
-            out_dir, name, wavelength, table[:, 1], table[:, 2],
-            [f'material: {name.split("_")[0]}',
-             f'source: lab MATLAB library, {stem}.mat (via optprop_{stem[6:]}.m)',
+            out_dir, Path(filename).stem, wavelength, table[:, 1], table[:, 2],
+            [f'material: {material}',
+             f'source: {filename}',
              'type: tabulated nk'])
-        print(f'{path.name:30} {count:5} pts')
+        print(f'{path.name:38} {count:5} pts')
 
-    for name, stem in MAT_BIREFRINGENT:
-        table = np.asarray(loadmat(str(library / f'{stem}.mat'))['data'], dtype=float)
-        wavelength = table[:, 0] * 1e-6
-        for ray, label, n_col, k_col in [('o', 'ordinary', 1, 2), ('e', 'extraordinary', 3, 4)]:
-            path, count = write_table(
-                out_dir, f'{name}-{ray}', wavelength, table[:, n_col], table[:, k_col],
-                [f'material: {name.split("_")[0]}',
-                 f'source: lab MATLAB library, {stem}.mat',
-                 f'ray: {label}',
-                 'note: uniaxial crystal; pair with the matching -o / -e table to build a '
-                 '(nx, ny, nz) ucell',
-                 'type: tabulated nk'])
-            print(f'{path.name:30} {count:5} pts')
+    # A uniaxial crystal needs both rays, and find_nk_index reads one (n, k) pair per file, so
+    # each ray is written out separately. They are looked up as two independent materials and
+    # combined by the caller -- meent has no notion of an optic axis.
+    for material, filename in XLSX_BIREFRINGENT:
+        source = find_source(roots, filename)
+        if source is None:
+            missing.append(filename)
+            continue
+        write_birefringent(out_dir, Path(filename).stem, material,
+                           read_spreadsheet(source), filename)
 
-    wavelength = np.geomspace(*MODEL_WAVELENGTH_RANGE, MODEL_SAMPLES)
+    # Inline models: coefficients only, evaluated by meent/dispersion.py on lookup.
+    for material, filename, convention, coefficients in BRENDEL_BORMANN:
+        if find_source(roots, filename) is None:
+            missing.append(filename)
+            continue
+        unit = 'eV' if convention == 'ev' else 'cm-1'
+        layout = ('[wp, f0, g0, (f, gamma, centre, sigma) * n]' if convention == 'ev'
+                  else '[eps_inf, (strength, gamma, sigma, centre) * n]')
+        path, count = write_model(
+            out_dir, Path(filename).stem, f'brendel-bormann-{convention}', coefficients,
+            BRENDEL_BORMANN_RANGE,
+            [f'material: {material}',
+             f'source: {filename}',
+             'model: Brendel-Bormann oscillators (Drude term plus Gaussian-broadened Lorentz '
+             'oscillators, hence the Faddeeva function)',
+             f'coefficient layout: {layout}, in {unit}'])
+        print(f'{path.name:38} {count:5} coefficients')
 
-    index = gold_drude(wavelength)
-    path, count = write_table(
-        out_dir, 'Au_palik-drude', wavelength, index.real, index.imag,
-        ['material: Au',
-         'source: lab MATLAB library, optprop_Au_Palik.m (inline Drude fit)',
-         'model: eps = 1 - wp^2/(w^2 + i*Gamma*w), wp = 2pi*1.85e15, Gamma = 2pi*14.5355e12',
-         'note: free-electron Drude only, no interband term; unreliable below roughly 1 um',
-         'type: model'])
-    print(f'{path.name:30} {count:5} pts')
+    for material, filename, variable in WAVENUMBER_TABLES:
+        source = find_source(roots, filename)
+        if source is None:
+            missing.append(filename)
+            continue
+        table = np.asarray(loadmat(str(source))[variable], dtype=float)
+        # Stored against wavenumber, so wavelength runs backwards; interp needs it ascending.
+        table = table[np.argsort(1e-2 / table[:, 0])]
+        path, count = write_table(
+            out_dir, Path(filename).stem, 1e-2 / table[:, 0], table[:, 1], table[:, 2],
+            [f'material: {material}',
+             f'source: {filename}',
+             'type: tabulated nk'])
+        print(f'{path.name:38} {count:5} pts')
 
-    if args.jw_dir:
-        jw = Path(args.jw_dir)
-        wavelength = np.geomspace(*BRENDEL_BORMANN_RANGE, BRENDEL_BORMANN_SAMPLES)
-        for name, convention, coefficients in BRENDEL_BORMANN:
-            index = brendel_bormann(coefficients, 1e-2 / wavelength, convention)
+    # Graphene stays sampled: the Kubo interband term is an integral evaluated by quadrature per
+    # point, which is not something a coefficient line can carry. One source, one file per Fermi
+    # level, so the level is the only thing appended to the name.
+    if find_source(roots, GRAPHENE_SOURCE) is None:
+        missing.append(GRAPHENE_SOURCE)
+    else:
+        wavelength = np.geomspace(*MODEL_WAVELENGTH_RANGE, MODEL_SAMPLES)
+        for fermi_level in GRAPHENE_FERMI_LEVELS:
+            index = graphene_falkovsky(wavelength, fermi_level,
+                                       GRAPHENE_MOBILITY, GRAPHENE_TEMPERATURE)
+            name = f'{Path(GRAPHENE_SOURCE).stem}-ef{round(fermi_level * 1000)}meV'
             path, count = write_table(
                 out_dir, name, wavelength, index.real, index.imag,
-                [f'material: {name.split("_")[0]}',
-                 f'source: Material_data set, optprop_{name.split("_")[0]}.m',
-                 'model: Brendel-Bormann oscillators, sampled onto this grid',
+                ['material: Graphene',
+                 f'source: {GRAPHENE_SOURCE} (Falkovsky/Kubo model)',
+                 f'conditions: Ef = {fermi_level} eV, mobility = {GRAPHENE_MOBILITY:g} cm^2/Vs, '
+                 f'T = {GRAPHENE_TEMPERATURE:g} K',
+                 f'note: sheet conductivity spread over {GRAPHENE_THICKNESS:g} m to give a bulk '
+                 'index; valid only at this gating',
                  'type: model'])
-            print(f'{path.name:30} {count:5} pts')
+            print(f'{path.name:38} {count:5} pts')
 
-        for name, filename, variable in WAVENUMBER_TABLES:
-            table = np.asarray(loadmat(str(jw / filename))[variable], dtype=float)
-            # Stored against wavenumber, so wavelength runs backwards; interp needs it ascending.
-            table = table[np.argsort(1e-2 / table[:, 0])]
-            path, count = write_table(
-                out_dir, name, 1e-2 / table[:, 0], table[:, 1], table[:, 2],
-                [f'material: {name.split("_")[0]}',
-                 f'source: Material_data set, {filename} (via optprop_{name.split("_")[0]}.m)',
-                 'type: tabulated nk'])
-            print(f'{path.name:30} {count:5} pts')
-
-    for fermi_level in GRAPHENE_FERMI_LEVELS:
-        index = graphene_falkovsky(wavelength, fermi_level,
-                                   GRAPHENE_MOBILITY, GRAPHENE_TEMPERATURE)
-        name = f'Graphene_falkovsky-ef{round(fermi_level * 1000)}meV'
-        path, count = write_table(
-            out_dir, name, wavelength, index.real, index.imag,
-            ['material: Graphene',
-             'source: lab MATLAB library, optprop_Gr_Falkovsky.m (Falkovsky/Kubo model)',
-             f'conditions: Ef = {fermi_level} eV, mobility = {GRAPHENE_MOBILITY:g} cm^2/Vs, '
-             f'T = {GRAPHENE_TEMPERATURE:g} K',
-             f'note: sheet conductivity spread over {GRAPHENE_THICKNESS:g} m to give a bulk '
-             'index; valid only at this gating',
-             'type: model'])
-        print(f'{path.name:30} {count:5} pts')
+    if missing:
+        print('\nnot found, skipped:')
+        for filename in missing:
+            print(f'  {filename}')
 
 
 if __name__ == '__main__':

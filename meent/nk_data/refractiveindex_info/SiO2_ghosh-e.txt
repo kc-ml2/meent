@@ -4,8 +4,8 @@ Wavelength(m)	n	k
 # conditions: Extraordinary ray (e). Room temperature.
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/SiO2/nk/Ghosh-e.yml
 # type: formula 2
-# coefficients: 0.28851804 1.09509924 0.0102101864 1.15662475 100
-# coefficient_unit: um
+# coefficients: 0.28851804 1.09509924 1.02101864e-14 1.15662475 1e-10
+# coefficient_unit: m (m^2 for the pole terms)
 # note: dispersion fit; k is 0 across the range it covers
 # range: 1.9800e-07 - 2.0531e-06 m
 # converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)

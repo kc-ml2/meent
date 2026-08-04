@@ -1,11 +1,11 @@
 Wavelength(m)	n	k
 # material: BaTiO3
-# source: lab MATLAB library, wavnk_BTO_Intrinsic_260223.mat
+# source: 260223_BTO_Vis_MIR_intrinsic.xlsx
 # ray: ordinary
 # note: uniaxial crystal; pair with the matching -o / -e table to build a (nx, ny, nz) ucell
 # type: tabulated nk
 # range: 1.9300e-07 - 3.9884e-05 m
-# converted: 2026-08-03 by tools/convert_matlab_optprop.py
+# converted: 2026-08-04 by tools/convert_matlab_optprop.py
 1.930000e-07	1.66146	0.799357
 1.940000e-07	1.66606	0.814264
 1.950000e-07	1.67085	0.82847

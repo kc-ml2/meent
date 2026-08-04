@@ -111,25 +111,19 @@ def _flatten(text):
     return ' '.join(text.split())
 
 
-def _formula1(coefficients, wl_um):
-    """Sellmeier: n^2 - 1 = C0 + sum_i C_2i-1 * L^2 / (L^2 - C_2i^2), L in micrometres."""
-    wl2 = np.asarray(wl_um, dtype=float) ** 2
-    n2 = 1.0 + coefficients[0]
-    for i in range(1, len(coefficients), 2):
-        n2 = n2 + coefficients[i] * wl2 / (wl2 - coefficients[i + 1] ** 2)
-    return np.sqrt(n2)
+def _coefficients_to_metres(number, coefficients):
+    """Rescale the coefficients that carry a length so the fit takes a wavelength in metres.
 
-
-def _formula2(coefficients, wl_um):
-    """Sellmeier-2: as formula 1, but the pole term is C_2i rather than C_2i squared."""
-    wl2 = np.asarray(wl_um, dtype=float) ** 2
-    n2 = 1.0 + coefficients[0]
-    for i in range(1, len(coefficients), 2):
-        n2 = n2 + coefficients[i] * wl2 / (wl2 - coefficients[i + 1])
-    return np.sqrt(n2)
-
-
-DISPERSION_FORMULAS = {'formula 1': _formula1, 'formula 2': _formula2}
+    Upstream quotes them against micrometres, but everything in nk_data is metres, so converting
+    once here beats converting the wavelength on every lookup. Only the pole terms have a
+    dimension: formula 1 holds them as a length, formula 2 as a length squared. The rest are
+    dimensionless oscillator strengths and stay as they are.
+    """
+    scale = {1: 1e-6, 2: 1e-12}[number]
+    converted = list(coefficients)
+    for i in range(2, len(converted), 2):  # 0 = C0, then (strength, pole) pairs
+        converted[i] = coefficients[i] * scale
+    return converted
 
 
 def _rows(block):
@@ -147,10 +141,10 @@ def _read_formula(document):
         kind = entry['type']
         if not kind.startswith('formula'):
             continue
+        number = int(kind.split()[1])
         lo, hi = (float(v) for v in str(entry['wavelength_range']).split())
-        return (int(kind.split()[1]),
-                [float(v) for v in str(entry['coefficients']).split()],
-                (lo * 1e-6, hi * 1e-6))
+        coefficients = [float(v) for v in str(entry['coefficients']).split()]
+        return number, _coefficients_to_metres(number, coefficients), (lo * 1e-6, hi * 1e-6)
     return None
 
 
@@ -206,8 +200,9 @@ def convert(name, shelf, page, data_root, out_dir):
     if formula is not None:
         number, coefficients, (low, high) = formula
         header.append(f'# type: formula {number}')
-        header.append(f'# coefficients: {" ".join(f"{c:.10g}" for c in coefficients)}')
-        header.append('# coefficient_unit: um')
+        header.append(f'# coefficients: {" ".join(repr(c) for c in coefficients)}')
+        header.append('# coefficient_unit: m'
+                      + (' (m^2 for the pole terms)' if number == 2 else ''))
         header.append('# note: dispersion fit; k is 0 across the range it covers')
         rows, low_out, high_out = [], low, high
     else:

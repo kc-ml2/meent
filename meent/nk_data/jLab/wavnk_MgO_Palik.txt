@@ -1,9 +1,9 @@
 Wavelength(m)	n	k
 # material: MgO
-# source: lab MATLAB library, wavnk_MgO_Palik.mat (via optprop_MgO_Palik.m)
+# source: wavnk_MgO_Palik.mat
 # type: tabulated nk
 # range: 1.3190e-06 - 1.3700e-05 m
-# converted: 2026-08-03 by tools/convert_matlab_optprop.py
+# converted: 2026-08-04 by tools/convert_matlab_optprop.py
 1.319000e-06	1.7177	7.1e-08
 2.700000e-06	1.6973	1.1e-07
 3.800000e-06	1.6734	2e-08

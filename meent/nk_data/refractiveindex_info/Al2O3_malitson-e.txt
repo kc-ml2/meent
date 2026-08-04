@@ -4,8 +4,8 @@ Wavelength(m)	n	k
 # conditions: Synthetic sapphire, Extraordinary ray (e), 20 degC
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/Al2O3/nk/Malitson-e.yml
 # type: formula 1
-# coefficients: 0 1.5039759 0.0740288 0.55069141 0.1216529 6.5927379 20.072248
-# coefficient_unit: um
+# coefficients: 0.0 1.5039759 7.40288e-08 0.55069141 1.216529e-07 6.5927379 2.0072248e-05
+# coefficient_unit: m
 # note: dispersion fit; k is 0 across the range it covers
 # range: 2.0000e-07 - 5.0000e-06 m
 # converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)

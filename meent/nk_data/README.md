@@ -39,19 +39,16 @@ mee.ucell = mee.put_refractive_index_in_ucell(ucell, ['sio2_malitson', 'au_johns
 
 The `__real` suffix drops `k` entirely and returns `n` on its own.
 
-## Wavelength units differ between folders
+## Wavelengths are in metres
 
 meent itself is unit-agnostic -- only the ratio of wavelength to period matters -- so these
-tables are the one place an absolute unit is fixed.
+tables are the one place an absolute unit is fixed. **Every folder here is in metres**, in the
+tables and in the `# range:` headers alike, so `find_nk_index` always wants a wavelength in
+metres.
 
-| folder | unit |
-| --- | --- |
-| `refractiveindex_info/`, `jLab/` | **metres** |
-| `filmetrics/`, `matlab/` | **nanometres** |
-
-Do not mix the two in one `mat_list`. Interpolation clamps to the endpoints outside a table's
-range, so a wavelength in the wrong unit returns a plausible number rather than an error;
-`find_nk_index` raises a warning when this happens, but the warning is the only signal.
+Interpolation clamps to the endpoints outside a table's range, so a wavelength in the wrong unit
+returns a plausible number rather than an error; `find_nk_index` raises a warning when this
+happens, but the warning is the only signal.
 
 ## refractiveindex_info/
 
@@ -100,20 +97,50 @@ those files carry the coefficients and no rows at all:
 Wavelength(m)	n	k
 # material: SiO2
 # type: formula 1
-# coefficients: 0 0.6961663 0.0684043 0.4079426 0.1162414 0.8974794 9.896161
-# coefficient_unit: um
+# coefficients: 0 0.6961663 6.84043e-08 0.4079426 1.162414e-07 0.8974794 9.896161e-06
+# coefficient_unit: m
 # range: 2.1000e-07 - 6.7000e-06 m
 ```
 
 `read_material_table` reads the header, and `find_nk_index` evaluates the formula instead of
 interpolating. Both kinds are used the same way from outside. Expanding a fit onto a grid would
 lose the exact curve, cap it at whatever range was sampled, and turn seven coefficients into five
-thousand rows, so it is not done. A fit gives `n` alone; `k` is 0 over the range it covers.
+thousand rows, so it is not done. A Sellmeier fit gives `n` alone; `k` is 0 over the range it
+covers.
 
 Formula numbering follows refractiveindex.info. `meent/dispersion.py` implements formulas 1
 (Sellmeier) and 2 (Sellmeier-2); anything else raises `NotImplementedError` rather than guessing.
-Coefficients keep upstream's micrometre convention while `range` is in metres, as the
-`# coefficient_unit:` line records -- `evaluate` converts, so callers stay in metres.
+
+Upstream quotes the coefficients against micrometres; the converter rescales the ones that carry
+a length so the fit takes a wavelength in **metres**, like everything else here, and the
+`# coefficient_unit:` line records that. Only the pole terms have a dimension -- a length in
+formula 1, a length squared in formula 2 -- so those are the only ones that differ from the
+published numbers. The oscillator strengths are dimensionless and unchanged.
+
+The oscillator models the lab's MATLAB routines compute inline are stored the same way, under a
+`type: model <name>` header instead of a formula number:
+
+```
+Wavelength(m)	n	k
+# material: Au
+# source: Material_data set, optprop_Au.m
+# type: model brendel-bormann-ev
+# coefficients: 9.20007 0.85195 0.09509 ...
+# range: 1.5000e-07 - 1.0000e-04 m
+```
+
+`dispersion.py` implements `brendel-bormann-ev` (parameters in eV, as `optprop_Au.m` and
+`optprop_Ti.m` quote them) and `brendel-bormann-cm` (in wavenumbers, as `optprop_CaF2.m` does).
+These are the one place metres do not reach: an oscillator's damping or Gaussian width is a
+frequency, not a length, so there is no metre form to convert it to. The lookup wavelength is
+still metres -- the model converts it to the frequency it needs.
+Unlike the Sellmeier fits these return a complex `n + ik` -- absorption is the point of them --
+and `find_nk_index` flips the sign to the `n - ik` meent solves on, exactly as it does for a
+tabulated `k` column. They need the Faddeeva function from scipy, so they evaluate through numpy:
+fine on every backend, but a jax tracer cannot pass through one.
+
+A file is only read as a formula if it actually carries a `coefficients` line. A header that
+merely documents the model a table was sampled from stays a table.
 
 ### Birefringent materials
 
@@ -153,29 +180,28 @@ positive uniaxial, so it is left out rather than shipped as a birefringent pair.
 
 Converted from the lab's MATLAB `optprop_*` routines by `tools/convert_matlab_optprop.py`.
 
+**Each file is named after the source it came from**, extension changed to `.txt`, and that name
+is the lookup key. Where one source yields more than one file -- a birefringent pair, a model
+family -- the only thing appended is what distinguishes them.
+
 | key | range (m) | origin |
 | --- | --- | --- |
-| `si_jwkang-260409` | 1.251e-06 – 3.988e-05 | in-house measurement, 2026-04-09 |
-| `sio2_jwkang-260409` | 1.252e-06 – 3.988e-05 | in-house measurement, 2026-04-09 |
-| `batio3_intrinsic-260223-o` / `-e` | 1.930e-07 – 3.988e-05 | in-house measurement, 2026-02-23 |
-| `mgo_palik` | 1.319e-06 – 1.370e-05 | Palik handbook |
-| `ti_brendelbormann` | 2.480e-07 – 3.100e-05 | same data as `ti_rakic-bb` |
-| `iongel_jw` | 1.667e-06 – 3.324e-05 | ion gel, measured |
-| `au_jw-bb` | 1.500e-07 – 1.000e-04 | Brendel-Bormann fit, sampled |
-| `ti_jw-bb` | 1.500e-07 – 1.000e-04 | Brendel-Bormann fit, sampled |
-| `caf2_jw-bb` | 1.500e-07 – 1.000e-04 | Brendel-Bormann fit, sampled |
-| `au_palik-drude` | 5.000e-07 – 5.000e-05 | Drude fit, sampled |
-| `graphene_falkovsky-ef200meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
-| `graphene_falkovsky-ef400meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
-| `graphene_falkovsky-ef600meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
+| `wavnk_Si_JwKang_260409` | 1.251e-06 – 3.988e-05 | in-house measurement, 2026-04-09 |
+| `wavnk_SiO2_JwKang_260409` | 1.252e-06 – 3.988e-05 | in-house measurement, 2026-04-09 |
+| `wavnk_MgO_Palik` | 1.319e-06 – 1.370e-05 | Palik handbook |
+| `260223_BTO_Vis_MIR_intrinsic-o` / `-e` | 1.930e-07 – 3.988e-05 | in-house measurement, 2026-02-23 |
+| `[Optprop][Iongel][JW]` | 1.667e-06 – 3.324e-05 | ion gel, measured |
+| `optprop_Au` | 1.500e-07 – 1.000e-04 | Brendel-Bormann model, **coefficients** |
+| `optprop_Ti` | 1.500e-07 – 1.000e-04 | Brendel-Bormann model, **coefficients** |
+| `optprop_CaF2` | 1.500e-07 – 1.000e-04 | Brendel-Bormann model, **coefficients** |
+| `optprop_Gr_Falkovsky-ef200meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
+| `optprop_Gr_Falkovsky-ef400meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
+| `optprop_Gr_Falkovsky-ef600meV` | 5.000e-07 – 5.000e-05 | Falkovsky/Kubo model, sampled |
 
-Two of these are models rather than measurements, so they carry assumptions a table cannot show:
+Several of these are models rather than measurements, so they carry assumptions a table cannot
+show:
 
-`au_palik-drude` is a free-electron Drude fit with no interband term, despite the Palik in its
-name. Gold's interband transitions dominate below roughly 500 nm, so this is an infrared model;
-prefer `au_johnson` or `au_mcpeak` in the visible.
-
-`graphene_falkovsky-*` is one curve out of a model family. Graphene's response is set by how it
+`optprop_Gr_Falkovsky-*` is one curve out of a model family. Graphene's response is set by how it
 is gated, so each file fixes a Fermi level (the interband onset sits at `hw = 2 Ef`) alongside a
 mobility of 10000 cm²/Vs and 300 K. The model gives a sheet conductivity; the tables spread it
 over an assumed 0.34 nm thickness to get a bulk index, so a layer using them has to be that
@@ -183,28 +209,44 @@ thick to carry the intended sheet response. For other gating, edit `GRAPHENE_FER
 the converter and re-run. The measured `graphene_el-sayed` and `graphene_song` tables are the
 better choice when the graphene is not being tuned.
 
-`batio3_intrinsic-260223-*` is uniaxial and ships as an ordinary/extraordinary pair, like the
+For arbitrary gating, mobility and temperature, build a dynamic material instead of selecting a
+sampled table:
+
+```python
+graphene = meent.graphene_falkovsky(
+    fermi_level=0.35,  # eV
+    mobility=8000,     # cm^2/(V s)
+    temperature=325,   # K
+)
+
+nk = meent.find_nk_index(graphene, meent.read_material_table(), 1.55e-6)
+mee.ucell = mee.put_refractive_index_in_ucell(ucell, [1.0, graphene], 1.55e-6)
+```
+
+The optional `thickness` argument defaults to 0.34 nm, matching the MATLAB source.  This is an
+effective bulk index obtained from sheet conductivity, so use the same physical layer thickness
+in the geometry.  The dynamic model uses SciPy quadrature and accepts concrete scalar conditions;
+it is suitable for arbitrary/random sampling but is not differentiable through PyTorch or JAX.
+
+`260223_BTO_Vis_MIR_intrinsic-*` is uniaxial and ships as an ordinary/extraordinary pair, like the
 crystals under `refractiveindex_info/`. It spans the visible into the mid-infrared and its
 extinction is real above roughly 15 µm, where BaTiO₃'s phonon resonances take over -- at 20 µm the
 two rays sit at 1.17 - 3.21i and 2.88 - 1.79i, so which axis the field sees changes the answer
 completely there.
 
-`ti_brendelbormann` and `ti_rakic-bb` are the same numbers to the last digit: the MATLAB library's
-copy came from the refractiveindex.info record. Both names are kept so the table is findable
-either way, but there is no reason to prefer one over the other.
+`optprop_Au`, `optprop_Ti` and `optprop_CaF2` compute a Brendel-Bormann oscillator model inline --
+a Drude term plus Lorentz oscillators broadened by a Gaussian spread in centre frequency, which
+integrates to a Voigt profile and so needs the Faddeeva function. Like the Sellmeier fits, they
+are stored as coefficients and evaluated on lookup, so the file holds no rows to fall back on and
+the parameters stay editable in place. The one cost is that `wofz` comes from scipy, so these
+evaluate through numpy rather than through a backend's own array library.
 
-The `*_jw-bb` tables come from a newer `Material_data` set whose `optprop_*.m` compute a
-Brendel-Bormann oscillator model inline -- a Drude term plus Lorentz oscillators broadened by a
-Gaussian spread in centre frequency, which integrates to a Voigt profile and so needs the
-Faddeeva function. They are sampled onto a grid rather than kept as coefficients, unlike the
-Sellmeier fits under `refractiveindex_info/`: those evaluate with plain arithmetic in any array
-library, while this one needs `wofz`, which jax does not provide.
-
-`ti_jw-bb` reproduces `ti_brendelbormann` to about 1e-3, so it is a third copy of the same model
-rather than new data. **`au_jw-bb` does not match any measured gold in this repository**: its n
-runs 0.5 to 0.8 high against Johnson & Christy, McPeak and Olmon alike, and its coefficients are
-not the published Rakić set either. What it was fit to is not recorded. Prefer `au_johnson` or
-`au_mcpeak` unless you know this fit is the right one for your sample.
+`optprop_Ti` reproduces the refractiveindex.info `ti_rakic-bb` record to about 1e-3, so it is
+another copy of the same model rather than new data. **`optprop_Au` does not match any measured
+gold in this repository**: its n runs 0.5 to 0.8 high against Johnson & Christy, McPeak and Olmon
+alike, and its coefficients are not the published Rakić set either. What it was fit to is not
+recorded. Prefer `au_johnson` or `au_mcpeak` unless you know this fit is the right one for your
+sample.
 
 ## Adding a material
 
@@ -230,9 +272,9 @@ an installed copy.
 Tables must stay pure ASCII: `numpy.loadtxt` opens files with the locale default encoding, so a
 non-ASCII byte breaks loading on machines whose locale is not UTF-8.
 
-Name new files `<material>_<source>.txt`. A bare `<material>.txt` would collide with the
-existing `filmetrics/` tables, and because keys are file names, one would silently shadow the
-other.
+Keys are file names, and `read_material_table` walks every folder into one dict, so a name used
+twice silently shadows. Under `refractiveindex_info/` that means `<material>_<source>.txt`; under
+`jLab/` the source file name already serves, since it carries the material and the dataset both.
 
 ## Citation
 
