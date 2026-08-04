@@ -32,8 +32,12 @@ git diff --stat tests/data/              # review before committing
 A changed golden file is a physics change. It belongs in its own commit with the
 reason in the message — not bundled into a refactor.
 
-## External references
+## External references live elsewhere
 
-Reticolo needs MATLAB, GRCWA and TORCWA are heavy optional deps, so none of them
-run in CI. Generate their output locally with the scripts in `benchmarks/`, store
-it here, and let CI regression-test against the stored arrays.
+Validation against RETICOLO, GRCWA and TORCWA is **not** kept here. It has its own
+structure — reference output, meent output, provenance and a rebuild recipe per
+experiment — under [`tests/reference_cases/`](../reference_cases/README.md),
+driven by `tests/test_reference.py`.
+
+This directory is only for meent's own golden values: literature cases from
+`examples/rcwa/` frozen as `.npz` for `test_regression.py`.

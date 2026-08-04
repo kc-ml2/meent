@@ -35,7 +35,22 @@ failure in the expensive ones means anything.
 | `test_field.py` | `calculate_field` | yes |
 | `test_autodiff.py` | `grad` / `fit` | yes |
 | `test_dtype_device.py` | complex64/128, cpu/gpu | yes |
-| `test_regression.py` | golden values, external references | yes |
+| `test_regression.py` | golden values from literature cases | yes |
+| `test_reference.py` | validation against external solvers | partly — see below |
+
+## Reference cases (the one part that is not a stub)
+
+`tests/reference_cases/` holds real validation experiments: a structure solved
+by an external code (RETICOLO), its output, meent's output, and a `case.py`
+saying how to rebuild it. `test_reference.py` discovers them and runs the same
+battery over each — **adding a case needs no test-code changes**.
+
+The data-only half of that battery asserts the experiment's finding using
+committed numbers only, so it runs with numpy alone and passes on branches where
+the feature under validation does not even exist. The live half re-solves and
+skips with a specific reason when it cannot.
+
+See [reference_cases/README.md](reference_cases/README.md) for the recipe.
 
 ## Where this came from
 

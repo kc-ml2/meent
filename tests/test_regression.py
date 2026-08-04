@@ -51,31 +51,14 @@ class TestLiteratureCases:
         pytest.skip('TODO: transcribe published values, then implement')
 
 
-class TestExternalReferences:
-    """benchmarks/interface/ wraps Reticolo (MATLAB), GRCWA and TORCWA.
-
-    These cannot run in ordinary CI -- Reticolo needs MATLAB, and the others are
-    heavy optional deps. Treat them as: run locally, store the output in
-    tests/data/, then regression-test against the stored output.
-    """
-
-    @pytest.mark.parametrize('case', ['reti_1D', 'reti_1Dc', 'reti_2D'])
-    def test_matches_reticolo_reference(self, case):
-        """Assert: agreement with the stored Reticolo output for the same setup.
-        Skip if the reference file is absent.
-        Why: Reticolo is the established independent implementation; agreement
-        with it is the strongest external evidence the package can offer.
-        See benchmarks/reti_meent_{1D,1Dc,2D}.py for the matching setups.
-        """
-        pytest.skip('TODO: generate reference data, then implement')
-
-    def test_matches_grcwa_reference(self):
-        """Same pattern, via benchmarks/interface/GRCWA.py."""
-        pytest.skip('TODO: generate reference data, then implement')
-
-    def test_matches_torcwa_reference(self):
-        """Same pattern, via benchmarks/interface/TORCWA.py."""
-        pytest.skip('TODO: generate reference data, then implement')
+# Validation against external solvers (RETICOLO, GRCWA, TORCWA) is NOT here.
+# It has its own structure -- reference output, meent output, provenance and a
+# rebuild recipe per experiment -- under tests/reference_cases/, driven by
+# tests/test_reference.py. Add a case there rather than a stub here; see
+# tests/reference_cases/README.md.
+#
+# benchmarks/reti_meent_{1D,1Dc,2D}.py and benchmarks/interface/ are the natural
+# sources for the next few cases.
 
 
 class TestGoldenInfrastructure:

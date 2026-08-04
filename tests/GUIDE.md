@@ -328,7 +328,30 @@ pytest.skip('not implemented yet')                  # placeholder
 
 ---
 
-## 10. Where to start
+## 10. Validating against another solver
+
+Most of this guide is about tests you write. The other kind is a test you
+*record*: you ran a structure through RETICOLO and through meent, the two agreed,
+and you want that fact checked forever.
+
+That has its own directory and its own recipe —
+**[tests/reference_cases/README.md](reference_cases/README.md)**. The short
+version: drop in the two sets of `lambda_nm, R, T` files plus a small `case.py`,
+and `test_reference.py` picks it up automatically. No test code to write.
+
+The idea worth taking from it even if you never add a case: **the external solver
+is not part of the test pipeline.** Nobody will have MATLAB in CI. So the
+experiment's conclusion is stored as data, and the assertion "meent agreed with
+RETICOLO at every wavelength" is re-checked on every run, on every branch, with
+nothing installed but numpy. The live re-solve is a second, separate test that
+skips when it cannot run.
+
+One warning that comes out of that worked example. Energy conservation is
+*necessary but not sufficient*: an error that moves power from R to T passes it
+completely. We verified this by nudging a recorded number — the energy test
+stayed green, and only the RETICOLO comparison caught it. Keep both.
+
+## 11. Where to start
 
 The stubs are ordered by value per unit effort. In rough priority:
 
