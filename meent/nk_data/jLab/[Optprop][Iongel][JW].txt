@@ -3,7 +3,7 @@ Wavelength(m)	n	k
 # source: [Optprop][Iongel][JW].mat
 # type: tabulated nk
 # range: 1.6672e-06 - 3.3237e-05 m
-# converted: 2026-08-04 by tools/convert_matlab_optprop.py
+# converted: 2026-08-04
 1.667200e-06	1.41219	0.000366079
 1.667700e-06	1.41219	0.000365034
 1.668200e-06	1.41219	0.000364139

@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/BaTiO3/nk/Johnston-clamped.yml
 # type: tabulated nk
 # range: 4.0000e-07 - 1.0000e-06 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 4.000000e-07	2.6122	0.33864
 4.060600e-07	2.5978	0.32693
 4.121200e-07	2.5845	0.31622

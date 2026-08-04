@@ -6,7 +6,7 @@ Wavelength(m)	n	k
 # type: tabulated n
 # note: k not given by the source; set to 0
 # range: 4.5000e-07 - 2.4000e-06 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 4.500000e-07	2.8087	0
 5.000000e-07	2.7058	0
 6.000000e-07	2.6034	0

@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # note: sheet conductivity spread over 3.4e-10 m to give a bulk index; valid only at this gating
 # type: model
 # range: 5.0000e-07 - 5.0000e-05 m
-# converted: 2026-08-04 by tools/convert_matlab_optprop.py
+# converted: 2026-08-04
 5.000000e-07	1.82268	1.47213
 5.023102e-07	1.82652	1.47582
 5.046311e-07	1.83039	1.47951

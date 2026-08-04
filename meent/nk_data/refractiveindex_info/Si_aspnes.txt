@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/Si/nk/Aspnes.yml
 # type: tabulated nk
 # range: 2.0660e-07 - 8.2660e-07 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 2.066000e-07	1.01	2.909
 2.101000e-07	1.083	2.982
 2.138000e-07	1.133	3.045

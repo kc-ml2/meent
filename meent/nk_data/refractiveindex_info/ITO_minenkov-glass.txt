@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 other/mixed crystals/In2O3-SnO2/nk/Minenkov-glass.yml
 # type: tabulated nk
 # range: 1.9146e-07 - 1.6887e-06 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 1.914600e-07	2.04232	0.59569
 1.930500e-07	2.05161	0.60194
 1.946500e-07	2.06105	0.6071

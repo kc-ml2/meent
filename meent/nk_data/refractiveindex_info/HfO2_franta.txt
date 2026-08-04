@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/HfO2/nk/Franta.yml
 # type: tabulated nk
 # range: 1.1477e-07 - 1.2512e-04 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 1.147730e-07	1.82557	1.54494
 1.151040e-07	1.83492	1.54071
 1.154360e-07	1.84415	1.5364

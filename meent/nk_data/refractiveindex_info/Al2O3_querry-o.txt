@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/Al2O3/nk/Querry-o.yml
 # type: tabulated nk
 # range: 2.1000e-07 - 5.5556e-05 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 2.100000e-07	1.831	-0.052
 2.200000e-07	1.817	-0.039
 2.300000e-07	1.805	-0.026

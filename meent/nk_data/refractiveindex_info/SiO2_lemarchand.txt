@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/SiO2/nk/Lemarchand.yml
 # type: tabulated nk
 # range: 2.5000e-07 - 2.5000e-06 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 2.500000e-07	1.51746	0.00026
 2.550000e-07	1.51523	0.00024
 2.600000e-07	1.51314	0.000222

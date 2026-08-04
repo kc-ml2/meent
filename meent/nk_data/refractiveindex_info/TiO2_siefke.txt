@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/TiO2/nk/Siefke.yml
 # type: tabulated nk
 # range: 1.2018e-07 - 1.2512e-04 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 1.201811e-07	1.12662	0.898839
 1.208750e-07	1.12438	0.907025
 1.215728e-07	1.12223	0.915711

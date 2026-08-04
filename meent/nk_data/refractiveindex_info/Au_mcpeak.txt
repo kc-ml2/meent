@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/Au/nk/McPeak.yml
 # type: tabulated nk
 # range: 3.0000e-07 - 1.7000e-06 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 3.000000e-07	1.69984	1.97316
 3.100000e-07	1.74695	1.9745
 3.200000e-07	1.78294	1.9598

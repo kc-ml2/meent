@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/Ti/nk/Johnson.yml
 # type: tabulated nk
 # range: 1.8800e-07 - 1.9370e-06 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 1.880000e-07	1.1	1.62
 1.920000e-07	1.16	1.64
 1.950000e-07	1.22	1.66

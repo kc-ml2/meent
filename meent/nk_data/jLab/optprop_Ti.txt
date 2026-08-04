@@ -6,4 +6,4 @@ Wavelength(m)	n	k
 # type: model brendel-bormann-ev
 # coefficients: 7.29 0.126 0.067 0.427 1.877 1.459 0.463 0.218 0.1 2.661 0.506 0.513 0.615 0.805 0.799 0.0002 4.109 19.86 2.854
 # range: 1.5000e-07 - 1.0000e-04 m
-# converted: 2026-08-04 by tools/convert_matlab_optprop.py
+# converted: 2026-08-04

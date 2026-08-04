@@ -8,4 +8,4 @@ Wavelength(m)	n	k
 # coefficient_unit: m
 # note: dispersion fit; k is 0 across the range it covers
 # range: 4.0000e-07 - 7.0000e-07 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)

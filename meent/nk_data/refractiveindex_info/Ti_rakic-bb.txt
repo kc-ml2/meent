@@ -5,7 +5,7 @@ Wavelength(m)	n	k
 # upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/Ti/nk/Rakic-BB.yml
 # type: tabulated nk
 # range: 2.4797e-07 - 3.0996e-05 m
-# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+# converted: 2026-07-31 (wavelength um -> m)
 2.479700e-07	0.18885	1.4035
 2.540600e-07	0.19618	1.4617
 2.603000e-07	0.2041	1.5216

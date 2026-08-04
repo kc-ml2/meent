@@ -53,8 +53,8 @@ happens, but the warning is the only signal.
 ## refractiveindex_info/
 
 Converted from the [refractiveindex.info database](https://github.com/polyanskiy/refractiveindex.info-database)
-(CC0) by `tools/convert_refractiveindex_info.py`. Each file's header comments carry the original
-reference, the measurement conditions, the upstream path and the conversion date.
+(CC0). Each file's header comments carry the original reference, the measurement conditions, the
+upstream path and the conversion date.
 
 A material name alone does not identify a dataset -- these records differ in sample preparation,
 temperature and coverage. Where more than one is shipped, pick deliberately.
@@ -178,7 +178,7 @@ positive uniaxial, so it is left out rather than shipped as a birefringent pair.
 
 ## jLab/
 
-Converted from the lab's MATLAB `optprop_*` routines by `tools/convert_matlab_optprop.py`.
+Converted from the lab's MATLAB `optprop_*` routines.
 
 **Each file is named after the source it came from**, extension changed to `.txt`, and that name
 is the lookup key. Where one source yields more than one file -- a birefringent pair, a model
@@ -250,21 +250,47 @@ sample.
 
 ## Adding a material
 
-Download a database snapshot once, add an entry to `RECORDS` in
-`tools/convert_refractiveindex_info.py`, and re-run it:
+These tables were generated from upstream sources by conversion scripts that are not shipped with
+meent. A new material is added by writing the file directly, in one of two forms.
 
-```bash
-curl -L -o ridb.tar.gz \
-    https://github.com/polyanskiy/refractiveindex.info-database/archive/refs/heads/main.tar.gz
-tar xzf ridb.tar.gz
-python tools/convert_refractiveindex_info.py <extracted>/database/data
+Both start with the same tab-separated column line and a block of `# key: value` header comments.
+`# range:` is the wavelength span the entry is valid over, in metres, and `find_nk_index` warns
+when a lookup falls outside it.
+
+**Tabulated** -- `# type: tabulated nk` (or `tabulated n` / `tabulated k`), followed by data rows
+of wavelength, n, k:
+
+```
+Wavelength(m)	n	k
+# material: Ag
+# source: P. B. Johnson and R. W. Christy. ... Phys. Rev. B 6, 4370-4379 (1972)
+# type: tabulated nk
+# range: 1.8790e-07 - 1.9370e-06 m
+1.879000e-07	1.07	1.212
+1.916000e-07	1.1	1.232
 ```
 
-The converter needs `pyyaml`; meent itself does not, so it is not an install dependency. It
-copies `tabulated nk`, `tabulated n` and `tabulated k` records out as data rows, and passes
-dispersion formulas through as coefficients for `meent/dispersion.py` to evaluate. Adding a
-formula means implementing it there; unimplemented ones raise `NotImplementedError` on lookup
-rather than being guessed at.
+**Dispersion fit** -- `# type: formula <n>` plus a `# coefficients:` line and no data rows.
+`meent/dispersion.py` evaluates it at lookup time, so the entry stays exact at any wavelength in
+range instead of being interpolated:
+
+```
+Wavelength(m)	n	k
+# material: SiO2
+# type: formula 1
+# coefficients: 0.0 0.6961663 6.84043e-08 0.4079426 1.16241e-07 0.8974794 9.89616e-06
+# coefficient_unit: m
+# range: 2.1000e-07 - 6.7000e-06 m
+```
+
+Supported forms are Sellmeier-type formulas 1 and 2, Brendel-Bormann (`brendel-bormann-ev` and
+`brendel-bormann-cm`), and `graphene-falkovsky`. Adding another means implementing it in
+`meent/dispersion.py`; unimplemented ones raise `NotImplementedError` on lookup rather than being
+guessed at.
+
+Absorbing materials are stored as `n - ik` -- the sign meent solves on. A table copied from a
+source that uses the `n + ik` convention has to have the sign of `k` flipped, or it will produce
+gain instead of loss with no warning.
 
 New folders also have to be added to `package_data` in `setup.py`, or they will be missing from
 an installed copy.

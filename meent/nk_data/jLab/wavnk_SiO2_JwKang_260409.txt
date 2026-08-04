@@ -3,7 +3,7 @@ Wavelength(m)	n	k
 # source: wavnk_SiO2_JwKang_260409.mat
 # type: tabulated nk
 # range: 1.2524e-06 - 3.9884e-05 m
-# converted: 2026-08-04 by tools/convert_matlab_optprop.py
+# converted: 2026-08-04
 1.252393e-06	1.4499	0
 1.277700e-06	1.44968	0
 1.285302e-06	1.44961	0
