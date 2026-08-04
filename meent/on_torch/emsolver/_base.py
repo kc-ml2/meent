@@ -5,15 +5,15 @@ import numpy as np
 from .scattering_method import scattering_1d_1, scattering_1d_2, scattering_1d_3, scattering_2d_1, scattering_2d_wv, \
     scattering_2d_2, scattering_2d_3
 
-from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_4, transfer_1d_conical_1,
-                              transfer_1d_conical_2, transfer_1d_conical_3, transfer_1d_conical_4,
+from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, transfer_1d_4,
+                              transfer_1d_conical_1, transfer_1d_conical_2, transfer_1d_conical_3, transfer_1d_conical_4,
                               transfer_2d_1, transfer_2d_2, transfer_2d_3, transfer_2d_4)
 
 
 class _BaseRCWA:
     def __init__(self, n_top=1., n_bot=1., theta=0., phi=None, psi=None, pol=0., fto=(0, 0),
                  period=(1., 1.), wavelength=1.,
-                 thickness=(0.,), connecting_algo='TMM', perturbation=1E-20,
+                 thickness=(0.,), connecting_algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=torch.complex128, use_pinv=False):
 
         # device
@@ -223,12 +223,12 @@ class _BaseRCWA:
         fto_y_range = torch.arange(-self.fto[1], self.fto[1] + 1, device=self.device,
                                    dtype=self.type_float)
 
-        if self.theta.real >= torch.tensor(torch.pi/2, dtype=torch.float32):
-            # https://github.com/numpy/numpy/issues/27306
-            sin_theta = torch.sin(
-                torch.nextafter(torch.float32(torch.pi / 2), torch.float32(0)) + self.theta.imag * np.complex64(1j))
-        else:
-            sin_theta = np.sin(self.theta)
+        # torch.sin handles complex theta natively, so it covers both real incidence angles
+        # and evanescent input (theta.real >= pi/2 with a nonzero imaginary part, where
+        # sin(pi/2 + i*a) = cosh(a) > 1). Using torch (not np.sin) keeps autograd intact and
+        # works on GPU. The old numpy special-case for theta.real >= pi/2 (numpy issue #27306)
+        # is unnecessary here and used a non-callable dtype (torch.float32(...)) that crashed.
+        sin_theta = torch.sin(self.theta)
 
         if self.phi is None:
             phi = torch.tensor(0, device=self.device, dtype=self.type_complex)
@@ -353,10 +353,10 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            result, big_T1 = transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi,
+            result, big_T1 = transfer_1d_conical_4(kx,ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi,
                                                    self.theta, self.n_top, self.n_bot, device=self.device,
                                                    type_complex=self.type_complex,
-                                                   use_pinv=self.use_pinv)
+                                                   use_pinv=self.use_pinv)#, phi=self.phi)#, varphi=varphi)
             self.T1 = big_T1
 
         elif self.connecting_algo == 'SMM':
@@ -428,7 +428,7 @@ class _BaseRCWA:
             #                                                                                kz_bot, self.psi, self.theta,
             #                                                                                self.n_top, self.n_bot,
             #                                                                                type_complex=self.type_complex)
-            result, big_T1 = transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
+            result, big_T1 = transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
                                            self.n_top, self.n_bot, device=self.device, type_complex=self.type_complex,
                                            use_pinv=self.use_pinv)
             self.T1 = big_T1

@@ -1,3 +1,4 @@
+import warnings
 from bisect import bisect, bisect_left
 
 import torch
@@ -5,6 +6,34 @@ import numpy as np
 
 from os import walk
 from pathlib import Path
+
+from ... import dispersion
+
+
+def _is_vector_index(n_index):
+    """True if a refractive-index value specifies (nx, ny, nz) for diagonal anisotropy."""
+    if isinstance(n_index, (list, tuple)):
+        return len(n_index) == 3
+    if torch.is_tensor(n_index):
+        return n_index.numel() == 3
+    return False
+
+
+def _to_index_vector(n_index, dtype):
+    """Normalize a refractive-index value to a length-3 tensor (nx, ny, nz), preserving autograd.
+
+    A scalar is broadcast to all three diagonal components (isotropic entry inside an
+    anisotropic layer).
+    """
+    if isinstance(n_index, (list, tuple)):
+        comps = [c.reshape(()).type(dtype) if torch.is_tensor(c) else torch.tensor(c, dtype=dtype)
+                 for c in n_index]
+        return torch.stack(comps)
+    if torch.is_tensor(n_index):
+        if n_index.numel() == 3:
+            return n_index.reshape(3).type(dtype)
+        return n_index.reshape(()).type(dtype).repeat(3)
+    return torch.tensor([n_index, n_index, n_index], dtype=dtype)
 
 
 class Compress(torch.autograd.Function):
@@ -58,18 +87,20 @@ class ModelingTorch:
 
     def rectangle(self, cx, cy, lx, ly, n_index, angle=0, n_split_triangle=2, n_split_parallelogram=2, angle_margin=1E-5):
 
+        # dtype must be set at creation: torch.tensor(<python float>) defaults to float32 and
+        # silently loses ~1e-8 of relative precision that a later .type(float64) cannot recover.
         if type(lx) in (int, float):
-            lx = torch.tensor(lx).reshape(1)
+            lx = torch.tensor(lx, dtype=self.type_float).reshape(1)
         elif type(lx) is torch.Tensor:
             lx = lx.reshape(1)
 
         if type(ly) in (int, float):
-            ly = torch.tensor(ly).reshape(1)
+            ly = torch.tensor(ly, dtype=self.type_float).reshape(1)
         elif type(ly) is torch.Tensor:
             ly = ly.reshape(1)
 
         if type(angle) in (int, float):
-            angle = torch.tensor(angle).reshape(1)
+            angle = torch.tensor(angle, dtype=self.type_float).reshape(1)
         elif type(angle) is torch.Tensor:
             angle = angle.reshape(1)
 
@@ -255,18 +286,19 @@ class ModelingTorch:
 
     def ellipse(self, cx, cy, lx, ly, n_index, angle=0, n_split_w=2, n_split_h=2, angle_margin=1E-5, debug=False):
 
+        # dtype must be set at creation: see the note in rectangle().
         if type(lx) in (int, float):
-            lx = torch.tensor(lx).reshape(1)
+            lx = torch.tensor(lx, dtype=self.type_float).reshape(1)
         elif type(lx) is torch.Tensor:
             lx = lx.reshape(1)
 
         if type(ly) in (int, float):
-            ly = torch.tensor(ly).reshape(1)
+            ly = torch.tensor(ly, dtype=self.type_float).reshape(1)
         elif type(ly) is torch.Tensor:
             ly = ly.reshape(1)
 
         if type(angle) in (int, float):
-            angle = torch.tensor(angle).reshape(1)
+            angle = torch.tensor(angle, dtype=self.type_float).reshape(1)
         elif type(angle) is torch.Tensor:
             angle = angle.reshape(1)
 
@@ -473,8 +505,17 @@ class ModelingTorch:
         if col_list and col_list[0] == 0:
             col_list = col_list[1:]
 
-        # ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype, requires_grad=True) * pmtvy_base
-        ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype) * pmtvy_base
+        # Diagonal anisotropy: a layer is anisotropic if its background or any object
+        # specifies a 3-vector (nx, ny, nz). Scalars are promoted to (n, n, n).
+        is_aniso = _is_vector_index(pmtvy_base) or any(_is_vector_index(obj[2]) for obj in obj_list)
+
+        if is_aniso:
+            base = _to_index_vector(pmtvy_base, datatype)
+            # ucell_layer = torch.ones((len(row_list), len(col_list), 3), dtype=datatype, requires_grad=True) * base
+            ucell_layer = torch.ones((len(row_list), len(col_list), 3), dtype=datatype) * base
+        else:
+            # ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype, requires_grad=True) * pmtvy_base
+            ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype) * pmtvy_base
 
         for obj in obj_list:
             top_left, bottom_right, pmty = obj
@@ -491,10 +532,21 @@ class ModelingTorch:
                 col_begin = col_list.index(top_left[1]) + 1
             col_end = col_list.index(bottom_right[1]) + 1
 
-            ucell_layer[row_begin:row_end, col_begin:col_end] = pmty
+            if is_aniso:
+                ucell_layer[row_begin:row_end, col_begin:col_end, :] = _to_index_vector(pmty, datatype)
+            else:
+                ucell_layer[row_begin:row_end, col_begin:col_end] = pmty
 
         x_list = torch.cat(col_list).reshape((-1, 1))
         y_list = torch.cat(row_list).reshape((-1, 1))
+
+        # The geometry above is built with device-less tensor creations (defaulting to CPU).
+        # Move the outputs to the solver device here, at the single boundary consumed by
+        # to_conv_mat_vector, so vector modeling works under device='cuda'. .to() is a no-op
+        # on CPU and is differentiable, so gradients still flow back to any parameters.
+        ucell_layer = ucell_layer.to(self.device)
+        x_list = x_list.to(self.device)
+        y_list = y_list.to(self.device)
 
         return ucell_layer, x_list, y_list
 
@@ -516,8 +568,9 @@ class ModelingTorch:
         for i_mat, material in enumerate(mat_list):
             mask = torch.nonzero(ucell_mask == i_mat, as_tuple=True)
 
-            if type(material) == str:
-                if not self.mat_table:
+            if isinstance(material, (str, dict)):
+                # A dict is a self-contained spec, so it needs no table; only a name does.
+                if isinstance(material, str) and not self.mat_table:
                     self.mat_table = read_material_table()
                 assign_value = find_nk_index(material, self.mat_table, wl)
             else:
@@ -556,21 +609,67 @@ class ModelingTorch:
         return ucell_info_list
 
 
+def warn_if_out_of_range(material, mat_data, wl):
+    """Warn when wl falls outside the tabulated range, where interp clamps to the endpoints.
+
+    The clamp is silent, so a wavelength given in the wrong unit returns a plausible-looking
+    number instead of failing. Every table under nk_data is in metres, so a warning here almost
+    always means the wavelength was passed in nanometres or micrometres.
+    """
+    try:
+        wl_min, wl_max = float(np.min(wl)), float(np.max(wl))
+    except Exception:  # device-resident or traced values have no range to inspect here
+        return
+
+    if isinstance(mat_data, dict):
+        low, high = mat_data['wavelength_range']
+    else:
+        low, high = float(np.min(mat_data[:, 0])), float(np.max(mat_data[:, 0]))
+    if wl_min < low or wl_max > high:
+        warnings.warn(
+            f'{material}: wavelength {wl_min:.4e} - {wl_max:.4e} falls outside the tabulated '
+            f'range {low:.4e} - {high:.4e}; values are clamped to the endpoints. '
+            f'Check that the wavelength unit matches the table.',
+            stacklevel=3)
+
+
 def find_nk_index(material, mat_table, wl):
-    if material[-6:] == '__real':
+    if isinstance(material, dict):
+        mat_data = material
+        material_name = mat_data.get('formula', 'dynamic material')
+        n_only = False
+    elif material[-6:] == '__real':
         material = material[:-6]
         n_only = True
+        mat_data = mat_table[material.upper()]
+        material_name = material
     else:
         n_only = False
+        mat_data = mat_table[material.upper()]
+        material_name = material
+    warn_if_out_of_range(material_name, mat_data, wl)
 
-    mat_data = mat_table[material.upper()]
+    # Fitted materials are stored as coefficients rather than data rows, so evaluate rather than
+    # interpolate. A Sellmeier fit gives n alone; the oscillator models give n + ik, since
+    # absorption is the point of them.
+    if isinstance(mat_data, dict):
+        n_index = dispersion.evaluate(mat_data, wl, np)
+        if n_only:
+            return np.real(n_index)
+        # Returned on the ordinary optics convention (n + ik). meent solves on n - ik, so
+        # conjugate -- the same flip the tabulated branch below applies to its k column.
+        return np.conj(n_index + 0j)
+
     n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
 
     if n_only:
         return n_index
 
     k_index = np.interp(wl, mat_data[:, 0], mat_data[:, 2])
-    nk = n_index + 1j * k_index
+    # meent solves on the negative sign convention, so absorption is -ik: tables store k as the
+    # positive extinction coefficient, and returning +ik instead turns every lossy material into
+    # a gain medium (transmission through a slab grows with thickness rather than decaying).
+    nk = n_index - 1j * k_index
 
     return nk
 
@@ -594,6 +693,10 @@ def read_material_table(nk_path=None, type_complex=torch.complex128):
         name_list.extend(filenames)
     for path, name in zip(full_path_list, name_list):
         if name[-3:] == 'txt':
+            spec = dispersion.parse_header(path)
+            if spec is not None:
+                mat_table[name[:-4].upper()] = spec
+                continue
             data = np.loadtxt(path, skiprows=1)
             mat_table[name[:-4].upper()] = data.astype(type_complex)
 

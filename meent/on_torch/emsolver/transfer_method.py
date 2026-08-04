@@ -8,10 +8,16 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
 
     kz_top = (n_top ** 2 - kx ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2) ** 0.5
-    # kz_top = torch.conj(kz_top)
-    # kz_bot = torch.conj(kz_bot)
-    kz_top = kz_top.conj()
-    kz_bot = kz_bot.conj()
+
+    # For evanescent orders the sqrt argument sits on (or next to) the negative real
+    # axis, where the branch is ambiguous and the returned root can be the growing one.
+    # Force the decaying branch there. Compare against the real part of the index: the
+    # propagating/evanescent cutoff is only defined for a lossless medium, and a complex
+    # index cannot be ordered against a real magnitude at all.
+    evan_top = abs(kx) > abs(torch.as_tensor(n_top).real)
+    evan_bot = abs(kx) > abs(torch.as_tensor(n_bot).real)
+    kz_top[evan_top] = -1j * (kx[evan_top] ** 2 - n_top ** 2) ** 0.5
+    kz_bot[evan_bot] = -1j * (kx[evan_bot] ** 2 - n_bot ** 2) ** 0.5
 
     F = torch.eye(ff_x, device=device, dtype=type_complex)
 
@@ -30,7 +36,7 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
 
 
 def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('cpu'), type_complex=torch.complex128,
-                  perturbation=1E-20, use_pinv=False):
+                  perturbation=1E-10, use_pinv=False):
 
     Kx = torch.diag(kx)
 
@@ -118,25 +124,25 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, devic
         # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / (n_top * np.cos(theta))))
         de_ti = (T * T.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
         R_s = R
-        R_p = torch.zeros(R.shape)
+        R_p = torch.zeros_like(R)
         T_s = T
-        T_p = torch.zeros(T.shape)
+        T_p = torch.zeros_like(T)
         de_ri_s = de_ri
-        de_ri_p = torch.zeros(de_ri.shape)
+        de_ri_p = torch.zeros_like(de_ri)
         de_ti_s = de_ti
-        de_ti_p = torch.zeros(de_ri.shape)
+        de_ti_p = torch.zeros_like(de_ti)
 
     elif pol == 1:
         # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2) / (np.cos(theta) / n_top))
         # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2 / (np.cos(theta) / n_top)))
         de_ti = (T * T.conj() * (kz_bot / n_bot ** 2 / (torch.cos(theta) / n_top)).real).real
-        R_s = torch.zeros(R.shape)
+        R_s = torch.zeros_like(R)
         R_p = R
-        T_s = torch.zeros(T.shape)
+        T_s = torch.zeros_like(T)
         T_p = T
-        de_ri_s = torch.zeros(de_ri.shape)
+        de_ri_s = torch.zeros_like(de_ri)
         de_ri_p = de_ri
-        de_ti_s = torch.zeros(de_ri.shape)
+        de_ti_s = torch.zeros_like(de_ti)
         de_ti_p = de_ti
     else:
         raise ValueError
@@ -174,8 +180,15 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, device='cpu', type_complex=torch
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
+    # Force the decaying branch of the sqrt for evanescent orders; see transfer_1d_1.
+    k_par2 = kx ** 2 + ky.reshape((-1, 1)) ** 2
+    evan_top = abs(k_par2) > abs(torch.as_tensor(n_top).real ** 2)
+    evan_bot = abs(k_par2) > abs(torch.as_tensor(n_bot).real ** 2)
+    kz_top[evan_top] = -1j * (k_par2[evan_top] - n_top ** 2) ** 0.5
+    kz_bot[evan_bot] = -1j * (k_par2[evan_bot] - n_bot ** 2) ** 0.5
+
+    kz_top = kz_top.flatten()
+    kz_bot = kz_bot.flatten()
 
 
     # varphi = torch.arctan(ky / kx_vector)
@@ -213,7 +226,7 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, device='cpu', type_complex=torch
 # def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, o_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
 #                           device='cpu', type_complex=torch.complex128, perturbation=1E-10):
 def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device='cpu', type_complex=torch.complex128,
-                          perturbation=1E-20, use_pinv=False):
+                          perturbation=1E-10, use_pinv=False):
 
     ff_x = len(kx)
     ff_y = len(ky)
@@ -291,10 +304,10 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device='c
     V_sp = F_c @ V_12 - F_s @ W_2
     W_ss = F_c @ W_1 + F_s @ V_21
     W_sp = F_s @ V_22
-    W_ps = F_s @ V_11
-    W_pp = F_c @ W_2 + F_s @ V_12
-    V_ps = F_c @ V_21 - F_s @ W_1
-    V_pp = F_c @ V_22
+    V_ps = F_s @ V_11
+    V_pp = F_c @ W_2 + F_s @ V_12
+    W_ps = F_c @ V_21 - F_s @ W_1
+    W_pp = F_c @ V_22
 
     big_I = torch.eye(2 * (len(I)), device=device, dtype=type_complex)
 
@@ -304,11 +317,11 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device='c
 
     big_W = torch.cat([
         torch.cat([V_ss, V_sp], dim=1),
-        torch.cat([W_ps, W_pp], dim=1)])
+        torch.cat([V_ps, V_pp], dim=1)])
 
     big_V = torch.cat([
         torch.cat([W_ss, W_sp],  dim=1),
-        torch.cat([V_ps, V_pp], dim=1)])
+        torch.cat([W_ps, W_pp], dim=1)])
 
     big_W_i = meeinv(big_W, use_pinv)
     big_V_i = meeinv(big_V, use_pinv)
@@ -326,7 +339,7 @@ def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device='c
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 
 
-def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot, device='cpu',
+def transfer_1d_conical_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot, device='cpu',
                           type_complex=torch.complex128, use_pinv=False):
 
     ff_xy = ff_x * ff_y
@@ -364,17 +377,17 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
     final_B = torch.cat(
         [
             torch.cat([-torch.sin(psi) * delta_i0], dim=1),
-            torch.cat([torch.cos(psi) * torch.cos(theta) * delta_i0], dim=1),
+            torch.cat([-torch.cos(psi) * torch.cos(theta) * delta_i0], dim=1),
             torch.cat([-1j * torch.sin(psi) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * n_top * torch.cos(psi) * delta_i0], dim=1),
+            torch.cat([1j * n_top * torch.cos(psi) * delta_i0], dim=1),
         ]
     )
 
     final_A_inv = meeinv(final_A, use_pinv)
     final_RT = final_A_inv @ final_B
 
-    R_s = final_RT[:ff_xy, :].reshape((ff_y, ff_x))
-    R_p = final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))
+    R_s = (final_RT[:ff_xy, :].reshape((ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
+    R_p = ((-1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
 
     big_T1 = final_RT[2 * ff_xy:, :]
     # big_T_tetm = big_T.clone().detach()
@@ -382,13 +395,13 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
     big_T = big_T @ big_T1
 
     T_s = big_T[:ff_xy, :].reshape((ff_y, ff_x))
-    T_p = big_T[ff_xy:, :].reshape((ff_y, ff_x))
+    T_p = (-1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))
 
     de_ri_s = (R_s * R_s.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
-    de_ri_p = (R_p * R_p.conj() * (kz_top / n_top ** 2 / (n_top * torch.cos(theta))).real).real
+    de_ri_p = (R_p * R_p.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
 
     de_ti_s = (T_s * T_s.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
-    de_ti_p = (T_p * T_p.conj() * (kz_bot / n_bot ** 2 / (n_top * torch.cos(theta))).real).real
+    de_ti_p = (T_p * T_p.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
 
     de_ri = de_ri_s + de_ri_p
     de_ti = de_ti_s + de_ti_p
@@ -398,43 +411,43 @@ def transfer_1d_conical_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, 
            'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p, 'de_ti': de_ti}
 
     # TE TM incidence
-    psi_tm = torch.tensor(0, dtype=type_complex)
+    psi_tm = torch.tensor(0, dtype=type_complex, device=device)
     final_B_tm = torch.cat(
         [
             torch.cat([-torch.sin(psi_tm) * delta_i0], dim=1),
-            torch.cat([torch.cos(psi_tm) * torch.cos(theta) * delta_i0], dim=1),
+            torch.cat([-torch.cos(psi_tm) * torch.cos(theta) * delta_i0], dim=1),
             torch.cat([-1j * torch.sin(psi_tm) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * n_top * torch.cos(psi_tm) * delta_i0], dim=1),
+            torch.cat([1j * n_top * torch.cos(psi_tm) * delta_i0], dim=1),
         ]
     )
 
-    psi_te = torch.tensor(torch.pi / 2, dtype=type_complex)
+    psi_te = torch.tensor(torch.pi / 2, dtype=type_complex, device=device)
     final_B_te = torch.cat(
         [
             torch.cat([-torch.sin(psi_te) * delta_i0], dim=1),
-            torch.cat([torch.cos(psi_te) * torch.cos(theta) * delta_i0], dim=1),
+            torch.cat([-torch.cos(psi_te) * torch.cos(theta) * delta_i0], dim=1),
             torch.cat([-1j * torch.sin(psi_te) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * n_top * torch.cos(psi_te) * delta_i0], dim=1),
+            torch.cat([1j * n_top * torch.cos(psi_te) * delta_i0], dim=1),
         ]
     )
 
     final_B_tetm = torch.hstack([final_B_te, final_B_tm])
     final_RT_tetm = final_A_inv @ final_B_tetm
 
-    R_s_tetm = final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    R_p_tetm = final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))
+    R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
+    R_p_tetm = ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
 
     big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
     big_T_tetm = big_T_tetm @ big_T1_tetm
 
     T_s_tetm = big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    T_p_tetm = big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
+    T_p_tetm = (-1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
 
     de_ri_s_tetm = (R_s_tetm * R_s_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
-    de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / n_top ** 2 / (n_top * torch.cos(theta))).real).real
+    de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
 
     de_ti_s_tetm = (T_s_tetm * T_s_tetm.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
-    de_ti_p_tetm = (T_p_tetm * T_p_tetm.conj() * (kz_bot / n_bot ** 2 / (n_top * torch.cos(theta))).real).real
+    de_ti_p_tetm = (T_p_tetm * T_p_tetm.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
 
     de_ri_tetm = de_ri_s_tetm + de_ri_p_tetm
     de_ti_tetm = de_ti_s_tetm + de_ti_p_tetm
@@ -464,8 +477,15 @@ def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
+    # Force the decaying branch of the sqrt for evanescent orders; see transfer_1d_1.
+    k_par2 = kx ** 2 + ky.reshape((-1, 1)) ** 2
+    evan_top = abs(k_par2) > abs(torch.as_tensor(n_top).real ** 2)
+    evan_bot = abs(k_par2) > abs(torch.as_tensor(n_bot).real ** 2)
+    kz_top[evan_top] = -1j * (k_par2[evan_top] - n_top ** 2) ** 0.5
+    kz_bot[evan_bot] = -1j * (k_par2[evan_bot] - n_bot ** 2) ** 0.5
+
+    kz_top = kz_top.flatten()
+    kz_bot = kz_bot.flatten()
 
     varphi = torch.arctan(ky.reshape((-1, 1)) / kx).flatten()
     Kz_bot = torch.diag(kz_bot)
@@ -490,7 +510,7 @@ def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex
 
 
 def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=torch.device('cpu'), type_complex=torch.complex128,
-                   perturbation=1E-20, use_pinv=False):
+                   perturbation=1E-10, use_pinv=False):
 
     ff_x = len(kx)
     ff_y = len(ky)
@@ -514,8 +534,10 @@ def transfer_2d_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device=torch.device('c
     eigenvalues, W = Eig.apply(Omega2_LR)
     q = eigenvalues ** 0.5
 
+    q = torch.where(q.abs() < 1E-10, torch.full_like(q, 1E-10), q)
+
     Q = torch.diag(q)
-    Q_i = meeinv(Q, use_pinv)
+    Q_i = torch.diag(1 / q)
     Omega_R = torch.cat(
         [
             torch.cat([-Kx @ Ky, Kx ** 2 - epy_conv], dim=1),
@@ -593,7 +615,7 @@ def transfer_2d_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device=torch.devi
     return big_X, big_F, big_G, big_T, big_A_i, big_B
 
 
-def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
+def transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n_top, n_bot,
                   device=torch.device('cpu'), type_complex=torch.complex128, use_pinv=False):
 
     ff_xy = ff_x * ff_y
@@ -631,17 +653,17 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
     final_B = torch.cat(
         [
             torch.cat([-torch.sin(psi) * delta_i0], dim=1),
-            torch.cat([torch.cos(psi) * torch.cos(theta) * delta_i0], dim=1),
+            torch.cat([-torch.cos(psi) * torch.cos(theta) * delta_i0], dim=1),
             torch.cat([-1j * torch.sin(psi) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * n_top * torch.cos(psi) * delta_i0], dim=1),
+            torch.cat([1j * n_top * torch.cos(psi) * delta_i0], dim=1),
         ]
     )
 
     final_A_inv = meeinv(final_A, use_pinv)
     final_RT = final_A_inv @ final_B
 
-    R_s = final_RT[:ff_xy, :].reshape((ff_y, ff_x))
-    R_p = final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))
+    R_s = final_RT[:ff_xy, :].reshape((ff_y, ff_x)).conj()*torch.sign(kx.real)*torch.sign(theta.real)
+    R_p = ((-1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
 
     big_T1 = final_RT[2 * ff_xy:, :]
     # big_T_tetm = big_T.clone().detach()
@@ -649,13 +671,13 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
     big_T = big_T @ big_T1
 
     T_s = big_T[:ff_xy, :].reshape((ff_y, ff_x))
-    T_p = big_T[ff_xy:, :].reshape((ff_y, ff_x))
+    T_p = (-1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))
 
     de_ri_s = (R_s * R_s.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
-    de_ri_p = (R_p * R_p.conj() * (kz_top / n_top ** 2 / (n_top * torch.cos(theta))).real).real
+    de_ri_p = (R_p * R_p.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
 
     de_ti_s = (T_s * T_s.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
-    de_ti_p = (T_p * T_p.conj() * (kz_bot / n_bot ** 2 / (n_top * torch.cos(theta))).real).real
+    de_ti_p = (T_p * T_p.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
 
     de_ri = de_ri_s + de_ri_p
     de_ti = de_ti_s + de_ti_p
@@ -665,43 +687,43 @@ def transfer_2d_4(ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, theta, n
            'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p, 'de_ti': de_ti}
 
     # TE TM incidence
-    psi_tm = torch.tensor(0, dtype=type_complex)
+    psi_tm = torch.tensor(0, dtype=type_complex, device=device)
     final_B_tm = torch.cat(
         [
             torch.cat([-torch.sin(psi_tm) * delta_i0], dim=1),
-            torch.cat([torch.cos(psi_tm) * torch.cos(theta) * delta_i0], dim=1),
+            torch.cat([-torch.cos(psi_tm) * torch.cos(theta) * delta_i0], dim=1),
             torch.cat([-1j * torch.sin(psi_tm) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * n_top * torch.cos(psi_tm) * delta_i0], dim=1),
+            torch.cat([1j * n_top * torch.cos(psi_tm) * delta_i0], dim=1),
         ]
     )
 
-    psi_te = torch.tensor(torch.pi/2, dtype=type_complex)
+    psi_te = torch.tensor(torch.pi/2, dtype=type_complex, device=device)
     final_B_te = torch.cat(
         [
             torch.cat([-torch.sin(psi_te) * delta_i0], dim=1),
-            torch.cat([torch.cos(psi_te) * torch.cos(theta) * delta_i0], dim=1),
+            torch.cat([-torch.cos(psi_te) * torch.cos(theta) * delta_i0], dim=1),
             torch.cat([-1j * torch.sin(psi_te) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * n_top * torch.cos(psi_te) * delta_i0], dim=1),
+            torch.cat([1j * n_top * torch.cos(psi_te) * delta_i0], dim=1),
         ]
     )
 
     final_B_tetm = torch.hstack([final_B_te, final_B_tm])
     final_RT_tetm = final_A_inv @ final_B_tetm
 
-    R_s_tetm = final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    R_p_tetm = final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))
+    R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
+    R_p_tetm = ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
 
     big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
     big_T_tetm = big_T_tetm @ big_T1_tetm
 
     T_s_tetm = big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    T_p_tetm = big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
+    T_p_tetm = (-1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
 
     de_ri_s_tetm = (R_s_tetm * R_s_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
-    de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / n_top ** 2 / (n_top * torch.cos(theta))).real).real
+    de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
 
     de_ti_s_tetm = (T_s_tetm * T_s_tetm.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
-    de_ti_p_tetm = (T_p_tetm * T_p_tetm.conj() * (kz_bot / n_bot ** 2 / (n_top * torch.cos(theta))).real).real
+    de_ti_p_tetm = (T_p_tetm * T_p_tetm.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
 
     de_ri_tetm = de_ri_s_tetm + de_ri_p_tetm
     de_ti_tetm = de_ti_s_tetm + de_ti_p_tetm

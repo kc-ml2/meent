@@ -24,7 +24,7 @@ def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.comple
 
     cell_next = torch.roll(cell, -1, dims=1)
 
-    for col in torch.arange(cell.shape[1]):
+    for col in range(cell.shape[1]):
         if not (cell[:, col] == cell_next[:, col]).all() or (col == cell.shape[1] - 1):
             x.append(step_x * (col + 1))
             cell_x.append(cell[:, col].reshape((1, -1)))
@@ -101,11 +101,19 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu')
 
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
-        eps_matrix = ucell_layer ** 2
 
-        epz_conv = cfs2d(eps_matrix, x_list, y_list, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
-        epy_conv = cfs2d(eps_matrix, x_list, y_list, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
-        epx_conv = cfs2d(eps_matrix, x_list, y_list, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        if ucell_layer.ndim == 2:  # Isotropic: single refractive index per cell
+            eps_x = eps_y = eps_z = ucell_layer ** 2
+        elif ucell_layer.ndim == 3 and ucell_layer.shape[-1] == 3:  # Anisotropic: (nx, ny, nz)
+            eps_x = ucell_layer[..., 0] ** 2
+            eps_y = ucell_layer[..., 1] ** 2
+            eps_z = ucell_layer[..., 2] ** 2
+        else:
+            raise ValueError("ucell_layer must be 2D (isotropic) or 3D with 3 components (anisotropic)")
+
+        epz_conv = cfs2d(eps_z, x_list, y_list, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        epy_conv = cfs2d(eps_y, x_list, y_list, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
+        epx_conv = cfs2d(eps_x, x_list, y_list, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
@@ -123,12 +131,38 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'
     epz_conv_i_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device, dtype=type_complex)
 
     for i, layer in enumerate(ucell):
-        n_compressed, x_list, y_list = cell_compression(layer, device=device, type_complex=type_complex)
-        eps_matrix = n_compressed ** 2
+        if layer.ndim == 2:  # Isotropic: single refractive index per cell
+            lx = ly = lz = layer
+        elif layer.ndim == 3 and layer.shape[-1] == 3:  # Anisotropic: (nx, ny, nz)
+            lx, ly, lz = layer[..., 0], layer[..., 1], layer[..., 2]
+        else:
+            raise ValueError("layer must be 2D (isotropic) or 3D with 3 components (anisotropic)")
 
-        epz_conv = cfs2d(eps_matrix, x_list, y_list, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
-        epy_conv = cfs2d(eps_matrix, x_list, y_list, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
-        epx_conv = cfs2d(eps_matrix, x_list, y_list, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        # Share one compression only when the three components are the *same tensor*
+        # (the isotropic branch above), never when they merely hold equal values.
+        # Dispatching on value equality silently breaks the backward pass: the shared
+        # path reads lx alone, so at a point where eps_x == eps_y == eps_z the gradient
+        # of eps_y and eps_z comes back as exactly 0 while eps_x collects their sum.
+        # The forward result is identical either way, so the bug is invisible until you
+        # differentiate -- e.g. an optimization started from an isotropic material takes
+        # one badly wrong step, which later iterations never undo.
+        if lx is ly is lz:
+            # compress once and share the discontinuity grid across components
+            n_compressed, x_list, y_list = cell_compression(lx, device=device, type_complex=type_complex)
+            eps_x = eps_y = eps_z = n_compressed ** 2
+            x_x = x_y = x_z = x_list
+            y_x = y_y = y_z = y_list
+        else:
+            nx_compressed, x_x, y_x = cell_compression(lx, device=device, type_complex=type_complex)
+            ny_compressed, x_y, y_y = cell_compression(ly, device=device, type_complex=type_complex)
+            nz_compressed, x_z, y_z = cell_compression(lz, device=device, type_complex=type_complex)
+            eps_x = nx_compressed ** 2
+            eps_y = ny_compressed ** 2
+            eps_z = nz_compressed ** 2
+
+        epz_conv = cfs2d(eps_z, x_z, y_z, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        epy_conv = cfs2d(eps_y, x_y, y_y, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
+        epx_conv = cfs2d(eps_x, x_x, y_x, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv
@@ -154,21 +188,31 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=torch.device('cpu'),
         minimum_pattern_size_x = 4 * fto_x + 1
         # e.g., 8 bytes * (40*500) * (40*500) / 1E6 = 3200 MB = 3.2 GB
 
+    # ucell shape: (Layers, H, W) isotropic or (Layers, H, W, 3) anisotropic
+    def _repeat_to_min(a):
+        # Repeat the pattern up to the minimum size the requested Fourier order needs.
+        if a.shape[0] < minimum_pattern_size_y:
+            a = a.repeat_interleave((minimum_pattern_size_y // a.shape[0]) + 1, dim=0)
+        if a.shape[1] < minimum_pattern_size_x:
+            a = a.repeat_interleave((minimum_pattern_size_x // a.shape[1]) + 1, dim=1)
+        return a
+
     for i, layer in enumerate(ucell):
-        if layer.shape[0] < minimum_pattern_size_y:
-            n = minimum_pattern_size_y // layer.shape[0]
-            n = torch.tensor(n, device=device)
-            layer = layer.repeat_interleave(n + 1, axis=0)
-        if layer.shape[1] < minimum_pattern_size_x:
-            n = minimum_pattern_size_x // layer.shape[1]
-            n = torch.tensor(n, device=device)
-            layer = layer.repeat_interleave(n + 1, axis=1)
 
-        eps_matrix = layer ** 2
+        if layer.ndim == 2:  # Isotropic: nx=ny=nz, so repeat and square ONCE and share the
+            # same eps across epx/epy/epz (they still need 3 separate DFTs with different
+            # factorization rules, but the pattern array is not stored/repeated 3 times).
+            eps_x = eps_y = eps_z = _repeat_to_min(layer) ** 2
+        elif layer.ndim == 3 and layer.shape[-1] == 3:  # Anisotropic: (nx, ny, nz)
+            eps_x = _repeat_to_min(layer[..., 0]) ** 2
+            eps_y = _repeat_to_min(layer[..., 1]) ** 2
+            eps_z = _repeat_to_min(layer[..., 2]) ** 2
+        else:
+            raise ValueError("layer must be 2D (isotropic) or 3D with 3 components (anisotropic)")
 
-        epz_conv = dfs2d(eps_matrix, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
-        epy_conv = dfs2d(eps_matrix, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
-        epx_conv = dfs2d(eps_matrix, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        epz_conv = dfs2d(eps_z, 1, 1, fto_x, fto_y, device=device, type_complex=type_complex)
+        epy_conv = dfs2d(eps_y, 1, 0, fto_x, fto_y, device=device, type_complex=type_complex)
+        epx_conv = dfs2d(eps_x, 0, 1, fto_x, fto_y, device=device, type_complex=type_complex)
 
         epx_conv_all[i] = epx_conv
         epy_conv_all[i] = epy_conv

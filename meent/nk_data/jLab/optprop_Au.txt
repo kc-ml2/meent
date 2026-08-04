@@ -1,0 +1,9 @@
+Wavelength(m)	n	k
+# material: Au
+# source: optprop_Au.m
+# model: Brendel-Bormann oscillators (Drude term plus Gaussian-broadened Lorentz oscillators, hence the Faddeeva function)
+# coefficient layout: [wp, f0, g0, (f, gamma, centre, sigma) * n], in eV
+# type: model brendel-bormann-ev
+# coefficients: 9.20007 0.85195 0.09509 0.03361 0.08138 0.24435 0.66983 0.04378 0.02654 3.57689 0.30055 0.39482 0.09543 3.59156 0.93598 0.83641 7.69005 3.59644 0.88825 1.28384 0.23893 34.87059 1.87353
+# range: 1.5000e-07 - 1.0000e-04 m
+# converted: 2026-08-04

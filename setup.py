@@ -19,7 +19,7 @@ with open(os.path.join(cwd, "README.md"), encoding="utf-8") as f:
 
 setup(
     name='meent',
-    version='0.12.0',
+    version='0.13.2',
     url='https://github.com/kc-ml2/meent',
     author='KC ML2',
     author_email='yongha@kc-ml2.com',
@@ -36,6 +36,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     package_data={
-        'meent': ['nk_data/filmetrics/*.txt', 'nk_data/matlab/*.mat'],
+        'meent': ['nk_data/refractiveindex_info/*.txt',
+                  'nk_data/jLab/*.txt',
+                  ],
     },
 )

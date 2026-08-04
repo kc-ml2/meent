@@ -1,0 +1,11 @@
+Wavelength(m)	n	k
+# material: SiO2
+# source: G. Ghosh. Dispersion-equation coefficients for the refractive index and birefringence of calcite and quartz crystals. Opt. Commun. 163, 95-102 (1999)
+# conditions: Ordinary ray (o). Room temperature.
+# upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/SiO2/nk/Ghosh-o.yml
+# type: formula 2
+# coefficients: 0.28604141 1.07044083 1.00585997e-14 1.10202242 1e-10
+# coefficient_unit: m (m^2 for the pole terms)
+# note: dispersion fit; k is 0 across the range it covers
+# range: 1.9800e-07 - 2.0531e-06 m
+# converted: 2026-07-31 (wavelength um -> m)

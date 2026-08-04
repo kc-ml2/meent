@@ -1,0 +1,9 @@
+Wavelength(m)	n	k
+# material: CaF2
+# source: optprop_CaF2.m
+# model: Brendel-Bormann oscillators (Drude term plus Gaussian-broadened Lorentz oscillators, hence the Faddeeva function)
+# coefficient layout: [eps_inf, (strength, gamma, sigma, centre) * n], in cm-1
+# type: model brendel-bormann-cm
+# coefficients: 1.84462 14357190.64106 2.59652 626.33865 11858.60141 269739.04488 0.14187 223.90971 53.62512 786.56174 33.25617 242.183 504.21943
+# range: 1.5000e-07 - 1.0000e-04 m
+# converted: 2026-08-04
