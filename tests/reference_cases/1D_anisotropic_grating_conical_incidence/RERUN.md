@@ -47,9 +47,14 @@ numpy 2.4.6, meent 0.13.2 editable from the working tree.
 | | |
 |---|---|
 | contract checks | **8/8 pass** — the merged API matches what `case.py` assumed |
-| `pytest tests/test_reference.py` | **104 passed**, 6 deselected (`slow`) |
+| `pytest tests/test_reference.py` | **104 passed**, 6 deselected (`slow`) — 71 s |
 | data-only | 32 pass |
 | live | 72 pass — previously skipped |
+| `pytest tests/test_reference.py -m slow` | **6 passed** — 30 min |
+
+The `slow` run is the whole experiment re-solved: all 201 wavelengths × 3 methods
+× 2 polarizations, 1206 solves, every one inside `TOL_REFERENCE`. That is the
+complete claim, not a subsample.
 
 Numbers, all inside their asserted tolerances:
 
@@ -67,7 +72,12 @@ this case. Live meent reproduces the Windows recorded sweep to **5e-12**, on a
 different OS and a different LAPACK build. The refactor preserved behaviour.
 
 That also finally measured `TOL_RECORDED`, which had been a guess: it is now
-1e-10, tightened from 1e-9.
+1e-10, tightened from 1e-9 and confirmed under pytest.
+
+`MEASURED_REFERENCE` is unchanged. It documents *recorded* vs RETICOLO over the
+full sweep, which the merge did not touch — the `-m slow` run asserts *live* vs
+RETICOLO against the same tolerances and passed at every point, so there is
+nothing to revise.
 
 Two smaller findings from the run:
 
