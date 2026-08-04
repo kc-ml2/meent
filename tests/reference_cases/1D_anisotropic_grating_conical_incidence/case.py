@@ -93,11 +93,18 @@ MEASURED_REFERENCE = {       # max(|dR|, |dT|) vs RETICOLO, worst over both pols
 TOL_METHOD_CROSS = 1e-9      # continuous vs vector: same convolution matrix, two ways
 MEASURED_METHOD_CROSS = 1.05e-11
 
-# Live meent vs the recorded run. NOT YET MEASURED on this platform -- the
-# recorded sweep ran on Windows with a different LAPACK build, and
-# eigendecomposition is not bit-reproducible across builds. Measure this on the
-# machine that will run CI, then tighten. See tests/GUIDE.md section 7.
-TOL_RECORDED = 1e-9
+# Live meent vs the recorded run.
+#
+# Measured 2026-08-04 on the merged main (58ff99f) -- Linux, torch 2.13.0+cpu,
+# numpy 2.4.6 -- against a recorded sweep produced on Windows with a different
+# LAPACK build: worst deviation 4.94e-12 over the smoke subset. Cross-platform
+# eigendecomposition agrees far better than the decade of headroom originally
+# guessed here (1e-9), so this is tightened to 1e-10.
+#
+# It survived the unified iso/aniso solver path (dc4b077) and the evanescent kz
+# branch fix (1c3017b) unchanged, which is the useful part: those refactors did
+# not move this case.
+TOL_RECORDED = 1e-10
 
 
 # --------------------------------------------------------------------------- #

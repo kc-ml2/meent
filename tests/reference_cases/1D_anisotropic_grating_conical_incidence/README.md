@@ -55,13 +55,16 @@ committed here: 1206 solves (3 methods × 2 polarizations × 201 wavelengths) in
 587 s, 0 failures, backend 2 (torch), complex128. Its stored outputs are the
 provenance for those figures.
 
-**Status: parked.** The live tests skip until diagonal anisotropy is merged.
-[RERUN.md](RERUN.md) is the runbook for picking this back up.
+**Status: live.** Diagonal anisotropy (torch-only) merged in
+[#103](https://github.com/kc-ml2/meent/pull/103) @ `58ff99f`. Re-verified against
+it on 2026-08-04: 8/8 contract checks and 104 tests pass, live meent reproduces
+the recorded sweep to 5e-12 across a different OS and LAPACK build. See
+[RERUN.md](RERUN.md#what-the-merge-run-found).
 
-**Required feature.** Diagonal anisotropy is torch-only and landed on
-`feature/anisotropic-diagonal-torch` (commit 186fd07). It is **not on `main`**, so
-on most checkouts the live tests here skip with that reason and only the
-data-only tests run.
+**Required feature.** `REQUIRES` names `anisotropy_diagonal`, probed by
+`_loader._probe_anisotropy_diagonal`. On a checkout without it — an older commit,
+or a backend other than torch — the live tests skip with that reason and the
+data-only tests still assert the archived result.
 
 ## Measured agreement
 

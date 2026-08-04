@@ -1,13 +1,17 @@
-# Re-running this case after the anisotropy PR merges
+# Re-running this case after a change to the solver
 
-This case is **parked**. Its data and tolerances are committed and its data-only
-tests pass today, but the live tests skip because diagonal anisotropy is not on
-`main`. When the PR merges, work through this document.
+> **Status: live and passing.** Anisotropy merged in
+> [#103](https://github.com/kc-ml2/meent/pull/103) (`58ff99f`) and this case was
+> re-run against it on 2026-08-04 — all 8 contract checks pass, 104 tests pass,
+> nothing skipped for missing features. Results in
+> [What the merge run found](#what-the-merge-run-found) below.
+>
+> The procedure below stays useful for the *next* solver change: run
+> `verify_after_merge.py` first, `pytest` second.
 
-The PR is being written by someone else and may differ from the branch this case
-was built against (`feature/anisotropic-diagonal-torch`, 186fd07). So the first
-step is not `pytest` — it is a script that checks each API assumption separately
-and tells you which one moved.
+The value of running the script before pytest is that it checks each API
+assumption separately. A changed `ucell` signature otherwise surfaces as dozens
+of identical pytest failures that say nothing about which interface moved.
 
 ---
 
@@ -35,19 +39,46 @@ pytest tests/test_reference.py -m slow           # full 201-point sweep, ~10 min
 
 ---
 
-## Status right now
+## What the merge run found
+
+Run on 2026-08-04 against `main` @ `58ff99f`, Linux, torch 2.13.0+cpu,
+numpy 2.4.6, meent 0.13.2 editable from the working tree.
 
 | | |
 |---|---|
-| data-only tests | **32 pass** — verified against the committed files |
-| live tests | **72 skip** — "anisotropic ucell not supported by this checkout" |
-| full sweep | deselected (`slow`) |
-| feature needed | diagonal anisotropy, torch-only, `feature/anisotropic-diagonal-torch` @ 186fd07 |
+| contract checks | **8/8 pass** — the merged API matches what `case.py` assumed |
+| `pytest tests/test_reference.py` | **104 passed**, 6 deselected (`slow`) |
+| data-only | 32 pass |
+| live | 72 pass — previously skipped |
 
-The skip is produced by `_loader._probe_anisotropy_diagonal`, which attempts a
-one-wavelength anisotropic solve and reports the exception. **When the merge is
-right, the skips turn into runs with no code change.** If they don't, the probe's
-message names the reason.
+Numbers, all inside their asserted tolerances:
+
+| comparison | discrete | continuous | vector |
+|---|---|---|---|
+| vs RETICOLO | 1.03e-05 | 6.15e-11 | 6.42e-11 |
+| vs the recorded run | 4.65e-12 | 3.09e-12 | 4.94e-12 |
+
+Worst energy residual 3.53e-12 against a 1e-9 tolerance.
+
+**The headline is the middle row.** The merge included a unified iso/aniso solver
+path (`dc4b077`) and a fix to kz branch selection for evanescent orders
+(`1c3017b`) — a refactor and a physics change, either of which could have moved
+this case. Live meent reproduces the Windows recorded sweep to **5e-12**, on a
+different OS and a different LAPACK build. The refactor preserved behaviour.
+
+That also finally measured `TOL_RECORDED`, which had been a guess: it is now
+1e-10, tightened from 1e-9.
+
+Two smaller findings from the run:
+
+- `pol=0`'s `.res` is **identical** to `res_te_inc` from the same solve (to 12
+  decimals). The sweep can be halved — solve once per wavelength and read both
+  polarization channels — if the full sweep's ~30 minutes ever becomes annoying.
+- Install trap: `MeeTorch` pulls in `meent/on_torch/optimizer/optimizer.py`,
+  which imports `tqdm` — so `call_mee(backend=2)` raises `ModuleNotFoundError`
+  before solving anything. `tqdm` is correctly declared in the `pytorch` extra,
+  so the packaging is right; what is wrong is installing `-e .` and `torch`
+  separately. Use `pip install -e ".[pytorch]"`.
 
 ---
 

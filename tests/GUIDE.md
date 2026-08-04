@@ -46,9 +46,14 @@ so your edits take effect immediately without reinstalling.
 Optional backends, as needed:
 
 ```bash
-pip install "meent[jax]"      # or: pip install jax jaxlib optax
-pip install "meent[pytorch]"  # or: pip install torch
+pip install -e ".[jax]"
+pip install -e ".[pytorch]"
 ```
+
+Use the extras rather than installing `torch` or `jax` by hand — the extras also
+pull in `tqdm`, which the optimizer modules import. Without it,
+`call_mee(backend=2)` fails with `ModuleNotFoundError: No module named 'tqdm'`
+before it solves anything, which looks nothing like a missing-backend error.
 
 Tests for a backend you have not installed are skipped automatically — you never
 need to comment anything out.

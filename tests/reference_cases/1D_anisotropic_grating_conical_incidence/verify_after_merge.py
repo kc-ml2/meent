@@ -277,10 +277,13 @@ else:
 print()
 print('  Paste into case.py when satisfied:')
 print(f'    TOL_RECORDED = {suggested:g}')
-print('    MEASURED_REFERENCE = {')
+print()
+print('  For reference only -- do NOT paste over MEASURED_REFERENCE. That field')
+print('  documents *recorded* vs RETICOLO over the full 201-point sweep, which is')
+print('  a different quantity from the *live* vs RETICOLO figures below, measured')
+print('  here on the smoke subset alone:')
 for method in case.METHODS:
-    print(f'        {method!r}: {worst_vs_reference[method]:.2e},'
-          f'   # smoke subset only -- run -m slow for the full sweep figure')
-print('    }')
+    print(f'        {method:11s} {worst_vs_reference[method]:.2e}')
+print('  Update MEASURED_REFERENCE only from a full `-m slow` run.')
 
 sys.exit(0 if (contract_ok and energy_ok and ref_ok) else 1)
