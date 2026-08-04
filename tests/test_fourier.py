@@ -136,6 +136,25 @@ class TestConvolutionMatrices:
         """to_conv_mat_vector vs to_conv_mat_raster_* for the same geometry."""
         pytest.skip('TODO: implement')
 
+    @pytest.mark.slow
+    def test_no_breakdown_between_discrete_and_continuous_matrices(self, backend):
+        """Blend the two convolution matrices and check the solver stays continuous.
+
+        Setup: C(t) = A + t*(B - A) where A is to_conv_mat_raster_discrete and B
+        is to_conv_mat_raster_continuous for the same cell. Feed C(t) straight to
+        solve_for_conv at t = 0, 0.5, 1 - 1e-12, 1.
+        Assert: R at t = 1 - 1e-12 equals R at t = 1. Those two matrices are
+        numerically identical, so any difference is a solver breakdown, not a
+        physics difference.
+        Why: separates 'the two Fourier methods disagree because they are
+        genuinely different expansions' from 'the solver is unstable for one of
+        them'. Taken from the stability probe in the reference-case notebook,
+        tests/reference_cases/1D_anisotropic_grating_conical_incidence/ -- it
+        found nothing above 1e-4 there, but it is the right instrument when
+        test_equivalence.py::test_dfs_efs_cfs_agree starts failing.
+        """
+        pytest.skip('TODO: implement')
+
     @pytest.mark.backend_consistency
     def test_conv_mats_agree_across_backends(self, option):
         """numpy/jax/torch must build identical matrices.

@@ -123,43 +123,43 @@ The script prints these at the end, ready to paste:
 
 ## Inventory
 
-**Committed here** — this is now the only copy of the experiment's data:
+**Committed here** — self-contained; re-running or re-auditing the experiment
+needs nothing outside this directory:
 
 ```
 reference/  RETICOLO_..._TE.txt, _TM.txt        201 wavelengths each
             RETICOLO_....m                      the MATLAB script that made them
 recorded/   Meent_..._{TE,TM}_{discrete,continuous,vector}.txt
+Meent_1D_anisotropic_grating_conical_incidence.ipynb
+            the notebook that produced recorded/, with its stored outputs
 case.py     structure, sweep, tolerances, meent construction
 README.md   provenance, measured agreement, caveats
 RERUN.md    this file
 verify_after_merge.py
 ```
 
-**Lost.** The original experiment folder
-(`/home/chs/Work/Meent/meent/1D_anisotropic_grating_conical_incidence/`) was
-emptied when that checkout switched branches — the files were untracked, there
-is no stash, and they are not in any commit on any branch. Gone from this
-machine:
+**Left in the source folder** (`/home/chs/Work/Meent/meent/1D_anisotropic_grating_conical_incidence/`),
+deliberately: `prv1.mat` (16 MB RETICOLO intermediate), `.xlsx` (the `.txt`
+numbers reorganized for plotting), `.opju` (Origin project). Derived or
+regenerable, and large.
 
-- `Meent_1D_anisotropic_grating_conical_incidence.ipynb` — the notebook that
-  produced `recorded/`, **and the only record of the analysis** (energy audit,
-  method cross-comparison, RETICOLO comparison, a convolution-matrix stability
-  probe, and the plots). Per its own stored output it was run from
-  `e:\Taesang Yun\meent\validation\transmittance\1D_anisotropic_grating_conical_incidence`,
-  so the master copy should still exist on that Windows machine. **Please commit
-  it here when you can.**
-- `prv1.mat` (16 MB RETICOLO intermediate), `1D_....xlsx`, `1D_....opju` — derived
-  or regenerable; the `.txt` files are canonical.
+> That folder was briefly emptied on 2026-08-04 when a second checkout switched
+> branches — the files were untracked, so nothing in git held them. It has been
+> restored, and the nine committed data files were verified byte-identical to the
+> restored originals. The notebook is now committed here rather than living only
+> in an untracked folder. Worth remembering when the next experiment is run:
+> **untracked is not kept.**
 
-The eight `.txt` files survived only because they were copied into commit
-0cee92d. That is the argument for this directory existing.
-
-**Reconstructable from what is committed:** `case.py` reproduces the solve path
-exactly (same structure, same fto, same sweep), and the checks the notebook did
-by eye are now assertions in `tests/test_reference.py`. What is *not*
-reconstructable is the notebook's stability probe — it blended the discrete and
-continuous convolution matrices with a parameter `t` and looked for a
-discontinuity at `t → 1`. Worth rewriting as a test if that investigation matters.
+**What the notebook adds beyond `case.py`.** `case.py` reproduces the solve path
+exactly (same structure, same fto, same sweep) and the notebook's eyeball checks
+are now assertions in `tests/test_reference.py`. The notebook is still the only
+record of one investigation: a **convolution-matrix stability probe** that blends
+the discrete and continuous matrices as `C(t) = A + t(B − A)` and compares
+`t = 1 − 1e-12` against `t = 1`. Those two matrices are numerically identical, so
+any change in R between them is a solver breakdown rather than a physics
+difference. It found nothing above 1e-4 in this dataset. Worth promoting to a
+test if that failure mode matters — it is a genuinely good idea and it is not
+covered anywhere else in the suite.
 
 ---
 

@@ -50,10 +50,10 @@ tensor. `res1` is called in its full conical form and `res2` returns `TEinc` and
 `TMinc` from a single solve. 201 wavelengths, 0 failures.
 *RETICOLO version not recorded — please add it here.*
 
-**meent side.** `Meent_1D_anisotropic_grating_conical_incidence.ipynb`, 1206
-solves (3 methods × 2 polarizations × 201 wavelengths) in 587 s, 0 failures,
-backend 2 (torch), complex128. **That notebook no longer exists on this machine**
-— see "Caveats" and [RERUN.md](RERUN.md#inventory).
+**meent side.** [`Meent_1D_anisotropic_grating_conical_incidence.ipynb`](Meent_1D_anisotropic_grating_conical_incidence.ipynb),
+committed here: 1206 solves (3 methods × 2 polarizations × 201 wavelengths) in
+587 s, 0 failures, backend 2 (torch), complex128. Its stored outputs are the
+provenance for those figures.
 
 **Status: parked.** The live tests skip until diagonal anisotropy is merged.
 [RERUN.md](RERUN.md) is the runbook for picking this back up.
@@ -115,10 +115,8 @@ LAPACK build, and eigendecomposition ordering and rounding differ across builds.
 `TOL_RECORDED` in `case.py` is therefore a guess (1e-9) rather than a
 measurement — measure it on the CI machine and tighten it.
 
-**The source folder has since been emptied.** `prv1.mat`, the `.opju` Origin
-project, the `.xlsx`, and — most importantly — the reproduction notebook are gone
-from this machine. They were untracked files in a second checkout that was later
-switched to another branch; there is no stash and no commit containing them. The
-eight `.txt` files here survived only because they were copied into commit
-0cee92d. Full inventory, and where the notebook probably still exists, in
-[RERUN.md](RERUN.md#inventory).
+**Not committed** from the source experiment folder: `prv1.mat` (16 MB RETICOLO
+intermediate), the `.opju` Origin project, and the `.xlsx` (the same numbers as
+the `.txt` files, reorganized for plotting). All are derived or regenerable; the
+`.txt` files are canonical. Everything needed to re-run or re-audit the
+experiment is here. See [RERUN.md](RERUN.md#inventory) for the full inventory.
