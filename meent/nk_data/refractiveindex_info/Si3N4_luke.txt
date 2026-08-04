@@ -1,0 +1,11 @@
+Wavelength(m)	n	k
+# material: Si3N4
+# source: K. Luke, Y. Okawachi, M. R. E. Lamont, A. L. Gaeta, M. Lipson. Broadband mid-infrared frequency comb generation in a Si3N4 microresonator. Opt. Lett. 40, 4823-4826 (2015)
+# conditions: 340 nm Si3N4 on 3.1 um of thermal SiO2 on silicon.
+# upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/Si3N4/nk/Luke.yml
+# type: formula 1
+# coefficients: 0.0 3.0249 1.353406e-07 40314.0 0.0012398420000000001
+# coefficient_unit: m
+# note: dispersion fit; k is 0 across the range it covers
+# range: 3.1000e-07 - 5.5040e-06 m
+# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)

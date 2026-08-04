@@ -1,0 +1,11 @@
+Wavelength(m)	n	k
+# material: SiO2
+# source: 1) I. H. Malitson. Interspecimen comparison of the refractive index of fused silica. J. Opt. Soc. Am. 55, 1205-1208 (1965) 2) C. Z. Tan. Determination of refractive index of silica glass for infrared wavelengths by IR spectroscopy. J. Non-Cryst. Solids 223, 158-163 (1998) * Sellmeier formula is reported in Ref. 1 for the 0.21-3.71 um wavelength range. Ref. 2 verifies the validity of the formula up to 6.7 um.
+# conditions: Fused silica, 20 degC
+# upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/SiO2/nk/Malitson.yml
+# type: formula 1
+# coefficients: 0.0 0.6961663 6.84043e-08 0.4079426 1.1624139999999998e-07 0.8974794 9.896160999999999e-06
+# coefficient_unit: m
+# note: dispersion fit; k is 0 across the range it covers
+# range: 2.1000e-07 - 6.7000e-06 m
+# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)

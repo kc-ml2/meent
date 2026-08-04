@@ -36,6 +36,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     package_data={
-        'meent': ['nk_data/filmetrics/*.txt', 'nk_data/matlab/*.mat'],
+        'meent': ['nk_data/refractiveindex_info/*.txt',
+                  'nk_data/jLab/*.txt',
+                  ],
     },
 )

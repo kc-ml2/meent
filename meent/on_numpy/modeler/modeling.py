@@ -1,9 +1,13 @@
 from bisect import bisect_left
 
+import warnings
+
 import numpy as np
 
 from os import walk
 from pathlib import Path
+
+from ... import dispersion
 
 
 class ModelingNumpy:
@@ -650,8 +654,9 @@ class ModelingNumpy:
         for i_mat, material in enumerate(mat_list):
             mask = np.nonzero(ucell_mask == i_mat)
 
-            if type(material) is str:
-                if not self.mat_table:
+            if isinstance(material, (str, dict)):
+                # A dict is a self-contained spec, so it needs no table; only a name does.
+                if isinstance(material, str) and not self.mat_table:
                     self.mat_table = read_material_table()
                 assign_value = find_nk_index(material, self.mat_table, wl)
             else:
@@ -678,21 +683,67 @@ class ModelingNumpy:
         return ucell_vector
 
 
+def warn_if_out_of_range(material, mat_data, wl):
+    """Warn when wl falls outside the tabulated range, where interp clamps to the endpoints.
+
+    The clamp is silent, so a wavelength given in the wrong unit returns a plausible-looking
+    number instead of failing. Every table under nk_data is in metres, so a warning here almost
+    always means the wavelength was passed in nanometres or micrometres.
+    """
+    try:
+        wl_min, wl_max = float(np.min(wl)), float(np.max(wl))
+    except Exception:  # traced or device-resident values have no range to inspect here
+        return
+
+    if isinstance(mat_data, dict):
+        low, high = mat_data['wavelength_range']
+    else:
+        low, high = float(np.min(mat_data[:, 0])), float(np.max(mat_data[:, 0]))
+    if wl_min < low or wl_max > high:
+        warnings.warn(
+            f'{material}: wavelength {wl_min:.4e} - {wl_max:.4e} falls outside the tabulated '
+            f'range {low:.4e} - {high:.4e}; values are clamped to the endpoints. '
+            f'Check that the wavelength unit matches the table.',
+            stacklevel=3)
+
+
 def find_nk_index(material, mat_table, wl):
-    if material[-6:] == '__real':
+    if isinstance(material, dict):
+        mat_data = material
+        material_name = mat_data.get('formula', 'dynamic material')
+        n_only = False
+    elif material[-6:] == '__real':
         material = material[:-6]
         n_only = True
+        mat_data = mat_table[material.upper()]
+        material_name = material
     else:
         n_only = False
+        mat_data = mat_table[material.upper()]
+        material_name = material
+    warn_if_out_of_range(material_name, mat_data, wl)
 
-    mat_data = mat_table[material.upper()]
+    # Fitted materials are stored as coefficients rather than data rows, so evaluate rather than
+    # interpolate. A Sellmeier fit gives n alone; the oscillator models give n + ik, since
+    # absorption is the point of them.
+    if isinstance(mat_data, dict):
+        n_index = dispersion.evaluate(mat_data, wl, np)
+        if n_only:
+            return np.real(n_index)
+        # Returned on the ordinary optics convention (n + ik). meent solves on n - ik, so
+        # conjugate -- the same flip the tabulated branch below applies to its k column.
+        return np.conj(n_index + 0j)
+
     n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
 
     if n_only:
         return n_index
 
     k_index = np.interp(wl, mat_data[:, 0], mat_data[:, 2])
-    nk = n_index + 1j * k_index
+    # meent solves on the negative sign convention, so absorption is -ik: tables store k as the
+    # positive extinction coefficient, and returning +ik instead turns every lossy material into
+    # a gain medium (transmission through a slab grows with thickness rather than decaying).
+    nk = n_index - 1j * k_index
 
     return nk
 
@@ -716,6 +767,10 @@ def read_material_table(nk_path=None, type_complex=np.complex128):
         name_list.extend(filenames)
     for path, name in zip(full_path_list, name_list):
         if name[-3:] == 'txt':
+            spec = dispersion.parse_header(path)
+            if spec is not None:
+                mat_table[name[:-4].upper()] = spec
+                continue
             data = np.loadtxt(path, skiprows=1)
             mat_table[name[:-4].upper()] = data.astype(type_complex)
 
@@ -725,3 +780,67 @@ def read_material_table(nk_path=None, type_complex=np.complex128):
             data = np.array([data['WL'], data['n'], data['k']], dtype=type_complex)[:, :, 0].T
             mat_table[name[:-4].upper()] = data
     return mat_table
+
+
+def read_table_comments(nk_path=None):
+    """Collect the '# key: value' provenance lines written into each nk_data text table."""
+    if nk_path is None:
+        nk_path = str(Path(__file__).resolve().parent.parent.parent) + '/nk_data'
+
+    comments = {}
+    for (dirpath, dirnames, filenames) in walk(nk_path):
+        for name in filenames:
+            if name[-3:] != 'txt':
+                continue
+            entry = {}
+            with open(f'{dirpath}/{name}') as file:
+                next(file, None)  # column header
+                for line in file:
+                    if not line.startswith('#'):
+                        break
+                    key, _, value = line[1:].partition(':')
+                    entry[key.strip()] = value.strip()
+            comments[name[:-4].upper()] = entry
+    return comments
+
+
+def list_materials(nk_path=None):
+    """Summarise the material tables that read_material_table can serve.
+
+    Returns one dict per table holding the name to pass in mat_list, the tabulated wavelength
+    range and, where the file carries them, the reference and measurement conditions. Several
+    datasets usually exist for one material and differ in sample preparation, temperature and
+    coverage, so the name alone does not identify the data -- this is how to tell them apart.
+    """
+    mat_table = read_material_table(nk_path)
+    comments = read_table_comments(nk_path)
+
+    materials = []
+    for name in sorted(mat_table):
+        mat_data = mat_table[name]
+        if isinstance(mat_data, dict):  # stored as a fit, so the range is the one it was fit over
+            low, high = mat_data['wavelength_range']
+        else:
+            wavelength = np.asarray(mat_data)[:, 0].real
+            low, high = float(wavelength.min()), float(wavelength.max())
+        entry = comments.get(name, {})
+        materials.append({
+            'name': name,
+            'wl_min': low,
+            'wl_max': high,
+            'source': entry.get('source', ''),
+            'conditions': entry.get('conditions', ''),
+        })
+    return materials
+
+
+def print_materials(nk_path=None):
+    """Print list_materials as an aligned table."""
+    materials = list_materials(nk_path)
+    width = max(len(material['name']) for material in materials)
+
+    print(f'{"name":{width}}  {"wavelength range":^25}  source')
+    for material in materials:
+        source = material['source'][:70] or '-'
+        print(f'{material["name"]:{width}}  '
+              f'{material["wl_min"]:.4e} - {material["wl_max"]:.4e}  {source}')

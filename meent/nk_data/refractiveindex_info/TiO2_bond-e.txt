@@ -1,0 +1,23 @@
+Wavelength(m)	n	k
+# material: TiO2
+# source: W. L. Bond. Measurement of the refractive indices of several crystals. J. Appl. Phys. 36, 1674-1677 (1965)
+# conditions: Extraordinary ray (e); Room temperature.
+# upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/TiO2/nk/Bond-e.yml
+# type: tabulated n
+# note: k not given by the source; set to 0
+# range: 4.5000e-07 - 2.4000e-06 m
+# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
+4.500000e-07	3.1465	0
+5.000000e-07	2.999	0
+6.000000e-07	2.89	0
+7.000000e-07	2.8255	0
+8.000000e-07	2.7866	0
+9.000000e-07	2.7612	0
+1.000000e-06	2.743	0
+1.200000e-06	2.7193	0
+1.400000e-06	2.7024	0
+1.600000e-06	2.6902	0
+1.800000e-06	2.6793	0
+2.000000e-06	2.6698	0
+2.200000e-06	2.66	0
+2.400000e-06	2.6501	0

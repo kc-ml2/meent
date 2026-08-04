@@ -1,0 +1,11 @@
+Wavelength(m)	n	k
+# material: BaTiO3
+# source: S.H. Wemple, M. Didomenico Jr., I. Camlibel. Dielectric and optical properties of melt-grown BaTiO3. J. Phys. Chem. Solids 29, 1797-1803 (1968)
+# conditions: Extraordinary ray (e). Room temperature
+# upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/BaTiO3/nk/Wemple-e.yml
+# type: formula 1
+# coefficients: 0.0 4.064 2.1099999999999997e-07
+# coefficient_unit: m
+# note: dispersion fit; k is 0 across the range it covers
+# range: 4.0000e-07 - 7.0000e-07 m
+# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)

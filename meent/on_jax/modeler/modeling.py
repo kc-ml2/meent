@@ -1,3 +1,4 @@
+import warnings
 from bisect import bisect_left
 
 import jax.numpy as jnp
@@ -5,6 +6,8 @@ import numpy as np
 
 from os import walk
 from pathlib import Path
+
+from ... import dispersion
 
 
 class ModelingJax:
@@ -666,21 +669,67 @@ class ModelingJax:
         return ucell_info_list
 
 
+def warn_if_out_of_range(material, mat_data, wl):
+    """Warn when wl falls outside the tabulated range, where interp clamps to the endpoints.
+
+    The clamp is silent, so a wavelength given in the wrong unit returns a plausible-looking
+    number instead of failing. Every table under nk_data is in metres, so a warning here almost
+    always means the wavelength was passed in nanometres or micrometres.
+    """
+    try:
+        wl_min, wl_max = float(np.min(wl)), float(np.max(wl))
+    except Exception:  # traced values under jit have no range to inspect here
+        return
+
+    if isinstance(mat_data, dict):
+        low, high = mat_data['wavelength_range']
+    else:
+        low, high = float(np.min(mat_data[:, 0])), float(np.max(mat_data[:, 0]))
+    if wl_min < low or wl_max > high:
+        warnings.warn(
+            f'{material}: wavelength {wl_min:.4e} - {wl_max:.4e} falls outside the tabulated '
+            f'range {low:.4e} - {high:.4e}; values are clamped to the endpoints. '
+            f'Check that the wavelength unit matches the table.',
+            stacklevel=3)
+
+
 def find_nk_index(material, mat_table, wl):
-    if material[-6:] == '__real':
+    if isinstance(material, dict):
+        mat_data = material
+        material_name = mat_data.get('formula', 'dynamic material')
+        n_only = False
+    elif material[-6:] == '__real':
         material = material[:-6]
         n_only = True
+        mat_data = mat_table[material.upper()]
+        material_name = material
     else:
         n_only = False
+        mat_data = mat_table[material.upper()]
+        material_name = material
+    warn_if_out_of_range(material_name, mat_data, wl)
 
-    mat_data = mat_table[material.upper()]
+    # Fitted materials are stored as coefficients rather than data rows, so evaluate rather than
+    # interpolate. A Sellmeier fit gives n alone; the oscillator models give n + ik, since
+    # absorption is the point of them.
+    if isinstance(mat_data, dict):
+        n_index = dispersion.evaluate(mat_data, wl, jnp)
+        if n_only:
+            return jnp.real(n_index)
+        # Returned on the ordinary optics convention (n + ik). meent solves on n - ik, so
+        # conjugate -- the same flip the tabulated branch below applies to its k column.
+        return jnp.conj(n_index + 0j)
+
     n_index = jnp.interp(wl, mat_data[:, 0], mat_data[:, 1])
 
     if n_only:
         return n_index
 
     k_index = jnp.interp(wl, mat_data[:, 0], mat_data[:, 2])
-    nk = (n_index + 1j * k_index)
+    # meent solves on the negative sign convention, so absorption is -ik: tables store k as the
+    # positive extinction coefficient, and returning +ik instead turns every lossy material into
+    # a gain medium (transmission through a slab grows with thickness rather than decaying).
+    nk = (n_index - 1j * k_index)
 
     return nk
 
@@ -704,6 +753,10 @@ def read_material_table(nk_path=None, type_complex=jnp.complex128):
         name_list.extend(filenames)
     for path, name in zip(full_path_list, name_list):
         if name[-3:] == 'txt':
+            spec = dispersion.parse_header(path)
+            if spec is not None:
+                mat_table[name[:-4].upper()] = spec
+                continue
             data = np.loadtxt(path, skiprows=1)
             mat_table[name[:-4].upper()] = type_complex(data)
 

@@ -105,7 +105,7 @@ def modelling_ref_index(wavelength, rcwa_options, modeling_options, params_name,
                     instructions_new.append(params_value[params_name[inst]])
                 elif inst in modeling_options:
                     if inst[-7:] == 'n_index' and type(modeling_options[inst]) is str:
-                        a = find_nk_index(modeling_options[inst], mat_table, wavelength).conj()  # TODO: confirm conj.
+                        a = find_nk_index(modeling_options[inst], mat_table, wavelength)
                     else:
                         a = modeling_options[inst]
                     instructions_new.append(a)
@@ -115,7 +115,7 @@ def modelling_ref_index(wavelength, rcwa_options, modeling_options, params_name,
 
         a = modeling_options[f'l{i+1}_n_base']
         if type(a) is str:
-            a = find_nk_index(a, mat_table, wavelength).conj()
+            a = find_nk_index(a, mat_table, wavelength)
 
         ucell.append([a, obj_list_per_layer])
     mee.ucell = ucell

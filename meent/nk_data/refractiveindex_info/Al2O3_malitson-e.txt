@@ -1,0 +1,11 @@
+Wavelength(m)	n	k
+# material: Al2O3
+# source: 1) I. H. Malitson and M. J. Dodge. Refractive index and birefringence of synthetic sapphire. J. Opt. Soc. Am. 62, 1405 (1972) 2) M. J. Dodge. "Refractive index" in Handbook of Laser Science and Technology, Volume IV, Optical Materials: Part 2, CRC Press, Boca Raton, 1986, p. 30 * Ref. 1 is a talk abstract in a conference program; Ref. 2 provides a dispersion formula
+# conditions: Synthetic sapphire, Extraordinary ray (e), 20 degC
+# upstream: polyanskiy/refractiveindex.info-database@ff11b58 main/Al2O3/nk/Malitson-e.yml
+# type: formula 1
+# coefficients: 0.0 1.5039759 7.40288e-08 0.55069141 1.216529e-07 6.5927379 2.0072248e-05
+# coefficient_unit: m
+# note: dispersion fit; k is 0 across the range it covers
+# range: 2.0000e-07 - 5.0000e-06 m
+# converted: 2026-07-31 by tools/convert_refractiveindex_info.py (wavelength um -> m)
