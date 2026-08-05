@@ -209,9 +209,15 @@ class _BaseRCWA:
         if type(period) in (int, float):
             self._period = jnp.array([period, period], dtype=self.type_float)
         elif type(period) in (list, tuple, np.ndarray) or isinstance(period, jnp.ndarray):
-            if len(period) == 1:
+            # Support for JAX Tracers (e.g., from jax.grad)
+            # Scalar tracers have ndim=0 and do not support len(), which would raise TypeError.
+            if hasattr(period, 'ndim') and period.ndim == 0:
+                self._period = jnp.array([period, period], dtype=self.type_float)
+            elif len(period) == 1:
                 period = [period[0], period[0]]
-            self._period = jnp.array(period, dtype=self.type_float)
+                self._period = jnp.array(period, dtype=self.type_float)
+            else:
+                self._period = jnp.array(period, dtype=self.type_float)
         elif type(period) is jax.interpreters.partial_eval.DynamicJaxprTracer:
             print('init period')
             jax.debug.print('init period')
