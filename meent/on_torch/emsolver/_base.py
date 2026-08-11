@@ -292,7 +292,7 @@ class _BaseRCWA:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            result, T1 = transfer_1d_4(self.pol, ff_x, F, G, T, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
+            result, T1 = transfer_1d_4(self.pol, ff_x, F, G, T, kx, kz_top, kz_bot, self.theta, self.n_top, self.n_bot,
                                        device=self.device, type_complex=self.type_complex, use_pinv=self.use_pinv)
             self.T1 = T1
 

@@ -3,6 +3,23 @@ import torch
 from .primitives import Eig, meeinv
 
 
+def branch_sign(value):
+    """+1 or -1 from the sign of Re(value), with sign(0) folded to +1.
+
+    Used to orient each diffracted order's local transverse (s/p) basis, which reverses
+    when an order crosses from +kx to -kx. The factor carries orientation only, so it must
+    be exactly +-1. ``torch.sign`` is wrong for that: it returns 0 at 0, which multiplies
+    an order's amplitude by zero instead of flipping its sign. kx_m = 0 is not a
+    degenerate order - it is the one diffracted straight along z, where kz is largest of
+    all - so torch.sign silently deleted the most strongly propagating order whenever
+    n_top*sin(theta)*cos(phi) landed exactly on -m*wavelength/period, and R + T stopped
+    summing to one. Every other input is unaffected: away from exactly 0 this reproduces
+    torch.sign bit for bit.
+    """
+    ones = torch.ones_like(value.real)
+    return torch.where(value.real < 0, -ones, ones)
+
+
 def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_complex=torch.complex128):
     ff_x = len(kx)
 
@@ -91,7 +108,7 @@ def transfer_1d_3(k0, W, V, q, d, F, G, T, device=torch.device('cpu'), type_comp
     return X, F, G, T, A_i, B
 
 
-def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, device=torch.device('cpu'),
+def transfer_1d_4(pol, ff_x, F, G, T, kx, kz_top, kz_bot, theta, n_top, n_bot, device=torch.device('cpu'),
                   type_complex=torch.complex128, use_pinv=False):
 
     Kz_top = torch.diag(kz_top)
@@ -112,8 +129,21 @@ def transfer_1d_4(pol, ff_x, F, G, T, kz_top, kz_bot, theta, n_top, n_bot, devic
         raise ValueError
 
     # T1 = np.linalg.pinv(G + 1j * YZ_I @ F) @ (1j * YZ_I @ delta_i0 + inc_term)
-    R = (F @ T1 - delta_i0).reshape((1, ff_x))
-    T = (T @ T1).reshape((1, ff_x))
+    # Conjugated to put this path on the same time convention as the conical and 2D solvers.
+    # Without it a 1D grating at phi = 0 and the same grating at phi = 1e-7 -- physically the
+    # same problem, but routed to different solvers -- returned coefficients that differed by
+    # a complex conjugate. The efficiencies were identical either way, so nothing caught it.
+    # R_s/R_p/T_s/T_p are public order-local modal amplitudes, not fixed-Cartesian field
+    # components.  The local transverse basis reverses when an outgoing order crosses from
+    # +kx to -kx.  Use the incident branch as the reference, exactly as the conical/2D
+    # paths do, so the pure-1D solver exposes the same coefficient definition.
+    #
+    # See branch_sign for why torch.sign cannot be used here. The incident order sits at
+    # index ff_x // 2, matching delta_i0 above; reading its kx directly rather than
+    # sign(theta) also drops the old dependence on theta being perturbed away from zero.
+    phase_conv = branch_sign(kx) * branch_sign(kx[ff_x // 2])
+    R = (F @ T1 - delta_i0).reshape((1, ff_x)).conj() * phase_conv
+    T = (T @ T1).reshape((1, ff_x)).conj() * phase_conv
 
     # de_ri = np.real(np.real(R * np.conj(R) * kz_top / (n_top * np.cos(theta))))
     # de_ri = np.real(R * np.conj(R) * np.real(kz_top / (n_top * np.cos(theta))))
@@ -386,16 +416,27 @@ def transfer_1d_conical_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, p
     final_A_inv = meeinv(final_A, use_pinv)
     final_RT = final_A_inv @ final_B
 
-    R_s = (final_RT[:ff_xy, :].reshape((ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
-    R_p = ((-1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
+    # Reflected and transmitted amplitudes have to carry the SAME phase convention.
+    # The conjugation and the sign(kx) branch correction used to sit on R only, which left
+    # R on the analytic (Fresnel) convention and T on its conjugate. That is invisible in the
+    # efficiencies -- |conj(z)| = |z|, and sign(kx) is +-1 -- so every efficiency-based check
+    # passed while the coefficients disagreed with RETICOLO and with the Fresnel solution of a
+    # plain slab. Anything that consumes R and T together (near field, S-matrix, coherent
+    # stacking) was reading one of them with a flipped imaginary part.
+    # See branch_sign: torch.sign returns 0 at 0, which would delete the order diffracted
+    # straight along z instead of orienting it. The incident order sits at index ff_x // 2.
+    phase_conv = branch_sign(kx) * branch_sign(kx[ff_x // 2])
+
+    R_s = (final_RT[:ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
+    R_p = ((1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
 
     big_T1 = final_RT[2 * ff_xy:, :]
     # big_T_tetm = big_T.clone().detach()
     big_T_tetm = big_T.clone()
     big_T = big_T @ big_T1
 
-    T_s = big_T[:ff_xy, :].reshape((ff_y, ff_x))
-    T_p = (-1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))
+    T_s = (big_T[:ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
+    T_p = ((1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))).conj() * phase_conv
 
     de_ri_s = (R_s * R_s.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
     de_ri_p = (R_p * R_p.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
@@ -434,8 +475,8 @@ def transfer_1d_conical_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, p
     final_B_tetm = torch.hstack([final_B_te, final_B_tm])
     final_RT_tetm = final_A_inv @ final_B_tetm
 
-    R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
-    R_p_tetm = ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
+    R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
+    R_p_tetm = ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
 
     big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
     big_T_tetm = big_T_tetm @ big_T1_tetm
@@ -662,16 +703,21 @@ def transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, thet
     final_A_inv = meeinv(final_A, use_pinv)
     final_RT = final_A_inv @ final_B
 
-    R_s = final_RT[:ff_xy, :].reshape((ff_y, ff_x)).conj()*torch.sign(kx.real)*torch.sign(theta.real)
-    R_p = ((-1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
+    # Same convention fix as transfer_1d_conical_4 -- see the comment there.
+    # See branch_sign: torch.sign returns 0 at 0, which would delete the order diffracted
+    # straight along z instead of orienting it. The incident order sits at index ff_x // 2.
+    phase_conv = branch_sign(kx) * branch_sign(kx[ff_x // 2])
+
+    R_s = (final_RT[:ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
+    R_p = ((1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
 
     big_T1 = final_RT[2 * ff_xy:, :]
     # big_T_tetm = big_T.clone().detach()
     big_T_tetm = big_T.clone()
     big_T = big_T @ big_T1
 
-    T_s = big_T[:ff_xy, :].reshape((ff_y, ff_x))
-    T_p = (-1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))
+    T_s = (big_T[:ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
+    T_p = ((1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))).conj() * phase_conv
 
     de_ri_s = (R_s * R_s.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
     de_ri_p = (R_p * R_p.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
@@ -710,8 +756,8 @@ def transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, thet
     final_B_tetm = torch.hstack([final_B_te, final_B_tm])
     final_RT_tetm = final_A_inv @ final_B_tetm
 
-    R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
-    R_p_tetm = ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj()*torch.sign(kx.real)*torch.sign(theta.real)
+    R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
+    R_p_tetm = ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
 
     big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
     big_T_tetm = big_T_tetm @ big_T1_tetm

@@ -373,8 +373,8 @@ def field_plot(field_cell, pol=0, plot_indices=(1, 1, 1, 1, 1, 1), y_slice=0, z_
         print('To use cal_field(), please install matplotlib')
         raise e
 
-    if field_cell.shape[-1] == 6:  # 2D grating
-        title = ['2D Ex', '2D Ey', '2D Ez', '2D Hx', '2D Hy', '2D Hz', ]
+    if field_cell.shape[-1] == 6:  # standardized Cartesian public field
+        title = ['Ex', 'Ey', 'Ez', 'Hx', 'Hy', 'Hz', ]
     else:  # 1D grating
         if pol == 0:  # TE
             title = ['1D Ey', '1D Hx', '1D Hz', ]
