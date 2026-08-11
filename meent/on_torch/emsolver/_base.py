@@ -10,6 +10,29 @@ from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, trans
                               transfer_2d_1, transfer_2d_2, transfer_2d_3, transfer_2d_4)
 
 
+def _to_tensor(value, device, dtype):
+    """``value`` as a tensor, keeping its autograd graph if it already carries one.
+
+    ``torch.tensor()`` copies the values out of a tensor and returns a new leaf, so any
+    setter written that way silently detaches a parameter the caller meant to optimize.
+    The failure is quiet in the case that matters: with a differentiable ``ucell`` the loss
+    still has a ``grad_fn`` through the cell, so ``backward()`` succeeds and only this
+    parameter's ``.grad`` stays ``None`` - and ``torch.optim`` skips a parameter whose grad
+    is ``None``, so it never moves while the run looks healthy.
+
+    A list is handled too, because a per-layer quantity is naturally written as
+    ``[t, 200e-9]``. Values that carry no graph take the plain ``torch.tensor`` path.
+    """
+    if isinstance(value, torch.Tensor):
+        return value.to(device=device, dtype=dtype)
+    if isinstance(value, (list, tuple)) and any(isinstance(v, torch.Tensor) for v in value):
+        return torch.stack([v.to(device=device, dtype=dtype).reshape(())
+                            if isinstance(v, torch.Tensor)
+                            else torch.tensor(v, device=device, dtype=dtype)
+                            for v in value])
+    return torch.tensor(value, device=device, dtype=dtype)
+
+
 class _BaseRCWA:
     def __init__(self, n_top=1., n_bot=1., theta=0., phi=None, psi=None, pol=0., fto=(0, 0),
                  period=(1., 1.), wavelength=1.,
@@ -110,7 +133,7 @@ class _BaseRCWA:
         if theta is None:
             self._theta = None
         else:
-            self._theta = torch.tensor(theta, device=self.device, dtype=self.type_complex)
+            self._theta = _to_tensor(theta, self.device, self.type_complex)
             self._theta = torch.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
 
     @property
@@ -122,7 +145,7 @@ class _BaseRCWA:
         if phi is None:
             self._phi = None
         else:
-            self._phi = torch.tensor(phi, device=self.device, dtype=self.type_complex)
+            self._phi = _to_tensor(phi, self.device, self.type_complex)
 
     @property
     def psi(self):
@@ -131,9 +154,10 @@ class _BaseRCWA:
     @psi.setter
     def psi(self, psi):
         if psi is not None:
-            self._psi = torch.tensor(psi, dtype=self.type_complex)
-            pol = -(2 * psi / torch.pi - 1)
-            self._pol = pol
+            self._psi = _to_tensor(psi, self.device, self.type_complex)
+            # Derived from the stored tensor, not the raw argument, so pol follows psi onto
+            # the same device and dtype and keeps the graph with it.
+            self._pol = -(2 * self._psi / torch.pi - 1)
 
     @property
     def pol(self):
@@ -195,9 +219,12 @@ class _BaseRCWA:
         if type(period) in (int, float):
             self._period = torch.tensor([period, period], device=self.device, dtype=self.type_float)
         elif type(period) in (list, tuple, np.ndarray) or isinstance(period, torch.Tensor):
-            if len(period) == 1:
-                period = [period[0], period[0]]
-            self._period = torch.tensor(period, device=self.device, dtype=self.type_float)
+            # A single period means a 1D grating and is duplicated onto both axes. Do that
+            # by concatenating the stored tensor rather than by rebuilding a list, so a
+            # differentiable period reaches both axes through the same graph.
+            self._period = _to_tensor(period, self.device, self.type_float)
+            if len(self._period) == 1:
+                self._period = torch.cat([self._period, self._period])
         else:
             raise ValueError
 
@@ -209,10 +236,8 @@ class _BaseRCWA:
     def thickness(self, thickness):
         if type(thickness) in (int, float):
             self._thickness = torch.tensor([thickness], device=self.device, dtype=self.type_float)
-        elif type(thickness) in (list, tuple, np.ndarray):
-            self._thickness = torch.tensor(thickness, device=self.device, dtype=self.type_float)
-        elif type(thickness) is torch.Tensor:
-            self._thickness = thickness.to(device=self.device, dtype=self.type_float)
+        elif type(thickness) in (list, tuple, np.ndarray) or isinstance(thickness, torch.Tensor):
+            self._thickness = _to_tensor(thickness, self.device, self.type_float)
         else:
             raise ValueError
 
