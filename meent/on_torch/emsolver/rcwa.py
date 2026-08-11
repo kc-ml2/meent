@@ -224,6 +224,7 @@ class RCWATorch(_BaseRCWA):
         return result
 
     def calculate_field(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False)):
+        """Return Ex, Ey, Ez, Hx, Hy, Hz in RETICOLO's field convention."""
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
 
         if self._grating_type_assigned == 0:
@@ -240,9 +241,32 @@ class RCWATorch(_BaseRCWA):
                                        res_x=res_x, res_y=res_y, res_z=res_z, set_field_input=set_field_input,
                                        device=self.device, type_complex=self.type_complex)
 
+        # The scalar 1D solver historically returns only [Ey,Hx,Hz] for TE and
+        # [Hy,Ex,Ez] for TM. Expand it here so every public field path has the same
+        # Cartesian component axis before applying the shared convention.
+        if field_cell.shape[-1] == 3:
+            zero = torch.zeros_like(field_cell[..., 0])
+            if self.pol == 0:
+                field_cell = torch.stack((zero, field_cell[..., 0], zero,
+                                          field_cell[..., 1], zero, field_cell[..., 2]), dim=-1)
+            else:
+                field_cell = torch.stack((field_cell[..., 1], zero, field_cell[..., 2],
+                                          zero, field_cell[..., 0], zero), dim=-1)
+
+        # Express Meent in RETICOLO's raw time/component convention. This transform is
+        # part of Meent's public output contract, not a validation-side correction.
+        signs = field_cell.new_tensor((-1, 1, -1, 1, -1, 1))
+        field_cell = field_cell.conj() * signs
+
+        # The scalar 1D TM incident vector has the opposite overall basis sign. Fix that
+        # deterministic convention here; no fitted phase is involved.
+        if self._grating_type_assigned == 0 and self.pol == 1:
+            field_cell = -field_cell
+
         return field_cell
 
-    def conv_solve_field(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False), **kwargs):
+    def conv_solve_field(self, res_x=20, res_y=20, res_z=20,
+                         set_field_input=(True, False, False), **kwargs):
         [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
 
         res = self.conv_solve()
