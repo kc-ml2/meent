@@ -2,7 +2,7 @@
 *.egg-info
 .vscode
 .DS_Store
-__pycache__\
+__pycache__/
 venv/
 build/
 dist/
@@ -18,3 +18,9 @@ venv
 *__pycache__*
 *.json
 *.csv
+prv1.mat
+
+# Generated single-wavelength RETICOLO/Meent field-comparison artifacts.
+validation/simulation/**/field_wavelength_m.txt
+validation/simulation/**/*_field_*m.mat
+validation/simulation/**/field_*m_*.png

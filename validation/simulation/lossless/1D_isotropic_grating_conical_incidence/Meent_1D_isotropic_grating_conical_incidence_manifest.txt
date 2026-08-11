@@ -1,0 +1,50 @@
+{
+  "dirs": [
+    "r",
+    "t"
+  ],
+  "fto": [
+    100
+  ],
+  "grating_center": 5e-07,
+  "grating_dx": 5e-07,
+  "grating_dy": 4e-07,
+  "grating_width": 5e-07,
+  "k_parallel": null,
+  "methods": [
+    "discrete",
+    "continuous",
+    "vector"
+  ],
+  "n_bg": 1.0,
+  "n_bot": 1.0,
+  "n_grating": 2.0,
+  "n_slab": 2.0,
+  "n_top": 1.0,
+  "name": "1D_isotropic_grating_conical_incidence",
+  "order_window": 6,
+  "period": [
+    1e-06
+  ],
+  "phi_deg": 30.0,
+  "pols": [
+    0,
+    1
+  ],
+  "quick": false,
+  "res_xy": [
+    100,
+    80
+  ],
+  "theta_deg": 30.0,
+  "thickness": [
+    5e-07,
+    5e-07
+  ],
+  "type_complex": "torch.complex128",
+  "wavelength_m": [
+    5.005e-07,
+    7.005e-07,
+    1e-09
+  ]
+}
