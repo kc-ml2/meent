@@ -532,27 +532,25 @@ def transfer_1d_conical_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, p
     final_B_tetm = torch.hstack([final_B_te, final_B_tm])
     final_RT_tetm = final_A_inv @ final_B_tetm
 
-    # NOT on the same convention as the psi block above, in three ways: the p terms carry
-    # -1j where that block carries +1j, and T_s_tetm / T_p_tetm have neither the .conj() nor
-    # the phase_conv that T_s / T_p get. So res_te_inc and res_tm_inc are comparable with each
-    # other but not, amplitude for amplitude, with res.
+    # The same four conventions as the psi block above, term for term: +1j on the p
+    # normalisation, P_TM_SIGN, the .conj() for the time convention, and phase_conv for the
+    # per-order basis orientation. They have to match: at psi = pi/2 the psi block IS TE
+    # incidence and at psi = 0 it IS TM incidence, so res and res_te_inc / res_tm_inc are then
+    # the same problem solved twice and must return the same complex numbers.
     #
-    # Measured on an asymmetric 2D cell at psi = pi/2, where res *is* TE incidence and the two
-    # should coincide exactly: R_s agrees to 3e-18, while R_p, T_s and T_p do not agree at all.
-    # Every de_* agrees to ~1e-17, because squaring discards precisely the sign, the conjugate
-    # and the +-1 that differ - which is why this survives an efficiency-only check.
-    #
-    # Left as it is rather than quietly aligned: which convention is the intended one is the
-    # same open question as the rest of the export path, and changing it moves published
-    # numbers.
+    # This block used to carry -1j, and T_s / T_p here had neither the .conj() nor the
+    # phase_conv. Measured at psi = pi/2 before the change: R_s agreed to 3e-18 while
+    # R_p = -res, T_s = conj(res)*phase_conv and T_p = -conj(res)*phase_conv. Every de_* agreed
+    # throughout - squaring discards exactly the sign, the conjugate and the +-1 that differed -
+    # so no efficiency moves as a result of this, only the amplitudes.
     R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
-    R_p_tetm = P_TM_SIGN * ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
+    R_p_tetm = P_TM_SIGN * ((1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
 
     big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
     big_T_tetm = big_T_tetm @ big_T1_tetm
 
-    T_s_tetm = big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    T_p_tetm = P_TM_SIGN * (-1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
+    T_s_tetm = (big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
+    T_p_tetm = P_TM_SIGN * ((1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
 
     de_ri_s_tetm = (R_s_tetm * R_s_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
     de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
@@ -813,27 +811,25 @@ def transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, thet
     final_B_tetm = torch.hstack([final_B_te, final_B_tm])
     final_RT_tetm = final_A_inv @ final_B_tetm
 
-    # NOT on the same convention as the psi block above, in three ways: the p terms carry
-    # -1j where that block carries +1j, and T_s_tetm / T_p_tetm have neither the .conj() nor
-    # the phase_conv that T_s / T_p get. So res_te_inc and res_tm_inc are comparable with each
-    # other but not, amplitude for amplitude, with res.
+    # The same four conventions as the psi block above, term for term: +1j on the p
+    # normalisation, P_TM_SIGN, the .conj() for the time convention, and phase_conv for the
+    # per-order basis orientation. They have to match: at psi = pi/2 the psi block IS TE
+    # incidence and at psi = 0 it IS TM incidence, so res and res_te_inc / res_tm_inc are then
+    # the same problem solved twice and must return the same complex numbers.
     #
-    # Measured on an asymmetric 2D cell at psi = pi/2, where res *is* TE incidence and the two
-    # should coincide exactly: R_s agrees to 3e-18, while R_p, T_s and T_p do not agree at all.
-    # Every de_* agrees to ~1e-17, because squaring discards precisely the sign, the conjugate
-    # and the +-1 that differ - which is why this survives an efficiency-only check.
-    #
-    # Left as it is rather than quietly aligned: which convention is the intended one is the
-    # same open question as the rest of the export path, and changing it moves published
-    # numbers.
+    # This block used to carry -1j, and T_s / T_p here had neither the .conj() nor the
+    # phase_conv. Measured at psi = pi/2 before the change: R_s agreed to 3e-18 while
+    # R_p = -res, T_s = conj(res)*phase_conv and T_p = -conj(res)*phase_conv. Every de_* agreed
+    # throughout - squaring discards exactly the sign, the conjugate and the +-1 that differed -
+    # so no efficiency moves as a result of this, only the amplitudes.
     R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
-    R_p_tetm = P_TM_SIGN * ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
+    R_p_tetm = P_TM_SIGN * ((1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
 
     big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
     big_T_tetm = big_T_tetm @ big_T1_tetm
 
-    T_s_tetm = big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    T_p_tetm = P_TM_SIGN * (-1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
+    T_s_tetm = (big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
+    T_p_tetm = P_TM_SIGN * ((1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
 
     de_ri_s_tetm = (R_s_tetm * R_s_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
     de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
