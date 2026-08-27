@@ -8,6 +8,16 @@ from .field_distribution import field_dist_1d, field_dist_1d_conical, field_dist
 
 
 class ResultTorch:
+    """What a solve returns: up to three sub-results, one per incident polarization.
+
+    The general path solves TE and TM incidence anyway - the boundary condition is built for
+    both and solved in one linear system - so both are handed back rather than discarded.
+    `res` is the combination the user actually asked for via `psi`. On the fast 1D TE/TM path
+    only `res` exists, since that path solves one polarization by construction.
+
+    de_ri / de_ti are forwarded from `res` so the common case reads off this object directly.
+    """
+
     def __init__(self, res=None, res_te_inc=None, res_tm_inc=None):
 
         self.res = res
@@ -30,6 +40,14 @@ class ResultTorch:
 
 
 class ResultSubTorch:
+    """One incidence's answer, per diffraction order.
+
+    R / T are complex amplitudes and keep sign and phase; de_ri / de_ti are the efficiencies,
+    |amplitude|^2 weighted by the order's real kz. The efficiencies are what sums to 1 on a
+    lossless structure, and the amplitudes are what a convention error shows up in - squaring
+    discards exactly the sign and phase such an error lives in.
+    """
+
     def __init__(self, R_s, R_p, T_s, T_p, de_ri, de_ri_s, de_ri_p, de_ti, de_ti_s, de_ti_p):
         self.R_s = R_s
         self.R_p = R_p
@@ -92,10 +110,14 @@ class RCWATorch(_BaseRCWA):
 
     @ucell.setter
     def ucell(self, ucell):
+        """Accepts either modeling style, and the type of what is assigned decides which.
 
+        An array is a raster (modeling_type 0); a list is the vector modeler's layer
+        description (modeling_type 1). Nothing else selects between them - there is no flag.
+        """
         if isinstance(ucell, (torch.Tensor, np.ndarray)):
             self._modeling_type_assigned = 0
-            
+
             if isinstance(ucell, np.ndarray):
                 ucell = torch.from_numpy(ucell)
 
@@ -107,6 +129,8 @@ class RCWATorch(_BaseRCWA):
             else:
                 raise ValueError("ucell must be 3D (Isotropic) or 4D (Anisotropic)")
 
+            # A real ucell stays real: a lossless structure costs half the memory and does not
+            # need the imaginary half. It is promoted to complex later, where it has to be.
             if ucell.dtype in (torch.complex128, torch.complex64):
                 dtype = self.type_complex
             else:
@@ -127,24 +151,41 @@ class RCWATorch(_BaseRCWA):
 
 
     def _assign_grating_type(self):
+        """Route the problem to the cheapest solver that can still represent it.
+
+            0  scalar 1D    TE and TM decouple entirely; one scalar system
+            1  1D conical   1D structure, but the incidence is out of plane, so they couple
+            2  2D           the general case
+
+        Speed is the only motive - 2 is correct for every case here. Note this is re-derived
+        at each solve rather than cached: `ucell`, `phi` and `pol` can all be reassigned after
+        construction, which every example does, and any of them can change the answer.
+        """
         if self.modeling_type_assigned == 0:
+            # Anisotropy that is only nominal - a 4D ucell whose three components agree
+            # everywhere - is treated as isotropic, so it keeps access to the cheaper routes.
             if self.ucell.dim() == 4:
                 nx, ny, nz = self.ucell[..., 0], self.ucell[..., 1], self.ucell[..., 2]
                 self.is_aniso = not (torch.allclose(nx, ny) and torch.allclose(ny, nz))
             else:
                 self.is_aniso = False
 
-            if self.ucell.shape[1] == 1:
+            if self.ucell.shape[1] == 1:  # one row in y: the structure is 1D
+                # phi=0 and phi=None are the same physical problem, and both take the scalar
+                # path. The numpy and jax backends differ here - there phi=0 forces conical.
                 phi_is_zero_or_none = self.phi is None or self.phi == 0
                 if (self.pol in (0, 1)) and phi_is_zero_or_none and (self.fto[1] == 0):
                     self._grating_type_assigned = 0
                 elif self.is_aniso:
+                    # Off-diagonal coupling breaks the conical form's assumptions, so a
+                    # genuinely anisotropic 1D layer still goes the 2D route.
                     self._grating_type_assigned = 2
                 else:
                     self._grating_type_assigned = 1
             else:
                 self._grating_type_assigned = 2
         elif self.modeling_type_assigned == 1:
+            # The vector modeler always produces a 2D description, even for a 1D structure.
             self._grating_type_assigned = 2
 
     @property
@@ -175,6 +216,11 @@ class RCWATorch(_BaseRCWA):
         return result
 
     def conv_solve(self, **kwargs):
+        """Build the convolution matrices for the current ucell, then solve. The main entry point.
+
+        kwargs are assigned onto self first, so a sweep or an optimization step can change one
+        parameter and re-solve in a single call.
+        """
         [setattr(self, k, v) for k, v in kwargs.items()]
 
         if self.modeling_type_assigned == 0:
@@ -221,6 +267,11 @@ class RCWATorch(_BaseRCWA):
                                        res_x=res_x, res_y=res_y, res_z=res_z, set_field_input=set_field_input,
                                        device=self.device, type_complex=self.type_complex)
 
+        # The scalar 1D path solves only the three components that are non-zero for its
+        # polarization; every caller downstream expects all six in (Ex, Ey, Ez, Hx, Hy, Hz)
+        # order. Widen it here, with explicit zeros in the slots that path cannot populate, so
+        # the return shape does not depend on which solver ran. TE carries (Ey, Hx, Hz) and TM
+        # carries (Hy, Ex, Ez) - hence the two different scatter patterns.
         if field_cell.shape[-1] == 3:
             zero = torch.zeros_like(field_cell[..., 0])
             if self.pol == 0:

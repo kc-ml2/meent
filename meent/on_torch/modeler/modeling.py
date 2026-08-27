@@ -1,3 +1,20 @@
+"""Building a ucell, and looking up the refractive indices that fill it.
+
+Two ways to describe a layer, and this file serves both.
+
+The raster way is an array the caller builds itself; the only help needed is turning material
+names into indices, which `put_refractive_index_in_ucell` does.
+
+The vector way describes a layer as shapes - `rectangle`, `ellipse` - on a background. Those
+are collected per layer, then `vector_per_layer_numeric` turns them into the (values, x edges,
+y edges) triple that `cfs2d` consumes directly, with no raster in between. That is the point of
+it: a shape's true edge stays a true edge instead of being rounded onto a grid, and the edges
+stay differentiable, so a boundary position can be optimized.
+
+Index convention: meent solves on n - ik, and every lookup here returns that. The tables store
+the ordinary optics n + ik, so `find_nk_index` conjugates on the way out.
+"""
+
 import warnings
 from bisect import bisect, bisect_left
 
@@ -19,6 +36,12 @@ def _is_vector_index(n_index):
 
 
 def _to_index_vector(n_index, dtype):
+    """Normalise a refractive index to a 3-vector (nx, ny, nz).
+
+    A scalar is broadcast to all three, which is what isotropic means. Elements are converted
+    one at a time and stacked rather than passed to `torch.tensor`, so a differentiable index
+    keeps its graph - the same reason `_to_tensor` in _base.py is written the way it is.
+    """
     if isinstance(n_index, (list, tuple)):
         comps = [c.reshape(()).type(dtype) if torch.is_tensor(c) else torch.tensor(c, dtype=dtype)
                  for c in n_index]
@@ -31,6 +54,13 @@ def _to_index_vector(n_index, dtype):
 
 
 class Compress(torch.autograd.Function):
+    """Placeholder. Every method is a no-op and nothing calls it.
+
+    Left as a marker for a custom autograd path around the compression step, which is not
+    needed as things stand: the compression is written in ordinary tensor operations and
+    torch differentiates through it already.
+    """
+
     @staticmethod
     def setup_context(ctx, inputs, output):
         pass
@@ -452,6 +482,12 @@ class ModelingTorch:
         return ucell_layer, x_list, y_list
 
     def draw(self, layer_info_list):
+        """Convert every layer's shape list into its (values, x edges, y edges) triple.
+
+        `film_layer` marks layers that came out as a single cell - uniform, with no internal
+        boundary. Those have no structure to diffract from, and knowing so lets the eigenvalue
+        problem for them be skipped.
+        """
         ucell_info_list = []
         self.film_layer = torch.zeros(len(layer_info_list))
 
@@ -464,6 +500,12 @@ class ModelingTorch:
         return ucell_info_list
 
     def put_refractive_index_in_ucell(self, ucell, mat_list, wl, device=torch.device('cpu'), type_complex=torch.complex128):
+        """Replace material indices in a raster ucell with refractive indices at wavelength wl.
+
+        The incoming ucell holds integers indexing into `mat_list`, so one array describes the
+        structure at every wavelength and only this step is repeated across a sweep. An entry
+        may be a name to look up, a dispersion spec, or a number to use as it stands.
+        """
         res = torch.zeros(ucell.shape, device=device, dtype=type_complex)
         ucell_mask = torch.tensor(ucell, device=device, dtype=type_complex)
         for i_mat, material in enumerate(mat_list):
@@ -480,6 +522,12 @@ class ModelingTorch:
         return res
 
     def modeling_vector_instruction(self, instructions):
+        """Run a nested instruction list into layer descriptions.
+
+        Each entry is [background index, [[shape name, *args], ...]], and the shape name is
+        resolved against this object by `getattr` - so `rectangle` and `ellipse` are reachable
+        by name, and adding a method adds an instruction with no dispatch table to update.
+        """
 
 
         layer_info_list = []
@@ -516,6 +564,17 @@ def warn_if_out_of_range(material, mat_data, wl):
 
 
 def find_nk_index(material, mat_table, wl):
+    """Refractive index of one material at wavelength wl, as n - ik.
+
+    Three kinds of input: a dict is a dispersion spec evaluated on the spot, a name ending in
+    `__real` asks for n alone with absorption dropped, and any other name is looked up in the
+    table and interpolated.
+
+    Both routes end in a conjugation, explicit here and as the `-` on the k term below: the
+    tables and the formulas are quoted on the ordinary optics convention n + ik, and meent
+    solves on n - ik. Getting this backwards turns an absorbing material into a gain medium,
+    which does not raise anything - it returns more power than went in.
+    """
     if isinstance(material, dict):
         mat_data = material
         material_name = mat_data.get('formula', 'dynamic material')

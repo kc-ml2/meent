@@ -11,6 +11,17 @@ from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, trans
 
 
 def _to_tensor(value, device, dtype):
+    """Convert a solver input to a tensor without breaking the autograd graph.
+
+    `torch.tensor(x)` copies, and a copy is a leaf: it silently detaches whatever produced x.
+    That matters here because these setters are the boundary an optimization writes through -
+    a differentiable thickness assigned as `self.thickness = t` must stay connected to t.
+
+    The middle branch is the awkward case: a list holding tensors, e.g. `[t0, t1]` where each
+    thickness is optimized separately. `torch.tensor` on it raises outright, so the elements
+    are stacked instead, which does keep the graph. `reshape(())` is there because stack needs
+    every element to be a scalar and a 1-element tensor is not.
+    """
     if isinstance(value, torch.Tensor):
         return value.to(device=device, dtype=dtype)
     if isinstance(value, (list, tuple)) and any(isinstance(v, torch.Tensor) for v in value):
@@ -22,6 +33,18 @@ def _to_tensor(value, device, dtype):
 
 
 class _BaseRCWA:
+    """Solver state and the three solve routines, shared by every grating type.
+
+    Most of the file is property setters. They are not boilerplate: each one normalises a
+    parameter a user may hand over in several shapes (scalar, list, ndarray, tensor) into the
+    single form the solver assumes, on the right device and dtype, without detaching the
+    autograd graph. Doing that at assignment means the solve routines never have to check.
+
+    Two conventions worth knowing before reading them: `phi=None` means a genuinely in-plane
+    1D problem and is not the same as `phi=0` for routing purposes, and `pol` and `psi` are two
+    spellings of one quantity - setting either recomputes the other.
+    """
+
     def __init__(self, n_top=1., n_bot=1., theta=0., phi=None, psi=None, pol=0., fto=(0, 0),
                  period=(1., 1.), wavelength=1.,
                  thickness=(0.,), connecting_algo='TMM', perturbation=1E-10,
@@ -120,6 +143,10 @@ class _BaseRCWA:
             self._theta = None
         else:
             self._theta = _to_tensor(theta, self.device, self.type_complex)
+            # Exactly normal incidence is a removable singularity in the formulation - the
+            # plane of incidence is undefined and several matrices go singular together.
+            # Nudging theta off zero avoids branching on it everywhere downstream; the
+            # perturbation is far below any physically meaningful angle.
             self._theta = torch.where(self._theta == 0, self.perturbation, self._theta)
 
     @property
@@ -139,12 +166,17 @@ class _BaseRCWA:
 
     @psi.setter
     def psi(self, psi):
+        # psi and pol are one quantity in two spellings: psi is the polarization angle in
+        # radians, pol the fraction of TM, with psi = pi/2 <-> pol = 0 (TE) and psi = 0 <->
+        # pol = 1 (TM). Each setter writes the other's backing field directly - going through
+        # the other property would recurse.
         if psi is not None:
             self._psi = _to_tensor(psi, self.device, self.type_complex)
             self._pol = -(2 * self._psi / torch.pi - 1)
 
     @property
     def pol(self):
+        """Fraction of TM. 0 is pure TE, 1 is pure TM, in between is a mix."""
         return self._pol
 
     @pol.setter
@@ -162,7 +194,12 @@ class _BaseRCWA:
 
     @fto.setter
     def fto(self, fto):
+        """Fourier truncation order, always stored as [x, y].
 
+        A single number means a 1D problem, and the y order is then 0 - one retained order in
+        y, the zeroth. The long branch structure is only about accepting the several shapes a
+        caller might pass; the result is the same two-element list of ints in every case.
+        """
         if type(fto) in (list, tuple):
             if len(fto) == 1:
                 self._fto = [int(fto[0]), 0]
@@ -217,7 +254,13 @@ class _BaseRCWA:
             raise ValueError
 
     def get_kx_ky_vector(self, wavelength):
+        """In-plane wavevector of every retained order, normalised by k0.
 
+        The Floquet condition: the incident in-plane wavevector plus an integer multiple of the
+        reciprocal lattice vector. Normalised, that multiple is wavelength / period, so a
+        period much larger than the wavelength packs the orders close together - which is why
+        a large period needs a high fto to reach the same diffraction angles.
+        """
         fto_x_range = torch.arange(-self.fto[0], self.fto[0] + 1, device=self.device,
                                    dtype=self.type_float)
         fto_y_range = torch.arange(-self.fto[1], self.fto[1] + 1, device=self.device,
@@ -225,6 +268,8 @@ class _BaseRCWA:
 
         sin_theta = torch.sin(self.theta)
 
+        # phi=None is the in-plane 1D case; there is no azimuth, so 0 is the right value to
+        # compute with even though it is not the same as the user having asked for phi=0.
         if self.phi is None:
             phi = torch.tensor(0, device=self.device, dtype=self.type_complex)
         else:
@@ -242,6 +287,25 @@ class _BaseRCWA:
         return kx.resolve_conj(), ky.resolve_conj()
 
     def solve_1d(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+        """Scalar 1D: TE or TM, in-plane incidence. The cheapest of the three.
+
+        All three solve routines have the same shape, and it is the transfer-matrix recipe:
+
+            _1  the two half spaces, and the running product T
+            _2  eigenmodes of one layer                          } per layer,
+            _3  fold that layer into the running product         } bottom to top
+            _4  apply the incident field and read off R and T
+
+        The loop runs `[::-1]`, from the last layer to the first. ucell[0] is the layer light
+        reaches first, so the sweep starts at the substrate and works up toward it. That is a
+        loop order and not a coordinate - `calculate_field` re-orders the stored field axis to
+        run the way z does.
+
+        `layer_info_list` is filled in loop order and consumed in the same order by the field
+        routines, which is why they iterate it reversed.
+
+        The SMM branches raise: only TMM is wired up. See `scattering_method.py`.
+        """
         self.layer_info_list = []
         self.T1 = None
 
@@ -297,6 +361,17 @@ class _BaseRCWA:
         return result
 
     def solve_1d_conical(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+        """1D structure, out-of-plane incidence. Same recipe as `solve_1d`, twice the size.
+
+        Once the incidence is out of the plane of periodicity, TE and TM no longer decouple:
+        an incident s wave produces a p component on diffraction. So every block is doubled
+        and the two polarizations are solved together - hence the `big_` prefixes.
+
+        `varphi` is the local rotation that carries each order into its own s/p frame; it has
+        no counterpart in `solve_1d`, where there is only one plane and no rotation to make.
+
+        ff_y is 1 because the structure is uniform in y: exactly one order there, the zeroth.
+        """
         self.layer_info_list = []
         self.T1 = None
 
@@ -357,7 +432,17 @@ class _BaseRCWA:
         return result
 
     def solve_2d(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
+        """The general case: periodic in both directions, any incidence, any anisotropy.
 
+        Structurally identical to `solve_1d_conical` - the difference is that ff_y is no longer
+        1, so orders are retained in both directions and the matrices grow as (ff_x * ff_y)^2.
+        That product is what makes fto expensive in 2D: doubling it in both directions costs
+        sixteen times the memory and far more than that in eigendecomposition time.
+
+        Anisotropy needs no separate routine. epx / epy / epz arrive as independent convolution
+        matrices, so a diagonal permittivity tensor is already expressible; only the
+        off-diagonal terms would need more than this.
+        """
         self.layer_info_list = []
         self.T1 = None
 

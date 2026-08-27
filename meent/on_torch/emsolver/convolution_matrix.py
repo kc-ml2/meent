@@ -1,3 +1,22 @@
+"""Turning a layer's permittivity into the three convolution matrices the solver needs.
+
+One entry point per way of describing a layer:
+
+    to_conv_mat_vector             list of (values, x edges, y edges)  - modeling_type 1
+    to_conv_mat_raster_continuous  raster, exact Fourier integral      - fourier_type 1
+    to_conv_mat_raster_discrete    raster, FFT                         - fourier_type 0
+
+All three return the same triple, and each applies a different factorization rule, because the
+field component each one multiplies is continuous in a different direction:
+
+    epz_conv    (1, 1)   Ez against a discontinuity in neither direction
+    epy_conv    (1, 0)   inverse rule along y
+    epx_conv    (0, 1)   inverse rule along x
+
+epz is returned already inverted - the solver only ever uses it that way, and inverting once
+here beats inverting per layer per solve.
+"""
+
 import torch
 from .fourier_analysis import dfs2d, cfs2d
 from .primitives import meeinv
@@ -51,7 +70,12 @@ def cell_compression(cell, device=torch.device('cpu'), type_complex=torch.comple
 
 def fft_piecewise_constant(cell, x, y, fourier_order_x, fourier_order_y, device=torch.device('cpu'),
                            type_complex=torch.complex128):
+    """Superseded by `_cfs` / `cfs2d` in fourier_analysis.py, and called from nowhere.
 
+    Same idea as `_cfs` - deltas at the jumps, divided by i*2*pi*m - but written out for both
+    directions in one function and returning raw coefficients rather than a convolution matrix.
+    Kept only as the earlier, more literal statement of that derivation.
+    """
     period_x, period_y = x[-1], y[-1]
 
     cell_next_x = torch.roll(cell, -1, dims=1)
@@ -104,6 +128,9 @@ def to_conv_mat_vector(ucell_info_list, fto_x, fto_y, device=torch.device('cpu')
     for i, ucell_info in enumerate(ucell_info_list):
         ucell_layer, x_list, y_list = ucell_info
 
+        # The stored quantity is a refractive index; the solver works in permittivity, hence
+        # the square. An anisotropic layer carries (nx, ny, nz) in a trailing axis of 3, and
+        # only the diagonal of the permittivity tensor is representable this way.
         if ucell_layer.ndim == 2:
             eps_x = eps_y = eps_z = ucell_layer ** 2
         elif ucell_layer.ndim == 3 and ucell_layer.shape[-1] == 3:
@@ -140,6 +167,14 @@ def to_conv_mat_raster_continuous(ucell, fto_x, fto_y, device=torch.device('cpu'
         else:
             raise ValueError("layer must be 2D (isotropic) or 3D with 3 components (anisotropic)")
 
+        # `is`, not `==`. The three names point at one tensor only on the isotropic branch
+        # above, and only then may one compression be shared: the shared path reads lx alone,
+        # so if this were dispatched on equal *values* instead, an anisotropic layer that
+        # happens to have eps_x == eps_y == eps_z at some point would send the gradient of
+        # eps_y and eps_z to zero and hand their share to eps_x. The forward result is
+        # identical either way, so it stays invisible until something differentiates through
+        # it - an optimization started from an isotropic material takes one badly wrong step
+        # that later iterations never undo.
         if lx is ly is lz:
             n_compressed, x_list, y_list = cell_compression(lx, device=device, type_complex=type_complex)
             eps_x = eps_y = eps_z = n_compressed ** 2
@@ -173,6 +208,11 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=torch.device('cpu'),
     epy_conv_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device).type(type_complex)
     epz_conv_i_all = torch.zeros((ucell.shape[0], ff_xy, ff_xy), device=device).type(type_complex)
 
+    # An FFT cannot report an order the sampling does not resolve. The convolution matrix needs
+    # orders out to +-2*fto, so the raster has to carry at least 4*fto + 1 samples per period
+    # or the highest orders come back aliased. `enhanced_dfs` multiplies that floor by the
+    # layer's own sample count, upsampling each existing cell rather than merely clearing the
+    # bar - finer sampling of the same step edges, at a cost that grows as the square.
     if enhanced_dfs:
         minimum_pattern_size_y = (4 * fto_y + 1) * ucell.shape[1]
         minimum_pattern_size_x = (4 * fto_x + 1) * ucell.shape[2]
@@ -181,6 +221,8 @@ def to_conv_mat_raster_discrete(ucell, fto_x, fto_y, device=torch.device('cpu'),
         minimum_pattern_size_x = 4 * fto_x + 1
 
     def _repeat_to_min(a):
+        # repeat_interleave, not tile: each cell is duplicated in place, so the structure is
+        # resampled and not repeated. Tiling would shrink the period instead.
         if a.shape[0] < minimum_pattern_size_y:
             a = a.repeat_interleave((minimum_pattern_size_y // a.shape[0]) + 1, dim=0)
         if a.shape[1] < minimum_pattern_size_x:

@@ -288,9 +288,14 @@ Supported forms are Sellmeier-type formulas 1 and 2, Brendel-Bormann (`brendel-b
 `meent/dispersion.py`; unimplemented ones raise `NotImplementedError` on lookup rather than being
 guessed at.
 
-Absorbing materials are stored as `n - ik` -- the sign meent solves on. A table copied from a
-source that uses the `n + ik` convention has to have the sign of `k` flipped, or it will produce
-gain instead of loss with no warning.
+Absorbing materials are stored with a **positive** `k` column -- the ordinary optics `n + ik`
+convention, the same one refractiveindex.info and the lab's MATLAB tables publish. `find_nk_index`
+applies the sign on read, exactly as it does for the dispersion formulas above, and returns the
+`n - ik` meent solves on.
+
+So a table copied from refractiveindex.info is used as it comes: do not flip `k`. A table that
+already carries a negative `k` is the one to correct, or it will produce gain instead of loss
+with no warning.
 
 New folders also have to be added to `package_data` in `setup.py`, or they will be missing from
 an installed copy.
