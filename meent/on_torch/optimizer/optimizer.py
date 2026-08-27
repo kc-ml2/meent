@@ -8,7 +8,6 @@ class Grad:
         pass
 
 
-
 class OptimizerTorch(Grad):
 
     def __init__(self, *args, **kwargs):
@@ -17,10 +16,10 @@ class OptimizerTorch(Grad):
 
     def grad(self, pois, forward, loss_fn):
         [setattr(getattr(self, poi), 'requires_grad', True) for poi in pois]
-        result = forward()  # Forward Prop.
-        loss = loss_fn(result)  # Loss
-        loss.backward()  # Back Prop.
-        grad = {poi: getattr(self, poi).grad for poi in pois}  # gradient
+        result = forward()
+        loss = loss_fn(result)
+        loss.backward()
+        grad = {poi: getattr(self, poi).grad for poi in pois}
 
         return grad
 
@@ -35,11 +34,10 @@ class OptimizerTorch(Grad):
 
         for _ in tqdm(range(iteration)):
             optimizer.zero_grad()
-            result = forward()  # Forward Prop.
-            loss_value = loss_fn(result)  # Loss
+            result = forward()
+            loss_value = loss_fn(result)
 
-            loss_value.backward()  # Back Prop.
+            loss_value.backward()
             optimizer.step()
-            # print(f'step {i}, loss: {loss_value}')
 
         return [getattr(self, poi) for poi in pois]

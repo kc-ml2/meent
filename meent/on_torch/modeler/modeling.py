@@ -11,7 +11,6 @@ from ... import dispersion
 
 
 def _is_vector_index(n_index):
-    """True if a refractive-index value specifies (nx, ny, nz) for diagonal anisotropy."""
     if isinstance(n_index, (list, tuple)):
         return len(n_index) == 3
     if torch.is_tensor(n_index):
@@ -20,11 +19,6 @@ def _is_vector_index(n_index):
 
 
 def _to_index_vector(n_index, dtype):
-    """Normalize a refractive-index value to a length-3 tensor (nx, ny, nz), preserving autograd.
-
-    A scalar is broadcast to all three diagonal components (isotropic entry inside an
-    anisotropic layer).
-    """
     if isinstance(n_index, (list, tuple)):
         comps = [c.reshape(()).type(dtype) if torch.is_tensor(c) else torch.tensor(c, dtype=dtype)
                  for c in n_index]
@@ -37,15 +31,8 @@ def _to_index_vector(n_index, dtype):
 
 
 class Compress(torch.autograd.Function):
-    """
-    Not available as of now and actually no need to use this class.
-    https://github.com/pytorch/pytorch/issues/103155
-    Seems like a bug that lose gradient information
-    """
-
     @staticmethod
     def setup_context(ctx, inputs, output):
-        # layer_info, datatype = inputs
         pass
 
     @staticmethod
@@ -55,6 +42,31 @@ class Compress(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_ucell_layer, grad_x_list, grad_y_list):
         pass
+
+
+def _insert_or_reuse(coords, value):
+    """Return the stored coordinate equal to ``value``, inserting it if it is new.
+
+    ``coords`` stays sorted. A boundary that two rectangles share is ONE edge of the
+    piecewise map, so the second rectangle reuses the first one's coordinate instead of
+    contributing a second, nearly-coincident one.
+
+    meent used to nudge the duplicate by a relative 1e-14 and insert it anyway. That turns a
+    shared boundary into a segment of that width: a 1D cell described as two full-height
+    rectangles came out with y edges [1e-14, 0, period, period] - a spurious sliver row plus
+    a duplicated one - where the structure is y-invariant and the answer is a single row.
+    Measured against the same cell rasterized and Fourier'd analytically, that cost 3e-09 on
+    the convolution matrices and 5e-08 on the field, with one bar (no collision) at 6e-12.
+
+    Reusing the tensor is also what the gradient wants: the two rectangles really do share
+    that boundary, so moving it has to move both. They stop sharing as soon as the values
+    differ, and then no reuse happens.
+    """
+    index = bisect_left(coords, value.real)
+    if len(coords) > index and coords[index] == value:
+        return coords[index]
+    coords.insert(index, value)
+    return value
 
 
 class ModelingTorch:
@@ -67,8 +79,6 @@ class ModelingTorch:
         self.mat_table = None
         self.ucell_info_list = None
         self.period = period
-        # self.type_complex = torch.complex128
-        # self.type_float = torch.float64
 
         self.film_layer = None
 
@@ -78,17 +88,15 @@ class ModelingTorch:
     @staticmethod
     def rectangle_no_approximation(cx, cy, lx, ly, base):
 
-        a = [cy - ly / 2, cx - lx / 2]  # row, col
-        b = [cy + ly / 2, cx + lx / 2]  # row, col
+        a = [cy - ly / 2, cx - lx / 2]
+        b = [cy + ly / 2, cx + lx / 2]
 
-        res = [[a, b, base]]  # top_left, bottom_right
+        res = [[a, b, base]]
 
         return res
 
     def rectangle(self, cx, cy, lx, ly, n_index, angle=0, n_split_triangle=2, n_split_parallelogram=2, angle_margin=1E-5):
 
-        # dtype must be set at creation: torch.tensor(<python float>) defaults to float32 and
-        # silently loses ~1e-8 of relative precision that a later .type(float64) cannot recover.
         if type(lx) in (int, float):
             lx = torch.tensor(lx, dtype=self.type_float).reshape(1)
         elif type(lx) is torch.Tensor:
@@ -110,7 +118,6 @@ class ModelingTorch:
 
         angle = angle % (2 * torch.pi)
 
-        # No rotation
         if 0 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 0 * torch.pi / 2 + angle_margin:
             return self.rectangle_no_approximation(cx, cy, lx, ly, n_index)
         elif 1 * torch.pi / 2 - angle_margin <= abs(angle) % (2 * torch.pi) <= 1 * torch.pi / 2 + angle_margin:
@@ -122,7 +129,6 @@ class ModelingTorch:
         else:
             pass
 
-        # Yes rotation
         rotate = torch.ones((2, 2), dtype=self.type_float)
         rotate[0, 0] = torch.cos(angle)
         rotate[0, 1] = -torch.sin(angle)
@@ -142,7 +148,6 @@ class ModelingTorch:
         if 0 <= angle < torch.pi / 2:
             angle_inside = (torch.pi / 2) - angle
 
-            # trail = L + U
             top1, top4 = UR, DL
 
             if LU[1].real > RD[1].real:
@@ -157,7 +162,6 @@ class ModelingTorch:
         elif torch.pi / 2 <= angle < torch.pi:
 
             angle_inside = torch.pi - angle
-            # trail = U + R
             top1, top4 = RD, LU
 
             if UR[1].real > DL[1].real:
@@ -172,7 +176,6 @@ class ModelingTorch:
         elif torch.pi <= angle < torch.pi / 2 * 3:
             angle_inside = (torch.pi * 3 / 2) - angle
 
-            # trail = R + D
             top1, top4 = DL, UR
 
             if RD[1].real > LU[1].real:
@@ -186,7 +189,6 @@ class ModelingTorch:
 
         elif torch.pi / 2 * 3 <= angle < torch.pi * 2:
             angle_inside = (torch.pi * 2) - angle
-            # trail = D + L
             top1, top4 = LU, RD
 
             if DL[1].real > UR[1].real:
@@ -200,25 +202,21 @@ class ModelingTorch:
         else:
             raise ValueError
 
-        # point in region 1(top1~top2), 2(top2~top3) and 3(top3~top4)
         if top2_left:
 
             length = length_top12 / torch.sin(angle_inside)
             top3_cp = [top3[0] - length, top3[1]]
 
-            # 1: Upper triangle
             xxx1 = top1[0] - (top1[0] - top2[0]) / n_split_triangle * torch.arange(n_split_triangle+1).reshape((-1, 1))
             yyy1 = top1[1] - (top1[1] - top2[1]) / n_split_parallelogram * torch.arange(n_split_triangle+1).reshape((-1, 1))
             xxx_cp1 = xxx1 + length / n_split_triangle * torch.arange(n_split_triangle+1).reshape((-1, 1))
             yyy_cp1 = yyy1 * torch.ones(n_split_triangle+1).reshape((-1, 1))
 
-            # 2: Mid parallelogram
             xxx2 = top2[0] + (top3_cp[0] - top2[0]) / n_split_triangle * torch.arange(n_split_parallelogram+1).reshape((-1, 1))
             yyy2 = top2[1] - (top2[1] - top3_cp[1]) / n_split_parallelogram * torch.arange(n_split_parallelogram+1).reshape((-1, 1))
             xxx_cp2 = (xxx2 + length) * torch.ones(n_split_parallelogram+1).reshape((-1, 1))
             yyy_cp2 = yyy2 * torch.ones(n_split_parallelogram+1).reshape((-1, 1))
 
-            # 3: Lower triangle
             xxx3 = top3_cp[0] + (top4[0] - top3_cp[0]) / n_split_triangle * torch.arange(n_split_triangle + 1).reshape(
                 (-1, 1))
             yyy3 = top3_cp[1] - (top3_cp[1] - top4[1]) / n_split_parallelogram * torch.arange(n_split_triangle + 1).reshape(
@@ -243,7 +241,6 @@ class ModelingTorch:
             length = length_top12 / torch.cos(angle_inside)
             top3_cp = [top3[0] + length, top3[1]]
 
-            # 1: Top triangle
             xxx1 = top1[0] + (top2[0] - top1[0]) / n_split_triangle * torch.arange(n_split_triangle + 1).reshape(
                 (-1, 1))
             yyy1 = top1[1] - (top1[1] - top2[1]) / n_split_parallelogram * torch.arange(n_split_triangle + 1).reshape(
@@ -251,7 +248,6 @@ class ModelingTorch:
             xxx_cp1 = xxx1 - length / n_split_triangle * torch.arange(n_split_triangle + 1).reshape((-1, 1))
             yyy_cp1 = yyy1 * torch.ones(n_split_triangle + 1).reshape((-1, 1))
 
-            # 2: Mid parallelogram
             xxx2 = top2[0] - (top2[0] - top3_cp[0]) / n_split_triangle * torch.arange(
                 n_split_parallelogram + 1).reshape((-1, 1))
             yyy2 = top2[1] - (top2[1] - top3_cp[1]) / n_split_parallelogram * torch.arange(
@@ -259,7 +255,6 @@ class ModelingTorch:
             xxx_cp2 = xxx2 - length * torch.ones(n_split_parallelogram + 1).reshape((-1, 1))
             yyy_cp2 = yyy2 * torch.ones(n_split_parallelogram + 1).reshape((-1, 1))
 
-            # 3: Lower triangle
             xxx3 = top3_cp[0] - (top3_cp[0] - top4[0]) / n_split_triangle * torch.arange(n_split_triangle + 1).reshape(
                 (-1, 1))
             yyy3 = top3_cp[1] - (top3_cp[1] - top4[1]) / n_split_parallelogram * torch.arange(
@@ -286,7 +281,6 @@ class ModelingTorch:
 
     def ellipse(self, cx, cy, lx, ly, n_index, angle=0, n_split_w=2, n_split_h=2, angle_margin=1E-5, debug=False):
 
-        # dtype must be set at creation: see the note in rectangle().
         if type(lx) in (int, float):
             lx = torch.tensor(lx, dtype=self.type_float).reshape(1)
         elif type(lx) is torch.Tensor:
@@ -380,8 +374,6 @@ class ModelingTorch:
             ax, ay = arr[:, i]
             bx, by = arr_roll[:, i]
 
-            # LL = [min(ay.real, by.real)+0j, min(ax.real, bx.real)+0j]
-            # UR = [max(ay.real, by.real)+0j, max(ax.real, bx.real)+0j]
 
             LL = [min(ay.real, by.real), min(ax.real, bx.real)]
             UR = [max(ay.real, by.real), max(ax.real, bx.real)]
@@ -395,105 +387,22 @@ class ModelingTorch:
 
     def vector_per_layer_numeric(self, layer_info, x64=True):
 
-        if x64:
-            datatype = torch.complex128
-            perturbation = 0
-            perturbation_unit = 1E-14
-        else:
-            datatype = torch.complex64
-            perturbation = 0
-            perturbation_unit = 1E-6
+        datatype = torch.complex128 if x64 else torch.complex64
 
         pmtvy_base, obj_list = layer_info
 
-        # Griding
         row_list = []
         col_list = []
 
-        # overlap check and apply perturbation
         for obj in obj_list:
             top_left, bottom_right, _ = obj
 
-            # top_left[0]
-            for _ in range(100):
-                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
-                index = bisect_left(row_list, top_left[0].real)
-                if len(row_list) > index and top_left[0] == row_list[index]:
-                    perturbation += perturbation_unit
-                    if top_left[0] == 0:
-                        top_left[0] = top_left[0] + perturbation
+            top_left[0] = _insert_or_reuse(row_list, top_left[0])
 
-                    else:
-                        top_left[0] = top_left[0] + (top_left[0] * perturbation)
-                    row_list.insert(index, top_left[0])
-                    break
-                else:
-                    row_list.insert(index, top_left[0])
-                    break
-            else:
-                print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                # index = bisect_left(row_list, top_left[0].real, key=lambda x: x.real)
-                index = bisect_left(row_list, top_left[0].real)
-                row_list.insert(index, top_left[0])
+            bottom_right[0] = _insert_or_reuse(row_list, bottom_right[0])
 
-            # bottom_right[0]
-            for _ in range(100):
-                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
-                index = bisect_left(row_list, bottom_right[0].real)
-                if len(row_list) > index and bottom_right[0] == row_list[index]:
-                    perturbation += perturbation_unit
-                    bottom_right[0] = bottom_right[0] - (bottom_right[0] * perturbation)
-                    row_list.insert(index, bottom_right[0])
-                    break
-
-                else:
-                    row_list.insert(index, bottom_right[0])
-                    break
-            else:
-                print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                # index = bisect_left(row_list, bottom_right[0].real, key=lambda x: x.real)
-                index = bisect_left(row_list, bottom_right[0].real)
-                row_list.insert(index, bottom_right[0])
-
-            # top_left[1]
-            for _ in range(100):
-                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
-                index = bisect_left(col_list, top_left[1].real)
-                if len(col_list) > index and top_left[1] == col_list[index]:
-                    perturbation += perturbation_unit
-
-                    if top_left[1] == 0:
-                        top_left[1] = top_left[1] + perturbation
-                    else:
-                        top_left[1] = top_left[1] + (top_left[1] * perturbation)
-                    col_list.insert(index, top_left[1])
-                    break
-                else:
-                    col_list.insert(index, top_left[1])
-                    break
-            else:
-                print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                # index = bisect_left(col_list, top_left[1].real, key=lambda x: x.real)
-                index = bisect_left(col_list, top_left[1].real)
-                col_list.insert(index, top_left[1])
-
-            # bottom_right[1]
-            for _ in range(100):
-                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
-                index = bisect_left(col_list, bottom_right[1].real)
-                if len(col_list) > index and bottom_right[1] == col_list[index]:
-                    perturbation += perturbation_unit
-                    bottom_right[1] = bottom_right[1] - (bottom_right[1] * perturbation)
-                    col_list.insert(index, bottom_right[1])
-                    break
-                else:
-                    col_list.insert(index, bottom_right[1])
-                    break
-            else:
-                print('WARNING: Vector modeling has unexpected case. Backprop may not work as expected.')
-                # index = bisect_left(col_list, bottom_right[1].real, key=lambda x: x.real)
-                index = bisect_left(col_list, bottom_right[1].real)
-                col_list.insert(index, bottom_right[1])
+            top_left[1] = _insert_or_reuse(col_list, top_left[1])
+            bottom_right[1] = _insert_or_reuse(col_list, bottom_right[1])
 
         if not row_list or row_list[-1] != self.period[1]:
             row_list.append(self.period[1].reshape(1).type(datatype))
@@ -505,16 +414,12 @@ class ModelingTorch:
         if col_list and col_list[0] == 0:
             col_list = col_list[1:]
 
-        # Diagonal anisotropy: a layer is anisotropic if its background or any object
-        # specifies a 3-vector (nx, ny, nz). Scalars are promoted to (n, n, n).
         is_aniso = _is_vector_index(pmtvy_base) or any(_is_vector_index(obj[2]) for obj in obj_list)
 
         if is_aniso:
             base = _to_index_vector(pmtvy_base, datatype)
-            # ucell_layer = torch.ones((len(row_list), len(col_list), 3), dtype=datatype, requires_grad=True) * base
             ucell_layer = torch.ones((len(row_list), len(col_list), 3), dtype=datatype) * base
         else:
-            # ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype, requires_grad=True) * pmtvy_base
             ucell_layer = torch.ones((len(row_list), len(col_list)), dtype=datatype) * pmtvy_base
 
         for obj in obj_list:
@@ -540,10 +445,6 @@ class ModelingTorch:
         x_list = torch.cat(col_list).reshape((-1, 1))
         y_list = torch.cat(row_list).reshape((-1, 1))
 
-        # The geometry above is built with device-less tensor creations (defaulting to CPU).
-        # Move the outputs to the solver device here, at the single boundary consumed by
-        # to_conv_mat_vector, so vector modeling works under device='cuda'. .to() is a no-op
-        # on CPU and is differentiable, so gradients still flow back to any parameters.
         ucell_layer = ucell_layer.to(self.device)
         x_list = x_list.to(self.device)
         y_list = y_list.to(self.device)
@@ -569,7 +470,6 @@ class ModelingTorch:
             mask = torch.nonzero(ucell_mask == i_mat, as_tuple=True)
 
             if isinstance(material, (str, dict)):
-                # A dict is a self-contained spec, so it needs no table; only a name does.
                 if isinstance(material, str) and not self.mat_table:
                     self.mat_table = read_material_table()
                 assign_value = find_nk_index(material, self.mat_table, wl)
@@ -579,21 +479,9 @@ class ModelingTorch:
 
         return res
 
-    # Optimization + Material table
     def modeling_vector_instruction(self, instructions):
 
-        # wavelength = rcwa_options['wavelength']
 
-        # # Thickness update
-        # t = rcwa_options['thickness']
-        # for i in range(len(t)):
-        #     if f'l{i + 1}_thickness' in fitting_parameter_name:
-        #         t[i] = fitting_parameter_value[fitting_parameter_name[f'l{i + 1}_thickness']].reshape((1, 1))
-        # mee.thickness = t
-
-        # mat_table = read_material_table()
-
-        # Modeling
         layer_info_list = []
         for i, layer in enumerate(instructions):
             obj_list_per_layer = []
@@ -610,15 +498,9 @@ class ModelingTorch:
 
 
 def warn_if_out_of_range(material, mat_data, wl):
-    """Warn when wl falls outside the tabulated range, where interp clamps to the endpoints.
-
-    The clamp is silent, so a wavelength given in the wrong unit returns a plausible-looking
-    number instead of failing. Every table under nk_data is in metres, so a warning here almost
-    always means the wavelength was passed in nanometres or micrometres.
-    """
     try:
         wl_min, wl_max = float(np.min(wl)), float(np.max(wl))
-    except Exception:  # device-resident or traced values have no range to inspect here
+    except Exception:
         return
 
     if isinstance(mat_data, dict):
@@ -649,15 +531,10 @@ def find_nk_index(material, mat_table, wl):
         material_name = material
     warn_if_out_of_range(material_name, mat_data, wl)
 
-    # Fitted materials are stored as coefficients rather than data rows, so evaluate rather than
-    # interpolate. A Sellmeier fit gives n alone; the oscillator models give n + ik, since
-    # absorption is the point of them.
     if isinstance(mat_data, dict):
         n_index = dispersion.evaluate(mat_data, wl, np)
         if n_only:
             return np.real(n_index)
-        # Returned on the ordinary optics convention (n + ik). meent solves on n - ik, so
-        # conjugate -- the same flip the tabulated branch below applies to its k column.
         return np.conj(n_index + 0j)
 
     n_index = np.interp(wl, mat_data[:, 0], mat_data[:, 1])
@@ -666,9 +543,6 @@ def find_nk_index(material, mat_table, wl):
         return n_index
 
     k_index = np.interp(wl, mat_data[:, 0], mat_data[:, 2])
-    # meent solves on the negative sign convention, so absorption is -ik: tables store k as the
-    # positive extinction coefficient, and returning +ik instead turns every lossy material into
-    # a gain medium (transmission through a slab grows with thickness rather than decaying).
     nk = n_index - 1j * k_index
 
     return nk

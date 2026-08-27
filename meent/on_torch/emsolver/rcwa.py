@@ -100,10 +100,6 @@ class RCWATorch(_BaseRCWA):
                 ucell = torch.from_numpy(ucell)
 
             if ucell.dim() == 3:
-                # Isotropic (Layers, H, W): kept as-is. Do NOT expand to (..., 3) with
-                # nx=ny=nz — that would triple ucell memory (and, under enhanced_dfs, triple
-                # the huge repeated pattern) for no benefit. to_conv_mat_* handle the 3D
-                # (isotropic) and 4D (anisotropic) cases separately.
                 pass
             elif ucell.dim() == 4:
                 if ucell.shape[-1] != 3:
@@ -117,7 +113,7 @@ class RCWATorch(_BaseRCWA):
                 dtype = self.type_float
 
             self._ucell = ucell.to(device=self.device, dtype=dtype)
-        elif type(ucell) is list:  # Vector
+        elif type(ucell) is list:
             self._modeling_type_assigned = 1
             self._ucell = ucell
         elif ucell is None:
@@ -129,22 +125,16 @@ class RCWATorch(_BaseRCWA):
     def modeling_type_assigned(self):
         return self._modeling_type_assigned
 
-    # @modeling_type_assigned.setter
-    # def modeling_type_assigned(self, modeling_type_assigned):
-    #     self._modeling_type_assigned = modeling_type_assigned
 
     def _assign_grating_type(self):
         if self.modeling_type_assigned == 0:
-            if self.ucell.dim() == 4:  # (Layers, H, W, 3): anisotropic
+            if self.ucell.dim() == 4:
                 nx, ny, nz = self.ucell[..., 0], self.ucell[..., 1], self.ucell[..., 2]
                 self.is_aniso = not (torch.allclose(nx, ny) and torch.allclose(ny, nz))
-            else:  # (Layers, H, W): isotropic
+            else:
                 self.is_aniso = False
 
             if self.ucell.shape[1] == 1:
-                # Torch backend only: phi=0 is treated the same as phi=None (routes to the
-                # fast pure-1D solver), unlike the numpy/jax backends where phi=0 deliberately
-                # forces the conical solver. See QA/1d_pattern_in_1dc_and_2d.py for that contract.
                 phi_is_zero_or_none = self.phi is None or self.phi == 0
                 if (self.pol in (0, 1)) and phi_is_zero_or_none and (self.fto[1] == 0):
                     self._grating_type_assigned = 0
@@ -167,17 +157,8 @@ class RCWATorch(_BaseRCWA):
 
     def solve_for_conv(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
 
-        # Re-derive the grating type from the current ucell right before solving.
-        # The ucell setter does not recompute it, so if ucell was assigned after
-        # construction (the pattern every example uses) the value set in __init__
-        # would be stale (None -> everything falls through to solve_2d). Restoring
-        # this call here matches the 0.12.0 behaviour.
         self._assign_grating_type()
 
-        # Anisotropy needs no separate solver: epx/epy/epz are already independent
-        # convolution matrices, so the same transfer-matrix routines cover both cases.
-        # is_aniso only decides which grating type a 1D-shaped ucell is routed to
-        # (see _assign_grating_type).
         if self._grating_type_assigned == 0:
             result_dict = self.solve_1d(wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all)
         elif self._grating_type_assigned == 1:
@@ -194,9 +175,9 @@ class RCWATorch(_BaseRCWA):
         return result
 
     def conv_solve(self, **kwargs):
-        [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
+        [setattr(self, k, v) for k, v in kwargs.items()]
 
-        if self.modeling_type_assigned == 0:  # Raster
+        if self.modeling_type_assigned == 0:
 
             if self.fourier_type == 0:
                 epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_raster_discrete(
@@ -210,7 +191,7 @@ class RCWATorch(_BaseRCWA):
             else:
                 raise ValueError("Check 'modeling_type' and 'fourier_type' in 'conv_solve'.")
 
-        elif self.modeling_type_assigned == 1:  # Vector
+        elif self.modeling_type_assigned == 1:
             ucell_vector = self.modeling_vector_instruction(self.ucell)
             epx_conv_all, epy_conv_all, epz_conv_i_all = to_conv_mat_vector(
                 ucell_vector, self.fto[0], self.fto[1], device=self.device, type_complex=self.type_complex,
@@ -224,7 +205,6 @@ class RCWATorch(_BaseRCWA):
         return result
 
     def calculate_field(self, res_x=20, res_y=20, res_z=20, set_field_input=(True, False, False)):
-        """Return Ex, Ey, Ez, Hx, Hy, Hz in RETICOLO's field convention."""
         kx, ky = self.get_kx_ky_vector(wavelength=self.wavelength)
 
         if self._grating_type_assigned == 0:
@@ -241,9 +221,6 @@ class RCWATorch(_BaseRCWA):
                                        res_x=res_x, res_y=res_y, res_z=res_z, set_field_input=set_field_input,
                                        device=self.device, type_complex=self.type_complex)
 
-        # The scalar 1D solver historically returns only [Ey,Hx,Hz] for TE and
-        # [Hy,Ex,Ez] for TM. Expand it here so every public field path has the same
-        # Cartesian component axis before applying the shared convention.
         if field_cell.shape[-1] == 3:
             zero = torch.zeros_like(field_cell[..., 0])
             if self.pol == 0:
@@ -253,21 +230,29 @@ class RCWATorch(_BaseRCWA):
                 field_cell = torch.stack((field_cell[..., 1], zero, field_cell[..., 2],
                                           zero, field_cell[..., 0], zero), dim=-1)
 
-        # Express Meent in RETICOLO's raw time/component convention. This transform is
-        # part of Meent's public output contract, not a validation-side correction.
-        signs = field_cell.new_tensor((-1, 1, -1, 1, -1, 1))
-        field_cell = field_cell.conj() * signs
+        # Time convention only: meent solves on exp(+j*w*t), RETICOLO reports on exp(-i*w*t),
+        # and the same real field is Re[E e^{jwt}] = Re[E* e^{-iwt}]. No component signs are
+        # applied on top. A (-1, 1, -1, 1, -1, 1) sign vector used to sit here together with
+        # a global negation of the scalar-1D TM field; the two cancelled exactly on that path
+        # (it has only Ex, Ez, Hy, which the vector negates) and so were invisible there,
+        # while on the conical and 2D paths the vector alone was left over and put every
+        # field off by exactly that pattern. The p-basis flip that belongs to it now lives
+        # where it is a convention rather than a correction - P_TM_SIGN in transfer_method.
+        # z increases upward, from the substrate side toward the superstrate, so the stored
+        # axis runs the way the physical z axis does. The solver assembles the layers
+        # top-down because that is the order it sweeps them in; that is a loop order, not a
+        # coordinate. Flipping here also reverses the samples inside each layer, which is
+        # what makes the whole axis monotonic rather than sawtoothed.
+        field_cell = field_cell.flip(-4)
 
-        # The scalar 1D TM incident vector has the opposite overall basis sign. Fix that
-        # deterministic convention here; no fitted phase is involved.
-        if self._grating_type_assigned == 0 and self.pol == 1:
-            field_cell = -field_cell
-
-        return field_cell
+        # resolve_conj, not a bare conj: torch's conj() returns a view carrying a lazy
+        # conjugate bit, and numpy() refuses such a tensor outright rather than silently
+        # dropping the conjugation. A public return value has to be an ordinary tensor.
+        return field_cell.conj().resolve_conj()
 
     def conv_solve_field(self, res_x=20, res_y=20, res_z=20,
                          set_field_input=(True, False, False), **kwargs):
-        [setattr(self, k, v) for k, v in kwargs.items()]  # needed for optimization
+        [setattr(self, k, v) for k, v in kwargs.items()]
 
         res = self.conv_solve()
         field_cell = self.calculate_field(res_x, res_y, res_z, set_field_input)

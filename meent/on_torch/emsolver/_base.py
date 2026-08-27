@@ -11,18 +11,6 @@ from .transfer_method import (transfer_1d_1, transfer_1d_2, transfer_1d_3, trans
 
 
 def _to_tensor(value, device, dtype):
-    """``value`` as a tensor, keeping its autograd graph if it already carries one.
-
-    ``torch.tensor()`` copies the values out of a tensor and returns a new leaf, so any
-    setter written that way silently detaches a parameter the caller meant to optimize.
-    The failure is quiet in the case that matters: with a differentiable ``ucell`` the loss
-    still has a ``grad_fn`` through the cell, so ``backward()`` succeeds and only this
-    parameter's ``.grad`` stays ``None`` - and ``torch.optim`` skips a parameter whose grad
-    is ``None``, so it never moves while the run looks healthy.
-
-    A list is handled too, because a per-layer quantity is naturally written as
-    ``[t, 200e-9]``. Values that carry no graph take the plain ``torch.tensor`` path.
-    """
     if isinstance(value, torch.Tensor):
         return value.to(device=device, dtype=dtype)
     if isinstance(value, (list, tuple)) and any(isinstance(v, torch.Tensor) for v in value):
@@ -39,7 +27,6 @@ class _BaseRCWA:
                  thickness=(0.,), connecting_algo='TMM', perturbation=1E-10,
                  device='cpu', type_complex=torch.complex128, use_pinv=False):
 
-        # device
         if device in (0, 'cpu'):
             self._device = torch.device('cpu')
         elif device in (1, 'gpu', 'cuda'):
@@ -49,7 +36,6 @@ class _BaseRCWA:
         else:
             raise ValueError('device')
 
-        # type_complex
         if type_complex in (0, torch.complex128, np.complex128):
             self._type_complex = torch.complex128
         elif type_complex in (1, torch.complex64, np.complex64):
@@ -134,7 +120,7 @@ class _BaseRCWA:
             self._theta = None
         else:
             self._theta = _to_tensor(theta, self.device, self.type_complex)
-            self._theta = torch.where(self._theta == 0, self.perturbation, self._theta)  # perturbation
+            self._theta = torch.where(self._theta == 0, self.perturbation, self._theta)
 
     @property
     def phi(self):
@@ -155,18 +141,10 @@ class _BaseRCWA:
     def psi(self, psi):
         if psi is not None:
             self._psi = _to_tensor(psi, self.device, self.type_complex)
-            # Derived from the stored tensor, not the raw argument, so pol follows psi onto
-            # the same device and dtype and keeps the graph with it.
             self._pol = -(2 * self._psi / torch.pi - 1)
 
     @property
     def pol(self):
-        """
-        portion of TM. 0: full TE, 1: full TM
-
-        Returns: polarization ratio
-
-        """
         return self._pol
 
     @pol.setter
@@ -219,9 +197,6 @@ class _BaseRCWA:
         if type(period) in (int, float):
             self._period = torch.tensor([period, period], device=self.device, dtype=self.type_float)
         elif type(period) in (list, tuple, np.ndarray) or isinstance(period, torch.Tensor):
-            # A single period means a 1D grating and is duplicated onto both axes. Do that
-            # by concatenating the stored tensor rather than by rebuilding a list, so a
-            # differentiable period reaches both axes through the same graph.
             self._period = _to_tensor(period, self.device, self.type_float)
             if len(self._period) == 1:
                 self._period = torch.cat([self._period, self._period])
@@ -248,11 +223,6 @@ class _BaseRCWA:
         fto_y_range = torch.arange(-self.fto[1], self.fto[1] + 1, device=self.device,
                                    dtype=self.type_float)
 
-        # torch.sin handles complex theta natively, so it covers both real incidence angles
-        # and evanescent input (theta.real >= pi/2 with a nonzero imaginary part, where
-        # sin(pi/2 + i*a) = cosh(a) > 1). Using torch (not np.sin) keeps autograd intact and
-        # works on GPU. The old numpy special-case for theta.real >= pi/2 (numpy issue #27306)
-        # is unnecessary here and used a non-callable dtype (torch.float32(...)) that crashed.
         sin_theta = torch.sin(self.theta)
 
         if self.phi is None:
@@ -266,7 +236,10 @@ class _BaseRCWA:
         ky = (self.n_top * sin_theta * torch.sin(phi) + fto_y_range * (
                 wavelength / self.period[1])).type(self.type_complex).conj()
 
-        return kx, ky
+        # resolve_conj, not a bare conj: torch's conj() hands back a view carrying a lazy
+        # conjugate bit, and numpy() refuses such a tensor rather than silently dropping the
+        # conjugation. This is a public method, so callers reach for .numpy() on its result.
+        return kx.resolve_conj(), ky.resolve_conj()
 
     def solve_1d(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
         self.layer_info_list = []
@@ -284,13 +257,9 @@ class _BaseRCWA:
 
         elif self.connecting_algo == 'SMM':
             raise ValueError
-            # Kx, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
-            #     = scattering_1d_1(k0, self.n_top, self.n_bot, self.theta, self.phi, fourier_indices, self.period,
-            #                       self.pol, wl=wavelength)
         else:
             raise ValueError
 
-        # From the last layer
         for layer_index in range(len(self.thickness))[::-1]:
 
             epx_conv = epx_conv_all[layer_index]
@@ -312,7 +281,6 @@ class _BaseRCWA:
 
             elif self.connecting_algo == 'SMM':
                 raise ValueError
-                # A, B, S_dict, Sg = scattering_1d_2(W, Wg, V, Vg, d, k0, Q, Sg)
             else:
                 raise ValueError
 
@@ -323,12 +291,9 @@ class _BaseRCWA:
 
         elif self.connecting_algo == 'SMM':
             raise ValueError
-            # de_ri, de_ti = scattering_1d_3(Wt, Wg, Vt, Vg, Sg, self.ff, Wr, self.fto, Kzr, Kzt,
-            #                                self.n_top, self.n_bot, self.theta, self.pol)
         else:
             raise ValueError
 
-        # return de_ri, de_ti, self.rayleigh_R, self.rayleigh_T, self.layer_info_list, self.T1
         return result
 
     def solve_1d_conical(self, wavelength, epx_conv_all, epy_conv_all, epz_conv_i_all):
@@ -381,7 +346,7 @@ class _BaseRCWA:
             result, big_T1 = transfer_1d_conical_4(kx,ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi,
                                                    self.theta, self.n_top, self.n_bot, device=self.device,
                                                    type_complex=self.type_complex,
-                                                   use_pinv=self.use_pinv)#, phi=self.phi)#, varphi=varphi)
+                                                   use_pinv=self.use_pinv)
             self.T1 = big_T1
 
         elif self.connecting_algo == 'SMM':
@@ -408,12 +373,9 @@ class _BaseRCWA:
 
         elif self.connecting_algo == 'SMM':
             raise ValueError
-            # Kx, Ky, kz_inc, Wg, Vg, Kzg, Wr, Vr, Kzr, Wt, Vt, Kzt, Ar, Br, Sg \
-            #     = scattering_2d_1(self.n_top, self.n_bot, self.theta, self.phi, k0, self.period, self.fto)
         else:
             raise ValueError
 
-        # From the last layer
         for layer_index in range(len(self.thickness))[::-1]:
 
             epx_conv = epx_conv_all[layer_index]
@@ -436,23 +398,11 @@ class _BaseRCWA:
 
             elif self.connecting_algo == 'SMM':
                 raise ValueError
-                # W, V, LAMBDA = scattering_2d_wv(ff_xy, Kx, Ky, E_conv, o_E_conv, o_E_conv_i, E_conv_i)
-                # A, B, Sl_dict, Sg_matrix, Sg = scattering_2d_2(W, Wg, V, Vg, d, k0, Sg, LAMBDA)
             else:
                 raise ValueError
 
         if self.connecting_algo == 'TMM':
-            # de_ri, de_ti, big_T1, [R_s, R_p], [T_s, T_p], = transfer_2d_4(big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
-            #                                      self.n_top, self.n_bot, device=self.device,
-            #                                      type_complex=self.type_complex)
-            # self.T1 = big_T1
-            # self.rayleigh_R = [R_s, R_p]
-            # self.rayleigh_T = [T_s, T_p]
 
-            # de_ri_s, de_ri_p, de_ti_s, de_ti_p, big_T1, R_s, R_p, T_s, T_p = transfer_2d_4(big_F, big_G, big_T, kz_top,
-            #                                                                                kz_bot, self.psi, self.theta,
-            #                                                                                self.n_top, self.n_bot,
-            #                                                                                type_complex=self.type_complex)
             result, big_T1 = transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, self.psi, self.theta,
                                            self.n_top, self.n_bot, device=self.device, type_complex=self.type_complex,
                                            use_pinv=self.use_pinv)
@@ -460,14 +410,7 @@ class _BaseRCWA:
 
         elif self.connecting_algo == 'SMM':
             raise ValueError
-            # de_ri, de_ti = scattering_2d_3(Wt, Wg, Vt, Vg, Sg, Wr, Kx, Ky, Kzr, Kzt, kz_inc, self.n_top,
-            #                                self.pol, self.theta, self.phi, self.fto)
         else:
             raise ValueError
 
-        # de_ri = de_ri.reshape((ff_y, ff_x)).T
-        # de_ti = de_ti.reshape((ff_y, ff_x)).T
-        #
-        # return de_ri, de_ti, self.rayleigh_R, self.rayleigh_T, self.layer_info_list, self.T1
-        # return de_ri_s, de_ri_p, de_ti_s, de_ti_p, self.layer_info_list, self.T1, R_s, R_p, T_s, T_p
         return result

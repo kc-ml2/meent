@@ -4,20 +4,40 @@ from .primitives import Eig, meeinv
 
 
 def branch_sign(value):
-    """+1 or -1 from the sign of Re(value), with sign(0) folded to +1.
-
-    Used to orient each diffracted order's local transverse (s/p) basis, which reverses
-    when an order crosses from +kx to -kx. The factor carries orientation only, so it must
-    be exactly +-1. ``torch.sign`` is wrong for that: it returns 0 at 0, which multiplies
-    an order's amplitude by zero instead of flipping its sign. kx_m = 0 is not a
-    degenerate order - it is the one diffracted straight along z, where kz is largest of
-    all - so torch.sign silently deleted the most strongly propagating order whenever
-    n_top*sin(theta)*cos(phi) landed exactly on -m*wavelength/period, and R + T stopped
-    summing to one. Every other input is unaffected: away from exactly 0 this reproduces
-    torch.sign bit for bit.
-    """
     ones = torch.ones_like(value.real)
     return torch.where(value.real < 0, -ones, ones)
+
+
+# meent used to point its p (TM) polarization basis vector opposite to RETICOLO's. The flip
+# lives here, and it is applied in exactly two places: the incident excitation built by
+# `incident_rows`, and the exported p coefficients R_p / T_p. Applying it on both sides at
+# once is what makes it a basis convention rather than a fudge - the p-in/p-out coefficient
+# picks it up twice and is unchanged, while p-in/s-out and s-in/p-out pick it up once each.
+#
+# Nothing an efficiency can see: |a| is unchanged, so R and T are identical before and after.
+# It shows up only in the cross-polarization amplitudes under conical incidence, and as a
+# global sign on the field of a TM-incident wave. Measured against RETICOLO on an asymmetric
+# anisotropic cell at theta = phi = 30 deg (validation/axis raster vector): before the flip
+# the cross blocks came out at exactly -1 and the TM-incidence field at exactly -1, both to
+# ~1e-11 over every propagating order and every wavelength.
+P_TM_SIGN = -1
+
+
+def incident_rows(psi, theta, n_top, delta_i0):
+    """The [s, p, s, p] excitation rows of the conical / 2D boundary condition.
+
+    psi = pi/2 is s (TE) incidence and psi = 0 is p (TM) incidence; a general psi mixes them,
+    which is why the p sign has to sit inside the incident vector rather than being applied
+    to a finished result.
+    """
+    return torch.cat(
+        [
+            -torch.sin(psi) * delta_i0,
+            -P_TM_SIGN * torch.cos(psi) * torch.cos(theta) * delta_i0,
+            -1j * torch.sin(psi) * n_top * torch.cos(theta) * delta_i0,
+            P_TM_SIGN * 1j * n_top * torch.cos(psi) * delta_i0,
+        ]
+    )
 
 
 def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_complex=torch.complex128):
@@ -26,11 +46,6 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
     kz_top = (n_top ** 2 - kx ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2) ** 0.5
 
-    # For evanescent orders the sqrt argument sits on (or next to) the negative real
-    # axis, where the branch is ambiguous and the returned root can be the growing one.
-    # Force the decaying branch there. Compare against the real part of the index: the
-    # propagating/evanescent cutoff is only defined for a lossless medium, and a complex
-    # index cannot be ordered against a real magnitude at all.
     evan_top = abs(kx) > abs(torch.as_tensor(n_top).real)
     evan_bot = abs(kx) > abs(torch.as_tensor(n_bot).real)
     kz_top[evan_top] = -1j * (kx[evan_top] ** 2 - n_top ** 2) ** 0.5
@@ -38,10 +53,10 @@ def transfer_1d_1(pol, kx, n_top, n_bot, device=torch.device('cpu'), type_comple
 
     F = torch.eye(ff_x, device=device, dtype=type_complex)
 
-    if pol == 0:  # TE
+    if pol == 0:
         Kz_bot = torch.diag(kz_bot)
         G = 1j * Kz_bot
-    elif pol == 1:  # TM
+    elif pol == 1:
         Kz_bot = torch.diag(kz_bot / (n_bot ** 2))
         G = 1j * Kz_bot
     else:
@@ -63,7 +78,6 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('
         Eig.perturbation = perturbation
         eigenvalues, W = Eig.apply(A)
 
-        # eigenvalues += 0j  # to get positive square root
         q = eigenvalues ** 0.5
         Q = torch.diag(q)
         V = W @ Q
@@ -74,7 +88,6 @@ def transfer_1d_2(pol, kx, epx_conv, epy_conv, epz_conv_i, device=torch.device('
         Eig.perturbation = perturbation
         eigenvalues, W = Eig.apply(epx_conv @ B)
 
-        # eigenvalues += 0j  # to get positive square root
         q = eigenvalues ** 0.5
 
         Q = torch.diag(q)
@@ -118,40 +131,23 @@ def transfer_1d_4(pol, ff_x, F, G, T, kx, kz_top, kz_bot, theta, n_top, n_bot, d
     delta_i0 = torch.zeros(ff_x, device=device, dtype=type_complex)
     delta_i0[ff_x // 2] = 1
 
-    if pol == 0:  # TE
+    if pol == 0:
         inc_term = 1j * n_top * torch.cos(theta) * delta_i0
         T1 = meeinv(G + 1j * Kz_top @ F, use_pinv) @ (1j * Kz_top @ delta_i0 + inc_term)
 
-    elif pol == 1:  # TM
+    elif pol == 1:
         inc_term = 1j * delta_i0 * torch.cos(theta) / n_top
         T1 = meeinv(G + 1j * Kz_top / (n_top ** 2) @ F, use_pinv) @ (1j * Kz_top / (n_top ** 2) @ delta_i0 + inc_term)
     else:
         raise ValueError
 
-    # T1 = np.linalg.pinv(G + 1j * YZ_I @ F) @ (1j * YZ_I @ delta_i0 + inc_term)
-    # Conjugated to put this path on the same time convention as the conical and 2D solvers.
-    # Without it a 1D grating at phi = 0 and the same grating at phi = 1e-7 -- physically the
-    # same problem, but routed to different solvers -- returned coefficients that differed by
-    # a complex conjugate. The efficiencies were identical either way, so nothing caught it.
-    # R_s/R_p/T_s/T_p are public order-local modal amplitudes, not fixed-Cartesian field
-    # components.  The local transverse basis reverses when an outgoing order crosses from
-    # +kx to -kx.  Use the incident branch as the reference, exactly as the conical/2D
-    # paths do, so the pure-1D solver exposes the same coefficient definition.
-    #
-    # See branch_sign for why torch.sign cannot be used here. The incident order sits at
-    # index ff_x // 2, matching delta_i0 above; reading its kx directly rather than
-    # sign(theta) also drops the old dependence on theta being perturbed away from zero.
     phase_conv = branch_sign(kx) * branch_sign(kx[ff_x // 2])
     R = (F @ T1 - delta_i0).reshape((1, ff_x)).conj() * phase_conv
     T = (T @ T1).reshape((1, ff_x)).conj() * phase_conv
 
-    # de_ri = np.real(np.real(R * np.conj(R) * kz_top / (n_top * np.cos(theta))))
-    # de_ri = np.real(R * np.conj(R) * np.real(kz_top / (n_top * np.cos(theta))))
     de_ri = (R * R.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
 
     if pol == 0:
-        # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / (n_top * np.cos(theta))))
-        # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / (n_top * np.cos(theta))))
         de_ti = (T * T.conj() * (kz_bot / (n_top * torch.cos(theta))).real).real
         R_s = R
         R_p = torch.zeros_like(R)
@@ -163,13 +159,17 @@ def transfer_1d_4(pol, ff_x, F, G, T, kx, kz_top, kz_bot, theta, n_top, n_bot, d
         de_ti_p = torch.zeros_like(de_ti)
 
     elif pol == 1:
-        # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2) / (np.cos(theta) / n_top))
-        # de_ti = np.real(T * np.conj(T) * np.real(kz_bot / n_bot ** 2 / (np.cos(theta) / n_top)))
         de_ti = (T * T.conj() * (kz_bot / n_bot ** 2 / (torch.cos(theta) / n_top)).real).real
         R_s = torch.zeros_like(R)
         R_p = R
         T_s = torch.zeros_like(T)
-        T_p = T
+        # The scalar TM solver carries H amplitudes, so the transmitted one needs n_top/n_bot
+        # to land on the same p coefficient the conical and 2D paths export. Without it this
+        # path returned a T_p larger by n_bot/n_top - invisible whenever n_top == n_bot, which
+        # every stored case happens to satisfy, and invisible again in de_ti, which carries
+        # the same factor in its own formula instead. Measured: conical/scalar = 0.8 exactly
+        # at n_top = 1.2, n_bot = 1.5, on every order.
+        T_p = T * (n_top / n_bot)
         de_ri_s = torch.zeros_like(de_ri)
         de_ri_p = de_ri
         de_ti_s = torch.zeros_like(de_ti)
@@ -184,6 +184,16 @@ def transfer_1d_4(pol, ff_x, F, G, T, kx, kz_top, kz_bot, theta, n_top, n_bot, d
 
     result = {'res': res}
 
+    if pol == 1:
+        # T1 is the field reconstruction's excitation, and the scalar TM solver builds it in
+        # H amplitudes, so without this the reconstructed field comes out normalized to
+        # |H_inc| = 1 while every other path normalizes to |E_inc| = 1. Measured on a uniform
+        # medium: this path returned |E| = 1/n_top exactly (0.8333 at n_top = 1.2, 0.5 at
+        # n_top = 2.0) where TE and the conical and 2D paths all returned 1. Invisible at
+        # n_top = 1, which every stored case uses. The coefficients above are already
+        # computed and are deliberately left alone - they were correct.
+        T1 = T1 * n_top
+
     return result, T1
 
 
@@ -195,22 +205,10 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, device='cpu', type_complex=torch
     I = torch.eye(ff_xy, device=device, dtype=type_complex)
     O = torch.zeros((ff_xy, ff_xy), device=device, dtype=type_complex)
 
-    # TODO: cleaning
-    # ky = k0 * n_I * torch.sin(theta) * torch.sin(phi)
-    #
-    # k_I_z = (k0 ** 2 * n_I ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
-    # k_II_z = (k0 ** 2 * n_II ** 2 - kx_vector ** 2 - ky ** 2) ** 0.5
-    #
-    # k_I_z = torch.conj(k_I_z.flatten())
-    # k_II_z = torch.conj(k_II_z.flatten())
-    #
-    # Kx = torch.diag(kx_vector / k0)
-
 
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    # Force the decaying branch of the sqrt for evanescent orders; see transfer_1d_1.
     k_par2 = kx ** 2 + ky.reshape((-1, 1)) ** 2
     evan_top = abs(k_par2) > abs(torch.as_tensor(n_top).real ** 2)
     evan_bot = abs(k_par2) > abs(torch.as_tensor(n_bot).real ** 2)
@@ -221,17 +219,9 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, device='cpu', type_complex=torch
     kz_bot = kz_bot.flatten()
 
 
-    # varphi = torch.arctan(ky / kx_vector)
-
     varphi = torch.arctan(ky.reshape((-1, 1)) / kx).flatten()
     Kz_bot = torch.diag(kz_bot)
 
-
-    # Y_I = torch.diag(k_I_z / k0)
-    # Y_II = torch.diag(k_II_z / k0)
-    #
-    # Z_I = torch.diag(k_I_z / (k0 * n_I ** 2))
-    # Z_II = torch.diag(k_II_z / (k0 * n_II ** 2))
 
     big_F = torch.cat(
         [
@@ -250,11 +240,7 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, device='cpu', type_complex=torch
     big_T = torch.eye(2*ff_xy, device=device, dtype=type_complex)
     return kz_top, kz_bot, varphi, big_F, big_G, big_T
 
-    # return Kx, ky, k_I_z, k_II_z, varphi, Y_I, Y_II, Z_I, Z_II, big_F, big_G, big_T
 
-
-# def transfer_1d_conical_2(k0, Kx, ky, E_conv, E_i, o_E_conv_i, ff, d, varphi, big_F, big_G, big_T,
-#                           device='cpu', type_complex=torch.complex128, perturbation=1E-10):
 def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device='cpu', type_complex=torch.complex128,
                           perturbation=1E-10, use_pinv=False):
 
@@ -303,8 +289,6 @@ def transfer_1d_conical_2(kx, ky, epx_conv, epy_conv, epz_conv_i, device='cpu', 
     return W, V, q
 
 
-# def transfer_1d_conical_3(big_F, big_G, big_T, Z_I, Y_I, psi, theta, ff, delta_i0, k_I_z, k0, n_I, n_II, k_II_z,
-#                           device='cpu', type_complex=torch.complex128):
 def transfer_1d_conical_3(k0, W, V, q, d, varphi, big_F, big_G, big_T, device='cpu', type_complex=torch.complex128,
                           use_pinv=False):
 
@@ -394,7 +378,6 @@ def transfer_1d_conical_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, p
     delta_i0 = torch.zeros((ff_xy, 1), device=device, dtype=type_complex)
     delta_i0[ff_xy // 2, 0] = 1
 
-    # Final Equation in form of AX=B
     final_A = torch.cat(
         [
             torch.cat([I, O, -big_F_11, -big_F_12], dim=1),
@@ -404,39 +387,22 @@ def transfer_1d_conical_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, p
         ]
     )
 
-    final_B = torch.cat(
-        [
-            torch.cat([-torch.sin(psi) * delta_i0], dim=1),
-            torch.cat([-torch.cos(psi) * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * torch.sin(psi) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([1j * n_top * torch.cos(psi) * delta_i0], dim=1),
-        ]
-    )
+    final_B = incident_rows(psi, theta, n_top, delta_i0)
 
     final_A_inv = meeinv(final_A, use_pinv)
     final_RT = final_A_inv @ final_B
 
-    # Reflected and transmitted amplitudes have to carry the SAME phase convention.
-    # The conjugation and the sign(kx) branch correction used to sit on R only, which left
-    # R on the analytic (Fresnel) convention and T on its conjugate. That is invisible in the
-    # efficiencies -- |conj(z)| = |z|, and sign(kx) is +-1 -- so every efficiency-based check
-    # passed while the coefficients disagreed with RETICOLO and with the Fresnel solution of a
-    # plain slab. Anything that consumes R and T together (near field, S-matrix, coherent
-    # stacking) was reading one of them with a flipped imaginary part.
-    # See branch_sign: torch.sign returns 0 at 0, which would delete the order diffracted
-    # straight along z instead of orienting it. The incident order sits at index ff_x // 2.
     phase_conv = branch_sign(kx) * branch_sign(kx[ff_x // 2])
 
     R_s = (final_RT[:ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
-    R_p = ((1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
+    R_p = P_TM_SIGN * ((1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
 
     big_T1 = final_RT[2 * ff_xy:, :]
-    # big_T_tetm = big_T.clone().detach()
     big_T_tetm = big_T.clone()
     big_T = big_T @ big_T1
 
     T_s = (big_T[:ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
-    T_p = ((1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))).conj() * phase_conv
+    T_p = P_TM_SIGN * ((1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))).conj() * phase_conv
 
     de_ri_s = (R_s * R_s.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
     de_ri_p = (R_p * R_p.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
@@ -451,38 +417,23 @@ def transfer_1d_conical_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, p
            'de_ri_s': de_ri_s, 'de_ri_p': de_ri_p, 'de_ri': de_ri,
            'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p, 'de_ti': de_ti}
 
-    # TE TM incidence
     psi_tm = torch.tensor(0, dtype=type_complex, device=device)
-    final_B_tm = torch.cat(
-        [
-            torch.cat([-torch.sin(psi_tm) * delta_i0], dim=1),
-            torch.cat([-torch.cos(psi_tm) * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * torch.sin(psi_tm) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([1j * n_top * torch.cos(psi_tm) * delta_i0], dim=1),
-        ]
-    )
+    final_B_tm = incident_rows(psi_tm, theta, n_top, delta_i0)
 
     psi_te = torch.tensor(torch.pi / 2, dtype=type_complex, device=device)
-    final_B_te = torch.cat(
-        [
-            torch.cat([-torch.sin(psi_te) * delta_i0], dim=1),
-            torch.cat([-torch.cos(psi_te) * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * torch.sin(psi_te) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([1j * n_top * torch.cos(psi_te) * delta_i0], dim=1),
-        ]
-    )
+    final_B_te = incident_rows(psi_te, theta, n_top, delta_i0)
 
     final_B_tetm = torch.hstack([final_B_te, final_B_tm])
     final_RT_tetm = final_A_inv @ final_B_tetm
 
     R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
-    R_p_tetm = ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
+    R_p_tetm = P_TM_SIGN * ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
 
     big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
     big_T_tetm = big_T_tetm @ big_T1_tetm
 
     T_s_tetm = big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    T_p_tetm = (-1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
+    T_p_tetm = P_TM_SIGN * (-1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
 
     de_ri_s_tetm = (R_s_tetm * R_s_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
     de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
@@ -518,7 +469,6 @@ def transfer_2d_1(kx, ky, n_top, n_bot, device=torch.device('cpu'), type_complex
     kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
     kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
 
-    # Force the decaying branch of the sqrt for evanescent orders; see transfer_1d_1.
     k_par2 = kx ** 2 + ky.reshape((-1, 1)) ** 2
     evan_top = abs(k_par2) > abs(torch.as_tensor(n_top).real ** 2)
     evan_bot = abs(k_par2) > abs(torch.as_tensor(n_bot).real ** 2)
@@ -681,7 +631,6 @@ def transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, thet
     delta_i0 = torch.zeros((ff_xy, 1), device=device, dtype=type_complex)
     delta_i0[ff_xy // 2, 0] = 1
 
-    # Final Equation in form of AX=B
     final_A = torch.cat(
         [
             torch.cat([I, O, -big_F_11, -big_F_12], dim=1),
@@ -691,33 +640,22 @@ def transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, thet
         ]
     )
 
-    final_B = torch.cat(
-        [
-            torch.cat([-torch.sin(psi) * delta_i0], dim=1),
-            torch.cat([-torch.cos(psi) * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * torch.sin(psi) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([1j * n_top * torch.cos(psi) * delta_i0], dim=1),
-        ]
-    )
+    final_B = incident_rows(psi, theta, n_top, delta_i0)
 
     final_A_inv = meeinv(final_A, use_pinv)
     final_RT = final_A_inv @ final_B
 
-    # Same convention fix as transfer_1d_conical_4 -- see the comment there.
-    # See branch_sign: torch.sign returns 0 at 0, which would delete the order diffracted
-    # straight along z instead of orienting it. The incident order sits at index ff_x // 2.
     phase_conv = branch_sign(kx) * branch_sign(kx[ff_x // 2])
 
     R_s = (final_RT[:ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
-    R_p = ((1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
+    R_p = P_TM_SIGN * ((1j/n_top)*final_RT[ff_xy: 2 * ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
 
     big_T1 = final_RT[2 * ff_xy:, :]
-    # big_T_tetm = big_T.clone().detach()
     big_T_tetm = big_T.clone()
     big_T = big_T @ big_T1
 
     T_s = (big_T[:ff_xy, :].reshape((ff_y, ff_x))).conj() * phase_conv
-    T_p = ((1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))).conj() * phase_conv
+    T_p = P_TM_SIGN * ((1j/n_bot)*big_T[ff_xy:, :].reshape((ff_y, ff_x))).conj() * phase_conv
 
     de_ri_s = (R_s * R_s.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
     de_ri_p = (R_p * R_p.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
@@ -732,38 +670,23 @@ def transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, thet
            'de_ri_s': de_ri_s, 'de_ri_p': de_ri_p, 'de_ri': de_ri,
            'de_ti_s': de_ti_s, 'de_ti_p': de_ti_p, 'de_ti': de_ti}
 
-    # TE TM incidence
     psi_tm = torch.tensor(0, dtype=type_complex, device=device)
-    final_B_tm = torch.cat(
-        [
-            torch.cat([-torch.sin(psi_tm) * delta_i0], dim=1),
-            torch.cat([-torch.cos(psi_tm) * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * torch.sin(psi_tm) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([1j * n_top * torch.cos(psi_tm) * delta_i0], dim=1),
-        ]
-    )
+    final_B_tm = incident_rows(psi_tm, theta, n_top, delta_i0)
 
     psi_te = torch.tensor(torch.pi/2, dtype=type_complex, device=device)
-    final_B_te = torch.cat(
-        [
-            torch.cat([-torch.sin(psi_te) * delta_i0], dim=1),
-            torch.cat([-torch.cos(psi_te) * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([-1j * torch.sin(psi_te) * n_top * torch.cos(theta) * delta_i0], dim=1),
-            torch.cat([1j * n_top * torch.cos(psi_te) * delta_i0], dim=1),
-        ]
-    )
+    final_B_te = incident_rows(psi_te, theta, n_top, delta_i0)
 
     final_B_tetm = torch.hstack([final_B_te, final_B_tm])
     final_RT_tetm = final_A_inv @ final_B_tetm
 
     R_s_tetm = (final_RT_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
-    R_p_tetm = ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
+    R_p_tetm = P_TM_SIGN * ((-1j/n_top)*final_RT_tetm[ff_xy: 2 * ff_xy, :].T.reshape((2, ff_y, ff_x))).conj() * phase_conv
 
     big_T1_tetm = final_RT_tetm[2 * ff_xy:, :]
     big_T_tetm = big_T_tetm @ big_T1_tetm
 
     T_s_tetm = big_T_tetm[:ff_xy, :].T.reshape((2, ff_y, ff_x))
-    T_p_tetm = (-1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
+    T_p_tetm = P_TM_SIGN * (-1j/n_bot)*big_T_tetm[ff_xy:, :].T.reshape((2, ff_y, ff_x))
 
     de_ri_s_tetm = (R_s_tetm * R_s_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
     de_ri_p_tetm = (R_p_tetm * R_p_tetm.conj() * (kz_top / (n_top * torch.cos(theta))).real).real
@@ -783,7 +706,6 @@ def transfer_2d_4(kx, ff_x, ff_y, big_F, big_G, big_T, kz_top, kz_bot, psi, thet
                   'de_ti_s': de_ti_s_tetm[1], 'de_ti_p': de_ti_p_tetm[1], 'de_ti': de_ti_tetm[1]}
 
     result = {'res': res, 'res_tm_inc': res_tm_inc, 'res_te_inc': res_te_inc}
-    # big_T1_all = [big_T1, big_T1_tetm[:, 0:1], big_T1_tetm[:, 1:2]]
     big_T1_all = torch.stack((big_T1, big_T1_tetm[:, 0:1], big_T1_tetm[:, 1:2]))
 
     return result, big_T1_all
