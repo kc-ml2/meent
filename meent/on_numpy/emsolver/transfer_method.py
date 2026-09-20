@@ -6,12 +6,13 @@ from .primitives import meeinv
 def transfer_1d_1(pol, kx, n_top, n_bot, type_complex=np.complex128):
     ff_x = len(kx)
 
-    kz_top = (n_top ** 2 - kx ** 2) ** 0.5
-    kz_bot = (n_bot ** 2 - kx ** 2) ** 0.5
+    # Ensure complex type before square root to prevent NaNs on evanescent orders
+    kz_top = (n_top ** 2 - kx ** 2 + 0j) ** 0.5
+    kz_bot = (n_bot ** 2 - kx ** 2 + 0j) ** 0.5
 
-    kz_top = kz_top.conj()
-    kz_bot = kz_bot.conj()
-
+    # Radiation condition for exp(+i*omega*t): decay requires Im(kz) <= 0
+    kz_top = np.where(kz_top.imag > 0, -kz_top, kz_top)
+    kz_bot = np.where(kz_bot.imag > 0, -kz_bot, kz_bot)
     F = np.eye(ff_x, dtype=type_complex)
 
     if pol == 0:  # TE
@@ -142,14 +143,20 @@ def transfer_1d_conical_1(kx, ky, n_top, n_bot, type_complex=np.complex128):
 
     I = np.eye(ff_xy, dtype=type_complex)
     O = np.zeros((ff_xy, ff_xy), dtype=type_complex)
+    
+    # Ensure complex type before square root to prevent NaNs on evanescent orders
+    kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2 + 0j) ** 0.5
+    kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2 + 0j) ** 0.5
 
-    kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
-    kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
+    kz_top = kz_top.flatten()
+    kz_bot = kz_bot.flatten()
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
-
-    varphi = np.arctan(ky.reshape((-1, 1)) / kx).flatten()
+    # Radiation condition for exp(+i*omega*t) convention:
+    # Forward/decaying waves must have Im(kz) <= 0.
+    # If Im(kz) > 0 (or Im(kz) == 0 and Re(kz) < 0), negate kz.
+    kz_top = np.where(kz_top.imag > 0, -kz_top, kz_top)
+    kz_bot = np.where(kz_bot.imag > 0, -kz_bot, kz_bot)
+    varphi = np.arctan2(ky.reshape((-1, 1)), kx).flatten()
     Kz_bot = np.diag(kz_bot)
 
     big_F = np.block([[I, O], [O, 1j * Kz_bot / (n_bot ** 2)]])
@@ -388,13 +395,19 @@ def transfer_2d_1(kx, ky, n_top, n_bot, type_complex=np.complex128):
     I = np.eye(ff_xy, dtype=type_complex)
     O = np.zeros((ff_xy, ff_xy), dtype=type_complex)
 
-    kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
-    kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2) ** 0.5
+    # Ensure complex type before square root to prevent NaNs on evanescent orders
+    kz_top = (n_top ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2 + 0j) ** 0.5
+    kz_bot = (n_bot ** 2 - kx ** 2 - ky.reshape((-1, 1)) ** 2 + 0j) ** 0.5
 
-    kz_top = kz_top.flatten().conj()
-    kz_bot = kz_bot.flatten().conj()
+    kz_top = kz_top.flatten()
+    kz_bot = kz_bot.flatten()
 
-    varphi = np.arctan(ky.reshape((-1, 1)) / kx).flatten()
+    # Radiation condition for exp(+i*omega*t) convention:
+    # Forward/decaying waves must have Im(kz) <= 0.
+    # If Im(kz) > 0 (or Im(kz) == 0 and Re(kz) < 0), negate kz.
+    kz_top = np.where(kz_top.imag > 0, -kz_top, kz_top)
+    kz_bot = np.where(kz_bot.imag > 0, -kz_bot, kz_bot)
+    varphi = np.arctan2(ky.reshape((-1, 1)), kx).flatten()
     Kz_bot = np.diag(kz_bot)
 
     big_F = np.block([[I, O], [O, 1j * Kz_bot / (n_bot ** 2)]])
