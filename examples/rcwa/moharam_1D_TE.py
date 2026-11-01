@@ -4,19 +4,21 @@ from scipy.linalg import toeplitz
 
 
 def E_conv_1D_analytic(fourier_order, patterns, period):
-    eps = np.zeros(2 * fourier_order + 1).astype('complex')
+    # Retained modes -M..M couple through differences -2M..2M.
+    coefficient_order = 2 * fourier_order
+    eps = np.zeros(2 * coefficient_order + 1).astype('complex')
     E_conv_all = []
 
     for i, (n_rd, n_gr, fill_factor) in enumerate(patterns):
 
-        for i, order in enumerate(range(-fourier_order, fourier_order + 1)):
+        for i, order in enumerate(range(-coefficient_order, coefficient_order + 1)):
             if order == 0: continue
             eps[i] = (n_rd ** 2 - n_gr ** 2) * np.sin(np.pi * order * fill_factor) / (np.pi * order)
             eps[i] *= np.exp(1j * (2 * np.pi * order) / period)
 
-        eps[fourier_order] = (n_rd ** 2 * fill_factor + n_gr ** 2 * (1 - fill_factor))
+        eps[coefficient_order] = (n_rd ** 2 * fill_factor + n_gr ** 2 * (1 - fill_factor))
 
-        E = toeplitz(np.concatenate((eps[fourier_order:], eps[:fourier_order])))
+        E = toeplitz(eps[coefficient_order:], eps[coefficient_order::-1])
         E_conv_all.append(E)
 
     return E_conv_all
